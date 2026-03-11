@@ -212,9 +212,31 @@ function fmsExportCSV(){
     --text:#e8eaf0;--muted:#6b7280;--won:#00d4aa;--lost:#ff5c7c;
     --sw:230px;
   }
+  body.light-mode {
+    --bg:#f0f2f5;--surface:#ffffff;--surface2:#f8f9fa;--border:#e2e6ea;
+    --text:#1a1d23;--muted:#6b7280;--won:#00a67e;--lost:#e03e5c;
+  }
+  body.light-mode .sidebar{box-shadow:2px 0 12px rgba(0,0,0,0.08);}
+  body.light-mode .db-header{box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+  body.light-mode .kpi-card{box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+  body.light-mode .chart-card{box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+  body.light-mode .home-card{box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+  body.light-mode #loginPage{background:#f0f2f5 !important;}
+  body.light-mode .login-box{background:#ffffff !important;border-color:#e2e6ea !important;box-shadow:0 8px 32px rgba(0,0,0,0.1) !important;}
+  body.light-mode #loginEmail,body.light-mode #loginPass{background:#f8f9fa !important;border-color:#e2e6ea !important;color:#1a1d23 !important;}
+  body.light-mode #loginEmail::placeholder,body.light-mode #loginPass::placeholder{color:#9ca3af !important;}
+  .theme-toggle{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 11px;cursor:pointer;font-size:0.8rem;display:flex;align-items:center;gap:6px;color:var(--text);transition:all 0.2s;white-space:nowrap;}
+  .theme-toggle:hover{border-color:var(--accent);}
+  #loginThemeBtn{position:fixed;top:16px;right:16px;z-index:99999;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);border-radius:20px;padding:8px 14px;cursor:pointer;font-size:0.82rem;color:#e8eaf0;backdrop-filter:blur(8px);transition:all 0.2s;}
+  body.light-mode #loginThemeBtn{background:rgba(0,0,0,0.06);border-color:rgba(0,0,0,0.14);color:#1a1d23;}
+  body.light-mode .welcome-text{color:#1a1d23 !important;}
+  body.light-mode .user-name-text{color:#1a1d23 !important;}
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;}
-  .sidebar{width:var(--sw);min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:200;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  #mainPortal{display:none;min-height:100vh;flex-direction:row;}
+  #mainPortal.visible{display:flex !important;}
+  .sidebar{width:var(--sw);height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:200;overflow:hidden;}
+  .sidebar-nav-scroll{flex:1;overflow-y:auto;overflow-x:hidden;}
   .sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:var(--accent);letter-spacing:0.04em;line-height:1.3;}
   .sidebar-logo small{display:block;font-size:0.6rem;color:var(--muted);font-weight:400;letter-spacing:0.1em;text-transform:uppercase;margin-top:2px;}
   .sidebar-section{padding:14px 12px 6px;font-size:0.58rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);}
@@ -228,17 +250,17 @@ function fmsExportCSV(){
   .nav-badge.soon{background:rgba(107,114,128,0.12);color:var(--muted);}
   .nav-item.disabled{opacity:0.45;cursor:not-allowed;}
   .nav-item.disabled:hover{background:transparent;color:var(--muted);}
-  .sidebar-bottom{margin-top:auto;padding:14px;border-top:1px solid var(--border);font-size:0.68rem;color:var(--muted);}
+  .sidebar-bottom{flex-shrink:0;padding:14px;border-top:1px solid var(--border);font-size:0.68rem;color:var(--muted);background:var(--surface);}
   .live-dot-sm{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent2);margin-right:5px;animation:pulse 2s infinite;}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
-  .main-area{margin-left:var(--sw);flex:1;min-height:100vh;display:flex;flex-direction:column;}
+  .main-area{margin-left:var(--sw);flex:1;min-height:100vh;display:flex;flex-direction:column;width:calc(100% - var(--sw));}
   .dashboard-panel{display:none;flex-direction:column;min-height:100vh;}
   .dashboard-panel.active{display:flex;}
   .home-panel{padding:40px 40px 60px;}
   .home-welcome{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:6px;}
   .home-welcome span{color:var(--accent);}
   .home-sub{color:var(--muted);font-size:0.88rem;margin-bottom:36px;}
-  .home-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+  .home-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
   .home-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
   .home-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-top,var(--accent));}
   .home-card:hover{transform:translateY(-3px);border-color:var(--card-top,var(--accent));box-shadow:0 8px 30px rgba(0,0,0,0.3);}
@@ -262,7 +284,7 @@ function fmsExportCSV(){
   .refresh-btn.spinning span{display:inline-block;animation:spin 1s linear infinite;}
   @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   .last-sync{font-size:0.7rem;color:var(--muted);}
-  .db-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:18px;padding:60px;}
+  .db-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:18px;padding:60px;min-height:60vh;width:100%;text-align:center;}
   .loader-logo{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--accent);}
   .loader-bar{width:260px;height:3px;background:var(--border);border-radius:3px;overflow:hidden;}
   .loader-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;animation:load 2s ease-in-out infinite;}
@@ -549,21 +571,70 @@ function fmsExportCSV(){
 </style>
 </head>
 <body>
+
+<!-- ═══════ LOGIN PAGE ═══════ -->
+<div id="loginPage" style="position:fixed;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:#0a0c10;font-family:'DM Sans',sans-serif;z-index:9999;overflow-y:auto;">
+  <button id="loginThemeBtn" onclick="toggleTheme()">🌙 Dark</button>
+  <div style="width:100%;max-width:400px;padding:20px;margin:auto">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;color:#f0a500;letter-spacing:0.05em">ADITI</div>
+      <div style="font-size:0.68rem;color:#6b7280;letter-spacing:0.15em;text-transform:uppercase;margin-top:4px">Tracking Dashboard Portal</div>
+    </div>
+    <div class="login-box" style="background:#111318;border:1px solid #222630;border-radius:20px;padding:30px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+      <div class="welcome-text" style="font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:700;color:#e8eaf0;margin-bottom:4px">Welcome Back 👋</div>
+      <div style="font-size:0.78rem;color:#6b7280;margin-bottom:24px">Email aur password daalo</div>
+      <div id="loginErr" style="display:none;background:rgba(255,92,124,0.1);border:1px solid rgba(255,92,124,0.3);border-radius:10px;padding:10px 14px;font-size:0.78rem;color:#ff5c7c;margin-bottom:14px"></div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:0.68rem;color:#9ca3af;font-weight:500;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em">Email</label>
+        <input id="loginEmail" type="email" placeholder="your@email.com"
+          style="width:100%;background:#181c24;border:1px solid #222630;border-radius:10px;padding:12px 14px;color:#e8eaf0;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;transition:border 0.2s"
+          onfocus="this.style.borderColor='#f0a500'" onblur="this.style.borderColor='#222630'"
+          onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+      </div>
+      <div style="margin-bottom:22px">
+        <label style="font-size:0.68rem;color:#9ca3af;font-weight:500;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em">Password</label>
+        <div style="position:relative">
+          <input id="loginPass" type="password" placeholder="••••••••"
+            style="width:100%;background:#181c24;border:1px solid #222630;border-radius:10px;padding:12px 14px;padding-right:42px;color:#e8eaf0;font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;transition:border 0.2s"
+            onfocus="this.style.borderColor='#f0a500'" onblur="this.style.borderColor='#222630'"
+            onkeydown="if(event.key==='Enter')doLogin()">
+          <span onclick="togglePass()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:#6b7280;font-size:1rem" id="eyeIcon">👁️</span>
+        </div>
+      </div>
+      <button onclick="doLogin()" id="loginBtn"
+        style="width:100%;background:#f0a500;color:#0a0c10;border:none;border-radius:12px;padding:13px;font-size:0.92rem;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;transition:all 0.2s;letter-spacing:0.03em"
+        onmouseover="this.style.background='#e09500'" onmouseout="this.style.background='#f0a500'">
+        Login →
+      </button>
+      <div style="text-align:center;margin-top:16px;font-size:0.68rem;color:#6b7280">
+        <span class="live-dot-sm"></span> Secured by Google Authentication
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ MAIN PORTAL ═══════ -->
+<div id="mainPortal" style="display:none">
 <div class="sidebar">
   <div class="sidebar-logo">ADITI<br>TRACKING<small>Dashboard Portal</small></div>
-  <div class="sidebar-section">Dashboards</div>
-  <div class="nav-item active" onclick="switchDB('home')" id="nav-home"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
-  <div class="nav-item" onclick="switchDB('leads')" id="nav-leads"><span class="nav-icon">📊</span><span class="nav-label">Lead Tracking</span><span class="nav-badge live">Live</span></div>
-  <div class="nav-item" onclick="switchDB('collection')" id="nav-collection"><span class="nav-icon">💰</span><span class="nav-label">Collection</span><span class="nav-badge live">Live</span></div>
-  <div class="nav-item" onclick="switchDB('fms')" id="nav-fms"><span class="nav-icon">🚚</span><span class="nav-label">FMS O2D</span><span class="nav-badge live">Live</span></div>
-  <div class="sidebar-section" style="margin-top:8px">Coming Soon</div>
-  <div class="nav-item disabled"><span class="nav-icon">👥</span><span class="nav-label">HR / Attendance</span><span class="nav-badge soon">Soon</span></div>
-  <div class="nav-item disabled"><span class="nav-icon">📦</span><span class="nav-label">Inventory</span><span class="nav-badge soon">Soon</span></div>
-  <div class="nav-item disabled"><span class="nav-icon">📣</span><span class="nav-label">Marketing</span><span class="nav-badge soon">Soon</span></div>
-  <div class="nav-item disabled"><span class="nav-icon">🎧</span><span class="nav-label">Support</span><span class="nav-badge soon">Soon</span></div>
-  <div class="nav-item disabled"><span class="nav-icon">🚚</span><span class="nav-label">Operations</span><span class="nav-badge soon">Soon</span></div>
-  <div class="nav-item disabled"><span class="nav-icon">💹</span><span class="nav-label">Finance</span><span class="nav-badge soon">Soon</span></div>
-  <div class="sidebar-bottom"><span class="live-dot-sm"></span> Google Sheet Live</div>
+  <div style="padding:8px 14px;border-bottom:1px solid var(--border)">
+    <button class="theme-toggle" onclick="toggleTheme()" id="sidebarThemeBtn" style="width:100%;justify-content:center">🌙 Dark Mode</button>
+  </div>
+  <div class="sidebar-nav-scroll">
+    <div class="sidebar-section">Dashboards</div>
+    <div class="nav-item active" onclick="switchDB('home')" id="nav-home"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
+    <div class="nav-item" onclick="switchDB('leads')" id="nav-leads"><span class="nav-icon">📊</span><span class="nav-label">Lead Tracking</span><span class="nav-badge live">Live</span></div>
+    <div class="nav-item" onclick="switchDB('collection')" id="nav-collection"><span class="nav-icon">💰</span><span class="nav-label">Collection</span><span class="nav-badge live">Live</span></div>
+    <div class="nav-item" onclick="switchDB('fms')" id="nav-fms"><span class="nav-icon">🚚</span><span class="nav-label">FMS O2D</span><span class="nav-badge live">Live</span></div>
+    <div class="sidebar-section" style="margin-top:8px">Coming Soon</div>
+    <div class="nav-item disabled"><span class="nav-icon">👥</span><span class="nav-label">HR / Attendance</span><span class="nav-badge soon">Soon</span></div>
+    <div class="nav-item disabled"><span class="nav-icon">📦</span><span class="nav-label">Inventory</span><span class="nav-badge soon">Soon</span></div>
+    <div class="nav-item disabled"><span class="nav-icon">📣</span><span class="nav-label">Marketing</span><span class="nav-badge soon">Soon</span></div>
+    <div class="nav-item disabled"><span class="nav-icon">🎧</span><span class="nav-label">Support</span><span class="nav-badge soon">Soon</span></div>
+    <div class="nav-item disabled"><span class="nav-icon">🚚</span><span class="nav-label">Operations</span><span class="nav-badge soon">Soon</span></div>
+    <div class="nav-item disabled"><span class="nav-icon">💹</span><span class="nav-label">Finance</span><span class="nav-badge soon">Soon</span></div>
+  </div>
+  <div class="sidebar-bottom" id="sidebarBottom"><span class="live-dot-sm"></span> Google Sheet Live</div>
 </div>
 
 <!-- MOBILE BOTTOM NAV -->
@@ -1326,18 +1397,18 @@ function cGoPage(p){const tp=Math.ceil((Cf.length||1)/CPP);if(p<1||p>tp)return;C
 // ═══════════════════════════════
 // FMS O2D Dashboard Logic
 // ═══════════════════════════════
-const FMS_API = "https://script.google.com/macros/s/AKfycby7tpu7zfYzkWlu5LySCU823VGtJdONHvZqypzP_Y0tcO5kIXYyOOV3atGl9WVy_QI/exec";
-let fmsAllData=[], fmsFiltered=[], fmsPage=1, fmsCurrentFilter='all';
-const FMS_PER_PAGE=15;
-let fmsCharts={};
-let fmsLoaded=false;
+// const FMS_API = "https://script.google.com/macros/s/AKfycby7tpu7zfYzkWlu5LySCU823VGtJdONHvZqypzP_Y0tcO5kIXYyOOV3atGl9WVy_QI/exec";
+// let fmsAllData=[], fmsFiltered=[], fmsPage=1, fmsCurrentFilter='all';
+// const FMS_PER_PAGE=15;
+// let fmsCharts={};
+// let fmsLoaded=false;
 
-// Load when panel becomes active
-const _origSwitchDB = switchDB;
-switchDB = function(id) {
-  _origSwitchDB(id);
-  if(id==='fms' && !fmsLoaded) { fmsLoaded=true; fmsLoadData(); }
-};
+// // Load when panel becomes active
+// const _origSwitchDB = switchDB;
+// switchDB = function(id) {
+//   _origSwitchDB(id);
+//   if(id==='fms' && !fmsLoaded) { fmsLoaded=true; fmsLoadData(); }
+// };
 
 async function fmsLoadData(){
   document.getElementById('fTableBody').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;padding:3rem;gap:1rem;color:var(--muted);"><div class="loader-bar"><div class="loader-fill"></div></div><p style="font-size:0.8rem">Fetching live data...</p></div>`;
@@ -1511,6 +1582,133 @@ function fmsExportCSV(){
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...rows].join('\n'));a.download='fms_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 }
 
+</script>
+
+</div><!-- end mainPortal -->
+
+<script>
+// ═══════════════════════════════════
+// LOGIN SYSTEM
+// ═══════════════════════════════════
+const USERS_URL='https://script.google.com/macros/s/AKfycbzCIRFpQ97olQ1Yfoj5EJBSSXQg5jI3gHuaQ8l69IjPZ6n-mkwi9xPb7DB5CWi53nE/exec';
+let CURRENT_USER=null;
+
+window.addEventListener('load',function(){
+  const saved=sessionStorage.getItem('aditiUser');
+  if(saved){CURRENT_USER=JSON.parse(saved);showPortal();}
+});
+
+function togglePass(){
+  const p=document.getElementById('loginPass');
+  const e=document.getElementById('eyeIcon');
+  if(p.type==='password'){p.type='text';e.textContent='🙈';}
+  else{p.type='password';e.textContent='👁️';}
+}
+
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass=document.getElementById('loginPass').value.trim();
+  const btn=document.getElementById('loginBtn');
+  const err=document.getElementById('loginErr');
+  if(!email||!pass){err.style.display='block';err.textContent='⚠️ Email aur password dono daalo!';return;}
+  btn.textContent='Checking...';btn.style.opacity='0.7';btn.disabled=true;err.style.display='none';
+  try{
+    const res=await fetch(USERS_URL);
+    const users=await res.json();
+    const user=users.find(u=>
+      String(u['Email']||'').trim().toLowerCase()===email &&
+      String(u['Passoword']||u['Password']||'').trim()===pass
+    );
+    if(user){
+      CURRENT_USER={
+        email:email,
+        role:String(user['Role']||'employee').trim().toLowerCase(),
+        name:String(user['Name']||email.split('@')[0])
+      };
+      sessionStorage.setItem('aditiUser',JSON.stringify(CURRENT_USER));
+      showPortal();
+    } else {
+      err.style.display='block';
+      err.textContent='❌ Email ya password galat hai!';
+      btn.textContent='Login →';btn.style.opacity='1';btn.disabled=false;
+    }
+  }catch(e){
+    err.style.display='block';
+    err.textContent='⚠️ Server error — dobara try karo!';
+    btn.textContent='Login →';btn.style.opacity='1';btn.disabled=false;
+  }
+}
+
+function showPortal(){
+  document.getElementById('loginPage').style.display='none';
+  const portal=document.getElementById('mainPortal');
+  portal.classList.add('visible');
+  // Add user info + logout to sidebar
+  const sb=document.getElementById('sidebarBottom');
+  if(sb){
+    sb.innerHTML=`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="background:${CURRENT_USER.role==='owner'?'rgba(240,165,0,0.2)':'rgba(0,212,170,0.2)'};color:${CURRENT_USER.role==='owner'?'#f0a500':'#00d4aa'};width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.82rem;font-weight:700;flex-shrink:0">${(CURRENT_USER.name||CURRENT_USER.email)[0].toUpperCase()}</div>
+        <div style="overflow:hidden">
+          <div class="user-name-text" style="font-size:0.72rem;color:#e8eaf0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${CURRENT_USER.name||CURRENT_USER.email.split('@')[0]}</div>
+          <div style="font-size:0.6rem;color:#6b7280">${CURRENT_USER.role==='owner'?'👑 Owner':'👤 Employee'}</div>
+        </div>
+      </div>
+      <button onclick="doLogout()" style="width:100%;background:rgba(255,92,124,0.1);border:1px solid rgba(255,92,124,0.25);color:#ff5c7c;border-radius:8px;padding:8px;font-size:0.72rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s" onmouseover="this.style.background='rgba(255,92,124,0.25)'" onmouseout="this.style.background='rgba(255,92,124,0.1)'">
+        🚪 Logout
+      </button>`;
+  }
+  // Add logout to bottom nav more menu
+  const bnMore=document.querySelector('.bn-more-menu');
+  if(bnMore){bnMore.innerHTML+=`<div class="bn-more-item" onclick="doLogout()" style="color:#ff5c7c">🚪 Logout</div>`;}
+  // Sync theme button label after portal shows
+  const isLight = document.body.classList.contains('light-mode');
+  const sb2 = document.getElementById('sidebarThemeBtn');
+  if(sb2) sb2.textContent = (isLight ? '☀️ Light Mode' : '🌙 Dark Mode');
+  // Employee restrictions
+  if(CURRENT_USER.role==='employee'){restrictEmployee();}
+}
+
+function restrictEmployee(){
+  // Hide FMS from employee
+  const navFms=document.getElementById('nav-fms');
+  if(navFms)navFms.style.display='none';
+  const bnFms=document.getElementById('bn-fms');
+  if(bnFms)bnFms.style.display='none';
+  // Hide FMS card on home
+  document.querySelectorAll('.home-card').forEach(card=>{
+    if(card.textContent.includes('FMS'))card.style.display='none';
+  });
+  // Store email for data filtering
+  window.EMPLOYEE_EMAIL=CURRENT_USER.email;
+}
+
+function toggleTheme(){
+  const isLight = document.body.classList.toggle('light-mode');
+  localStorage.setItem('aditiTheme', isLight ? 'light' : 'dark');
+  const icon = isLight ? '☀️' : '🌙';
+  const label = isLight ? 'Light Mode' : 'Dark Mode';
+  const loginBtn = document.getElementById('loginThemeBtn');
+  const sidebarBtn = document.getElementById('sidebarThemeBtn');
+  if(loginBtn) loginBtn.textContent = icon + ' ' + label;
+  if(sidebarBtn) sidebarBtn.textContent = icon + ' ' + label;
+}
+
+// Apply saved theme on load
+(function(){
+  const saved = localStorage.getItem('aditiTheme');
+  if(saved === 'light'){
+    document.body.classList.add('light-mode');
+    const loginBtn = document.getElementById('loginThemeBtn');
+    if(loginBtn) loginBtn.textContent = '☀️ Light Mode';
+  }
+})();
+
+function doLogout(){
+  sessionStorage.removeItem('aditiUser');
+  CURRENT_USER=null;
+  location.reload();
+}
 </script>
 </body>
 </html>
