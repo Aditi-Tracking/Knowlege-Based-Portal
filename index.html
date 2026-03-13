@@ -902,6 +902,27 @@
 // NAVIGATION
 // ═══════════════════════════════════
 let lLoaded=false,cLoaded=false;
+// Pre-fetch data caches
+let _leadsCache=null, _collCache=null, _tasksCache=null, _fmsCache=null;
+let _tasksSuppCache=null, _tasksSalesCache=null;
+
+function prefetchAllData(){
+  // Silently fetch all panel data in background after login
+  if(!_leadsCache){
+    fetch(L_URL).then(r=>r.json()).then(d=>{_leadsCache=d;}).catch(()=>{});
+  }
+  if(!_collCache){
+    fetch(C_URL).then(r=>r.json()).then(d=>{_collCache=d;}).catch(()=>{});
+  }
+  if(!_tasksCache){
+    fetch(TASK_API).then(r=>r.json()).then(d=>{_tasksCache=d;}).catch(()=>{});
+    fetch(SUPPORT_API).then(r=>r.json()).then(d=>{_tasksSuppCache=d;}).catch(()=>{});
+    fetch(SALES_API).then(r=>r.json()).then(d=>{_tasksSalesCache=d;}).catch(()=>{});
+  }
+  if(!_fmsCache){
+    fetch(FMS_API).then(r=>r.text()).then(d=>{_fmsCache=d;}).catch(()=>{});
+  }
+}
 function toggleMoreMenu(){
   const m=document.getElementById('moreMenu');
   m.classList.toggle('open');
@@ -940,8 +961,9 @@ const LPP=15;
 async function loadLeads(){
   document.getElementById('leadsTxt').textContent='Google Sheet se data fetch ho raha hai...';
   try{
-    const res=await fetch(L_URL);if(!res.ok)throw new Error(res.status);
-    const rows=await res.json();
+    let rows;
+    if(_leadsCache){rows=_leadsCache;_leadsCache=null;}
+    else{const res=await fetch(L_URL);if(!res.ok)throw new Error(res.status);rows=await res.json();}
     L=rows.map(r=>{Object.keys(r).forEach(k=>{if(r[k]===''||r[k]===undefined)r[k]=null;});const wc=parseFloat(r['WinChances'])||0;r['LeadType']=wc<=2?'Cold':wc<=5?'Warm':'Hot';r['WinChances']=wc;r['Order Value']=r['Order Value']?parseFloat(r['Order Value'])||null:null;return r;}).filter(r=>r['CustomerName']);
     if(!L.length)throw new Error('No data');
     document.getElementById('leadsLoad').style.display='none';document.getElementById('leadsCont').style.display='block';
@@ -1054,8 +1076,9 @@ const CPP=20;
 async function loadColl(){
   document.getElementById('cTxt').textContent='Google Sheet se data fetch ho raha hai...';
   try{
-    const res=await fetch(C_URL); if(!res.ok) throw new Error('HTTP '+res.status);
-    const rows=await res.json();
+    let rows;
+    if(_collCache){rows=_collCache;_collCache=null;}
+    else{const res=await fetch(C_URL);if(!res.ok)throw new Error('HTTP '+res.status);rows=await res.json();}
     if(!Array.isArray(rows)) throw new Error('Invalid data: '+JSON.stringify(rows).slice(0,100));
     C=rows.map(r=>{
       r['Commitment']=parseFloat(r['Commitment'])||0;
@@ -1545,119 +1568,95 @@ async function loadTasks(){
   document.getElementById('tasksLoad').style.display='flex';
   document.getElementById('tasksCont').style.display='none';
   try{
-    // Fetch both APIs in parallel
-    const [res, suppRes, salesRes] = await Promise.allSettled([
-      fetch(TASK_API),
-      fetch(SUPPORT_API),
-      fetch(SALES_API)
-    ]);
-
     let mainRaw = [];
     let suppRaw = [];
     let salesRaw = [];
 
-    if(res.status === 'fulfilled' && res.value.ok){
-      mainRaw = await res.value.json();
-    }
-    if(suppRes.status === 'fulfilled' && suppRes.value.ok){
-      suppRaw = await suppRes.value.json();
-    }
-    if(salesRes.status === 'fulfilled' && salesRes.value.ok){
-      salesRaw = await salesRes.value.json();
-    }
+    // Show skeleton + render partial data as soon as first API responds
+    let firstDataShown = false;
 
-    // Normalize support data columns to match main task format
-    suppRaw = suppRaw.map(r => {
-      // Support sheet has same columns: Name, Email, Department, Task ID, Freq, Task, Planned, Actual, Status, Remarks
-      return {
-        'Name':       String(r['Name']||'').trim(),
-        'Email':      String(r['Email']||'').trim(),
-        'Department': String(r['Department']||'Support').trim(),
-        'Task ID':    String(r['Task ID']||r['TaskID']||'').trim(),
-        'Freq':       String(r['Freq']||'').trim(),
-        'Task':       String(r['Task']||'').trim(),
-        'Planned':    String(r['Planned']||'').trim(),
-        'Actual':     String(r['Actual']||'').trim(),
-        'Status':     String(r['Status']||'').trim(),
-        'Remarks':    String(r['Remarks']||'').trim(),
-        '_source':    'support'
-      };
-    });
-
-    // Normalize salesRaw
-    salesRaw = salesRaw.map(r => ({
-      'Name':       String(r['Name']||'').trim(),
-      'Email':      String(r['Email']||'').trim(),
-      'Department': String(r['Department']||'Sales').trim(),
-      'Task ID':    String(r['Task ID']||r['TaskID']||'').trim(),
-      'Freq':       String(r['Freq']||'').trim(),
-      'Task':       String(r['Task']||'').trim(),
-      'Planned':    r['Planned'] instanceof Date ? r['Planned'].toISOString() : String(r['Planned']||'').trim(),
-      'Actual':     r['Actual'] instanceof Date ? r['Actual'].toISOString() : String(r['Actual']||'').trim(),
-      'Status':     String(r['Status']||'').trim(),
-      'Remarks':    String(r['Remarks']||'').trim(),
-      '_source':    'sales'
-    }));
-
-    // Normalize mainRaw Freq
-    mainRaw = mainRaw.map(r => { if(r['Freq']) r['Freq']=String(r['Freq']).trim(); return r; });
-    // Merge both datasets
-    const combined = [...mainRaw, ...suppRaw, ...salesRaw];
-    const allRaw=combined.filter(r=>r['Name']&&String(r['Name']).trim()!=='');
-
-    // ── EMPLOYEE FILTER: sirf apni tasks ──
-    if(CURRENT_USER && CURRENT_USER.role!=='owner'){
-      const myEmail=String(CURRENT_USER.email||'').trim().toLowerCase();
-      const myName=String(CURRENT_USER.name||'').trim().toLowerCase();
-      const myFirst=myName.split(/\s+/)[0]||'';  // "pranali"
-      const myEmailLocal=myEmail.split('@')[0];   // "hr@aditi" → "hr"
-
-      tAllData=allRaw.filter(r=>{
-        const rName=String(r['Name']||'').trim().toLowerCase();
-        const rEmail=String(r['Email']||'').trim().toLowerCase();
-
-        if(rEmail && rEmail===myEmail) return true;   // exact email
-        if(rName && rName===myName) return true;       // exact full name
-        if(myFirst.length>2 && rName===myFirst) return true; // first name only match
-        if(myFirst.length>2 && rName.startsWith(myFirst)) return true; // name starts with
-        if(myEmailLocal.length>3 && rName===myEmailLocal) return true;
-        return false;
-      });
-
-      console.log('[Filter]', myEmail, myName, '→', tAllData.length, 'tasks');
-      // If still 0, log sheet names for debug
-      if(tAllData.length===0){
-        const sNames=[...new Set(allRaw.map(r=>String(r['Name']||'').trim()).filter(Boolean))].slice(0,15);
-        const sEmails=[...new Set(allRaw.map(r=>String(r['Email']||'').trim()).filter(Boolean))].slice(0,15);
-        console.warn('[Filter] NO MATCH. Sheet Names:', sNames);
-        console.warn('[Filter] Sheet Emails:', sEmails);
+    function mergeAndRender(){
+      const norm_supp = suppRaw.map(r=>({
+        'Name':String(r['Name']||'').trim(),'Email':String(r['Email']||'').trim(),
+        'Department':String(r['Department']||'Support').trim(),'Task ID':String(r['Task ID']||r['TaskID']||'').trim(),
+        'Freq':String(r['Freq']||'').trim(),'Task':String(r['Task']||'').trim(),
+        'Planned':String(r['Planned']||'').trim(),'Actual':String(r['Actual']||'').trim(),
+        'Status':String(r['Status']||'').trim(),'Remarks':String(r['Remarks']||'').trim(),'_source':'support'
+      }));
+      const norm_sales = salesRaw.map(r=>({
+        'Name':String(r['Name']||'').trim(),'Email':String(r['Email']||'').trim(),
+        'Department':String(r['Department']||'Sales').trim(),'Task ID':String(r['Task ID']||r['TaskID']||'').trim(),
+        'Freq':String(r['Freq']||'').trim(),'Task':String(r['Task']||'').trim(),
+        'Planned':r['Planned'] instanceof Date?r['Planned'].toISOString():String(r['Planned']||'').trim(),
+        'Actual':r['Actual'] instanceof Date?r['Actual'].toISOString():String(r['Actual']||'').trim(),
+        'Status':String(r['Status']||'').trim(),'Remarks':String(r['Remarks']||'').trim(),'_source':'sales'
+      }));
+      const norm_main = mainRaw.map(r=>{if(r['Freq'])r['Freq']=String(r['Freq']).trim();return r;});
+      const combined=[...norm_main,...norm_supp,...norm_sales];
+      const allRaw=combined.filter(r=>r['Name']&&String(r['Name']).trim()!=='');
+      if(CURRENT_USER && CURRENT_USER.role!=='owner'){
+        const myEmail=String(CURRENT_USER.email||'').trim().toLowerCase();
+        const myName=String(CURRENT_USER.name||'').trim().toLowerCase();
+        const myFirst=myName.split(/\s+/)[0]||'';
+        const myEmailLocal=myEmail.split('@')[0];
+        tAllData=allRaw.filter(r=>{
+          const rName=String(r['Name']||'').trim().toLowerCase();
+          const rEmail=String(r['Email']||'').trim().toLowerCase();
+          if(rEmail&&rEmail===myEmail)return true;
+          if(rName&&rName===myName)return true;
+          if(myFirst.length>2&&rName===myFirst)return true;
+          if(myFirst.length>2&&rName.startsWith(myFirst))return true;
+          if(myEmailLocal.length>3&&rName===myEmailLocal)return true;
+          return false;
+        });
+      } else {
+        tAllData=allRaw;
       }
-    } else {
-      tAllData=allRaw;
+      tProcessData();
+      document.getElementById('tasksLoad').style.display='none';
+      document.getElementById('tasksCont').style.display='block';
+      document.getElementById('tasksSync').textContent='Updated '+new Date().toLocaleTimeString();
     }
-    document.getElementById('tasksSync').textContent='Updated '+new Date().toLocaleTimeString();
-    tProcessData();
-    document.getElementById('tasksLoad').style.display='none';
-    document.getElementById('tasksCont').style.display='block';
-    // Show warning if employee has 0 tasks
-    if(CURRENT_USER && CURRENT_USER.role!=='owner' && tAllData.length===0){
-      const warn=document.getElementById('tNoTaskWarn');
-      if(warn){
-        // Get sample names & emails from raw data for debug
-        const sampleNames=[...new Set(allRaw.map(r=>String(r['Name']||'').trim()).filter(Boolean))].slice(0,8);
-        const sampleEmails=[...new Set(allRaw.map(r=>String(r['Email']||'').trim()).filter(Boolean))].slice(0,8);
-        const cols=allRaw.length>0?Object.keys(allRaw[0]):[];
-        warn.style.display='block';
-        warn.innerHTML=`<div style="background:rgba(255,92,124,0.08);border:1px solid rgba(255,92,124,0.3);border-radius:12px;padding:16px 20px;margin:16px 28px">
-          <div style="color:#ff5c7c;font-weight:700;margin-bottom:8px">⚠️ Koi task nahi mila!</div>
-          <div style="font-size:0.78rem;margin-bottom:6px">Login email: <b style="color:#f0a500">${CURRENT_USER.email}</b> &nbsp;|&nbsp; Name: <b style="color:#f0a500">${CURRENT_USER.name}</b></div>
-          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px">Task sheet columns: <b style="color:#00d4ff">${cols.join(', ')}</b></div>
-          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px">Sheet ke Names: <b style="color:#e8eaf0">${sampleNames.join(' | ')}</b></div>
-          <div style="font-size:0.72rem;color:var(--muted)">Sheet ke Emails: <b style="color:#e8eaf0">${sampleEmails.join(' | ')}</b></div>
-          <div style="margin-top:10px;font-size:0.72rem;color:#f0a500">👆 Upar ke naam/email se apna login match karo — exact same hona chahiye!</div>
-        </div>`;
+
+    // Use cache if available
+    if(_tasksCache){mainRaw=_tasksCache;_tasksCache=null;}
+    if(_tasksSuppCache){suppRaw=_tasksSuppCache;_tasksSuppCache=null;}
+    if(_tasksSalesCache){salesRaw=_tasksSalesCache;_tasksSalesCache=null;}
+
+    // If we have at least main data cached, show immediately
+    if(mainRaw.length>0){
+      mergeAndRender();
+      firstDataShown=true;
+    }
+
+    // Fetch missing data in parallel
+    const fetches=[];
+    if(!mainRaw.length) fetches.push(fetch(TASK_API).then(r=>r.json()).then(d=>{mainRaw=d;}).catch(()=>{}));
+    if(!suppRaw.length) fetches.push(fetch(SUPPORT_API).then(r=>r.json()).then(d=>{suppRaw=d;}).catch(()=>{}));
+    if(!salesRaw.length) fetches.push(fetch(SALES_API).then(r=>r.json()).then(d=>{salesRaw=d;}).catch(()=>{}));
+
+    if(fetches.length>0){
+      // Show partial data as soon as FIRST fetch completes (race)
+      if(!firstDataShown){
+        // Race: whichever API responds first, show data immediately
+        let raceResolved=false;
+        const racePromises=fetches.map(p=>p.then(()=>{
+          if(!raceResolved){
+            raceResolved=true;
+            mergeAndRender();
+            firstDataShown=true;
+          }
+        }));
+        // Wait for all to complete then do final re-render
+        await Promise.allSettled(fetches);
+      } else {
+        await Promise.allSettled(fetches);
       }
+      // Final render with all data
+      mergeAndRender();
+      return; // skip duplicate render below
     }
+
   }catch(e){
     document.getElementById('tasksLoad').style.display='none';
     document.getElementById('tasksCont').style.display='block';
@@ -2087,9 +2086,24 @@ function tGoPage(p){
 const USERS_URL='https://script.google.com/macros/s/AKfycbzCIRFpQ97olQ1Yfoj5EJBSSXQg5jI3gHuaQ8l69IjPZ6n-mkwi9xPb7DB5CWi53nE/exec';
 let CURRENT_USER=null;
 
+// Cache for pre-fetched user list
+let _usersCache=null;
+let _usersFetchPromise=null;
+
+function warmupAPIs(){
+  // Pre-fetch users list so login is instant
+  _usersFetchPromise=fetch(USERS_URL).then(r=>r.json()).then(data=>{_usersCache=data;return data;}).catch(()=>null);
+  // Warm-up ping to all other Google Apps Scripts (fire & forget)
+  [L_URL,C_URL,TASK_API,SUPPORT_API,SALES_API,FMS_API].forEach(url=>{
+    fetch(url+'?ping=1',{method:'GET',mode:'cors'}).catch(()=>{});
+  });
+}
+
 window.addEventListener('load',function(){
   const saved=sessionStorage.getItem('aditiUser');
   if(saved){CURRENT_USER=JSON.parse(saved);showPortal();}
+  // Always warm up APIs in background
+  warmupAPIs();
 });
 
 function togglePass(){
@@ -2107,8 +2121,17 @@ async function doLogin(){
   if(!email||!pass){err.style.display='block';err.textContent='⚠️ Email aur password dono daalo!';return;}
   btn.textContent='Checking...';btn.style.opacity='0.7';btn.disabled=true;err.style.display='none';
   try{
-    const res=await fetch(USERS_URL);
-    const users=await res.json();
+    // Use pre-fetched cache if available, else wait for ongoing fetch, else fetch fresh
+    let users;
+    if(_usersCache){
+      users=_usersCache;
+    } else if(_usersFetchPromise){
+      users=await _usersFetchPromise;
+      if(!users){const r=await fetch(USERS_URL);users=await r.json();}
+    } else {
+      const res=await fetch(USERS_URL);
+      users=await res.json();
+    }
     const user=users.find(u=>
       String(u['Email']||'').trim().toLowerCase()===email &&
       String(u['Passoword']||u['Password']||'').trim()===pass
@@ -2164,6 +2187,8 @@ function showPortal(){
   if(sb2) sb2.textContent = (isLight ? '☀️ Light Mode' : '🌙 Dark Mode');
   // Employee restrictions
   if(CURRENT_USER.role!=='owner'){restrictEmployee();}
+  // Pre-fetch all dashboard data in background
+  setTimeout(prefetchAllData, 300);
 }
 
 function restrictEmployee(){
