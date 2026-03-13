@@ -1597,18 +1597,42 @@ async function loadTasks(){
       if(CURRENT_USER && CURRENT_USER.role!=='owner'){
         const myEmail=String(CURRENT_USER.email||'').trim().toLowerCase();
         const myName=String(CURRENT_USER.name||'').trim().toLowerCase();
-        const myFirst=myName.split(/\s+/)[0]||'';
-        const myEmailLocal=myEmail.split('@')[0];
+        // Debug: log all sheet names & emails
+        const allNames=[...new Set(allRaw.map(r=>String(r['Name']||'').trim()).filter(Boolean))];
+        const allEmails=[...new Set(allRaw.map(r=>String(r['Email']||'').trim().toLowerCase()).filter(Boolean))];
+        console.log('[DEBUG] Login email:', myEmail, '| Login name:', myName);
+        console.log('[DEBUG] Sheet names:', allNames);
+        console.log('[DEBUG] Sheet emails:', allEmails);
+
         tAllData=allRaw.filter(r=>{
           const rName=String(r['Name']||'').trim().toLowerCase();
           const rEmail=String(r['Email']||'').trim().toLowerCase();
+          // Priority 1: exact email match
           if(rEmail&&rEmail===myEmail)return true;
-          if(rName&&rName===myName)return true;
-          if(myFirst.length>2&&rName===myFirst)return true;
-          if(myFirst.length>2&&rName.startsWith(myFirst))return true;
-          if(myEmailLocal.length>3&&rName===myEmailLocal)return true;
+          // Priority 2: exact full name match
+          if(rName&&myName&&rName===myName)return true;
+          // Priority 3: name without extra spaces / case variation
+          if(rName&&myName&&rName.replace(/\s+/g,' ')===myName.replace(/\s+/g,' '))return true;
           return false;
         });
+        console.log('[Filter result]', tAllData.length, 'tasks found');
+
+        // If 0 found, show helpful warning on screen
+        if(tAllData.length===0){
+          const warn=document.getElementById('tNoTaskWarn');
+          if(warn){
+            warn.style.display='block';
+            warn.innerHTML=`<div style="background:rgba(255,92,124,0.08);border:1px solid rgba(255,92,124,0.3);border-radius:12px;padding:16px 20px;margin:16px 0">
+              <div style="color:#ff5c7c;font-weight:700;margin-bottom:8px">⚠️ Koi task nahi mila!</div>
+              <div style="font-size:0.78rem;margin-bottom:6px">Login email: <b style="color:#f0a500">${myEmail}</b> &nbsp;|&nbsp; Login name: <b style="color:#f0a500">${myName}</b></div>
+              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px">Sheet mein yeh names hain:</div>
+              <div style="font-size:0.72rem;color:#e8eaf0;margin-bottom:6px">${allNames.slice(0,20).join(' &nbsp;|&nbsp; ')}</div>
+              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px">Sheet mein yeh emails hain:</div>
+              <div style="font-size:0.72rem;color:#e8eaf0;margin-bottom:8px">${allEmails.slice(0,20).join(' &nbsp;|&nbsp; ')}</div>
+              <div style="font-size:0.72rem;color:#f0a500">👆 Login email/name aur sheet ka naam bilkul same hona chahiye (spelling, spaces sab)!</div>
+            </div>`;
+          }
+        }
       } else {
         tAllData=allRaw;
       }
