@@ -849,17 +849,18 @@
 
       </div>
       <div class="table-scroll" style="overflow-x:auto">
-        <table style="width:100%;table-layout:fixed;min-width:800px">
+        <table style="width:100%;table-layout:fixed;min-width:900px">
           <colgroup>
-            <col style="width:13%">
+            <col style="width:12%">
+            <col style="width:9%">
+            <col style="width:6%">
+            <col style="width:5%">
+            <col style="width:20%">
+            <col style="width:8%">
+            <col style="width:9%">
+            <col style="width:8%">
             <col style="width:10%">
-            <col style="width:6%">
-            <col style="width:6%">
-            <col style="width:24%">
-            <col style="width:9%">
-            <col style="width:9%">
-            <col style="width:9%">
-            <col style="width:14%">
+            <col style="width:13%">
           </colgroup>
           <thead><tr>
             <th>NAME</th>
@@ -870,6 +871,7 @@
             <th>PLANNED</th>
             <th>ACTUAL</th>
             <th>STATUS</th>
+            <th>REMARKS</th>
             <th>ACTION</th>
           </tr></thead>
           <tbody id="tTblBody"></tbody>
@@ -1531,6 +1533,8 @@ function fmsExportCSV(){
 // TASK CHECKLIST DASHBOARD
 // ═══════════════════════════════════════
 const TASK_API = 'https://script.google.com/macros/s/AKfycbwzCJ_USWjj18Dj5Xtu1LUacso3H6oLKt0euvYVdByVsv1C2Zr9mtHPc48sAb9h5Fc/exec';
+const SUPPORT_API = 'https://script.google.com/macros/s/AKfycbwjr2vw4hhahlrLO3R5qGy2Se8JLHmzhNpXhqvPOZZiePKq0QwwGMijJRAvVC84-Vox/exec';
+const SALES_API = 'https://script.google.com/macros/s/AKfycbzFjQuvVpFYdBer5GvJM0JSRgiEi9hYiGdL1zRrpPz7cwIar8P47PnL00DKMFPudOcy/exec';
 let tAllData=[], tFiltered=[], tPage=1, tLoaded=false;
 const T_PER_PAGE=20;
 let tCharts={};
@@ -1541,9 +1545,65 @@ async function loadTasks(){
   document.getElementById('tasksLoad').style.display='flex';
   document.getElementById('tasksCont').style.display='none';
   try{
-    const res=await fetch(TASK_API);
-    const raw=await res.json();
-    const allRaw=raw.filter(r=>r['Name']&&String(r['Name']).trim()!=='');
+    // Fetch both APIs in parallel
+    const [res, suppRes, salesRes] = await Promise.allSettled([
+      fetch(TASK_API),
+      fetch(SUPPORT_API),
+      fetch(SALES_API)
+    ]);
+
+    let mainRaw = [];
+    let suppRaw = [];
+    let salesRaw = [];
+
+    if(res.status === 'fulfilled' && res.value.ok){
+      mainRaw = await res.value.json();
+    }
+    if(suppRes.status === 'fulfilled' && suppRes.value.ok){
+      suppRaw = await suppRes.value.json();
+    }
+    if(salesRes.status === 'fulfilled' && salesRes.value.ok){
+      salesRaw = await salesRes.value.json();
+    }
+
+    // Normalize support data columns to match main task format
+    suppRaw = suppRaw.map(r => {
+      // Support sheet has same columns: Name, Email, Department, Task ID, Freq, Task, Planned, Actual, Status, Remarks
+      return {
+        'Name':       String(r['Name']||'').trim(),
+        'Email':      String(r['Email']||'').trim(),
+        'Department': String(r['Department']||'Support').trim(),
+        'Task ID':    String(r['Task ID']||r['TaskID']||'').trim(),
+        'Freq':       String(r['Freq']||'').trim(),
+        'Task':       String(r['Task']||'').trim(),
+        'Planned':    String(r['Planned']||'').trim(),
+        'Actual':     String(r['Actual']||'').trim(),
+        'Status':     String(r['Status']||'').trim(),
+        'Remarks':    String(r['Remarks']||'').trim(),
+        '_source':    'support'
+      };
+    });
+
+    // Normalize salesRaw
+    salesRaw = salesRaw.map(r => ({
+      'Name':       String(r['Name']||'').trim(),
+      'Email':      String(r['Email']||'').trim(),
+      'Department': String(r['Department']||'Sales').trim(),
+      'Task ID':    String(r['Task ID']||r['TaskID']||'').trim(),
+      'Freq':       String(r['Freq']||'').trim(),
+      'Task':       String(r['Task']||'').trim(),
+      'Planned':    r['Planned'] instanceof Date ? r['Planned'].toISOString() : String(r['Planned']||'').trim(),
+      'Actual':     r['Actual'] instanceof Date ? r['Actual'].toISOString() : String(r['Actual']||'').trim(),
+      'Status':     String(r['Status']||'').trim(),
+      'Remarks':    String(r['Remarks']||'').trim(),
+      '_source':    'sales'
+    }));
+
+    // Normalize mainRaw Freq
+    mainRaw = mainRaw.map(r => { if(r['Freq']) r['Freq']=String(r['Freq']).trim(); return r; });
+    // Merge both datasets
+    const combined = [...mainRaw, ...suppRaw, ...salesRaw];
+    const allRaw=combined.filter(r=>r['Name']&&String(r['Name']).trim()!=='');
 
     // ── EMPLOYEE FILTER: sirf apni tasks ──
     if(CURRENT_USER && CURRENT_USER.role!=='owner'){
@@ -1636,7 +1696,7 @@ function tGetFiltered(){
     if(tActiveDept&&r['Department']!==tActiveDept) return false;
     if(tActiveStatus==='done'&&!tIsDone(r)) return false;
     if(tActiveStatus==='pending'&&tIsDone(r)) return false;
-    if(tActiveFreq&&(r['Freq']||'')!==tActiveFreq) return false;
+    if(tActiveFreq&&String(r['Freq']||'').trim()!==tActiveFreq) return false;
     const q=(document.getElementById('tSearch').value||'').toLowerCase();
     if(q&&!((r['Name']||'').toLowerCase().includes(q)||(r['Task']||'').toLowerCase().includes(q)||(r['Department']||'').toLowerCase().includes(q))) return false;
     return true;
@@ -1853,7 +1913,7 @@ function tUpdateBadge(){
 function tPopulateFilters(){
   const depts=[...new Set(tAllData.map(r=>r['Department']).filter(Boolean))].sort();
   const persons=[...new Set(tAllData.map(r=>r['Name']).filter(Boolean))].sort();
-  const freqs=[...new Set(tAllData.map(r=>r['Freq']).filter(Boolean))].sort();
+  const freqs=[...new Set(tAllData.map(r=>String(r['Freq']||'').trim()).filter(Boolean))].sort();
   document.getElementById('tFDept').innerHTML='<option value="">All Departments</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
   document.getElementById('tFPerson').innerHTML='<option value="">All People</option>'+persons.map(p=>`<option value="${p}">${p}</option>`).join('');
   document.getElementById('tFFreq').innerHTML='<option value="">All Frequency</option>'+freqs.map(f=>`<option value="${f}">${f}</option>`).join('');
@@ -1905,7 +1965,7 @@ function openTaskModal(idx){
   const email=encodeURIComponent(r['Email']||'');
   const dept=encodeURIComponent(r['Department']||'');
 
-  const formUrl=`${FORM_BASE}?usp=sf_link&${E_TASKID}=${taskId}&${E_NAME}=${name}&${E_EMAIL}=${email}&${E_DEPT}=${dept}`;
+  const formUrl=`${FORM_BASE}?usp=pp_url&rm=minimal&${E_TASKID}=${taskId}&${E_NAME}=${name}&${E_EMAIL}=${email}&${E_DEPT}=${dept}`;
 
   document.getElementById('taskModalContent').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.82rem">
@@ -1937,32 +1997,68 @@ function openTaskModal(idx){
 function closeTaskModal(){document.getElementById('taskDoneModal').style.display='none';}
 document.getElementById('taskDoneModal').addEventListener('click',function(e){if(e.target===this)closeTaskModal();});
 
+
+function fmtDate(val){
+  if(!val||val==='—'||val==='') return '—';
+  const s=String(val).trim();
+  // Already formatted DD/MM/YYYY
+  if(/^\d{2}\/\d{2}\/\d{4}/.test(s)) return s;
+  // ISO format: 2026-02-23T18:30:00.000Z
+  try{
+    const d=new Date(s);
+    if(isNaN(d.getTime())) return s;
+    const day=String(d.getDate()).padStart(2,'0');
+    const mon=String(d.getMonth()+1).padStart(2,'0');
+    const yr=d.getFullYear();
+    const hr=String(d.getHours()).padStart(2,'0');
+    const mn=String(d.getMinutes()).padStart(2,'0');
+    // If time is midnight (00:00) just show date
+    if(hr==='00'&&mn==='00') return `${day}/${mon}/${yr}`;
+    return `${day}/${mon}/${yr} ${hr}:${mn}`;
+  }catch(e){return s;}
+}
+
 function tRenderTable(){
   const start=(tPage-1)*T_PER_PAGE;
   const pg=tFiltered.slice(start,start+T_PER_PAGE);
   document.getElementById('tTblCnt').textContent=tFiltered.length+' tasks';
   const FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLSfybZZQnRcrwMPVcrO0ghkLTJXy04hUepl2rr2a5RvrYWB8iA/viewform';
+  const SUPPORT_FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLScVqYRcysjfmJAqaQROdOyyUvI6L0sP9J61hgek0lHxG-HsNg/viewform';
+  const SALES_FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLSdHmT6T5Q_hXnEcO6g3dDZawE2h96Hs2cyJqnYMxXoDYYSfuQ/viewform';
   document.getElementById('tTblBody').innerHTML=pg.map((r,i)=>{
     const done=tIsDone(r);
+    const isSupport=(r['Department']||'').toLowerCase()==='support'||r['_source']==='support';
+    const isSales=(r['Department']||'').toLowerCase()==='sales'||r['_source']==='sales';
     const statusBadge=done
       ?'<span class="badge" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.25)">✅ Done</span>'
       :'<span class="badge" style="background:rgba(240,165,0,0.1);color:#f0a500;border:1px solid rgba(240,165,0,0.2)">⏳ Pending</span>';
-    const fUrl=`${FORM_URL}?usp=sf_link&entry.1413514927=${encodeURIComponent(r['Task ID']||'')}`;
+    const fUrl = isSupport
+      ? `${SUPPORT_FORM_URL}?usp=pp_url&rm=minimal&entry.50730793=${encodeURIComponent(r['Task ID']||'')}`
+      : isSales
+        ? `${SALES_FORM_URL}?usp=pp_url&rm=minimal&entry.103788021=${encodeURIComponent(r['Task ID']||'')}`
+        : `${FORM_URL}?usp=pp_url&rm=minimal&entry.1413514927=${encodeURIComponent(r['Task ID']||'')}`;
     const actionCell=done
       ?`<span style="color:#00d4aa;font-size:0.75rem;font-weight:600">✅ Done</span>`
       :`<a href="${fUrl}" target="_blank"
           style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:7px 10px;font-size:0.72rem;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 8px rgba(168,85,247,0.4)">
           ✅ Mark Done
         </a>`;
+    const remarks = r['Remarks']||'';
+    const remarkCell = remarks
+      ? `<span style="font-size:0.72rem;color:#e8eaf0;background:rgba(255,255,255,0.06);padding:3px 7px;border-radius:5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${remarks.replace(/"/g,'')}">${remarks}</span>`
+      : `<span style="color:var(--muted);font-size:0.72rem">—</span>`;
+    const deptColor = (r['Department']||'').toLowerCase()==='support' ? '#00d4ff' : (r['Department']||'').toLowerCase()==='sales' ? '#00d4aa' : '#a855f7';
+    const deptBg = (r['Department']||'').toLowerCase()==='support' ? 'rgba(0,212,255,0.1)' : (r['Department']||'').toLowerCase()==='sales' ? 'rgba(0,212,170,0.1)' : 'rgba(168,85,247,0.1)';
     return `<tr>
       <td><div style="font-weight:600">${r['Name']||'—'}</div><div style="font-size:0.67rem;color:var(--muted)">${r['Email']||''}</div></td>
-      <td><span style="font-size:0.73rem;background:rgba(168,85,247,0.1);color:#a855f7;padding:3px 8px;border-radius:6px">${r['Department']||'—'}</span></td>
+      <td><span style="font-size:0.73rem;background:${deptBg};color:${deptColor};padding:3px 8px;border-radius:6px">${r['Department']||'—'}</span></td>
       <td style="font-size:0.78rem;color:var(--muted);text-align:center;font-weight:600">${r['Task ID']||'—'}</td>
       <td style="text-align:center"><span style="font-size:0.73rem;background:rgba(0,212,255,0.1);color:#00d4ff;padding:2px 7px;border-radius:5px">${r['Freq']||'—'}</span></td>
       <td style="font-size:0.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Task']||'').replace(/"/g,'')}">${r['Task']||'—'}</td>
-      <td style="font-size:0.75rem;color:var(--muted)">${r['Planned']||'—'}</td>
-      <td style="font-size:0.75rem;color:${r['Actual']?'#00d4aa':'var(--muted)'}">${r['Actual']||'—'}</td>
+      <td style="font-size:0.75rem;color:var(--muted)">${fmtDate(r['Planned'])}</td>
+      <td style="font-size:0.75rem;color:${r['Actual']?'#00d4aa':'var(--muted)'}">${fmtDate(r['Actual'])}</td>
       <td>${statusBadge}</td>
+      <td>${remarkCell}</td>
       <td style="white-space:nowrap">${actionCell}</td>
     </tr>`;
   }).join('');
@@ -2018,10 +2114,12 @@ async function doLogin(){
       String(u['Passoword']||u['Password']||'').trim()===pass
     );
     if(user){
+      const _rawR=String(user['Role']||'employee').trim().toLowerCase();
+      const _fullAccessRoles=['owner','mis','pc'];
       CURRENT_USER={
         email:email,
-        role:String(user['Role']||'').trim().toLowerCase()==='owner'?'owner':'employee',
-        rawRole:String(user['Role']||'employee').trim().toLowerCase(),
+        role:_fullAccessRoles.includes(_rawR)?'owner':'employee',
+        rawRole:_rawR,
         name:String(user['Name']||email.split('@')[0])
       };
       sessionStorage.setItem('aditiUser',JSON.stringify(CURRENT_USER));
@@ -2050,7 +2148,7 @@ function showPortal(){
         <div style="background:${CURRENT_USER.role==='owner'?'rgba(240,165,0,0.2)':'rgba(0,212,170,0.2)'};color:${CURRENT_USER.role==='owner'?'#f0a500':'#00d4aa'};width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.82rem;font-weight:700;flex-shrink:0">${(CURRENT_USER.name||CURRENT_USER.email)[0].toUpperCase()}</div>
         <div style="overflow:hidden">
           <div class="user-name-text" style="font-size:0.72rem;color:#e8eaf0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${CURRENT_USER.name||CURRENT_USER.email.split('@')[0]}</div>
-          <div style="font-size:0.6rem;color:#6b7280">${CURRENT_USER.role==='owner'?'👑 Owner':'👤 '+( (CURRENT_USER.rawRole&&CURRENT_USER.rawRole!=='employee')?CURRENT_USER.rawRole.charAt(0).toUpperCase()+CURRENT_USER.rawRole.slice(1):'Employee')}</div>
+          <div style="font-size:0.6rem;color:#6b7280">${CURRENT_USER.rawRole==='owner'?'👑 Owner':CURRENT_USER.rawRole==='mis'?'📊 MIS':CURRENT_USER.rawRole==='pc'?'💼 PC':CURRENT_USER.role==='owner'?'👑 Owner':'👤 '+( (CURRENT_USER.rawRole&&CURRENT_USER.rawRole!=='employee')?CURRENT_USER.rawRole.charAt(0).toUpperCase()+CURRENT_USER.rawRole.slice(1):'Employee')}</div>
         </div>
       </div>
       <button onclick="doLogout()" style="width:100%;background:rgba(255,92,124,0.1);border:1px solid rgba(255,92,124,0.25);color:#ff5c7c;border-radius:8px;padding:8px;font-size:0.72rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s" onmouseover="this.style.background='rgba(255,92,124,0.25)'" onmouseout="this.style.background='rgba(255,92,124,0.1)'">
