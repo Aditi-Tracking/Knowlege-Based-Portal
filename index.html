@@ -2162,7 +2162,19 @@ function warmupAPIs(){
 
 window.addEventListener('load',function(){
   const saved=localStorage.getItem('aditiUser');
-  if(saved){CURRENT_USER=JSON.parse(saved);showPortal();}
+  const loginTime=localStorage.getItem('aditiLoginTime');
+  const THIRTY_DAYS=30*24*60*60*1000; // 30 din milliseconds mein
+  if(saved){
+    // Check karo 30 din se zyada hua hai kya
+    if(loginTime && (Date.now()-parseInt(loginTime)) > THIRTY_DAYS){
+      // 30 din baad auto logout (security)
+      localStorage.removeItem('aditiUser');
+      localStorage.removeItem('aditiLoginTime');
+    } else {
+      CURRENT_USER=JSON.parse(saved);
+      showPortal();
+    }
+  }
   // Always warm up APIs in background
   warmupAPIs();
 });
@@ -2207,6 +2219,7 @@ async function doLogin(){
         name:String(user['Name']||email.split('@')[0])
       };
       localStorage.setItem('aditiUser',JSON.stringify(CURRENT_USER));
+      localStorage.setItem('aditiLoginTime',Date.now().toString());
       showPortal();
     } else {
       err.style.display='block';
@@ -2343,6 +2356,7 @@ function toggleTheme(){
 
 function doLogout(){
   localStorage.removeItem('aditiUser');
+  localStorage.removeItem('aditiLoginTime');
   CURRENT_USER=null;
   location.reload();
 }
