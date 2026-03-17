@@ -2197,9 +2197,17 @@ function fmsExportCSV(){
 // ═══════════════════════════════════════
 // TASK CHECKLIST DASHBOARD
 // ═══════════════════════════════════════
+// ═══════════════════════════════════════
+// MYSQL SERVER URL — Ek jagah change karo, sab jagah apply hoga
+// Desktop: 'http://127.0.0.1:5000'
+// Phone (same WiFi): 'http://192.168.1.72:5000' ← ipconfig se IP daalo
+// Online (permanent): 'https://your-server.railway.app' ← jab host karo
+// ═══════════════════════════════════════
+const MYSQL_BASE = 'http://192.168.1.72:5000';
+
 const TASK_API = 'https://script.google.com/macros/s/AKfycbwzCJ_USWjj18Dj5Xtu1LUacso3H6oLKt0euvYVdByVsv1C2Zr9mtHPc48sAb9h5Fc/exec';
-const SUPPORT_API = 'http://127.0.0.1:5000/api/tasks/support';
-const SALES_API = 'http://127.0.0.1:5000/api/tasks/sales';
+const SUPPORT_API = MYSQL_BASE + '/api/tasks/support';
+const SALES_API = MYSQL_BASE + '/api/tasks/sales';
 
 // Department → sheet mapping
 // TASK_API    = Collection, HR, Finance, Accounts (Sheet 3)
@@ -2776,7 +2784,7 @@ function tMarkDoneMySQL(taskId, dept, source){
   const actualForDisplay = day+'/'+mon+'/'+yr+' '+hr+':'+mn+':'+sc;
   
   // 1. MySQL update karo
-  fetch('http://127.0.0.1:5000/api/tasks/'+mysqlTaskId+'/status', {
+  fetch(MYSQL_BASE + '/api/tasks/'+mysqlTaskId+'/status', {
     method: 'PATCH',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({status:'done', actual:actualForMySQL, remarks:''})
