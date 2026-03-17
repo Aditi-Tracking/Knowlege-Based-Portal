@@ -2718,6 +2718,7 @@ function tRenderTable(){
     const actionCell=done
       ?`<span style="color:#00d4aa;font-size:0.75rem;font-weight:600">✅ Done</span>`
       :`<a href="${fUrl}" target="_blank"
+          onclick="tMarkDoneMySQL('${r['Task ID']||''}','${(r['Department']||'').toLowerCase()}','${r['_source']||''}')"
           style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:7px 10px;font-size:0.72rem;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 8px rgba(168,85,247,0.4)">
           ✅ Mark Done
         </a>`;
@@ -2754,6 +2755,58 @@ function tGoPage(p){
   if(p<1||p>tp) return;
   tPage=p; tRenderTable();
   document.querySelector('#panel-tasks .table-card').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ── MySQL Sync — Mark Done pe MySQL + Local data dono update ─
+function tMarkDoneMySQL(taskId, dept, source){
+  let offset = 0;
+  if(dept==='sales' || source==='sales') offset = 100000;
+  else if(dept==='support' || source==='support') offset = 0;
+  else offset = 200000;
+  
+  const mysqlTaskId = parseInt(taskId) + offset;
+  const now = new Date();
+  const day=String(now.getDate()).padStart(2,'0');
+  const mon=String(now.getMonth()+1).padStart(2,'0');
+  const yr=now.getFullYear();
+  const hr=String(now.getHours()).padStart(2,'0');
+  const mn=String(now.getMinutes()).padStart(2,'0');
+  const sc=String(now.getSeconds()).padStart(2,'0');
+  const actualForMySQL = yr+'-'+mon+'-'+day+' '+hr+':'+mn+':'+sc;
+  const actualForDisplay = day+'/'+mon+'/'+yr+' '+hr+':'+mn+':'+sc;
+  
+  // 1. MySQL update karo
+  fetch('http://127.0.0.1:5000/api/tasks/'+mysqlTaskId+'/status', {
+    method: 'PATCH',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({status:'done', actual:actualForMySQL, remarks:''})
+  }).then(r=>r.json()).then(d=>{
+    console.log('MySQL updated: Task '+mysqlTaskId, d);
+  }).catch(e=>{
+    console.log('MySQL update failed:', e);
+  });
+
+  // 2. Local data mein bhi update karo (tAllData + tFiltered)
+  const tid = String(taskId);
+  tAllData.forEach(r=>{
+    if(String(r['Task ID'])===tid && (r['Department']||'').toLowerCase()===dept){
+      r['Status']='done';
+      r['Actual']=actualForDisplay;
+    }
+  });
+  tFiltered.forEach(r=>{
+    if(String(r['Task ID'])===tid && (r['Department']||'').toLowerCase()===dept){
+      r['Status']='done';
+      r['Actual']=actualForDisplay;
+    }
+  });
+
+  // 3. Table + KPIs + Charts re-render karo
+  setTimeout(()=>{
+    tRenderKPIs();
+    tRenderCharts();
+    tRenderTable();
+  }, 300);
 }
 </script>
 </script>
