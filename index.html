@@ -1529,27 +1529,19 @@ function prefetchAllData(){
   const _isOwner = CURRENT_USER && CURRENT_USER.role === 'owner';
   const myEmail = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.email||'').trim().toLowerCase()) : '';
   const myName = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.name||'').trim().toLowerCase()) : '';
-  const empFilter = (!_isOwner && myEmail) ? '?email='+myEmail+'&name='+myName : '';
+  // Email filter sirf MySQL APIs ke liye (Google Sheet pe nahi lagega)
+  const mysqlFilter = (!_isOwner && myEmail) ? '?email='+myEmail+'&name='+myName : '';
 
   if(!_tasksCache){
-    if(_isOwner){
-      fetch(MYSQL_BASE + '/api/tasks/fast?role=owner')
-        .then(r=>r.json())
-        .then(d=>{
-          _tasksCache = d.filter(r=> ['collection','collections','hr','finance','accounts'].includes((r['Department']||'').toLowerCase()));
-          _tasksSuppCache = d.filter(r=> (r['Department']||'').toLowerCase() === 'support');
-          _tasksSalesCache = d.filter(r=> (r['Department']||'').toLowerCase() === 'sales');
-          _tasksAllReady = true;
-        })
-        .catch(()=>{});
-    } else {
-      const _apisToFetch = getTaskAPIsForUser();
-      const _prefetchArr = [];
-      if(_apisToFetch.main)  _prefetchArr.push(fetch(TASK_API+empFilter).then(r=>r.json()).then(d=>{_tasksCache=d;}).catch(()=>{}));
-      if(_apisToFetch.supp)  _prefetchArr.push(fetch(SUPPORT_API+empFilter).then(r=>r.json()).then(d=>{_tasksSuppCache=d;}).catch(()=>{}));
-      if(_apisToFetch.sales) _prefetchArr.push(fetch(SALES_API+empFilter).then(r=>r.json()).then(d=>{_tasksSalesCache=d;}).catch(()=>{}));
-      Promise.all(_prefetchArr).then(()=>{_tasksAllReady=true;});
-    }
+    const _apisToFetch = getTaskAPIsForUser();
+    const _prefetchArr = [];
+    // TASK_API = Google Sheet (no filter)
+    if(_apisToFetch.main)  _prefetchArr.push(fetch(TASK_API).then(r=>r.json()).then(d=>{_tasksCache=d;}).catch(()=>{}));
+    // SUPPORT_API = MySQL (email filter for employees)
+    if(_apisToFetch.supp)  _prefetchArr.push(fetch(SUPPORT_API+mysqlFilter).then(r=>r.json()).then(d=>{_tasksSuppCache=d;}).catch(()=>{}));
+    // SALES_API = MySQL (email filter for employees)
+    if(_apisToFetch.sales) _prefetchArr.push(fetch(SALES_API+mysqlFilter).then(r=>r.json()).then(d=>{_tasksSalesCache=d;}).catch(()=>{}));
+    Promise.all(_prefetchArr).then(()=>{_tasksAllReady=true;});
   }
 
   // Owner/MIS/PC: also fetch leads, collection, FMS in background
@@ -2338,27 +2330,19 @@ async function loadTasks(){
     if(_cacheApis.supp   && _tasksSuppCache) {suppRaw=_tasksSuppCache;_tasksSuppCache=null;}
     if(_cacheApis.sales  && _tasksSalesCache){salesRaw=_tasksSalesCache;_tasksSalesCache=null;}
 
-    // ⚡ Owner = fast call, Employee = department call with email filter
+    // TASK_API = Google Sheet (no filter), SUPPORT/SALES = MySQL (email filter)
     const _isOwner2 = CURRENT_USER && CURRENT_USER.role === 'owner';
     const _myEmail2 = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.email||'').trim().toLowerCase()) : '';
     const _myName2 = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.name||'').trim().toLowerCase()) : '';
-    const _empFilter2 = (!_isOwner2 && _myEmail2) ? '?email='+_myEmail2+'&name='+_myName2 : '';
+    const _mysqlFilter2 = (!_isOwner2 && _myEmail2) ? '?email='+_myEmail2+'&name='+_myName2 : '';
     
-    if(_isOwner2){
-      try {
-        const res = await fetch(MYSQL_BASE + '/api/tasks/fast?role=owner');
-        const allData = await res.json();
-        if(_cacheApis.main  && !mainRaw.length)  mainRaw  = allData.filter(r=> ['collection','collections','hr','finance','accounts'].includes((r['Department']||'').toLowerCase()));
-        if(_cacheApis.supp  && !suppRaw.length)  suppRaw  = allData.filter(r=> (r['Department']||'').toLowerCase() === 'support');
-        if(_cacheApis.sales && !salesRaw.length) salesRaw = allData.filter(r=> (r['Department']||'').toLowerCase() === 'sales');
-      } catch(e){}
-    } else {
-      const fetches=[];
-      if(_cacheApis.main  && !mainRaw.length)  fetches.push(fetch(TASK_API+_empFilter2).then(r=>r.json()).then(d=>{mainRaw=d;}).catch(()=>{}));
-      if(_cacheApis.supp  && !suppRaw.length)  fetches.push(fetch(SUPPORT_API+_empFilter2).then(r=>r.json()).then(d=>{suppRaw=d;}).catch(()=>{}));
-      if(_cacheApis.sales && !salesRaw.length) fetches.push(fetch(SALES_API+_empFilter2).then(r=>r.json()).then(d=>{salesRaw=d;}).catch(()=>{}));
-      if(fetches.length>0) await Promise.allSettled(fetches);
-    }
+    const fetches=[];
+    // TASK_API = Google Sheet (no filter)
+    if(_cacheApis.main  && !mainRaw.length)  fetches.push(fetch(TASK_API).then(r=>r.json()).then(d=>{mainRaw=d;}).catch(()=>{}));
+    // SUPPORT/SALES = MySQL (email filter for employees)
+    if(_cacheApis.supp  && !suppRaw.length)  fetches.push(fetch(SUPPORT_API+_mysqlFilter2).then(r=>r.json()).then(d=>{suppRaw=d;}).catch(()=>{}));
+    if(_cacheApis.sales && !salesRaw.length) fetches.push(fetch(SALES_API+_mysqlFilter2).then(r=>r.json()).then(d=>{salesRaw=d;}).catch(()=>{}));
+    if(fetches.length>0) await Promise.allSettled(fetches);
     mergeAndRender();
     return;
 
@@ -2834,7 +2818,6 @@ function tMarkDoneMySQL(taskId, dept, source){
     tRenderTable();
   }, 300);
 }
-</script>
 </script>
 
 <script>
