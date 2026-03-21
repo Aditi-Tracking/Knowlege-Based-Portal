@@ -2202,6 +2202,20 @@ function fmsExportCSV(){
 // ═══════════════════════════════════════
 // TASK CHECKLIST DASHBOARD
 // ═══════════════════════════════════════
+// Decompress {h:[headers], r:[rows]} format from compressed APIs
+function decompressAPI(data){
+  if(!data) return [];
+  if(Array.isArray(data)) return data; // already normal format
+  if(data.h && data.r){
+    return data.r.map(row=>{
+      const obj={};
+      data.h.forEach((h,i)=>{ obj[h]=row[i]!==undefined&&row[i]!==null?row[i]:''; });
+      return obj;
+    });
+  }
+  return [];
+}
+
 const TASK_API = 'https://script.google.com/macros/s/AKfycbwzCJ_USWjj18Dj5Xtu1LUacso3H6oLKt0euvYVdByVsv1C2Zr9mtHPc48sAb9h5Fc/exec';
 const SUPPORT_API = 'https://script.google.com/macros/s/AKfycbwOGyQ2d7OFMR0xebpx3ZUxlv-GUlKVDGLLyNkfr1hjZzvyXWarh00cVQgrEoZHbj4J/exec';
 const SALES_API = 'https://script.google.com/macros/s/AKfycbzFjQuvVpFYdBer5GvJM0JSRgiEi9hYiGdL1zRrpPz7cwIar8P47PnL00DKMFPudOcy/exec';
@@ -2316,18 +2330,18 @@ async function loadTasks(){
     // Use cache if prefetch already completed — instant render, no wait
     const _cacheApis = getTaskAPIsForUser();
     if(_tasksAllReady){
-      if(_tasksCache)      {mainRaw=_tasksCache;_tasksCache=null;}
+      if(_tasksCache)      {mainRaw=decompressAPI(_tasksCache);_tasksCache=null;}
       if(_tasksSuppCache)  {suppRaw=_tasksSuppCache;_tasksSuppCache=null;}
-      if(_tasksSalesCache) {salesRaw=_tasksSalesCache;_tasksSalesCache=null;}
+      if(_tasksSalesCache) {salesRaw=decompressAPI(_tasksSalesCache);_tasksSalesCache=null;}
       _tasksAllReady=false;
       mergeAndRender();
       return; // instant — no fetch needed
     }
 
     // Partial cache: use whatever is ready, fetch only what's missing
-    if(_cacheApis.main   && _tasksCache)     {mainRaw=_tasksCache;_tasksCache=null;}
+    if(_cacheApis.main   && _tasksCache)     {mainRaw=decompressAPI(_tasksCache);_tasksCache=null;}
     if(_cacheApis.supp   && _tasksSuppCache) {suppRaw=_tasksSuppCache;_tasksSuppCache=null;}
-    if(_cacheApis.sales  && _tasksSalesCache){salesRaw=_tasksSalesCache;_tasksSalesCache=null;}
+    if(_cacheApis.sales  && _tasksSalesCache){salesRaw=decompressAPI(_tasksSalesCache);_tasksSalesCache=null;}
 
     // TASK_API = Google Sheet (no filter), SUPPORT/SALES = MySQL (email filter)
     const _isOwner2 = CURRENT_USER && CURRENT_USER.role === 'owner';
@@ -2337,10 +2351,10 @@ async function loadTasks(){
     
     const fetches=[];
     // TASK_API = Google Sheet (no filter)
-    if(_cacheApis.main  && !mainRaw.length)  fetches.push(fetch(TASK_API).then(r=>r.json()).then(d=>{mainRaw=d;}).catch(()=>{}));
+    if(_cacheApis.main  && !mainRaw.length)  fetches.push(fetch(TASK_API).then(r=>r.json()).then(d=>{mainRaw=decompressAPI(d);}).catch(()=>{}));
     // SUPPORT/SALES = MySQL (email filter for employees)
     if(_cacheApis.supp  && !suppRaw.length)  fetches.push(fetch(SUPPORT_API+_mysqlFilter2).then(r=>r.json()).then(d=>{suppRaw=d;}).catch(()=>{}));
-    if(_cacheApis.sales && !salesRaw.length) fetches.push(fetch(SALES_API+_mysqlFilter2).then(r=>r.json()).then(d=>{salesRaw=d;}).catch(()=>{}));
+    if(_cacheApis.sales && !salesRaw.length) fetches.push(fetch(SALES_API+_mysqlFilter2).then(r=>r.json()).then(d=>{salesRaw=decompressAPI(d);}).catch(()=>{}));
     if(fetches.length>0) await Promise.allSettled(fetches);
     mergeAndRender();
     return;
