@@ -1531,18 +1531,14 @@ function prefetchAllData(){
   const _isOwner = CURRENT_USER && CURRENT_USER.role === 'owner';
   const myEmail = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.email||'').trim().toLowerCase()) : '';
   const myName = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.name||'').trim().toLowerCase()) : '';
-  // Email filter sirf MySQL APIs ke liye (Google Sheet pe nahi lagega)
-  const mysqlFilter = (!_isOwner && myEmail) ? '?email='+myEmail+'&name='+myName : '';
 
   if(!_tasksCache){
     const _apisToFetch = getTaskAPIsForUser();
     const _prefetchArr = [];
     // TASK_API = Google Sheet (no filter)
     if(_apisToFetch.main)  _prefetchArr.push(fetch(TASK_API).then(r=>r.json()).then(d=>{_tasksCache=d;}).catch(()=>{}));
-    // SUPPORT_API = MySQL (email filter for employees)
-    if(_apisToFetch.supp)  _prefetchArr.push(fetch(SUPPORT_API+mysqlFilter).then(r=>r.json()).then(d=>{_tasksSuppCache=d;}).catch(()=>{}));
-    // SALES_API = MySQL (email filter for employees)
-    if(_apisToFetch.sales) _prefetchArr.push(fetch(SALES_API+mysqlFilter).then(r=>r.json()).then(d=>{_tasksSalesCache=d;}).catch(()=>{}));
+    if(_apisToFetch.supp)  _prefetchArr.push(fetch(SUPPORT_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){_tasksSuppCache=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{const sd=d;_tasksSuppCache=Array.isArray(sd)?sd:(sd&&Array.isArray(sd.data)?sd.data:[]);}console.log("[SUPP PREFETCH]",_tasksSuppCache.length,"rows",_tasksSuppCache.length>0?Object.keys(_tasksSuppCache[0]):[]);}).catch(e=>console.log("[SUPP PREFETCH ERR]",e)));
+    if(_apisToFetch.sales) _prefetchArr.push(fetch(SALES_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){_tasksSalesCache=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{_tasksSalesCache=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log('[SALES PREFETCH]',_tasksSalesCache.length,'rows');}).catch(e=>console.log('[SALES PREFETCH ERR]',e)));
     Promise.all(_prefetchArr).then(()=>{_tasksAllReady=true;});
   }
 
@@ -2260,9 +2256,9 @@ function decompressAPI(data){
   return [];
 }
 
-const TASK_API = 'https://script.google.com/macros/s/AKfycbwzCJ_USWjj18Dj5Xtu1LUacso3H6oLKt0euvYVdByVsv1C2Zr9mtHPc48sAb9h5Fc/exec';
+const TASK_API = 'https://script.google.com/macros/s/AKfycbyo_iI8z_ySsww7vz47eum9dh9AzM6dDvSmMYqT68XXZVWC7bDMsSUbHAeF_0n_aDLStg/exec';
 const SUPPORT_API = 'https://script.google.com/macros/s/AKfycbykCc7Hdzy9gLcIXSusKnbg-6mfP7CnMFiuhvDYSr6lvm1XoRWg5ihErGDg7cVH9s1d/exec';
-const SALES_API = 'https://script.google.com/macros/s/AKfycbzFjQuvVpFYdBer5GvJM0JSRgiEi9hYiGdL1zRrpPz7cwIar8P47PnL00DKMFPudOcy/exec';
+const SALES_API = 'https://script.google.com/macros/s/AKfycbwSeXqD-8U4fL2TVEDxAYIoAypEO8qkpudWByXr52DBhukuPE_8LGMcAPQqyKhW-9xE/exec';
 
 // Department → sheet mapping
 // TASK_API    = Collection, HR, Finance, Accounts (Sheet 3)
@@ -2314,12 +2310,13 @@ async function loadTasks(){
 
     function mergeAndRender(){
       if(suppRaw.length>0){console.log('[SUPP COLS]',Object.keys(suppRaw[0]));console.log('[SUPP ROW1]',JSON.stringify(suppRaw[0]));}else{console.log('[SUPP EMPTY]');}
+      const _sk=suppRaw.length>0?Object.keys(suppRaw[0]):[];const _sName=_sk.find(k=>/^name$/i.test(k))||_sk.find(k=>/name/i.test(k))||"Name";const _sEmail=_sk.find(k=>/^email$/i.test(k))||_sk.find(k=>/email/i.test(k))||"Email";const _sTaskId=_sk.find(k=>/task.?id/i.test(k))||"Task ID";const _sTask=_sk.find(k=>/^task$/i.test(k))||_sk.find(k=>/^task/i.test(k))||"Task";const _sFreq=_sk.find(k=>/freq/i.test(k))||"Freq";const _sDept=_sk.find(k=>/dept/i.test(k))||"Department";const _sPlanned=_sk.find(k=>/planned/i.test(k))||"Planned";const _sActual=_sk.find(k=>/actual/i.test(k))||"Actual";const _sStatus=_sk.find(k=>/status/i.test(k))||"Status";const _sRemark=_sk.find(k=>/remark/i.test(k))||"Remarks";console.log("[SUPP MAP]",_sName,_sEmail,_sTaskId);
       const norm_supp = suppRaw.map(r=>({
-        'Name':String(r['Name']||'').trim(),'Email':String(r['Email']||'').trim(),
-        'Department':String(r['Department']||'Support').trim(),'Task ID':String(r['Task ID']||r['TaskID']||'').trim(),
-        'Freq':String(r['Freq']||'').trim(),'Task':String(r['Task']||'').trim(),
-        'Planned':String(r['Planned']||'').trim(),'Actual':String(r['Actual']||'').trim(),
-        'Status':String(r['Status']||'').trim(),'Remarks':String(r['Remarks']||'').trim(),'_source':'support'
+        'Name':String(r[_sName]||'').trim(),'Email':String(r[_sEmail]||'').trim(),
+        'Department':String(r[_sDept]||'Support').trim(),'Task ID':String(r[_sTaskId]||r['TaskID']||'').trim(),
+        'Freq':String(r[_sFreq]||'').trim(),'Task':String(r[_sTask]||'').trim(),
+        'Planned':String(r[_sPlanned]||'').trim(),'Actual':String(r[_sActual]||'').trim(),
+        'Status':String(r[_sStatus]||'').trim(),'Remarks':String(r[_sRemark]||'').trim(),'_source':'support'
       }));
       const norm_sales = salesRaw.map(r=>({
         'Name':String(r['Name']||'').trim(),'Email':String(r['Email']||'').trim(),
@@ -2387,8 +2384,8 @@ async function loadTasks(){
     const _cacheApis = getTaskAPIsForUser();
     if(_tasksAllReady){
       if(_tasksCache)      {mainRaw=decompressAPI(_tasksCache);_tasksCache=null;}
-      if(_tasksSuppCache)  {const d=_tasksSuppCache;suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:(d&&Array.isArray(d.rows)?d.rows:(d&&Array.isArray(d.result)?d.result:[])));_tasksSuppCache=null;}
-      if(_tasksSalesCache) {salesRaw=decompressAPI(_tasksSalesCache);_tasksSalesCache=null;}
+      if(_tasksSuppCache)  {const d=_tasksSuppCache;if(d&&d.h&&d.r){suppRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log("[SUPP CACHE]",suppRaw.length,"rows");_tasksSuppCache=null;}
+      if(_tasksSalesCache){const d=_tasksSalesCache;if(d&&d.h&&d.r){salesRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{salesRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log('[SALES CACHE]',salesRaw.length,'rows');_tasksSalesCache=null;}
       _tasksAllReady=false;
       mergeAndRender();
       return; // instant — no fetch needed
@@ -2396,21 +2393,19 @@ async function loadTasks(){
 
     // Partial cache: use whatever is ready, fetch only what's missing
     if(_cacheApis.main   && _tasksCache)     {mainRaw=decompressAPI(_tasksCache);_tasksCache=null;}
-    if(_cacheApis.supp   && _tasksSuppCache) {const d=_tasksSuppCache;suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:(d&&Array.isArray(d.rows)?d.rows:(d&&Array.isArray(d.result)?d.result:[])));_tasksSuppCache=null;}
+    if(_cacheApis.supp   && _tasksSuppCache) {const d=_tasksSuppCache;if(d&&d.h&&d.r){suppRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log("[SUPP CACHE2]",suppRaw.length,"rows");_tasksSuppCache=null;}
     if(_cacheApis.sales  && _tasksSalesCache){salesRaw=decompressAPI(_tasksSalesCache);_tasksSalesCache=null;}
 
-    // TASK_API = Google Sheet (no filter), SUPPORT/SALES = MySQL (email filter)
     const _isOwner2 = CURRENT_USER && CURRENT_USER.role === 'owner';
     const _myEmail2 = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.email||'').trim().toLowerCase()) : '';
     const _myName2 = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.name||'').trim().toLowerCase()) : '';
-    const _mysqlFilter2 = (!_isOwner2 && _myEmail2) ? '?email='+_myEmail2+'&name='+_myName2 : '';
     
     const fetches=[];
     // TASK_API = Google Sheet (no filter)
     if(_cacheApis.main  && !mainRaw.length)  fetches.push(fetch(TASK_API).then(r=>r.json()).then(d=>{mainRaw=decompressAPI(d);}).catch(()=>{}));
-    // SUPPORT/SALES = MySQL (email filter for employees)
-    if(_cacheApis.supp  && !suppRaw.length)  fetches.push(fetch(SUPPORT_API).then(r=>r.json()).then(d=>{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:(d&&Array.isArray(d.rows)?d.rows:(d&&Array.isArray(d.result)?d.result:[])));console.log("[SUPP]",suppRaw.length,"rows",suppRaw.length>0?Object.keys(suppRaw[0]):[]);}).catch(e=>console.log("[SUPP ERR]",e)));
-    if(_cacheApis.sales && !salesRaw.length) fetches.push(fetch(SALES_API+_mysqlFilter2).then(r=>r.json()).then(d=>{salesRaw=decompressAPI(d);}).catch(()=>{}));
+    // SUPPORT/SALES APIs
+    if(_cacheApis.supp  && !suppRaw.length)  fetches.push(fetch(SUPPORT_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){suppRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log("[SUPP]",suppRaw.length,"rows",suppRaw.length>0?Object.keys(suppRaw[0]):[]);}).catch(e=>console.log("[SUPP ERR]",e)));
+    if(_cacheApis.sales && !salesRaw.length) fetches.push(fetch(SALES_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){salesRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{salesRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log('[SALES]',salesRaw.length,'rows');}).catch(e=>console.log('[SALES ERR]',e)));
     if(fetches.length>0) await Promise.allSettled(fetches);
     mergeAndRender();
     return;
@@ -2718,10 +2713,10 @@ function tClearAll(){
 
 function openTaskModal(idx){
   const r=tFiltered[idx]; if(!r)return;
-  const FORM_BASE='https://docs.google.com/forms/d/e/1FAIpQLSfybZZQnRcrwMPVcrO0ghkLTJXy04hUepl2rr2a5RvrYWB8iA/viewform';
+  const FORM_BASE='https://docs.google.com/forms/d/e/1FAIpQLScAhyCfOdHfqJHJry36UuNZ-tn4B5bzsH8ONjWrIsdCq7LRGg/viewform';
   // Entry IDs — update these with actual form entry IDs
   // To find: open form > right-click field > Inspect > find entry.XXXXXXX
-  const E_TASKID   = 'entry.1413514927';   // ← Task ID field entry ID
+  const E_TASKID   = 'entry.254147949';   // ← Task ID field entry ID
   const E_NAME     = 'entry.NAME_ENTRY';       // ← Name field entry ID  
   const E_EMAIL    = 'entry.EMAIL_ENTRY';      // ← Email field entry ID
   const E_DEPT     = 'entry.DEPT_ENTRY';       // ← Department field entry ID
@@ -2788,9 +2783,9 @@ function tRenderTable(){
   const start=(tPage-1)*T_PER_PAGE;
   const pg=tFiltered.slice(start,start+T_PER_PAGE);
   document.getElementById('tTblCnt').textContent=tFiltered.length+' tasks';
-  const FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLSfybZZQnRcrwMPVcrO0ghkLTJXy04hUepl2rr2a5RvrYWB8iA/viewform';
+  const FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLScAhyCfOdHfqJHJry36UuNZ-tn4B5bzsH8ONjWrIsdCq7LRGg/viewform';
   const SUPPORT_FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLScAcLaUXRhZYl4tiBo7KaMfUyXQCTiPVaUT3d5O7cwsJZoLyQ/viewform';
-  const SALES_FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLSdHmT6T5Q_hXnEcO6g3dDZawE2h96Hs2cyJqnYMxXoDYYSfuQ/viewform';
+  const SALES_FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLSePSFFo6QH5tf3-yqEhQ1Vuv97IFxNbXt4v5ipXUahpSKkoVA/viewform';
   document.getElementById('tTblBody').innerHTML=pg.map((r,i)=>{
     const done=tIsDone(r);
     const isSupport=(r['Department']||'').toLowerCase()==='support'||r['_source']==='support';
@@ -2801,8 +2796,8 @@ function tRenderTable(){
     const fUrl = isSupport
       ? `${SUPPORT_FORM_URL}?usp=pp_url&rm=minimal&entry.2029632130=${encodeURIComponent(r['Task ID']||'')}`
       : isSales
-        ? `${SALES_FORM_URL}?usp=pp_url&rm=minimal&entry.103788021=${encodeURIComponent(r['Task ID']||'')}`
-        : `${FORM_URL}?usp=pp_url&rm=minimal&entry.1413514927=${encodeURIComponent(r['Task ID']||'')}`;
+        ? `${SALES_FORM_URL}?usp=pp_url&rm=minimal&entry.1645674088=${encodeURIComponent(r['Task ID']||'')}`
+        : `${FORM_URL}?usp=pp_url&rm=minimal&entry.254147949=${encodeURIComponent(r['Task ID']||'')}`;
     const actionCell=done
       ?`<span style="color:#00d4aa;font-size:0.75rem;font-weight:600">✅ Done</span>`
       :`<a href="${fUrl}" target="_blank"
@@ -2845,14 +2840,8 @@ function tGoPage(p){
   document.querySelector('#panel-tasks .table-card').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-// ── MySQL Sync — Mark Done pe MySQL + Local data dono update ─
+// ── Mark Done — Local update only ─
 function tMarkDoneMySQL(taskId, dept, source){
-  let offset = 0;
-  if(dept==='sales' || source==='sales') offset = 100000;
-  else if(dept==='support' || source==='support') offset = 0;
-  else offset = 200000;
-  
-  const mysqlTaskId = parseInt(taskId) + offset;
   const now = new Date();
   const day=String(now.getDate()).padStart(2,'0');
   const mon=String(now.getMonth()+1).padStart(2,'0');
@@ -2860,36 +2849,24 @@ function tMarkDoneMySQL(taskId, dept, source){
   const hr=String(now.getHours()).padStart(2,'0');
   const mn=String(now.getMinutes()).padStart(2,'0');
   const sc=String(now.getSeconds()).padStart(2,'0');
-  const actualForMySQL = yr+'-'+mon+'-'+day+' '+hr+':'+mn+':'+sc;
   const actualForDisplay = day+'/'+mon+'/'+yr+' '+hr+':'+mn+':'+sc;
-  
-  // 1. MySQL update karo
-  fetch(MYSQL_BASE + '/api/tasks/'+mysqlTaskId+'/status', {
-    method: 'PATCH',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({status:'done', actual:actualForMySQL, remarks:''})
-  }).then(r=>r.json()).then(d=>{
-    console.log('MySQL updated: Task '+mysqlTaskId, d);
-  }).catch(e=>{
-    console.log('MySQL update failed:', e);
-  });
 
-  // 2. Local data mein bhi update karo (tAllData + tFiltered)
+  // Local data update
   const tid = String(taskId);
   tAllData.forEach(r=>{
-    if(String(r['Task ID'])===tid && (r['Department']||'').toLowerCase()===dept){
+    if(String(r['Task ID'])===tid){
       r['Status']='done';
       r['Actual']=actualForDisplay;
     }
   });
   tFiltered.forEach(r=>{
-    if(String(r['Task ID'])===tid && (r['Department']||'').toLowerCase()===dept){
+    if(String(r['Task ID'])===tid){
       r['Status']='done';
       r['Actual']=actualForDisplay;
     }
   });
 
-  // 3. Table + KPIs + Charts re-render karo
+  // Re-render
   setTimeout(()=>{
     tRenderKPIs();
     tRenderCharts();
