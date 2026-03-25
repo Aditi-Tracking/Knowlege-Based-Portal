@@ -60,7 +60,7 @@
     position:fixed;top:16px;right:16px;z-index:99999;
     background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
     border-radius:20px;padding:8px 15px;cursor:pointer;font-size:0.78rem;
-    color:#e8eaf0;backdrop-filter:blur(10px);transition:all 0.2s;font-family:'DM Sans',sans-serif;
+    color:var(--text);backdrop-filter:blur(10px);transition:all 0.2s;font-family:'DM Sans',sans-serif;
   }
   body.light-mode #loginThemeBtn{background:rgba(0,0,0,0.05);border-color:rgba(0,0,0,0.12);color:#1a1d26;}
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -754,7 +754,7 @@
 .lp-tagline{
   font-family:'Syne',sans-serif;font-weight:800;
   font-size:2.6rem;line-height:1.18;
-  color:#e8eaf0;margin-bottom:18px;
+  color:var(--text);margin-bottom:18px;
   animation:fadeInUp 0.7s ease both;
 }
 .lp-tagline span{
@@ -762,7 +762,7 @@
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
 .lp-sub{
-  font-size:0.88rem;color:#6b7280;line-height:1.65;margin-bottom:44px;max-width:340px;
+  font-size:0.88rem;color:var(--text2);line-height:1.65;margin-bottom:44px;max-width:340px;
   animation:fadeInUp 0.8s ease both;
 }
 .lp-features{display:flex;flex-direction:column;gap:14px;animation:fadeInUp 0.9s ease both;}
@@ -775,8 +775,8 @@
 }
 .lp-feat:hover{background:rgba(240,165,0,0.06);border-color:rgba(240,165,0,0.15);}
 .lp-feat-icon{font-size:1.3rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.15);border-radius:10px;}.lp-feat-icon svg{width:17px!important;height:17px!important;}
-.lp-feat-info strong{font-size:0.8rem;color:#e8eaf0;display:block;margin-bottom:2px;font-weight:600;}
-.lp-feat-info span{font-size:0.7rem;color:#6b7280;}
+.lp-feat-info strong{font-size:0.8rem;color:var(--text);display:block;margin-bottom:2px;font-weight:600;}
+.lp-feat-info span{font-size:0.7rem;color:var(--text2);}
 
 .lp-divider{
   width:1px;height:100vh;
@@ -826,15 +826,15 @@
   letter-spacing:0.04em;display:block;
 }
 .lp-logo-sub{
-  font-size:0.63rem;color:#6b7280;letter-spacing:0.14em;
+  font-size:0.63rem;color:var(--text2);letter-spacing:0.14em;
   text-transform:uppercase;margin-top:3px;display:block;
 }
 
 .lp-welcome{
   font-family:'Syne',sans-serif;font-weight:700;font-size:1.12rem;
-  color:#e8eaf0;margin-bottom:4px;
+  color:var(--text);margin-bottom:4px;
 }
-.lp-welcome-sub{font-size:0.78rem;color:#6b7280;margin-bottom:24px;}
+.lp-welcome-sub{font-size:0.78rem;color:var(--text2);margin-bottom:24px;}
 
 #loginErr{
   display:none;
@@ -847,14 +847,14 @@
 
 .lp-field{margin-bottom:16px;}
 .lp-label{
-  font-size:0.64rem;color:#9ca3af;font-weight:600;
+  font-size:0.64rem;color:var(--text2);font-weight:600;
   display:block;margin-bottom:7px;
   text-transform:uppercase;letter-spacing:0.08em;
 }
 .lp-input-wrap{position:relative;}
 .lp-input-icon{
   position:absolute;left:13px;top:50%;transform:translateY(-50%);
-  color:#6b7280;font-size:0.9rem;pointer-events:none;
+  color:var(--text2);font-size:0.9rem;pointer-events:none;
 }
 .lp-input{
   width:100%;
@@ -862,7 +862,7 @@
   border:1px solid rgba(255,255,255,0.07);
   border-radius:11px;
   padding:12px 14px 12px 38px;
-  color:#e8eaf0;font-size:0.87rem;
+  color:var(--text);font-size:0.87rem;
   font-family:'DM Sans',sans-serif;
   outline:none;box-sizing:border-box;
   transition:border-color 0.2s,background 0.2s,box-shadow 0.2s;
@@ -875,7 +875,7 @@
 .lp-input::placeholder{color:rgba(107,114,128,0.7);font-size:0.84rem;}
 .lp-eye{
   position:absolute;right:12px;top:50%;transform:translateY(-50%);
-  cursor:pointer;color:#6b7280;font-size:1rem;
+  cursor:pointer;color:var(--text2);font-size:1rem;
   transition:color 0.2s;padding:4px;
 }
 .lp-eye:hover{color:#f0a500;}
@@ -910,7 +910,7 @@
 
 .lp-footer{
   text-align:center;margin-top:20px;
-  font-size:0.67rem;color:#6b7280;
+  font-size:0.67rem;color:var(--text2);
   display:flex;align-items:center;justify-content:center;gap:7px;
 }
 .lp-footer-dot{
@@ -1603,6 +1603,17 @@ const rN=e=>REP_MAP[e]?.name||(e||'').split('@')[0];
 const rC=e=>REP_MAP[e]?.color||'#888';
 const rB=e=>REP_MAP[e]?.bg||'rgba(128,128,128,0.2)';
 const rI=e=>rN(e).charAt(0).toUpperCase();
+// Set Chart.js global defaults based on current theme on initial load
+(function(){
+  const isLight = document.body.classList.contains('light-mode');
+  const tc = isLight ? '#000000' : '#ffffff';
+  const gc = isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.08)';
+  if(typeof Chart !== 'undefined'){
+    Chart.defaults.color = tc;
+    Chart.defaults.borderColor = gc;
+    Chart.defaults.font.family = 'DM Sans';
+  }
+})();
 let L=[],Lf=[],Lch={},Lp=1,Lsk=null,Lsd=1,Ltype='',Lkpi=null;
 let Lcf={leadType:null,source:null,solution:null,product:null};
 const LPP=15;
@@ -1684,11 +1695,13 @@ function lGetCF(){return L.filter(r=>{
 // Returns { tc, gc, gridDisplay } based on current theme
 function chartColors(){
   const isLight=document.body.classList.contains('light-mode');
-  return {
-    tc: isLight ? '#1a1d26' : '#f1f5f9',
-    gc: isLight ? 'rgba(0,0,0,0.07)'  : 'rgba(255,255,255,0.05)',
-    noGrid: isLight  // true = hide grid lines in light mode
-  };
+  const tc = isLight ? '#000000' : '#ffffff';
+  const gc = isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.08)';
+  if(typeof Chart !== 'undefined'){
+    Chart.defaults.color = tc;
+    Chart.defaults.borderColor = gc;
+  }
+  return { tc, gc, noGrid: false };
 }
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -1707,25 +1720,25 @@ function lRenderCharts(){
   const D=lGetCF();const sc=['#f0a500','#00d4aa','#ff5c7c','#4e9af1','#a78bfa','#f97316','#10b981'];
   const {tc:lTC,gc:lGC,noGrid:lNG}=chartColors();
   const tc={Hot:0,Warm:0,Cold:0};D.forEach(r=>{if(tc[r['LeadType']]!==undefined)tc[r['LeadType']]++;});
-  const tk=['Hot','Warm','Cold'];const tb=tk.map((k,i)=>Lcf.leadType&&Lcf.leadType!==k?'rgba(255,255,255,0.08)':['#ff5c7c','#f0a500','#4e9af1'][i]);
+  const tk=['Hot','Warm','Cold'];const tb=tk.map((k,i)=>Lcf.leadType&&Lcf.leadType!==k?(document.body.classList.contains('light-mode')?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.08)'):['#ff5c7c','#f0a500','#4e9af1'][i]);
   Lch.temp=new Chart(document.getElementById('lChTemp'),{type:'doughnut',data:{labels:['Hot 🔥','Warm 🌤','Cold ❄️'],datasets:[{data:[tc.Hot,tc.Warm,tc.Cold],backgroundColor:tb,borderWidth:0,hoverOffset:8}]},options:{cutout:'68%',onClick:(_,e)=>{if(e.length)lCF('leadType',tk[e[0].index]);},plugins:{legend:{position:'right',labels:{color:lTC,padding:10,font:{family:'DM Sans',size:10}}}},responsive:true,maintainAspectRatio:false}});
   document.getElementById('lChTemp').style.cursor='pointer';
   const so={};D.forEach(r=>{const s=(r['Source']||'Unknown').replace('Google Ads','GoogleAds').replace('CustomerReferral','Referral').replace('Internal Reference','Internal');so[s]=(so[s]||0)+1;});
   const ss=Object.entries(so).sort((a,b)=>b[1]-a[1]);
-  Lch.src=new Chart(document.getElementById('lChSrc'),{type:'bar',data:{labels:ss.map(([k])=>k),datasets:[{data:ss.map(([,v])=>v),backgroundColor:ss.map(([k],i)=>Lcf.source&&Lcf.source!==k?'rgba(255,255,255,0.06)':sc[i%sc.length]),borderRadius:6,borderWidth:0}]},options:{indexAxis:'y',onClick:(_,e)=>{if(e.length)lCF('source',ss[e[0].index][0]);},plugins:{legend:{display:false}},scales:{x:{ticks:{color:lTC,font:{family:'DM Sans',size:10}},grid:{display:!lNG,color:lGC}},y:{ticks:{color:lTC,font:{family:'DM Sans',size:10}},grid:{display:false}}},responsive:true,maintainAspectRatio:false}});
+  Lch.src=new Chart(document.getElementById('lChSrc'),{type:'bar',data:{labels:ss.map(([k])=>k),datasets:[{data:ss.map(([,v])=>v),backgroundColor:ss.map(([k],i)=>Lcf.source&&Lcf.source!==k?(document.body.classList.contains('light-mode')?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.06)'):sc[i%sc.length]),borderRadius:6,borderWidth:0}]},options:{indexAxis:'y',onClick:(_,e)=>{if(e.length)lCF('source',ss[e[0].index][0]);},plugins:{legend:{display:false}},scales:{x:{ticks:{color:lTC,font:{family:'DM Sans',size:10}},grid:{display:!lNG,color:lGC}},y:{ticks:{color:lTC,font:{family:'DM Sans',size:10}},grid:{display:false}}},responsive:true,maintainAspectRatio:false}});
   document.getElementById('lChSrc').style.cursor='pointer';
   const slc={};D.forEach(r=>{const s=r['Solution']||'Unknown';slc[s]=(slc[s]||0)+1;});const sk=Object.keys(slc);const slcol=['#00d4aa','#f0a500','#ff5c7c','#4e9af1','#a78bfa'];
-  Lch.sol=new Chart(document.getElementById('lChSol'),{type:'doughnut',data:{labels:sk,datasets:[{data:Object.values(slc),backgroundColor:sk.map((k,i)=>Lcf.solution&&Lcf.solution!==k?'rgba(255,255,255,0.06)':slcol[i%slcol.length]),borderWidth:0,hoverOffset:8}]},options:{cutout:'65%',onClick:(_,e)=>{if(e.length)lCF('solution',sk[e[0].index]);},plugins:{legend:{position:'right',labels:{color:lTC,padding:10,font:{family:'DM Sans',size:10}}}},responsive:true,maintainAspectRatio:false}});
+  Lch.sol=new Chart(document.getElementById('lChSol'),{type:'doughnut',data:{labels:sk,datasets:[{data:Object.values(slc),backgroundColor:sk.map((k,i)=>Lcf.solution&&Lcf.solution!==k?(document.body.classList.contains('light-mode')?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.06)'):slcol[i%slcol.length]),borderWidth:0,hoverOffset:8}]},options:{cutout:'65%',onClick:(_,e)=>{if(e.length)lCF('solution',sk[e[0].index]);},plugins:{legend:{position:'right',labels:{color:lTC,padding:10,font:{family:'DM Sans',size:10}}}},responsive:true,maintainAspectRatio:false}});
   document.getElementById('lChSol').style.cursor='pointer';
   const dc={};D.forEach(r=>{let d=(r['Timestamp']||'').toString();if(d.match(/^\d{2}\/\d{2}\/\d{4}/)){const m=d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);d=m[3]+'-'+m[2]+'-'+m[1];}d=d.slice(0,10);if(d.length===10)dc[d]=(dc[d]||0)+1;});
   const ds=Object.keys(dc).sort();
   Lch.day=new Chart(document.getElementById('lChDay'),{type:'line',data:{labels:ds.map(d=>d.slice(5)),datasets:[{data:ds.map(d=>dc[d]),borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,0.1)',fill:true,tension:0.4,pointBackgroundColor:'#a78bfa',pointRadius:4,borderWidth:2}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:lTC,font:{family:'DM Sans',size:10}},grid:{display:!lNG,color:lGC}},y:{ticks:{color:lTC,font:{family:'DM Sans',size:10}},grid:{display:!lNG,color:lGC}}},responsive:true,maintainAspectRatio:false}});
   const pc={};D.forEach(r=>{if(!r['Hero Product'])return;r['Hero Product'].split(/[,\/]/).map(p=>p.trim().replace(/\s+/g,'').toUpperCase()).filter(Boolean).forEach(p=>{pc[p]=(pc[p]||0)+1;});});
   const ps=Object.entries(pc).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  Lch.prod=new Chart(document.getElementById('lChProd'),{type:'bar',data:{labels:ps.map(([k])=>k),datasets:[{data:ps.map(([,v])=>v),backgroundColor:ps.map(([k])=>Lcf.product&&Lcf.product!==k?'rgba(255,255,255,0.06)':'#ff5c7c'),borderRadius:6,borderWidth:0}]},options:{onClick:(_,e)=>{if(e.length)lCF('product',ps[e[0].index][0]);},plugins:{legend:{display:false}},scales:{x:{ticks:{color:lTC,font:{family:'DM Sans',size:9}},grid:{display:false}},y:{ticks:{color:lTC,font:{family:'DM Sans',size:10}},grid:{display:!lNG,color:lGC}}},responsive:true,maintainAspectRatio:false}});
+  Lch.prod=new Chart(document.getElementById('lChProd'),{type:'bar',data:{labels:ps.map(([k])=>k),datasets:[{data:ps.map(([,v])=>v),backgroundColor:ps.map(([k])=>Lcf.product&&Lcf.product!==k?(document.body.classList.contains('light-mode')?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.06)'):'#ff5c7c'),borderRadius:6,borderWidth:0}]},options:{onClick:(_,e)=>{if(e.length)lCF('product',ps[e[0].index][0]);},plugins:{legend:{display:false}},scales:{x:{ticks:{color:lTC,font:{family:'DM Sans',size:9}},grid:{display:false}},y:{ticks:{color:lTC,font:{family:'DM Sans',size:10}},grid:{display:!lNG,color:lGC}}},responsive:true,maintainAspectRatio:false}});
   document.getElementById('lChProd').style.cursor='pointer';
 }
-function lRenderLB(){const rc={},rw={};L.forEach(r=>{const e=r['Emailaddress'];if(!e)return;rc[e]=(rc[e]||0)+1;if(r['Won']==='Yes')rw[e]=(rw[e]||0)+1;});const sorted=Object.entries(rc).sort((a,b)=>b[1]-a[1]);const mx=sorted[0]?.[1]||1;document.getElementById('lLBoard').innerHTML=sorted.map(([e,cnt],i)=>`<div class="lb-row"><span class="lb-rank">${i+1}</span><div style="background:${rB(e)};color:${rC(e)};width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.58rem;font-weight:700;flex-shrink:0">${rI(e)}</div><span style="font-size:0.73rem;flex:1">${rN(e)}</span><div class="lb-bar-wrap"><div class="lb-bar" style="width:${(cnt/mx*100).toFixed(0)}%;background:${rC(e)}"></div></div><span class="lb-count" style="color:${rC(e)}">${cnt}</span>${rw[e]?'<span style="font-size:0.62rem;color:var(--won);margin-left:3px">✓'+rw[e]+'</span>':''}</div>`).join('');}
+function lRenderLB(){const rc={},rw={};L.forEach(r=>{const e=r['Emailaddress'];if(!e)return;rc[e]=(rc[e]||0)+1;if(r['Won']==='Yes')rw[e]=(rw[e]||0)+1;});const sorted=Object.entries(rc).sort((a,b)=>b[1]-a[1]);const mx=sorted[0]?.[1]||1;document.getElementById('lLBoard').innerHTML=sorted.map(([e,cnt],i)=>`<div class="lb-row"><span class="lb-rank">${i+1}</span><div style="background:${rB(e)};color:${rC(e)};width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.58rem;font-weight:700;flex-shrink:0">${rI(e)}</div><span style="font-size:0.73rem;flex:1;color:var(--text)">${rN(e)}</span><div class="lb-bar-wrap"><div class="lb-bar" style="width:${(cnt/mx*100).toFixed(0)}%;background:${rC(e)}"></div></div><span class="lb-count" style="color:${rC(e)}">${cnt}</span>${rw[e]?'<span style="font-size:0.62rem;color:var(--won);margin-left:3px">✓'+rw[e]+'</span>':''}</div>`).join('');}
 function lRenderInsights(){
   const wd=L.filter(r=>r['Won']==='Yes'&&r['Order Value']);const tr=wd.reduce((s,r)=>s+(+r['Order Value']||0),0);const mx=[...wd].sort((a,b)=>(+b['Order Value']||0)-(+a['Order Value']||0))[0];
   document.getElementById('lRevIns').innerHTML=`<div class="insight-row"><span>Total Revenue</span><span class="insight-val">₹${tr.toLocaleString('en-IN')}</span></div><div class="insight-row"><span>Avg Deal</span><span class="insight-val">₹${wd.length?Math.round(tr/wd.length).toLocaleString('en-IN'):0}</span></div><div class="insight-row"><span>Biggest Deal</span><span class="insight-val">₹${mx?(+mx['Order Value']).toLocaleString('en-IN'):0}</span></div><div class="insight-row"><span>Won / Total</span><span class="insight-val">${wd.length} / ${L.length}</span></div><div class="insight-row"><span>Top Winner</span><span class="insight-val">${mx?rN(mx['Emailaddress']):'—'}</span></div>`;
@@ -1986,7 +1999,7 @@ function cRenderLB(D){
     <div class="lb-row">
       <span style="font-size:1rem;width:26px;flex-shrink:0">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
       <div style="background:${b.color}22;color:${b.color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">${b.name[0]}</div>
-      <div style="flex:1"><div style="font-size:0.8rem;font-weight:600">${b.name}</div><div style="font-size:0.63rem;color:var(--muted)">₹${b.ac.toLocaleString('en-IN')} / ₹${b.co.toLocaleString('en-IN')}</div></div>
+      <div style="flex:1"><div style="font-size:0.8rem;font-weight:600;color:var(--text)">${b.name}</div><div style="font-size:0.63rem;color:var(--muted)">₹${b.ac.toLocaleString('en-IN')} / ₹${b.co.toLocaleString('en-IN')}</div></div>
       <div class="lb-bar-wrap"><div class="lb-bar" style="width:${(b.ac/mx*100).toFixed(0)}%;background:${b.color}"></div></div>
       <span style="font-size:0.75rem;font-weight:700;color:${b.color};min-width:48px;text-align:right">${b.pct}%</span>
     </div>`).join('');
@@ -2381,9 +2394,9 @@ async function loadTasks(){
               <div style="color:#ff5c7c;font-weight:700;margin-bottom:8px">⚠️ No tasks found!</div>
               <div style="font-size:0.78rem;margin-bottom:6px">Login email: <b style="color:#f0a500">${myEmail}</b> &nbsp;|&nbsp; Login name: <b style="color:#f0a500">${myName}</b></div>
               <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px">Names in sheet:</div>
-              <div style="font-size:0.72rem;color:#e8eaf0;margin-bottom:6px">${allNames.slice(0,20).join(' &nbsp;|&nbsp; ')}</div>
+              <div style="font-size:0.72rem;color:var(--text);margin-bottom:6px">${allNames.slice(0,20).join(' &nbsp;|&nbsp; ')}</div>
               <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px">Emails in sheet:</div>
-              <div style="font-size:0.72rem;color:#e8eaf0;margin-bottom:8px">${allEmails.slice(0,20).join(' &nbsp;|&nbsp; ')}</div>
+              <div style="font-size:0.72rem;color:var(--text);margin-bottom:8px">${allEmails.slice(0,20).join(' &nbsp;|&nbsp; ')}</div>
               <div style="font-size:0.72rem;color:#f0a500">👆 Login email/name must exactly match the name in the sheet (spelling, spaces — everything)!</div>
             </div>`;
           }
@@ -2554,7 +2567,7 @@ function tRenderCharts(){
     data:{labels:['Completed','Pending'],datasets:[{
       data:[doneCount,pendCount],
       backgroundColor:tActiveStatus?
-        (tActiveStatus==='done'?['#00d4aa','rgba(255,255,255,0.06)']:['rgba(255,255,255,0.06)','#f0a500']):
+        (tActiveStatus==='done'?['#00d4aa',(document.body.classList.contains('light-mode')?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.06)')]:[(document.body.classList.contains('light-mode')?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.06)'),'#f0a500']):
         ['#00d4aa','#f0a500'],
       borderWidth:0,hoverOffset:8
     }]},
@@ -2574,7 +2587,7 @@ function tRenderCharts(){
     data:{labels:persons,datasets:[{
       data:personCounts,
       backgroundColor:persons.map(p=>tActivePerson?
-        (tActivePerson===p?'#00d4ff':'rgba(0,212,255,0.15)'):
+        (tActivePerson===p?'#00d4ff':(document.body.classList.contains('light-mode')?'rgba(0,212,255,0.12)':'rgba(0,212,255,0.15)')):
         '#00d4ff'),
       borderRadius:6,borderSkipped:false
     }]},
@@ -2599,7 +2612,7 @@ function tRenderCharts(){
     data:{labels:depts,datasets:[{
       data:deptCounts,
       backgroundColor:depts.map((d,i)=>tActiveDept?
-        (tActiveDept===d?DCOLS[i%DCOLS.length]:'rgba(255,255,255,0.06)'):
+        (tActiveDept===d?DCOLS[i%DCOLS.length]:(document.body.classList.contains('light-mode')?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.06)')):
         DCOLS[i%DCOLS.length]),
       borderRadius:6,borderSkipped:false
     }]},
@@ -2835,7 +2848,7 @@ function tRenderTable(){
         </a>`;
     const remarks = r['Remarks']||'';
     const remarkCell = remarks
-      ? `<span style="font-size:0.72rem;color:#e8eaf0;background:rgba(255,255,255,0.06);padding:3px 7px;border-radius:5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${remarks.replace(/"/g,'')}">${remarks}</span>`
+      ? `<span style="font-size:0.72rem;color:var(--text);background:var(--surface2);padding:3px 7px;border-radius:5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${remarks.replace(/"/g,'')}">${remarks}</span>`
       : `<span style="color:var(--muted);font-size:0.72rem">—</span>`;
     const deptColor = (r['Department']||'').toLowerCase()==='support' ? '#00d4ff' : (r['Department']||'').toLowerCase()==='sales' ? '#00d4aa' : '#a855f7';
     const deptBg = (r['Department']||'').toLowerCase()==='support' ? 'rgba(0,212,255,0.1)' : (r['Department']||'').toLowerCase()==='sales' ? 'rgba(0,212,170,0.1)' : 'rgba(168,85,247,0.1)';
@@ -3054,8 +3067,8 @@ function showPortal(){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <div style="background:${CURRENT_USER.role==='owner'?'rgba(240,165,0,0.2)':'rgba(0,212,170,0.2)'};color:${CURRENT_USER.role==='owner'?'#f0a500':'#00d4aa'};width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.82rem;font-weight:700;flex-shrink:0">${(CURRENT_USER.name||CURRENT_USER.email)[0].toUpperCase()}</div>
         <div style="overflow:hidden">
-          <div class="user-name-text" style="font-size:0.72rem;color:#e8eaf0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${CURRENT_USER.name||CURRENT_USER.email.split('@')[0]}</div>
-          <div style="font-size:0.6rem;color:#6b7280">${CURRENT_USER.rawRole==='owner'?'👑 Owner':CURRENT_USER.rawRole==='mis'?'📊 MIS':CURRENT_USER.rawRole==='pc'?'💼 PC':CURRENT_USER.role==='owner'?'👑 Owner':'👤 '+( (CURRENT_USER.rawRole&&CURRENT_USER.rawRole!=='employee')?CURRENT_USER.rawRole.charAt(0).toUpperCase()+CURRENT_USER.rawRole.slice(1):'Employee')}</div>
+          <div class="user-name-text" style="font-size:0.72rem;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${CURRENT_USER.name||CURRENT_USER.email.split('@')[0]}</div>
+          <div style="font-size:0.6rem;color:var(--text2)">${CURRENT_USER.rawRole==='owner'?'👑 Owner':CURRENT_USER.rawRole==='mis'?'📊 MIS':CURRENT_USER.rawRole==='pc'?'💼 PC':CURRENT_USER.role==='owner'?'👑 Owner':'👤 '+( (CURRENT_USER.rawRole&&CURRENT_USER.rawRole!=='employee')?CURRENT_USER.rawRole.charAt(0).toUpperCase()+CURRENT_USER.rawRole.slice(1):'Employee')}</div>
         </div>
       </div>
       <button onclick="doLogout()" style="width:100%;background:rgba(255,92,124,0.1);border:1px solid rgba(255,92,124,0.25);color:#ff5c7c;border-radius:8px;padding:8px;font-size:0.72rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s" onmouseover="this.style.background='rgba(255,92,124,0.25)'" onmouseout="this.style.background='rgba(255,92,124,0.1)'">
@@ -3110,10 +3123,34 @@ function toggleTheme(){
   if(sidebarBtn) sidebarBtn.textContent = icon + ' ' + label;
   if(mobBtn) mobBtn.textContent = icon + ' ' + (isLight ? 'Light' : 'Dark');
   // Redraw all charts so axis/label colors update immediately
-  try{ if(typeof lRenderCharts==='function'&&Object.keys(Lch||{}).length) lRenderCharts(); }catch(e){}
-  try{ if(typeof cRenderCharts==='function'&&Object.keys(Cch||{}).length){ const cD=typeof cGetFiltered==='function'?cGetFiltered():(C||[]); cRenderCharts(cD); } }catch(e){}
-  try{ if(typeof fmsRenderCharts==='function'&&Object.keys(fmsCharts||{}).length) fmsRenderCharts(); }catch(e){}
-  try{ if(typeof tRenderCharts==='function'&&Object.keys(tCharts||{}).length) tRenderCharts(); }catch(e){}
+  // First destroy existing charts, then re-render with new colors
+  try{
+    if(typeof L!=='undefined'&&L.length){
+      Object.values(Lch||{}).forEach(c=>c&&c.destroy&&c.destroy()); Lch={};
+      if(typeof lRenderCharts==='function') lRenderCharts();
+      if(typeof lRenderLB==='function') lRenderLB();
+    }
+  }catch(e){}
+  try{
+    if(typeof C!=='undefined'&&C.length){
+      Object.values(Cch||{}).forEach(c=>c&&c.destroy&&c.destroy()); Cch={};
+      const cD=typeof cGetFiltered==='function'?cGetFiltered():(C||[]);
+      if(typeof cRenderCharts==='function') cRenderCharts(cD);
+      if(typeof cRenderLB==='function') cRenderLB(cD);
+    }
+  }catch(e){}
+  try{
+    if(typeof fmsCharts!=='undefined'&&Object.keys(fmsCharts||{}).length){
+      Object.values(fmsCharts).forEach(c=>c&&c.destroy&&c.destroy()); fmsCharts={};
+      if(typeof fmsRenderCharts==='function') fmsRenderCharts();
+    }
+  }catch(e){}
+  try{
+    if(typeof tCharts!=='undefined'&&Object.keys(tCharts||{}).length){
+      Object.values(tCharts).forEach(c=>c&&c.destroy&&c.destroy()); tCharts={};
+      if(typeof tRenderCharts==='function') tRenderCharts();
+    }
+  }catch(e){}
 }
 
 // Apply saved theme on load
