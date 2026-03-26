@@ -268,7 +268,7 @@
   .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:20px;}
   .kpi-card{
     background:var(--surface);border:1px solid var(--border);
-    border-radius:var(--radius);padding:16px 14px;
+    border-radius:var(--radius);padding:18px 14px 14px;
     position:relative;overflow:hidden;
     transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;cursor:pointer;
   }
@@ -279,7 +279,7 @@
     transform:translateY(-2px);
   }
   .kpi-card::before{
-    content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    content:'';position:absolute;top:0;left:0;right:0;height:3px;
     background:var(--card-accent,var(--accent));opacity:0.9;
   }
   .kpi-card::after{
@@ -287,8 +287,8 @@
     background:linear-gradient(160deg,rgba(255,255,255,0.02) 0%,transparent 50%);
     pointer-events:none;
   }
-  .kpi-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:8px;font-weight:600;}
-  .kpi-value{font-family:'Syne',sans-serif;font-size:clamp(0.72rem,1.4vw,1.7rem);font-weight:800;color:var(--card-color,var(--text));line-height:1.1;margin-bottom:4px;word-break:break-all;overflow-wrap:anywhere;}
+  .kpi-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;font-weight:600;}
+  .kpi-value{font-family:'DM Sans',sans-serif;font-size:clamp(1.1rem,1.6vw,1.8rem);font-weight:700;color:var(--card-color,var(--text));line-height:1.2;margin-bottom:4px;word-break:break-all;overflow-wrap:anywhere;display:block;padding:2px 0;}
   .kpi-sub{font-size:0.66rem;color:var(--muted);}
   .kpi-badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:0.58rem;font-weight:600;margin-top:4px;}
   .kpi-click-hint{font-size:0.54rem;color:var(--muted);margin-top:5px;opacity:0.6;}
@@ -573,7 +573,7 @@
     .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; margin-bottom: 14px !important; }
     #cKpiGrid { grid-template-columns: repeat(2, 1fr) !important; }
     .kpi-card { padding: 12px 10px !important; }
-    .kpi-value { font-size: clamp(0.88rem, 2.8vw, 1.4rem) !important; }
+    .kpi-value { font-size: clamp(1rem, 3vw, 1.4rem) !important; }
     .kpi-label { font-size: 0.58rem !important; }
     .kpi-sub { font-size: 0.6rem !important; }
     .kpi-click-hint { display: none; }
@@ -667,7 +667,7 @@
   @media (max-width: 380px) {
     .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
     .home-cards { grid-template-columns: 1fr !important; }
-    .kpi-value { font-size: clamp(0.85rem, 2.5vw, 1.2rem) !important; }
+    .kpi-value { font-size: clamp(1rem, 2.5vw, 1.3rem) !important; }
     .db-title { font-size: 0.8rem !important; }
   }
 
@@ -2452,23 +2452,36 @@ async function refreshTasks(){
   btn.classList.add('spinning');
   Object.values(tCharts).forEach(c=>c&&c.destroy&&c.destroy()); tCharts={};
   tActiveKpi=null; tActivePerson=null; tActiveDept=null; tActiveStatus=null;
+  // Clear ALL prefetch caches — fresh data from Google Sheet
+  _tasksCache=null; _tasksSuppCache=null; _tasksSalesCache=null; _tasksAllReady=false;
+  // *** KEY FIX: Clear done-task localStorage cache on every Refresh ***
+  // Google Sheet is the source of truth. If a form response was deleted from sheet,
+  // the task must show as Pending. Only the sheet decides what's done.
+  try{ localStorage.removeItem('aditiDoneTasks'); }catch(e){}
   tLoaded=true;
   await loadTasks();
   btn.classList.remove('spinning');
 }
 
 function tProcessData(){
-  tRenderKPIs();
-  tRenderCharts();
-  tPopulateFilters();
+  // 1. Restore locally-saved done states (before any rendering)
+  tApplyDoneTasks();
 
-  // Auto-set today's date so employee sees today's tasks on load
+  // 2. Set today's date filter FIRST so KPIs/charts show today's data
   const todayStr = new Date().toISOString().slice(0,10); // yyyy-mm-dd
   document.getElementById('tFDateFrom').value = todayStr;
   document.getElementById('tFDateTo').value   = todayStr;
   tActiveDateFrom = todayStr;
   tActiveDateTo   = todayStr;
 
+  // 3. Populate dropdowns
+  tPopulateFilters();
+
+  // 4. Render KPIs & charts (now date-filtered)
+  tRenderKPIs();
+  tRenderCharts();
+
+  // 5. Render table
   tFiltered = tGetFiltered(); tPage=1;
   tRenderTable();
   tUpdateBadge();
@@ -2496,20 +2509,22 @@ function tGetFiltered(){
 }
 
 function tRenderKPIs(){
-  const total=tAllData.length;
-  const done=tAllData.filter(r=>tIsDone(r)).length;
+  // Use date-filtered data so KPIs match what the table shows
+  const baseData = tGetDateFiltered();
+  const total=baseData.length;
+  const done=baseData.filter(r=>tIsDone(r)).length;
   const pending=total-done;
   const pct=total?Math.round((done/total)*100):0;
 
-  // Unique employees
-  const uniqueEmp=[...new Set(tAllData.map(r=>r['Name']).filter(Boolean))].length;
+  // Unique employees (from date-filtered data)
+  const uniqueEmp=[...new Set(baseData.map(r=>r['Name']).filter(Boolean))].length;
 
   // Avg completion per person
-  const persons=[...new Set(tAllData.map(r=>r['Name']).filter(Boolean))];
+  const persons=[...new Set(baseData.map(r=>r['Name']).filter(Boolean))];
   let avgPct=0;
   if(persons.length){
     const percs=persons.map(p=>{
-      const rows=tAllData.filter(r=>r['Name']===p);
+      const rows=baseData.filter(r=>r['Name']===p);
       const d=rows.filter(r=>tIsDone(r)).length;
       return rows.length?Math.round((d/rows.length)*100):0;
     });
@@ -2556,8 +2571,8 @@ function tKpiClick(id){
 function tRenderCharts(){
   Object.values(tCharts).forEach(c=>c&&c.destroy&&c.destroy()); tCharts={};
   const {tc,gc,noGrid}=chartColors();
-  // Use tFiltered if active, else tAllData
-  const chartData=(tFiltered&&tFiltered.length&&(tActiveKpi||tActivePerson||tActiveDept||tActiveStatus||tActiveFreq))?tFiltered:tAllData;
+  // Use date-filtered data as base; apply kpi/status filter on top if active
+  const chartData=(tFiltered&&tFiltered.length&&(tActiveKpi||tActivePerson||tActiveDept||tActiveStatus||tActiveFreq))?tFiltered:tGetDateFiltered();
 
   // 1. Status donut - clickable
   const doneCount=chartData.filter(r=>tIsDone(r)).length;
@@ -2882,6 +2897,68 @@ function tGoPage(p){
 }
 
 // ── Mark Done — Local update only ─
+// ── LocalStorage persistence for done tasks ──────────────────────────
+function tSaveDoneTask(taskId, actualTime){
+  try{
+    const key='aditiDoneTasks';
+    const saved=JSON.parse(localStorage.getItem(key)||'{}');
+    // Store actual time + savedAt timestamp so tApplyDoneTasks can check age
+    saved[String(taskId)]={actual:actualTime, savedAt:Date.now()};
+    localStorage.setItem(key,JSON.stringify(saved));
+  }catch(e){}
+}
+
+function tApplyDoneTasks(){
+  // Apply locally-saved done states ONLY if they were saved within the last 90 seconds.
+  // This covers the brief window between clicking "Mark Done" and Google Sheet updating.
+  // After 90 seconds, the sheet is authoritative — if it says "not done", we trust it.
+  // On Refresh, localStorage is already cleared by refreshTasks(), so this runs on empty.
+  try{
+    const key='aditiDoneTasks';
+    const saved=JSON.parse(localStorage.getItem(key)||'{}');
+    if(!Object.keys(saved).length) return;
+    const nowMs=Date.now();
+    const MAX_AGE_MS=90*1000; // 90 seconds — Google Form usually writes to sheet within 30s
+    const stillNeeded={};
+    tAllData.forEach(r=>{
+      const tid=String(r['Task ID']);
+      const entry=saved[tid];
+      if(!entry) return;
+      if(tIsDone(r)){
+        return; // Sheet already confirmed done — remove from cache
+      }
+      // Sheet says NOT done. Check how old this local entry is.
+      const savedAt = typeof entry === 'object' ? (entry.savedAt||0) : 0;
+      const actualTime = typeof entry === 'object' ? (entry.actual||entry) : entry;
+      const ageMs = nowMs - savedAt;
+      if(savedAt && ageMs <= MAX_AGE_MS){
+        // Very recent (within 90s) — sheet might not have updated yet from form
+        r['Status']='done';
+        r['Actual']=actualTime;
+        stillNeeded[tid]=entry;
+      }
+      // else: too old OR no timestamp → sheet wins → task shows as Pending/Not Done
+    });
+    localStorage.setItem(key,JSON.stringify(stillNeeded));
+  }catch(e){}
+}
+
+// ── Date-aware base data for KPI & Charts ────────────────────────────
+function tGetDateFiltered(){
+  // KPI & Charts base data: date + person + dept + freq (NO status/kpi filter)
+  return tAllData.filter(r=>{
+    if(tActivePerson&&r['Name']!==tActivePerson) return false;
+    if(tActiveDept&&r['Department']!==tActiveDept) return false;
+    if(tActiveFreq&&String(r['Freq']||'').trim()!==tActiveFreq) return false;
+    if(tActiveDateFrom&&r['_tDate']&&r['_tDate']<tActiveDateFrom) return false;
+    if(tActiveDateTo&&r['_tDate']&&r['_tDate']>tActiveDateTo) return false;
+    const q=(document.getElementById('tSearch')?document.getElementById('tSearch').value||'':'').toLowerCase();
+    if(q&&!((r['Name']||'').toLowerCase().includes(q)||(r['Task']||'').toLowerCase().includes(q)||(r['Department']||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+// ─────────────────────────────────────────────────────────────────────
+
 function tMarkDoneMySQL(taskId, dept, source){
   const now = new Date();
   const day=String(now.getDate()).padStart(2,'0');
@@ -2892,7 +2969,10 @@ function tMarkDoneMySQL(taskId, dept, source){
   const sc=String(now.getSeconds()).padStart(2,'0');
   const actualForDisplay = day+'/'+mon+'/'+yr+' '+hr+':'+mn+':'+sc;
 
-  // Local data update
+  // Persist to localStorage so refresh doesn't lose done state
+  tSaveDoneTask(taskId, actualForDisplay);
+
+  // Local in-memory update
   const tid = String(taskId);
   tAllData.forEach(r=>{
     if(String(r['Task ID'])===tid){
