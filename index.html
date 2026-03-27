@@ -488,20 +488,47 @@
   .bn-item .bn-icon { font-size: 1.3rem; line-height: 1; display:flex;align-items:center;justify-content:center; }.bn-item .bn-icon svg{width:20px!important;height:20px!important;}
   .bn-item.active { color: var(--accent); }
   .bn-item.active .bn-icon { transform: translateY(-2px); }
-  .bn-more { position: relative; }
-  .bn-more-menu {
-    display: none; position: absolute; bottom: 65px; right: 0;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 14px; padding: 8px; min-width: 180px;
-    box-shadow: 0 -8px 30px rgba(0,0,0,0.4);
+  /* Mobile bottom nav user profile */
+  .bn-user-profile{
+    position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:4px 8px;border-radius:10px;cursor:pointer;flex:1;max-width:80px;
+    color:var(--text2);font-size:0.58rem;font-family:'DM Sans',sans-serif;
+    border:none;background:transparent;transition:all 0.18s;
   }
-  .bn-more-menu.open { display: block; }
-  .bn-more-item {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-    border-radius: 8px; cursor: pointer; font-size: 0.8rem; color: var(--muted);
-    transition: all 0.15s;
+  .bn-user-profile .bnp-avatar{
+    width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:0.68rem;font-weight:700;flex-shrink:0;
+    border:2px solid rgba(240,165,0,0.35);transition:all 0.2s;
   }
-  .bn-more-item:hover, .bn-more-item.active { background: var(--surface2); color: var(--accent); }
+  .bn-user-profile .bnp-name{
+    font-size:0.52rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    max-width:65px;text-align:center;
+  }
+  .bn-user-popup{
+    display:none;position:absolute;bottom:60px;right:-10px;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;padding:14px;min-width:180px;
+    box-shadow:0 -8px 30px rgba(0,0,0,0.45);z-index:999;
+  }
+  .bn-user-popup.open{display:block;}
+  .bn-user-popup .bup-header{
+    display:flex;align-items:center;gap:10px;padding-bottom:12px;
+    border-bottom:1px solid var(--border);margin-bottom:10px;
+  }
+  .bn-user-popup .bup-av{
+    width:38px;height:38px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:0.88rem;font-weight:700;flex-shrink:0;
+    border:2px solid rgba(240,165,0,0.35);
+  }
+  .bn-user-popup .bup-name{font-size:0.82rem;font-weight:600;color:var(--text);}
+  .bn-user-popup .bup-role{font-size:0.65rem;color:var(--text2);margin-top:2px;}
+  .bn-user-popup .bup-logout{
+    display:flex;align-items:center;justify-content:center;gap:6px;width:100%;
+    background:rgba(255,92,124,0.1);border:1px solid rgba(255,92,124,0.25);
+    color:#ff5c7c;border-radius:8px;padding:9px;font-size:0.74rem;font-weight:500;
+    cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;
+  }
+  .bn-user-popup .bup-logout:hover{background:rgba(255,92,124,0.25);}
 
   /* ═══════════════════════════════
      MOBILE RESPONSIVE
@@ -1101,16 +1128,20 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   <button class="bn-item" onclick="switchDB('tasks')" id="bn-tasks">
     <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span><span>Tasks</span>
   </button>
-  <button class="bn-item bn-more" onclick="toggleMoreMenu()">
-    <span class="bn-icon">⋯</span><span>More</span>
-    <div class="bn-more-menu" id="moreMenu">
-      <div class="bn-more-item"><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span> HR / Attendance <span style="font-size:0.6rem;color:var(--muted);margin-left:auto">Soon</span></div>
-      <div class="bn-more-item"><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Inventory <span style="font-size:0.6rem;color:var(--muted);margin-left:auto">Soon</span></div>
-      <div class="bn-more-item"><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span> Marketing <span style="font-size:0.6rem;color:var(--muted);margin-left:auto">Soon</span></div>
-      <div class="bn-more-item"><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3z"/><path d="M3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg></span> Support <span style="font-size:0.6rem;color:var(--muted);margin-left:auto">Soon</span></div>
-      <div class="bn-more-item"><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span> Finance <span style="font-size:0.6rem;color:var(--muted);margin-left:auto">Soon</span></div>
+  <div class="bn-user-profile" id="bnUserProfile" onclick="toggleUserPopup(event)">
+    <div class="bnp-avatar" id="bnpAvatar">U</div>
+    <span class="bnp-name" id="bnpName">User</span>
+    <div class="bn-user-popup" id="bnUserPopup">
+      <div class="bup-header">
+        <div class="bup-av" id="bupAvatar">U</div>
+        <div>
+          <div class="bup-name" id="bupName">User</div>
+          <div class="bup-role" id="bupRole">Department</div>
+        </div>
+      </div>
+      <button class="bup-logout" onclick="doLogout()">🚪 Logout</button>
     </div>
-  </button>
+  </div>
 </div>
 
 <div class="main-area">
@@ -1552,12 +1583,13 @@ function prefetchAllData(){
     if(!_fmsCache)   fetch(FMS_API).then(r=>r.text()).then(d=>{_fmsCache=d;}).catch(()=>{});
   }
 }
-function toggleMoreMenu(){
-  const m=document.getElementById('moreMenu');
-  m.classList.toggle('open');
+function toggleUserPopup(e){
+  e.stopPropagation();
+  const p=document.getElementById('bnUserPopup');
+  if(p) p.classList.toggle('open');
 }
 document.addEventListener('click',function(e){
-  if(!e.target.closest('.bn-more'))document.getElementById('moreMenu').classList.remove('open');
+  if(!e.target.closest('.bn-user-profile')){const p=document.getElementById('bnUserPopup');if(p)p.classList.remove('open');}
 });
 
 function switchDB(id, fromPopState){
@@ -1569,7 +1601,7 @@ function switchDB(id, fromPopState){
   if(document.getElementById('bn-'+id)) document.getElementById('bn-'+id).classList.add('active');
   // Scroll to top on mobile
   window.scrollTo({top:0,behavior:'smooth'});
-  document.getElementById('moreMenu').classList.remove('open');
+  const _up=document.getElementById('bnUserPopup');if(_up)_up.classList.remove('open');
   if(id==='leads'&&!lLoaded){lLoaded=true;loadLeads();}
   if(id==='collection'&&!cLoaded){cLoaded=true;loadColl();}
   if(id==='tasks'&&!tLoaded){tLoaded=true;loadTasks();}
@@ -3155,9 +3187,36 @@ function showPortal(){
         🚪 Logout
       </button>`;
   }
-  // Add logout to bottom nav more menu
-  const bnMore=document.querySelector('.bn-more-menu');
-  if(bnMore){bnMore.innerHTML+=`<div class="bn-more-item" onclick="doLogout()" style="color:#ff5c7c">🚪 Logout</div>`;}
+  // Populate mobile bottom nav user profile button
+  const bnProf=document.getElementById('bnUserProfile');
+  if(bnProf){
+    const isO3=CURRENT_USER.role==='owner';
+    const uN3=CURRENT_USER.name||CURRENT_USER.email.split('@')[0];
+    const rr3=CURRENT_USER.rawRole||'';
+    let rl3=isO3?'👑 Owner':'👤 Employee';
+    if(rr3==='owner') rl3='👑 Owner';
+    else if(rr3==='mis') rl3='📊 MIS';
+    else if(rr3==='pc') rl3='💼 PC';
+    else if(rr3==='support') rl3='🎧 Support';
+    else if(rr3==='sales') rl3='📈 Sales';
+    else if(rr3&&rr3!=='employee') rl3='👤 '+rr3.charAt(0).toUpperCase()+rr3.slice(1);
+    const avBg3=isO3?'rgba(240,165,0,0.18)':'rgba(0,212,170,0.18)';
+    const avClr3=isO3?'#f0a500':'#00d4aa';
+    const avBdr3=isO3?'rgba(240,165,0,0.5)':'rgba(0,212,170,0.5)';
+    const avL3=uN3[0].toUpperCase();
+    // Bottom nav button avatar + name
+    const ba3=document.getElementById('bnpAvatar');
+    if(ba3){ba3.style.background=avBg3;ba3.style.color=avClr3;ba3.style.borderColor=avBdr3;ba3.textContent=avL3;}
+    const bn3=document.getElementById('bnpName');
+    if(bn3) bn3.textContent=uN3;
+    // Popup avatar + name + role
+    const pa3=document.getElementById('bupAvatar');
+    if(pa3){pa3.style.background=avBg3;pa3.style.color=avClr3;pa3.style.borderColor=avBdr3;pa3.textContent=avL3;}
+    const pn3=document.getElementById('bupName');
+    if(pn3) pn3.textContent=uN3;
+    const pr3=document.getElementById('bupRole');
+    if(pr3) pr3.textContent=rl3;
+  }
   // Sync theme button label after portal shows
   const isLight = document.body.classList.contains('light-mode');
   const sb2 = document.getElementById('sidebarThemeBtn');
