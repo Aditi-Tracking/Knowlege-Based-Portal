@@ -1093,6 +1093,8 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div class="nav-item" onclick="switchDB('collection')" id="nav-collection"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></span><span class="nav-label">Collection</span><span class="nav-badge live">Live</span></div>
     <div class="nav-item" onclick="switchDB('fms')" id="nav-fms"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span><span class="nav-label">FMS O2D</span><span class="nav-badge live">Live</span></div>
     <div class="nav-item" onclick="switchDB('tasks')" id="nav-tasks"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span><span class="nav-label">Task Checklist</span><span class="nav-badge live">Live</span></div>
+    <div class="nav-item" onclick="switchDB('training')" id="nav-training"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span><span class="nav-label">Training</span><span class="nav-badge live" style="background:rgba(249,115,22,0.18);color:#f97316;border:1px solid rgba(249,115,22,0.35);">Videos</span></div>
+    <div class="nav-item" onclick="switchDB('resources')" id="nav-resources"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span><span class="nav-label">Resources</span><span class="nav-badge live" style="background:rgba(20,184,166,0.18);color:#14b8a6;border:1px solid rgba(20,184,166,0.35);">Docs</span></div>
     <div class="sidebar-section" style="margin-top:8px">Coming Soon</div>
 
   </div>
@@ -1128,6 +1130,12 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   <button class="bn-item" onclick="switchDB('tasks')" id="bn-tasks">
     <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span><span>Tasks</span>
   </button>
+  <button class="bn-item" onclick="switchDB('training')" id="bn-training">
+    <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span><span style="color:#f97316">Training</span>
+  </button>
+  <button class="bn-item" onclick="switchDB('resources')" id="bn-resources">
+    <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span><span style="color:#14b8a6">Resources</span>
+  </button>
   <div class="bn-user-profile" id="bnUserProfile" onclick="toggleUserPopup(event)">
     <div class="bnp-avatar" id="bnpAvatar">U</div>
     <span class="bnp-name" id="bnpName">User</span>
@@ -1156,6 +1164,8 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <div class="home-card" style="--card-top:#00d4aa" onclick="switchDB('collection')"><div class="hc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></div><div class="hc-name">Collection Dashboard</div><div class="hc-desc">Daily commitment vs achievement, MTD progress, team leaderboard.</div><span class="hc-status live">Live</span></div>
       <div class="home-card" style="--card-top:#00d4ff" onclick="switchDB('fms')"><div class="hc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div><div class="hc-name">FMS O2D Dashboard</div><div class="hc-desc">Order to delivery tracking, step-wise KPIs, PC status, prefilled form support.</div><span class="hc-status live">Live</span></div>
       <div class="home-card" style="--card-top:#a855f7" onclick="switchDB('tasks')"><div class="hc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div class="hc-name">Task Checklist Dashboard</div><div class="hc-desc">Department-wise tasks, completion tracking, scores and performance.</div><span class="hc-status live">Live</span></div>
+      <div class="home-card" id="hc-training" style="--card-top:#f97316" onclick="switchDB('training')"><div class="hc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><div class="hc-name">Training Videos</div><div class="hc-desc">MIS, Odoo, PC, Click Task, Cool Bus — module-wise training folder access.</div><span class="hc-status live">Live</span></div>
+      <div class="home-card" id="hc-resources" style="--card-top:#14b8a6" onclick="switchDB('resources')"><div class="hc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div><div class="hc-name">Resources</div><div class="hc-desc">HR Policy, SOP aur Organization Chart — important company documents ek jagah.</div><span class="hc-status live">Live</span></div>
 
     </div>
   </div>
@@ -1490,6 +1500,148 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+<!-- RESOURCES PANEL -->
+<div class="dashboard-panel" id="panel-resources">
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>Aditi</span> Resources</div>
+      <div class="db-breadcrumb">Home › Resources</div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge" style="background:rgba(20,184,166,0.12);border:1px solid rgba(20,184,166,0.3);"><div class="live-dot" style="background:#14b8a6"></div> Google Drive</div>
+    </div>
+  </div>
+  <div class="db-content">
+    <div class="section-title">Company Documents</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
+
+      <!-- HR Policy -->
+      <a href="https://drive.google.com/drive/folders/1xIJvlp1u_0jUvp_XS4YBq2rnJuIDd_bj" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#f0a500;cursor:pointer;padding:1.5rem;">
+          <div class="hc-icon" style="background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <div class="hc-name" style="font-size:1.05rem;">HR Policy</div>
+          <div class="hc-desc" style="font-size:0.82rem;line-height:1.6;">Company ke HR rules, leave policy, attendance, conduct guidelines aur employee handbook.</div>
+          <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:0.72rem;font-weight:600;color:#f0a500;background:rgba(240,165,0,0.12);border:1px solid rgba(240,165,0,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- SOP -->
+      <a href="https://drive.google.com/drive/folders/1Gc6IUVy2ZR3DQfGJUISe6iEysCdY_4OE" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#00d4ff;cursor:pointer;padding:1.5rem;">
+          <div class="hc-icon" style="background:rgba(0,212,255,0.12);border-color:rgba(0,212,255,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="hc-name" style="font-size:1.05rem;">SOP</div>
+          <div class="hc-desc" style="font-size:0.82rem;line-height:1.6;">Standard Operating Procedures — har department ke kaam karne ke step-by-step documented processes.</div>
+          <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:0.72rem;font-weight:600;color:#00d4ff;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Organization Chart -->
+      <a href="https://drive.google.com/drive/folders/1oMX5GtKcU5TxnTtxOXelD5GhXkB8h53N" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#14b8a6;cursor:pointer;padding:1.5rem;">
+          <div class="hc-icon" style="background:rgba(20,184,166,0.12);border-color:rgba(20,184,166,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><rect x="1" y="17" width="6" height="4" rx="1"/><rect x="9" y="17" width="6" height="4" rx="1"/><rect x="17" y="17" width="6" height="4" rx="1"/><path d="M12 6v4M4 17v-3a2 2 0 012-2h12a2 2 0 012 2v3"/><line x1="12" y1="10" x2="12" y2="12"/></svg>
+          </div>
+          <div class="hc-name" style="font-size:1.05rem;">Organization Chart</div>
+          <div class="hc-desc" style="font-size:0.82rem;line-height:1.6;">Aditi Tracking ki complete team structure — departments, roles aur reporting hierarchy.</div>
+          <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:0.72rem;font-weight:600;color:#14b8a6;background:rgba(20,184,166,0.1);border:1px solid rgba(20,184,166,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
+          </div>
+        </div>
+      </a>
+
+    </div>
+  </div>
+</div>
+
+<!-- TRAINING VIDEOS PANEL -->
+<div class="dashboard-panel" id="panel-training">
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>Aditi</span> Training Videos</div>
+      <div class="db-breadcrumb">Home › Training Videos</div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge" style="background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.3);"><div class="live-dot" style="background:#f97316"></div> Google Drive</div>
+    </div>
+  </div>
+
+  <div class="db-content">
+    <div class="section-title">Choose Your Training Module</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
+
+      <!-- MIS -->
+      <a href="https://drive.google.com/drive/folders/1kJxI0w9_IfT6_dfkBlXUkjTfx47eGwcz" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#f0a500;cursor:pointer;">
+          <div class="hc-icon" style="background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.3);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <div class="hc-name">MIS Training</div>
+          <div class="hc-desc">Management Information System — reports, dashboards aur data handling ke training videos.</div>
+          <span class="hc-status live" style="background:rgba(240,165,0,0.15);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">📁 Open Drive</span>
+        </div>
+      </a>
+
+      <!-- Odoo -->
+      <a href="https://drive.google.com/drive/folders/187nbxRXlOR2D-HpIlhAN3lJRu8tv66qC" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#00d4ff;cursor:pointer;">
+          <div class="hc-icon" style="background:rgba(0,212,255,0.12);border-color:rgba(0,212,255,0.3);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="hc-name">Odoo Training</div>
+          <div class="hc-desc">Odoo ERP system — purchase, sales, inventory aur operations ke step-by-step training videos.</div>
+          <span class="hc-status live" style="background:rgba(0,212,255,0.12);color:#00d4ff;border:1px solid rgba(0,212,255,0.3);">📁 Open Drive</span>
+        </div>
+      </a>
+
+      <!-- PC -->
+      <a href="https://drive.google.com/drive/folders/1dhF8EERqrulmyBh7hIUMGOg9ppLTEHKD" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#00d4aa;cursor:pointer;">
+          <div class="hc-icon" style="background:rgba(0,212,170,0.12);border-color:rgba(0,212,170,0.3);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          </div>
+          <div class="hc-name">PC Training</div>
+          <div class="hc-desc">Physical Confirmation process — customer confirmation, verification aur closing procedures.</div>
+          <span class="hc-status live" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.3);">📁 Open Drive</span>
+        </div>
+      </a>
+
+      <!-- Click Task -->
+      <a href="https://drive.google.com/drive/folders/1ojAyM6eGOm7xZ2eVzmn7d2vu-ZrPuglO" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#a855f7;cursor:pointer;">
+          <div class="hc-icon" style="background:rgba(168,85,247,0.12);border-color:rgba(168,85,247,0.3);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          </div>
+          <div class="hc-name">Click Task Training</div>
+          <div class="hc-desc">Click Task app — task creation, assignment, tracking aur completion process ke training videos.</div>
+          <span class="hc-status live" style="background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.3);">📁 Open Drive</span>
+        </div>
+      </a>
+
+      <!-- Cool Bus -->
+      <a href="https://drive.google.com/drive/folders/10HnwdiyB3AKUcOatkmSXrdw1hf8Nrbf3" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#f97316;cursor:pointer;">
+          <div class="hc-icon" style="background:rgba(249,115,22,0.12);border-color:rgba(249,115,22,0.3);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          </div>
+          <div class="hc-name">Cool Bus Training</div>
+          <div class="hc-desc">Cool Bus operations — vehicle tracking, route management aur reporting training videos.</div>
+          <span class="hc-status live" style="background:rgba(249,115,22,0.12);color:#f97316;border:1px solid rgba(249,115,22,0.3);">📁 Open Drive</span>
+        </div>
+      </a>
+
+    </div>
+
+  </div>
+</div>
+
 <!-- TASK CHECKLIST PANEL -->
 <div class="dashboard-panel" id="panel-tasks">
   <div class="db-header">
@@ -1663,6 +1815,7 @@ function switchDB(id, fromPopState){
   if(id==='leads'&&!lLoaded){lLoaded=true;loadLeads();}
   if(id==='collection'&&!cLoaded){cLoaded=true;loadColl();}
   if(id==='tasks'&&!tLoaded){tLoaded=true;loadTasks();}
+  // Training panel needs no data loading — just shows static links
   // Push history state so back button returns to home
   if(!fromPopState){
     if(id==='home'){
@@ -3547,23 +3700,22 @@ function showPortal(){
 }
 
 function restrictEmployee(){
-  // Hide all dashboards from sidebar except Task Checklist
+  // Hide dashboard nav items — employee only sees Tasks + Training
   ['nav-leads','nav-collection','nav-fms'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.style.display='none';
   });
-  // Hide all bottom nav items except Task Checklist
   ['bn-leads','bn-collection','bn-fms'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.style.display='none';
   });
-  // On home: hide all live cards except Task Checklist
-  document.querySelectorAll('.home-card:not(.disabled)').forEach(card=>{
-    if(!card.textContent.includes('Task Checklist')){
+  // Only hide cards inside the HOME panel — not inside Training/Resources panels
+  document.querySelectorAll('#panel-home .home-card:not(.disabled)').forEach(card=>{
+    const txt=card.textContent;
+    if(!txt.includes('Task Checklist') && !txt.includes('Training Videos') && !txt.includes('Resources')){
       card.style.display='none';
     }
   });
-  // Stay on home — user must click Task Checklist card to open it
   window.EMPLOYEE_EMAIL=CURRENT_USER.email;
 }
 
