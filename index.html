@@ -1309,8 +1309,8 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 <div class="dashboard-panel" id="panel-fms">
   <div class="db-header">
     <div>
-      <div class="db-title">FMS <span>O2D Dashboard</span></div>
-      <div class="db-breadcrumb">Home › FMS O2D</div>
+      <div class="db-title">FMS <span>Installation Tracker</span></div>
+      <div class="db-breadcrumb">Home › FMS O2D › Engineer Tasks</div>
     </div>
     <div class="header-right">
       <div class="live-badge"><div class="live-dot"></div><span id="fmsLastRefresh">Loading...</span></div>
@@ -1320,102 +1320,173 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 
   <div class="db-content">
 
-    <!-- FILTER CHIPS -->
-    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
-      <span style="font-size:0.72rem;color:var(--muted)">Filter:</span>
-      <span class="fms-chip active" id="fchip-all" onclick="fmsFilterTable('all')">All Orders</span>
-      <span class="fms-chip" id="fchip-yes" onclick="fmsFilterTable('yes')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> PC Yes</span>
-      <span class="fms-chip" id="fchip-no" onclick="fmsFilterTable('no')">❌ PC No</span>
-      <span class="fms-chip" id="fchip-today" onclick="fmsFilterTable('today')">📅 Today</span>
-      <span class="fms-chip" id="fchip-overdue" onclick="fmsFilterTable('overdue')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Overdue</span>
-      <button class="refresh-btn" style="margin-left:auto;font-size:0.72rem;padding:4px 10px" onclick="fmsResetFilter()">Clear Filter</button>
+    <!-- ROW 1: DATE RANGE + PRODUCT CHART only -->
+    <div style="display:grid;grid-template-columns:1fr 2.6fr;gap:14px;margin-bottom:16px;align-items:stretch;">
+
+      <!-- Date Range Filter -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem;display:flex;flex-direction:column;gap:10px;justify-content:center;">
+        <div style="font-size:0.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Select Date Range</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:0.7rem;color:var(--muted);min-width:28px;">From</span>
+            <input type="date" id="fDateFrom" onchange="fmsApplyDateFilter()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.6rem;color:var(--text);font-size:0.78rem;">
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:0.7rem;color:var(--muted);min-width:28px;">To</span>
+            <input type="date" id="fDateTo" onchange="fmsApplyDateFilter()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.6rem;color:var(--text);font-size:0.78rem;">
+          </div>
+          <button onclick="fmsClearDateFilter()" style="margin-top:2px;padding:4px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.7rem;cursor:pointer;">Clear</button>
+        </div>
+      </div>
+
+      <!-- Product Wise Pending Chart -->
+      <div class="chart-card" style="margin:0;">
+        <div class="chart-title">
+          <div class="dot" style="background:#f0a500"></div>Product Wise Pending Installation
+          <span style="font-size:0.65rem;color:var(--muted);margin-left:auto;font-weight:400;">Click to filter</span>
+        </div>
+        <div class="chart-wrap"><canvas id="fChartProductPending"></canvas></div>
+      </div>
     </div>
 
-    <!-- KPI CARDS -->
-    <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
-      <div class="kpi-card" id="fkpi-all" style="--card-accent:#00d4ff;--card-color:#00d4ff" onclick="fmsFilterTable('all')">
-        <div class="kpi-label">Total Orders</div>
-        <div class="kpi-value" id="fkpiTotal">—</div>
-        <div class="kpi-sub">All SO entries</div>
-        <div class="kpi-click-hint">Click to filter</div>
-      </div>
-      <div class="kpi-card" id="fkpi-yes" style="--card-accent:#00d4aa;--card-color:#00d4aa" onclick="fmsFilterTable('yes')">
-        <div class="kpi-label">PC Confirmed</div>
-        <div class="kpi-value" id="fkpiYes">—</div>
-        <div class="kpi-sub">For PC = Yes</div>
-        <div class="kpi-click-hint">Click to filter</div>
-      </div>
-      <div class="kpi-card" id="fkpi-no" style="--card-accent:#ff5c7c;--card-color:#ff5c7c" onclick="fmsFilterTable('no')">
-        <div class="kpi-label">PC Pending</div>
-        <div class="kpi-value" id="fkpiNo">—</div>
+    <!-- ROW 2: KPIs — Remaining + Delayed (main) + Total + Today + Products -->
+    <div class="kpi-grid" style="grid-template-columns:1.2fr 1.2fr 1fr 1fr 1fr;margin-bottom:16px;gap:14px;">
+      <div class="kpi-card" id="fkpi-remaining" style="--card-accent:#f0a500;--card-color:#f0a500;cursor:pointer;" onclick="fmsKpiFilter('remaining')">
+        <div class="kpi-label">Total Remaining Task</div>
+        <div class="kpi-value" id="fkpiRemaining" style="font-size:2rem;">—</div>
         <div class="kpi-sub">For PC = No</div>
         <div class="kpi-click-hint">Click to filter</div>
       </div>
-      <div class="kpi-card" id="fkpi-today" style="--card-accent:#f0a500;--card-color:#f0a500" onclick="fmsFilterTable('today')">
+      <div class="kpi-card" id="fkpi-delayed" style="--card-accent:#ff5c7c;--card-color:#ff5c7c;cursor:pointer;" onclick="fmsKpiFilter('delayed')">
+        <div class="kpi-label">Total Delayed Tasks</div>
+        <div class="kpi-value" id="fkpiDelayed" style="font-size:2rem;">—</div>
+        <div class="kpi-sub">For PC = Yes</div>
+        <div class="kpi-click-hint">Click to filter</div>
+      </div>
+      <div class="kpi-card" id="fkpi-all" style="--card-accent:#00d4ff;--card-color:#00d4ff;cursor:pointer;" onclick="fmsKpiFilter('all')">
+        <div class="kpi-label">Total SO</div>
+        <div class="kpi-value" id="fkpiTotal">—</div>
+        <div class="kpi-sub">All entries</div>
+        <div class="kpi-click-hint">Click to view all</div>
+      </div>
+      <div class="kpi-card" id="fkpi-today" style="--card-accent:#00d4aa;--card-color:#00d4aa;cursor:pointer;" onclick="fmsKpiFilter('today')">
         <div class="kpi-label">Today's Tasks</div>
         <div class="kpi-value" id="fkpiToday">—</div>
         <div class="kpi-sub">Planned today</div>
         <div class="kpi-click-hint">Click to filter</div>
       </div>
-      <div class="kpi-card" id="fkpi-overdue" style="--card-accent:#a855f7;--card-color:#a855f7" onclick="fmsFilterTable('overdue')">
-        <div class="kpi-label">Overdue</div>
-        <div class="kpi-value" id="fkpiOverdue">—</div>
-        <div class="kpi-sub">Past planned date</div>
-        <div class="kpi-click-hint">Click to filter</div>
-      </div>
-      <div class="kpi-card" id="fkpi-products" style="--card-accent:#06b6d4;--card-color:#06b6d4">
+      <div class="kpi-card" id="fkpi-products" style="--card-accent:#a855f7;--card-color:#a855f7;">
         <div class="kpi-label">Products</div>
         <div class="kpi-value" id="fkpiProducts">—</div>
-        <div class="kpi-sub">Unique products</div>
+        <div class="kpi-sub">Unique types</div>
       </div>
     </div>
 
-    <!-- CHARTS -->
-    <div class="charts-grid" style="margin-bottom:16px">
+    <!-- ROW 3: Charts -->
+    <div class="charts-grid" style="margin-bottom:16px;">
       <div class="chart-card">
-        <div class="chart-title"><div class="dot" style="background:#00d4ff"></div>Orders by Product <span style="font-size:0.65rem;color:var(--muted);font-weight:400;margin-left:auto">Click bar to filter</span></div>
-        <div class="chart-wrap"><canvas id="fChartProduct"></canvas></div>
+        <div class="chart-title"><div class="dot" style="background:#00d4ff"></div>Doer-wise Pending Tasks <span style="font-size:0.65rem;color:var(--muted);margin-left:auto;font-weight:400;">Click to filter</span></div>
+        <div class="chart-wrap"><canvas id="fChartDoer"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title"><div class="dot" style="background:#00d4aa"></div>PC Status Split <span style="font-size:0.65rem;color:var(--muted);font-weight:400;margin-left:auto">Click to filter</span></div>
-        <div class="chart-wrap"><canvas id="fChartPC"></canvas></div>
+        <div class="chart-title"><div class="dot" style="background:#a855f7"></div>Task Status Split <span style="font-size:0.65rem;color:var(--muted);margin-left:auto;font-weight:400;">Click to filter</span></div>
+        <div class="chart-wrap"><canvas id="fChartStatus"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title"><div class="dot" style="background:#f0a500"></div>Daily Volume <span style="font-size:0.65rem;color:var(--muted);font-weight:400;margin-left:auto">Last 7 days</span></div>
+        <div class="chart-title"><div class="dot" style="background:#f0a500"></div>Daily Planned Volume <span style="font-size:0.65rem;color:var(--muted);margin-left:auto;font-weight:400;">Last 7 days</span></div>
         <div class="chart-wrap"><canvas id="fChartDaily"></canvas></div>
       </div>
     </div>
 
-    <!-- TABLE -->
-    <div class="table-card" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
-      <div style="padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:0.75rem;">
-        <div style="font-family:Syne,sans-serif;font-size:0.9rem;font-weight:700" id="fTableTitle">📋 All Tasks</div>
-        <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
-          <input type="text" id="fSearch" placeholder="Search SO, product..." oninput="fmsApplySearch()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.9rem;color:var(--text);font-size:0.8rem;width:200px;">
-          <select id="fProductFilter" onchange="fmsApplySearch()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.8rem;">
-            <option value="">All Products</option>
-          </select>
-          <select id="fPCFilter" onchange="fmsApplySearch()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.8rem;">
-            <option value="">All PC Status</option>
-            <option value="Yes">PC = Yes</option>
-            <option value="No">PC = No</option>
-          </select>
-          <button onclick="fmsExportCSV()" style="padding:0.35rem 0.9rem;border-radius:8px;border:none;background:#00d4aa;color:#000;font-size:0.78rem;font-weight:600;cursor:pointer;">↓ Export</button>
+    <!-- ROW 4: SO/Customer/Product table + Doer Summary -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+
+      <!-- Left: Customer-Product Table -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+        <div style="background:#f0a500;padding:0.65rem 1rem;display:grid;grid-template-columns:1fr 1.2fr 0.9fr;">
+          <span style="font-size:0.8rem;font-weight:700;color:#000;">Unique Key</span>
+          <span style="font-size:0.8rem;font-weight:700;color:#000;">Customer Name</span>
+          <span style="font-size:0.8rem;font-weight:700;color:#000;">Product</span>
+        </div>
+        <div id="fCPTableBody" style="overflow-y:auto;max-height:280px;">
+          <div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.8rem;">No data</div>
+        </div>
+        <div id="fCPPagination" style="display:none;padding:0.6rem 1rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:0.72rem;color:var(--muted);">
+          <span id="fCPPageInfo"></span>
+          <div id="fCPPageBtns" style="display:flex;gap:4px;"></div>
         </div>
       </div>
-      <div id="fTableBody" style="overflow-x:auto;">
-        <div style="display:flex;flex-direction:column;align-items:center;padding:3rem;gap:1rem;color:var(--muted);">
-          <div style="color:var(--muted);opacity:0.4"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>
-          <div class="loader-bar"><div class="loader-fill"></div></div>
-          <p style="font-size:0.8rem">FMS data load ho rahi hai...</p>
+
+      <!-- Right: Doer Summary -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+        <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:0.8rem;font-weight:700;color:var(--text);font-family:Syne,sans-serif;">Doer Summary</span>
+          <span style="font-size:0.7rem;color:var(--muted)">Remaining tasks per doer</span>
         </div>
-      </div>
-      <div id="fPagination" style="display:none;padding:0.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);font-size:0.78rem;color:var(--muted);flex-wrap:wrap;gap:0.5rem;">
-        <span id="fPageInfo"></span>
-        <div id="fPageBtns" style="display:flex;gap:0.35rem;"></div>
+        <div id="fDoerSummary" style="overflow-y:auto;max-height:280px;padding:0.5rem 0;">
+          <div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.8rem;">No data</div>
+        </div>
       </div>
     </div>
 
+    <!-- ROW 5: Main Task Table -->
+    <div class="table-card" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div style="background:#f0a500;padding:0;display:grid;grid-template-columns:1fr 1fr 2fr 1.4fr 1fr;gap:0;">
+        <div onclick="fmsSort2('uniqueKey')" style="padding:0.65rem 1rem;font-size:0.8rem;font-weight:700;color:#000;cursor:pointer;">SO Number ↕</div>
+        <div onclick="fmsSort2('doerName')" style="padding:0.65rem 1rem;font-size:0.8rem;font-weight:700;color:#000;cursor:pointer;">Doer Name ↕</div>
+        <div onclick="fmsSort2('plannedStep')" style="padding:0.65rem 1rem;font-size:0.8rem;font-weight:700;color:#000;cursor:pointer;">Step ↕</div>
+        <div onclick="fmsSort2('planned')" style="padding:0.65rem 1rem;font-size:0.8rem;font-weight:700;color:#000;cursor:pointer;">Planned ↕</div>
+        <div style="padding:0.65rem 1rem;font-size:0.8rem;font-weight:700;color:#000;text-align:center;">Mark Done</div>
+      </div>
+
+      <!-- Search + Filters -->
+      <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border);display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="fSearch" placeholder="🔍 Search SO, customer, doer..." oninput="fmsApplySearch()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.9rem;color:var(--text);font-size:0.78rem;flex:1;min-width:180px;">
+        <select id="fProductFilter" onchange="fmsApplySearch()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.78rem;">
+          <option value="">All Products</option>
+        </select>
+        <select id="fDoerFilter" onchange="fmsApplySearch()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.78rem;">
+          <option value="">All Doers</option>
+        </select>
+        <select id="fStatusFilter" onchange="fmsApplySearch()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.78rem;">
+          <option value="">All Status</option>
+          <option value="done">✅ Done (PC Yes)</option>
+          <option value="pending">⏳ Pending (PC No)</option>
+        </select>
+        <span style="font-size:0.72rem;color:var(--muted)" id="fTableCount">—</span>
+        <button onclick="fmsExportCSV()" style="padding:0.38rem 0.8rem;border-radius:8px;border:none;background:#00d4aa;color:#000;font-size:0.75rem;font-weight:600;cursor:pointer;">↓ CSV</button>
+        <button onclick="fmsClearAllFilters()" style="padding:0.38rem 0.8rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.75rem;cursor:pointer;">Reset</button>
+      </div>
+
+      <div id="fMainTableBody" style="overflow-x:auto;">
+        <div style="display:flex;flex-direction:column;align-items:center;padding:3rem;gap:1rem;color:var(--muted);">
+          <div class="loader-bar"><div class="loader-fill"></div></div>
+          <p style="font-size:0.8rem;">Data load ho rahi hai...</p>
+        </div>
+      </div>
+
+      <div id="fMainPagination" style="display:none;padding:0.9rem 1.5rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:0.78rem;color:var(--muted);flex-wrap:wrap;gap:0.5rem;">
+        <span id="fMainPageInfo"></span>
+        <div id="fMainPageBtns" style="display:flex;gap:0.35rem;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FMS MARK DONE MODAL -->
+<div id="fmsMarkDoneModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.5rem;max-width:460px;width:90%;position:relative;">
+    <button onclick="closeFmsMarkDone()" style="position:absolute;top:12px;right:12px;background:transparent;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
+    <div style="font-family:Syne,sans-serif;font-size:1rem;font-weight:700;margin-bottom:0.5rem;color:#f0a500;">Mark Task as Done</div>
+    <div id="fmsMarkDoneInfo" style="font-size:0.82rem;color:var(--muted);margin-bottom:1.2rem;line-height:1.6;"></div>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+      <a id="fmsMarkDoneLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:0.55rem 1.1rem;border-radius:10px;background:#f0a500;color:#000;font-weight:700;font-size:0.85rem;text-decoration:none;" onclick="closeFmsMarkDone()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Open Form & Mark Done
+      </a>
+      <button onclick="closeFmsMarkDone()" style="padding:0.55rem 1rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.83rem;cursor:pointer;">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1536,20 +1607,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
-<!-- FMS MODAL -->
-<div id="fmsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:500px;width:92%;position:relative;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
-      <div style="font-family:Syne,sans-serif;font-size:1.05rem;font-weight:700;">📋 Task Details</div>
-      <button onclick="closeFmsModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;">✕</button>
-    </div>
-    <div id="fmsModalContent"></div>
-    <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
-      <a id="fmsModalFormLink" href="#" target="_blank" style="padding:0.5rem 1.25rem;border-radius:8px;background:#00d4ff;color:#000;font-weight:600;font-size:0.85rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;">📝 Open Prefilled Form →</a>
-      <button onclick="closeFmsModal()" style="padding:0.5rem 1.25rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-size:0.85rem;">Close</button>
-    </div>
-  </div>
-</div>
+
 
 <script>
 // ═══════════════════════════════════
@@ -2106,192 +2164,451 @@ function cRenderTable(){
 function cGoPage(p){const tp=Math.ceil((Cf.length||1)/CPP);if(p<1||p>tp)return;Cp=p;cRenderTable();document.querySelector('#panel-collection .table-card').scrollIntoView({behavior:'smooth',block:'start'});}
 
 
-// ═══════════════════════════════
-// FMS O2D Dashboard Logic
-// ═══════════════════════════════
-const FMS_API = "https://script.google.com/macros/s/AKfycby7tpu7zfYzkWlu5LySCU823VGtJdONHvZqypzP_Y0tcO5kIXYyOOV3atGl9WVy_QI/exec";
-let fmsAllData=[], fmsFiltered=[], fmsPage=1, fmsCurrentFilter='all';
-const FMS_PER_PAGE=15;
-let fmsCharts={};
-let fmsLoaded=false;
+// ═══════════════════════════════════════════════════
+// FMS Installation Tracker — Dashboard Logic
+// For PC = Yes → DELAYED | For PC = No → REMAINING
+// ═══════════════════════════════════════════════════
+const FMS_API = "https://script.google.com/macros/s/AKfycbxpa-GJ2UNqVCBTVZeyhvfa9bUaCoqPYAfJS10Zu-9ljEEJgBEiwlER8S4bNzAm_nbo-g/exec";
+let fmsAllData=[], fmsFiltered=[], fmsCharts={}, fmsLoaded=false;
+let fmsMainPage=1, fmsCPPage=1, fmsCurrentFilter='all';
+let fmsSortKey=null, fmsSortDir=1;
+let fmsDateFrom=null, fmsDateTo=null;
+const FMS_PER_PAGE=15, FMS_CP_PER_PAGE=8;
+const FMS_COLS=['#f0a500','#00d4ff','#00d4aa','#a855f7','#ff5c7c','#06b6d4','#f97316'];
 
-// Load when panel becomes active
+// For PC = Yes → Delayed, For PC = No → Remaining (time bacha hua)
+const fmsIsDelayed   = r => (r.forPC||'').toLowerCase()==='yes';
+const fmsIsRemaining = r => (r.forPC||'').toLowerCase()!=='yes';
+
 const _origSwitchDB = switchDB;
-switchDB = function(id) {
+switchDB = function(id){
   _origSwitchDB(id);
-  if(id==='fms' && !fmsLoaded) { fmsLoaded=true; fmsLoadData(); }
+  if(id==='fms'&&!fmsLoaded){fmsLoaded=true;fmsLoadData();}
 };
 
 async function fmsLoadData(){
-  document.getElementById('fTableBody').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;padding:3rem;gap:1rem;color:var(--muted);"><div class="loader-bar"><div class="loader-fill"></div></div><p style="font-size:0.8rem">Fetching live data...</p></div>`;
+  document.getElementById('fMainTableBody').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;padding:3rem;gap:1rem;color:var(--muted);"><div class="loader-bar"><div class="loader-fill"></div></div><p style="font-size:0.8rem;">Live data fetch ho rahi hai...</p></div>`;
   try{
     const res=await fetch(FMS_API);
     const text=await res.text();
-    let json; try{json=JSON.parse(text);}catch(e){throw new Error('JSON parse failed');}
-    let raw=Array.isArray(json)?json:(json.data||json.records||[]);
-    const firstRow=raw[0]||{}, keys=Object.keys(firstRow);
-    function gv(r,...c){for(const k of c){if(r[k]!==undefined&&String(r[k]).trim()!=='')return String(r[k]);const f=keys.find(rk=>rk.toLowerCase().replace(/[^a-z0-9]/g,'')=== k.toLowerCase().replace(/[^a-z0-9]/g,''));if(f&&r[f]!==undefined&&String(r[f]).trim()!=='')return String(r[f]);}return '';}
+    let json;try{json=JSON.parse(text);}catch(e){throw new Error('Invalid JSON from API');}
+    let raw=[];
+    if(Array.isArray(json)) raw=json;
+    else if(json.data&&Array.isArray(json.data)) raw=json.data;
+    else if(json.records&&Array.isArray(json.records)) raw=json.records;
+    else if(json.rows&&Array.isArray(json.rows)) raw=json.rows;
+    else if(json.h&&json.r){raw=json.r.map(row=>{const o={};json.h.forEach((k,i)=>{o[k]=row[i]??'';});return o;});}
+    console.log('[FMS] Rows:',raw.length,'| Cols:',raw.length?Object.keys(raw[0]):'-');
+    if(!raw.length){
+      document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--muted);"><div style="font-size:2rem;margin-bottom:0.5rem;">📭</div>Sheet mein data nahi mila<br><small>Browser Console (F12) mein [FMS] logs check karo</small></div>`;
+      return;
+    }
+    const firstRow=raw[0],keys=Object.keys(firstRow);
+    function gv(r,...cols){for(const c of cols){if(r[c]!==undefined&&String(r[c]).trim()!='')return String(r[c]);const f=keys.find(k=>k.toLowerCase().replace(/[^a-z0-9]/g,'')==c.toLowerCase().replace(/[^a-z0-9]/g,''));if(f&&r[f]!==undefined&&String(r[f]).trim()!='')return String(r[f]);}return '';}
     fmsAllData=raw.map(r=>({
-      uniqueKey: gv(r,'Unique Key','uniqueKey'),
-      planned:   gv(r,'Planned','planned'),
-      step:      gv(r,'Step','step'),
-      how:       gv(r,'How','how'),
-      link:      gv(r,'Link','link'),
-      forPC:     gv(r,'For PC','forPC'),
-      doerEmail: gv(r,'Final Doer Email','finalDoerEmail','Doer Email','doerEmail'),
-      productName: gv(r,'Product Name','productName'),
-    })).filter(r=>r.uniqueKey&&r.uniqueKey!='#N/A'&&!r.uniqueKey.includes('#N/A'));
-    if(!fmsAllData.length){document.getElementById('fTableBody').innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted)">No data found</div>';return;}
+      uniqueKey:    gv(r,'Unique Key','UniqueKey','uniqueKey'),
+      planned:      gv(r,'Planned Step','PlannedStep','Planned','planned'),
+      plannedStep:  gv(r,'Planned Step','PlannedStep','How','how'),
+      how:          gv(r,'How','how'),
+      doerName:     gv(r,'Final Doer Name','FinalDoerName','Doer Name','DoerName','doerName'),
+      link:         gv(r,'Link','link'),
+      forPC:        gv(r,'For PC','ForPC','forPC'),
+      doerEmail:    gv(r,'Final Doer Email','FinalDoerEmail','Doer Email','DoerEmail','doerEmail'),
+      customerName: gv(r,'Customer Name','CustomerName','customerName'),
+      product:      gv(r,'Product','product'),
+    })).filter(r=>r.uniqueKey&&!r.uniqueKey.includes('#N/A'));
     document.getElementById('fmsLastRefresh').textContent='Updated '+new Date().toLocaleTimeString();
     fmsProcessData();
-  }catch(e){document.getElementById('fTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--hot)">❌ ${e.message} <button onclick="fmsLoadData()" style="margin-left:1rem;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">Retry</button></div>`;}
+  }catch(e){
+    document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--hot);">❌ ${e.message}<br><small style="color:var(--muted);">Apps Script URL check karo</small><br><button onclick="fmsLoadData()" style="margin-top:0.8rem;padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">🔄 Retry</button></div>`;
+  }
 }
 
 function fmsProcessData(){
-  fmsUpdateKPIs();
-  fmsRenderCharts();
-  fmsPopulateFilters();
   fmsFiltered=[...fmsAllData];
-  fmsPage=1;
-  fmsSetActiveFilter('all');
-  fmsRenderTable();
+  fmsCurrentFilter='all';
+  fmsPopulateDropdowns();
+  fmsRefreshAll();
+}
+
+// Central refresh — updates KPIs + Charts + Tables together
+function fmsRefreshAll(){
+  fmsUpdateKPIs();
+  fmsRenderCharts(fmsFiltered);
+  fmsRenderCPTable();
+  fmsRenderDoerSummary();
+  fmsMainPage=1;
+  fmsRenderMainTable();
 }
 
 function fmsUpdateKPIs(){
+  const delayed  = fmsFiltered.filter(fmsIsDelayed).length;
+  const remaining= fmsFiltered.filter(fmsIsRemaining).length;
   const now=new Date();
-  const yes=fmsAllData.filter(r=>(r.forPC||'').toLowerCase()==='yes').length;
-  const no=fmsAllData.filter(r=>(r.forPC||'').toLowerCase()==='no').length;
   const dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');
-  const todayCount=fmsAllData.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm)).length;
-  const overdue=fmsAllData.filter(r=>{
-    if(!r.planned||(r.forPC||'').toLowerCase()==='yes')return false;
-    const p=r.planned.split(' ')[0],parts=p.split('/');
-    if(parts.length<3)return false;
-    const d=parts[0].length===4?new Date(parts[0],parts[1]-1,parts[2]):new Date(parts[2],parts[1]-1,parts[0]);
-    return d<now;
-  }).length;
-  const prods=new Set(fmsAllData.map(r=>r.productName).filter(v=>v&&v!='#N/A'&&v.trim())).size;
-  document.getElementById('fkpiTotal').textContent=fmsAllData.length;
-  document.getElementById('fkpiYes').textContent=yes;
-  document.getElementById('fkpiNo').textContent=no;
+  const todayCount=fmsFiltered.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm)).length;
+  const prods=new Set(fmsFiltered.map(r=>r.product).filter(v=>v&&v.trim())).size;
+
+  document.getElementById('fkpiRemaining').textContent=remaining||'0';
+  document.getElementById('fkpiDelayed').textContent=delayed||'0';
+  document.getElementById('fkpiTotal').textContent=fmsFiltered.length;
   document.getElementById('fkpiToday').textContent=todayCount;
-  document.getElementById('fkpiOverdue').textContent=overdue;
   document.getElementById('fkpiProducts').textContent=prods;
+
+  // Active KPI highlight
+  document.querySelectorAll('.kpi-card[id^="fkpi-"]').forEach(c=>c.classList.remove('kpi-active'));
+  const m={all:'fkpi-all',remaining:'fkpi-remaining',delayed:'fkpi-delayed',today:'fkpi-today'};
+  if(m[fmsCurrentFilter]) document.getElementById(m[fmsCurrentFilter])?.classList.add('kpi-active');
 }
 
-function fmsRenderCharts(){
-  Object.values(fmsCharts).forEach(c=>c.destroy()); fmsCharts={};
-  const {tc:fTC,gc:fGC,noGrid:fNG}=chartColors();
-  // Product bar
+// Charts always reflect fmsFiltered (reactive)
+function fmsRenderCharts(data){
+  Object.values(fmsCharts).forEach(c=>{try{c.destroy();}catch(e){}});fmsCharts={};
+  const {tc,gc,noGrid}=chartColors();
+
+  // Chart 1: Product Wise Pending (For PC = No = remaining)
   const pm={};
-  fmsAllData.forEach(r=>{const k=r.productName&&r.productName!='#N/A'&&r.productName.trim()?r.productName:null;if(k)pm[k]=(pm[k]||0)+1;});
-  if(!Object.keys(pm).length) fmsAllData.forEach(r=>{if(r.step)pm[r.step]=(pm[r.step]||0)+1;});
+  data.filter(fmsIsRemaining).forEach(r=>{const k=r.product&&r.product.trim()?r.product:'Unknown';pm[k]=(pm[k]||0)+1;});
   const pl=Object.keys(pm),pv=Object.values(pm);
-  fmsCharts.product=new Chart(document.getElementById('fChartProduct'),{type:'bar',data:{labels:pl,datasets:[{data:pv,backgroundColor:['#00d4ff','#00d4aa','#f0a500','#a855f7','#ff5c7c'],borderRadius:6,borderSkipped:false}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:fTC,font:{size:9}},grid:{display:false}},y:{ticks:{color:fTC},grid:{display:!fNG,color:fGC},beginAtZero:true}},onClick:(e,els)=>{if(els.length){fmsFilterByProduct(pl[els[0].index]);}},onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';}}});
-  // PC doughnut
-  const yes=fmsAllData.filter(r=>(r.forPC||'').toLowerCase()==='yes').length;
-  fmsCharts.pc=new Chart(document.getElementById('fChartPC'),{type:'doughnut',data:{labels:['PC Yes','PC No'],datasets:[{data:[yes,fmsAllData.length-yes],backgroundColor:['#00d4aa','#ff5c7c'],borderWidth:0,hoverOffset:6}]},options:{plugins:{legend:{labels:{color:fTC,padding:14}}},cutout:'62%',onClick:(e,els)=>{if(els.length)fmsFilterTable(els[0].index===0?'yes':'no');},onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';}}});
-  // Daily line
+  const c1=document.getElementById('fChartProductPending');
+  if(c1&&pl.length){
+    fmsCharts.prod=new Chart(c1,{type:'bar',data:{labels:pl,datasets:[{data:pv,backgroundColor:FMS_COLS.slice(0,pl.length),borderRadius:6,borderSkipped:false}]},
+    options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' Remaining: '+ctx.raw}}},
+    scales:{x:{ticks:{color:tc,font:{size:9}},grid:{display:false}},y:{ticks:{color:tc,beginAtZero:true},grid:{display:!noGrid,color:gc}}},
+    onClick:(e,els)=>{if(els.length)fmsKpiFilter('product',pl[els[0].index]);},
+    onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
+    responsive:true,maintainAspectRatio:false}});
+  } else if(c1){
+    const ctx=c1.getContext('2d');ctx.clearRect(0,0,c1.width,c1.height);
+  }
+
+  // Chart 2: Doer-wise Remaining tasks (horizontal bar)
+  const dm={};
+  data.filter(fmsIsRemaining).forEach(r=>{const k=r.doerName&&r.doerName.trim()?r.doerName:'Unknown';dm[k]=(dm[k]||0)+1;});
+  const dl=Object.keys(dm),dv=Object.values(dm);
+  const c2=document.getElementById('fChartDoer');
+  if(c2&&dl.length){
+    fmsCharts.doer=new Chart(c2,{type:'bar',data:{labels:dl,datasets:[{data:dv,backgroundColor:'rgba(0,212,255,0.75)',borderRadius:6}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' Remaining: '+ctx.raw}}},
+    scales:{x:{ticks:{color:tc,beginAtZero:true},grid:{display:!noGrid,color:gc}},y:{ticks:{color:tc,font:{size:9}},grid:{display:false}}},
+    onClick:(e,els)=>{if(els.length)fmsKpiFilter('doer',dl[els[0].index]);},
+    onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
+    responsive:true,maintainAspectRatio:false}});
+  }
+
+  // Chart 3: Status doughnut — For PC No=Remaining, Yes=Delayed
+  const delayed  =data.filter(fmsIsDelayed).length;
+  const remaining=data.filter(fmsIsRemaining).length;
+  const c3=document.getElementById('fChartStatus');
+  if(c3){
+    fmsCharts.status=new Chart(c3,{type:'doughnut',
+    data:{labels:['Remaining (PC No)','Delayed (PC Yes)'],datasets:[{data:[remaining,delayed],backgroundColor:['#00d4aa','#ff5c7c'],borderWidth:0,hoverOffset:8}]},
+    options:{plugins:{legend:{labels:{color:tc,padding:14,font:{size:11}}}},cutout:'62%',
+    onClick:(e,els)=>{if(els.length)fmsKpiFilter(els[0].index===0?'remaining':'delayed');},
+    onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
+    responsive:true,maintainAspectRatio:false}});
+  }
+
+  // Chart 4: Daily planned volume line
   const days=[],counts=[];
-  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}));const dd2=String(d.getDate()).padStart(2,'0'),mm2=String(d.getMonth()+1).padStart(2,'0');counts.push(fmsAllData.filter(r=>r.planned&&r.planned.includes(dd2+'/'+mm2)).length);}
-  fmsCharts.daily=new Chart(document.getElementById('fChartDaily'),{type:'line',data:{labels:days,datasets:[{data:counts,borderColor:'#f0a500',backgroundColor:'rgba(240,165,0,0.08)',fill:true,tension:0.4,pointBackgroundColor:'#f0a500',pointRadius:5}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:fTC,font:{size:9}},grid:{display:!fNG,color:fGC}},y:{ticks:{color:fTC},grid:{display:!fNG,color:fGC},beginAtZero:true}}}});
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    days.push(d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}));
+    const dd2=String(d.getDate()).padStart(2,'0'),mm2=String(d.getMonth()+1).padStart(2,'0');
+    counts.push(data.filter(r=>r.planned&&r.planned.includes(dd2+'/'+mm2)).length);
+  }
+  const c4=document.getElementById('fChartDaily');
+  if(c4){
+    fmsCharts.daily=new Chart(c4,{type:'line',data:{labels:days,datasets:[{data:counts,borderColor:'#f0a500',backgroundColor:'rgba(240,165,0,0.1)',fill:true,tension:0.4,pointBackgroundColor:'#f0a500',pointRadius:5,pointHoverRadius:7}]},
+    options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:9}},grid:{display:!noGrid,color:gc}},y:{ticks:{color:tc,beginAtZero:true},grid:{display:!noGrid,color:gc}}},responsive:true,maintainAspectRatio:false}});
+  }
 }
 
-function fmsPopulateFilters(){
-  const sel=document.getElementById('fProductFilter');
-  const prods=[...new Set(fmsAllData.map(r=>r.productName).filter(v=>v&&v!='#N/A'&&v.trim()))];
-  sel.innerHTML='<option value="">All Products</option>'+prods.map(p=>`<option value="${p}">${p}</option>`).join('');
+// Single filter entry point — filters fmsFiltered, then refreshes everything
+// Format date from any format → DD/MM/YYYY HH:MM
+function fmsFmtDate(str){
+  if(!str||str.trim()==='')return '—';
+  try{
+    // ISO format: 2026-04-03T05:18:12.372Z or 1899-12-29T...
+    let d;
+    if(str.includes('T')){
+      d=new Date(str);
+      // Invalid/epoch dates (1899 etc) → show as-is trimmed
+      if(isNaN(d)||d.getFullYear()<2000) return str.split('T')[0];
+    } else {
+      // DD/MM/YYYY HH:MM:SS or similar
+      const p=str.split(' ');const datePart=p[0],timePart=p[1]||'';
+      const dp=datePart.split('/');
+      if(dp.length===3){
+        // already DD/MM/YYYY
+        const timeStr=timePart?timePart.slice(0,5):'';
+        return datePart+(timeStr?' '+timeStr:'');
+      }
+      d=new Date(str);
+    }
+    if(isNaN(d))return str;
+    const dd=String(d.getDate()).padStart(2,'0');
+    const mm=String(d.getMonth()+1).padStart(2,'0');
+    const yyyy=d.getFullYear();
+    const hh=String(d.getHours()).padStart(2,'0');
+    const min=String(d.getMinutes()).padStart(2,'0');
+    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+  }catch(e){return str;}
 }
 
-function fmsSetActiveFilter(type){
+function fmsKpiFilter(type, value){
+  // Toggle: same KPI clicked again → reset to all
+  if(type===fmsCurrentFilter && !value){
+    fmsCurrentFilter='all';
+    fmsFiltered=[...fmsAllData];
+    fmsMainPage=1;
+    fmsRefreshAll();
+    return;
+  }
   fmsCurrentFilter=type;
-  document.querySelectorAll('.kpi-card[id^="fkpi-"]').forEach(c=>c.classList.remove('kpi-active'));
-  const m={all:'fkpi-all',yes:'fkpi-yes',no:'fkpi-no',today:'fkpi-today',overdue:'fkpi-overdue'};
-  if(m[type]) document.getElementById(m[type]).classList.add('kpi-active');
-  document.querySelectorAll('.fms-chip').forEach(c=>c.classList.remove('active'));
-  const ch=document.getElementById('fchip-'+type);
-  if(ch) ch.classList.add('active');
-}
-
-function fmsFilterTable(type){
   const now=new Date();
-  fmsSetActiveFilter(type);
-  if(type==='all') fmsFiltered=[...fmsAllData];
-  else if(type==='yes') fmsFiltered=fmsAllData.filter(r=>(r.forPC||'').toLowerCase()==='yes');
-  else if(type==='no') fmsFiltered=fmsAllData.filter(r=>(r.forPC||'').toLowerCase()==='no');
-  else if(type==='today'){const dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');fmsFiltered=fmsAllData.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm));}
-  else if(type==='overdue'){fmsFiltered=fmsAllData.filter(r=>{if(!r.planned||(r.forPC||'').toLowerCase()==='yes')return false;const p=r.planned.split(' ')[0],parts=p.split('/');if(parts.length<3)return false;const d=parts[0].length===4?new Date(parts[0],parts[1]-1,parts[2]):new Date(parts[2],parts[1]-1,parts[0]);return d<now;});}
-  const t={all:'📋 All Tasks',yes:'✅ PC Confirmed',no:'❌ PC Pending',today:"📅 Today's Tasks",overdue:'⚠️ Overdue'};
-  document.getElementById('fTableTitle').textContent=t[type]||'📋 Tasks';
-  fmsPage=1; fmsRenderTable();
+  const dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');
+  if(type==='all')           fmsFiltered=[...fmsAllData];
+  else if(type==='remaining')fmsFiltered=fmsAllData.filter(fmsIsRemaining);
+  else if(type==='delayed')  fmsFiltered=fmsAllData.filter(fmsIsDelayed);
+  else if(type==='today')    fmsFiltered=fmsAllData.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm));
+  else if(type==='product')  fmsFiltered=fmsAllData.filter(r=>r.product===value);
+  else if(type==='doer')     fmsFiltered=fmsAllData.filter(r=>r.doerName===value);
+  fmsMainPage=1;
+  fmsRefreshAll();
 }
 
-function fmsFilterByProduct(prod){
-  document.querySelectorAll('.kpi-card[id^="fkpi-"]').forEach(c=>c.classList.remove('kpi-active'));
-  document.querySelectorAll('.fms-chip').forEach(c=>c.classList.remove('active'));
-  fmsFiltered=fmsAllData.filter(r=>r.productName===prod);
-  document.getElementById('fTableTitle').textContent='📦 Product: '+prod;
-  fmsPage=1; fmsRenderTable();
+function fmsPopulateDropdowns(){
+  const prods=[...new Set(fmsAllData.map(r=>r.product).filter(v=>v&&v.trim()))];
+  document.getElementById('fProductFilter').innerHTML='<option value="">All Products</option>'+prods.map(p=>`<option value="${p}">${p}</option>`).join('');
+  const doers=[...new Set(fmsAllData.map(r=>r.doerName).filter(v=>v&&v.trim()))];
+  document.getElementById('fDoerFilter').innerHTML='<option value="">All Doers</option>'+doers.map(d=>`<option value="${d}">${d}</option>`).join('');
 }
 
-function fmsResetFilter(){
-  document.getElementById('fSearch').value='';
-  document.getElementById('fProductFilter').value='';
-  document.getElementById('fPCFilter').value='';
-  fmsFilterTable('all');
+function fmsRenderDoerSummary(){
+  const dm={};
+  fmsFiltered.filter(fmsIsRemaining).forEach(r=>{const k=r.doerName&&r.doerName.trim()?r.doerName:'Unknown';dm[k]=(dm[k]||0)+1;});
+  const sorted=Object.entries(dm).sort((a,b)=>b[1]-a[1]);
+  const max=sorted[0]?.[1]||1;
+  document.getElementById('fDoerSummary').innerHTML=sorted.length?sorted.map(([name,cnt],i)=>`
+    <div onclick="fmsKpiFilter('doer','${name.replace(/'/g,"\\\'")}')" style="padding:0.55rem 1rem;display:flex;align-items:center;gap:0.6rem;cursor:pointer;border-bottom:1px solid var(--border);">
+      <div style="width:28px;height:28px;border-radius:50%;background:${FMS_COLS[i%FMS_COLS.length]}22;color:${FMS_COLS[i%FMS_COLS.length]};display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:700;flex-shrink:0;">${(name[0]||'?').toUpperCase()}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.78rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+        <div style="height:4px;background:var(--border);border-radius:4px;margin-top:4px;"><div style="height:4px;background:${FMS_COLS[i%FMS_COLS.length]};border-radius:4px;width:${Math.round(cnt/max*100)}%;"></div></div>
+      </div>
+      <div style="font-size:0.82rem;font-weight:700;color:${FMS_COLS[i%FMS_COLS.length]};min-width:22px;text-align:right;">${cnt}</div>
+    </div>`).join(''):'<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:0.8rem;">Koi remaining task nahi</div>';
+}
+
+function fmsRenderCPTable(){
+  const data=fmsFiltered;
+  if(!data.length){document.getElementById('fCPTableBody').innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.8rem;">No data</div>';document.getElementById('fCPPagination').style.display='none';return;}
+  const start=(fmsCPPage-1)*FMS_CP_PER_PAGE;
+  const pg=data.slice(start,start+FMS_CP_PER_PAGE);
+  document.getElementById('fCPTableBody').innerHTML=pg.map(r=>{
+    const delayed=fmsIsDelayed(r);
+    return`<div style="display:grid;grid-template-columns:1fr 1.2fr 0.9fr;border-bottom:1px solid var(--border);padding:0.45rem 1rem;cursor:pointer;" onclick="fmsOpenMarkDone(${fmsAllData.indexOf(r)})">
+      <span style="font-size:0.75rem;font-weight:700;color:#00d4ff;">${r.uniqueKey}</span>
+      <span style="font-size:0.72rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.customerName||'—'}</span>
+      <span style="font-size:0.68rem;color:${delayed?'var(--hot)':'var(--won)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.product||'—'}</span>
+    </div>`;
+  }).join('');
+  const tot=data.length,tp=Math.ceil(tot/FMS_CP_PER_PAGE),s=start+1,e=Math.min(fmsCPPage*FMS_CP_PER_PAGE,tot);
+  document.getElementById('fCPPageInfo').textContent=`${s}–${e} of ${tot}`;
+  let btns='';for(let i=1;i<=Math.min(tp,6);i++)btns+=`<button onclick="fmsCPGoPage(${i})" style="width:22px;height:22px;border-radius:5px;border:1px solid var(--border);background:${i===fmsCPPage?'#f0a500':'transparent'};color:${i===fmsCPPage?'#000':'var(--text)'};cursor:pointer;font-size:0.7rem;">${i}</button>`;
+  document.getElementById('fCPPageBtns').innerHTML=btns;
+  document.getElementById('fCPPagination').style.display='flex';
+}
+function fmsCPGoPage(n){fmsCPPage=n;fmsRenderCPTable();}
+
+function fmsApplyDateFilter(){
+  fmsDateFrom=document.getElementById('fDateFrom').value||null;
+  fmsDateTo=document.getElementById('fDateTo').value||null;
+  fmsApplySearch();
+}
+function fmsClearDateFilter(){
+  document.getElementById('fDateFrom').value='';
+  document.getElementById('fDateTo').value='';
+  fmsDateFrom=null;fmsDateTo=null;fmsApplySearch();
 }
 
 function fmsApplySearch(){
-  const q=document.getElementById('fSearch').value.toLowerCase();
+  const q=(document.getElementById('fSearch').value||'').toLowerCase();
   const prod=document.getElementById('fProductFilter').value;
-  const pc=document.getElementById('fPCFilter').value;
-  let base=fmsCurrentFilter==='yes'?fmsAllData.filter(r=>(r.forPC||'').toLowerCase()==='yes'):fmsCurrentFilter==='no'?fmsAllData.filter(r=>(r.forPC||'').toLowerCase()==='no'):fmsAllData;
+  const doer=document.getElementById('fDoerFilter').value;
+  const status=document.getElementById('fStatusFilter').value;
+  // Search from full dataset but respect active KPI filter
+  let base=fmsAllData;
+  if(fmsCurrentFilter==='remaining') base=fmsAllData.filter(fmsIsRemaining);
+  else if(fmsCurrentFilter==='delayed') base=fmsAllData.filter(fmsIsDelayed);
+  else if(fmsCurrentFilter==='today'){const now=new Date(),dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');base=fmsAllData.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm));}
   fmsFiltered=base.filter(r=>{
-    const mq=!q||[r.uniqueKey,r.step,r.productName,r.doerEmail].some(v=>(v||'').toLowerCase().includes(q));
-    return mq&&(!prod||r.productName===prod)&&(!pc||(r.forPC||'')===pc);
+    const mq=!q||[r.uniqueKey,r.plannedStep,r.doerName,r.customerName,r.product].some(v=>(v||'').toLowerCase().includes(q));
+    const mp=!prod||r.product===prod;
+    const md=!doer||r.doerName===doer;
+    const ms=!status||(status==='delayed'?fmsIsDelayed(r):fmsIsRemaining(r));
+    let mdate=true;
+    if(fmsDateFrom||fmsDateTo){
+      // Parse planned date for date range filter
+      const raw=r.planned||'';const part=raw.split(' ')[0];const pp=part.split('/');
+      if(pp.length>=3){
+        const d=pp[0].length===4?new Date(+pp[0],+pp[1]-1,+pp[2]):new Date(+pp[2],+pp[1]-1,+pp[0]);
+        if(fmsDateFrom&&d<new Date(fmsDateFrom))mdate=false;
+        if(fmsDateTo&&d>new Date(fmsDateTo))mdate=false;
+      } else mdate=false;
+    }
+    return mq&&mp&&md&&ms&&mdate;
   });
-  fmsPage=1; fmsRenderTable();
+  fmsMainPage=1;
+  fmsRenderCharts(fmsFiltered);
+  fmsUpdateKPIs();
+  fmsRenderCPTable();
+  fmsRenderDoerSummary();
+  fmsRenderMainTable();
 }
 
-function fmsRenderTable(){
-  if(!fmsFiltered.length){document.getElementById('fTableBody').innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted)">No data found 😕</div>';document.getElementById('fPagination').style.display='none';return;}
-  const start=(fmsPage-1)*FMS_PER_PAGE;
-  const rows=fmsFiltered.slice(start,start+FMS_PER_PAGE).map((r,i)=>{
-    const pcB=(r.forPC||'').toLowerCase()==='yes'?'<span class="fms-badge-yes">✓ Yes</span>':'<span class="fms-badge-no">✗ No</span>';
-    const formBtn=r.link&&r.link.startsWith('http')?`<a class="fms-form-btn" href="${r.link}" target="_blank" onclick="event.stopPropagation()">📝 Form</a>`:'—';
-    return`<tr onclick="fmsOpenModal(${start+i})"><td><strong style="color:#00d4ff">${r.uniqueKey}</strong></td><td style="color:var(--muted);font-size:0.75rem">${r.planned||'—'}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${r.step||'—'}</td><td>${r.productName||'—'}</td><td>${pcB}</td><td style="color:var(--muted);font-size:0.72rem">${r.doerEmail||'—'}</td><td>${formBtn}</td></tr>`;
+function fmsSort2(key){
+  if(fmsSortKey===key)fmsSortDir*=-1;else{fmsSortKey=key;fmsSortDir=1;}
+  fmsFiltered.sort((a,b)=>String(a[key]||'').localeCompare(String(b[key]||''))*fmsSortDir);
+  fmsRenderMainTable();
+}
+
+function fmsRenderMainTable(){
+  const tot=fmsFiltered.length;
+  document.getElementById('fTableCount').textContent=tot+' record'+(tot!==1?'s':'');
+  if(!tot){
+    document.getElementById('fMainTableBody').innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted);">Koi data nahi mila 😕<br><small style="font-size:0.75rem;">Reset button dabao</small></div>';
+    document.getElementById('fMainPagination').style.display='none';
+    return;
+  }
+  const start=(fmsMainPage-1)*FMS_PER_PAGE;
+  const pg=fmsFiltered.slice(start,start+FMS_PER_PAGE);
+  const rows=pg.map((r)=>{
+    const delayed=fmsIsDelayed(r);
+    const rowBg=delayed?'rgba(255,92,124,0.035)':'';
+    const doerIdx=[...new Set(fmsAllData.map(x=>x.doerName))].indexOf(r.doerName);
+    const doerCol=FMS_COLS[doerIdx%FMS_COLS.length]||'#888';
+    const fmtDate=fmsFmtDate(r.planned);
+    const statusBadge=delayed
+      ?'<span style="font-size:0.58rem;color:#ff5c7c;font-weight:700;background:rgba(255,92,124,0.12);padding:2px 8px;border-radius:20px;white-space:nowrap;">⚠ Delayed</span>'
+      :'<span style="font-size:0.58rem;color:#00d4aa;font-weight:700;background:rgba(0,212,170,0.1);padding:2px 8px;border-radius:20px;white-space:nowrap;">✓ Remaining</span>';
+    const markDoneBtn=r.link&&r.link.startsWith('http')
+      ?`<button onclick="event.stopPropagation();fmsOpenMarkDone(${fmsAllData.indexOf(r)})" style="padding:5px 14px;border-radius:20px;border:1.5px solid ${delayed?'#ff5c7c':'#f0a500'};background:transparent;color:${delayed?'#ff5c7c':'#f0a500'};font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Mark Done</button>`
+      :'<span style="font-size:0.7rem;color:var(--muted);">—</span>';
+    return`<div onclick="fmsOpenMarkDone(${fmsAllData.indexOf(r)})" style="display:grid;grid-template-columns:1.1fr 1.1fr 2fr 1.3fr 1fr;border-bottom:1px solid var(--border);background:${rowBg};cursor:pointer;align-items:center;" onmouseover="this.style.background='rgba(255,255,255,0.025)'" onmouseout="this.style.background='${rowBg}'">
+      <div style="padding:0.65rem 1rem;border-right:1px solid var(--border);">
+        <div style="font-size:0.8rem;font-weight:800;color:#00d4ff;letter-spacing:0.01em;">${r.uniqueKey}</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:3px;line-height:1.3;">${r.customerName||'—'}</div>
+      </div>
+      <div style="padding:0.65rem 1rem;border-right:1px solid var(--border);">
+        <div style="font-size:0.78rem;font-weight:600;color:${doerCol};">${r.doerName||'—'}</div>
+        <div style="font-size:0.62rem;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;">${r.doerEmail||''}</div>
+      </div>
+      <div style="padding:0.65rem 1rem;border-right:1px solid var(--border);">
+        <div style="font-size:0.76rem;color:var(--text);line-height:1.4;">${r.plannedStep||'—'}</div>
+        <div style="font-size:0.63rem;color:var(--muted);margin-top:2px;font-style:italic;">${r.product||''}</div>
+      </div>
+      <div style="padding:0.65rem 1rem;border-right:1px solid var(--border);">
+        <div style="font-size:0.74rem;font-weight:500;color:var(--text);font-family:'DM Mono',monospace,sans-serif;">${fmtDate}</div>
+        <div style="margin-top:4px;">${statusBadge}</div>
+      </div>
+      <div style="padding:0.65rem 1rem;text-align:center;">${markDoneBtn}</div>
+    </div>`;
   }).join('');
-  document.getElementById('fTableBody').innerHTML=`<table><thead><tr><th>Unique Key</th><th>Planned</th><th>Step</th><th>Product</th><th>For PC</th><th>Doer Email</th><th>Form</th></tr></thead><tbody>${rows}</tbody></table>`;
-  // Pagination
-  const tot=fmsFiltered.length,tp=Math.ceil(tot/FMS_PER_PAGE),s=start+1,e=Math.min(fmsPage*FMS_PER_PAGE,tot);
-  document.getElementById('fPageInfo').textContent=`${s}–${e} of ${tot}`;
-  let btns='';for(let i=1;i<=tp;i++)btns+=`<button onclick="fmsGoPage(${i})" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:${i===fmsPage?'var(--accent)':'transparent'};color:${i===fmsPage?'#000':'var(--text)'};cursor:pointer;font-size:0.78rem;">${i}</button>`;
-  document.getElementById('fPageBtns').innerHTML=btns;
-  document.getElementById('fPagination').style.display='flex';
+  document.getElementById('fMainTableBody').innerHTML=rows;
+  const tp=Math.ceil(tot/FMS_PER_PAGE),s=start+1,e=Math.min(fmsMainPage*FMS_PER_PAGE,tot);
+  document.getElementById('fMainPageInfo').textContent=`${s}–${e} of ${tot}`;
+  let btns='';
+  if(fmsMainPage>1)btns+=`<button onclick="fmsMainGoPage(${fmsMainPage-1})" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">‹</button>`;
+  for(let i=Math.max(1,fmsMainPage-2);i<=Math.min(tp,fmsMainPage+2);i++)btns+=`<button onclick="fmsMainGoPage(${i})" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:${i===fmsMainPage?'#f0a500':'transparent'};color:${i===fmsMainPage?'#000':'var(--text)'};cursor:pointer;font-size:0.78rem;">${i}</button>`;
+  if(fmsMainPage<tp)btns+=`<button onclick="fmsMainGoPage(${fmsMainPage+1})" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">›</button>`;
+  document.getElementById('fMainPageBtns').innerHTML=btns;
+  document.getElementById('fMainPagination').style.display='flex';
 }
 
-function fmsGoPage(n){fmsPage=n;fmsRenderTable();}
+function fmsMainGoPage(n){fmsMainPage=n;fmsRenderMainTable();}
 
-function fmsOpenModal(idx){
-  const r=fmsFiltered[idx]; if(!r)return;
-  document.getElementById('fmsModalContent').innerHTML=`
-    <div style="margin-bottom:0.8rem"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.25rem">Unique Key</div><div style="color:#00d4ff;font-weight:700;font-size:1.05rem">${r.uniqueKey}</div></div>
-    <div style="margin-bottom:0.8rem"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.25rem">Planned</div><div>${r.planned||'—'}</div></div>
-    <div style="margin-bottom:0.8rem"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.25rem">Step</div><div>${r.step||'—'}</div></div>
-    <div style="margin-bottom:0.8rem"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.25rem">Product</div><div>${r.productName||'—'}</div></div>
-    <div style="margin-bottom:0.8rem"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.25rem">For PC</div><div>${(r.forPC||'').toLowerCase()==='yes'?'<span class="fms-badge-yes">✓ Yes</span>':'<span class="fms-badge-no">✗ No</span>'}</div></div>
-    <div style="margin-bottom:0.8rem"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.25rem">Doer Email</div><div style="color:var(--muted);font-size:0.85rem">${r.doerEmail||'—'}</div></div>`;
-  const lnk=document.getElementById('fmsModalFormLink');
+function fmsOpenMarkDone(idx){
+  const r=fmsAllData[idx];if(!r)return;
+  const delayed=fmsIsDelayed(r);
+  document.getElementById('fmsMarkDoneInfo').innerHTML=`
+    <b style="color:#f0a500;">${r.uniqueKey}</b> — ${r.customerName||'Customer'}<br>
+    <span style="color:var(--muted);">Doer:</span> ${r.doerName||'—'} &nbsp;|&nbsp; <span style="color:var(--muted);">Product:</span> ${r.product||'—'}<br>
+    <span style="color:var(--muted);">Step:</span> ${r.plannedStep||'—'}<br>
+    <span style="color:var(--muted);">Planned:</span> ${fmsFmtDate(r.planned)}<br>
+    <span style="color:var(--muted);">Status:</span> ${delayed?'<span style="color:var(--hot);font-weight:600;">⚠ Delayed (For PC = Yes)</span>':'<span style="color:var(--won);font-weight:600;">✓ Remaining (For PC = No)</span>'}`;
+  const lnk=document.getElementById('fmsMarkDoneLink');
   if(r.link&&r.link.startsWith('http')){lnk.href=r.link;lnk.style.display='inline-flex';}else{lnk.style.display='none';}
-  const m=document.getElementById('fmsModal'); m.style.display='flex';
+  document.getElementById('fmsMarkDoneModal').style.display='flex';
 }
-function closeFmsModal(){document.getElementById('fmsModal').style.display='none';}
-document.getElementById('fmsModal').addEventListener('click',function(e){if(e.target===this)closeFmsModal();});
+function closeFmsMarkDone(){document.getElementById('fmsMarkDoneModal').style.display='none';}
+document.getElementById('fmsMarkDoneModal').addEventListener('click',function(e){if(e.target===this)closeFmsMarkDone();});
+
+function fmsClearAllFilters(){
+  document.getElementById('fSearch').value='';
+  document.getElementById('fProductFilter').value='';
+  document.getElementById('fDoerFilter').value='';
+  document.getElementById('fStatusFilter').value='';
+  document.getElementById('fDateFrom').value='';
+  document.getElementById('fDateTo').value='';
+  fmsDateFrom=null;fmsDateTo=null;
+  fmsKpiFilter('all');
+}
 
 function fmsExportCSV(){
-  const h=['Unique Key','Planned','Step','Product','For PC','Doer Email'];
-  const rows=fmsFiltered.map(r=>[r.uniqueKey,r.planned,r.step,r.productName,r.forPC,r.doerEmail].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...rows].join('\n'));a.download='fms_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  const h=['Unique Key','Customer Name','Product','Doer Name','Planned Step','Planned','For PC','Doer Email','Form Link'];
+  const rows=fmsFiltered.map(r=>[r.uniqueKey,r.customerName,r.product,r.doerName,r.plannedStep,r.planned,r.forPC,r.doerEmail,r.link].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...rows].join('\n'));a.download='fms_tasks_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+
+
+
+// fmsLoadData is called by the switchDB override above
+async function fmsLoadData(){
+  const loader=`<div style="display:flex;flex-direction:column;align-items:center;padding:3rem;gap:1rem;color:var(--muted);"><div class="loader-bar"><div class="loader-fill"></div></div><p style="font-size:0.8rem;">Live data fetch ho rahi hai...</p></div>`;
+  document.getElementById('fMainTableBody').innerHTML=loader;
+  try{
+    const res=await fetch(FMS_API);
+    const text=await res.text();
+    let json;try{json=JSON.parse(text);}catch(e){throw new Error('Invalid JSON from API');}
+    let raw=[];
+    if(Array.isArray(json)) raw=json;
+    else if(json.data&&Array.isArray(json.data)) raw=json.data;
+    else if(json.records&&Array.isArray(json.records)) raw=json.records;
+    else if(json.rows&&Array.isArray(json.rows)) raw=json.rows;
+    // Handle {h:[headers], r:[[row],[row]]} format
+    else if(json.h&&json.r){raw=json.r.map(row=>{const o={};json.h.forEach((k,i)=>{o[k]=row[i]??'';});return o;});}
+    console.log('[FMS] API response type:', typeof json, Array.isArray(json)?'array':'object');
+    console.log('[FMS] Parsed rows:', raw.length);
+    if(raw.length) console.log('[FMS] Column names:', Object.keys(raw[0]));
+    if(!raw.length){
+      document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--muted);">
+        <div style="font-size:1.5rem;margin-bottom:0.5rem;">📭</div>
+        Sheet mein data nahi mila<br>
+        <small style="color:var(--muted);font-size:0.75rem;">Browser Console (F12) mein [FMS] logs check karo</small>
+      </div>`;
+      return;
+    }
+    const firstRow=raw[0],keys=Object.keys(firstRow);
+    function gv(r,...cols){for(const c of cols){if(r[c]!==undefined&&String(r[c]).trim()!='')return String(r[c]);const f=keys.find(k=>k.toLowerCase().replace(/[^a-z0-9]/g,'')==c.toLowerCase().replace(/[^a-z0-9]/g,''));if(f&&r[f]!==undefined&&String(r[f]).trim()!='')return String(r[f]);}return '';}
+    fmsAllData=raw.map(r=>({
+      uniqueKey:    gv(r,'Unique Key','UniqueKey','uniqueKey'),
+      planned:      gv(r,'Planned Step','PlannedStep','Planned','planned'),
+      plannedStep:  gv(r,'Planned Step','PlannedStep','How','how'),
+      how:          gv(r,'How','how'),
+      doerName:     gv(r,'Final Doer Name','FinalDoerName','Doer Name','DoerName','doerName'),
+      link:         gv(r,'Link','link'),
+      forPC:        gv(r,'For PC','ForPC','forPC'),
+      doerEmail:    gv(r,'Final Doer Email','FinalDoerEmail','Doer Email','DoerEmail','doerEmail'),
+      customerName: gv(r,'Customer Name','CustomerName','customerName'),
+      product:      gv(r,'Product','product'),
+    })).filter(r=>r.uniqueKey&&!r.uniqueKey.includes('#N/A'));
+    document.getElementById('fmsLastRefresh').textContent='Updated '+new Date().toLocaleTimeString();
+    fmsProcessData();
+  }catch(e){
+    document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--hot);">❌ ${e.message}<br><small style="color:var(--muted);">Apps Script URL set karo ya CORS check karo</small><button onclick="fmsLoadData()" style="margin-top:0.8rem;display:block;margin-left:auto;margin-right:auto;padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">🔄 Retry</button></div>`;
+  }
 }
 
 </script>
