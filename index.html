@@ -3776,7 +3776,10 @@ function toggleTheme(){
 // Apply saved theme on load
 (function(){
   const saved = localStorage.getItem('aditiTheme');
-  if(saved === 'light'){
+  if(saved === 'dark'){
+    // Dark mode only if explicitly saved as dark
+  } else {
+    // Default is light mode
     document.body.classList.add('light-mode');
     const loginBtn = document.getElementById('loginThemeBtn');
     if(loginBtn) loginBtn.textContent = '☀️ Light Mode';
