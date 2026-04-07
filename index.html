@@ -135,6 +135,120 @@
   .nav-badge.soon{background:rgba(107,114,128,0.1);color:var(--muted);}
   .nav-item.disabled{opacity:0.4;cursor:not-allowed;}
   .nav-item.disabled:hover{background:transparent;color:var(--muted);}
+  .nav-accordion-trigger{cursor:pointer;}
+  .nav-accordion-arrow{margin-left:auto;transition:transform 0.25s;display:flex;align-items:center;opacity:0.5;}
+  .nav-accordion-arrow.open{transform:rotate(180deg);}
+  .nav-sub-group{overflow:hidden;}
+  .nav-sub-item{padding:7px 10px 7px 26px!important;margin:1px 8px!important;font-size:0.74rem!important;}
+  .nav-sub-dot{width:5px;height:5px;border-radius:50%;background:var(--muted);flex-shrink:0;margin-right:8px;margin-top:1px;}
+  .nav-sub-item.active .nav-sub-dot{background:var(--accent);}
+  .nav-accordion-trigger.dash-open{background:linear-gradient(135deg,rgba(240,165,0,0.08),rgba(240,165,0,0.04));border-color:rgba(240,165,0,0.18);color:var(--text);}
+
+  /* ══ HOME PAGE CARDS ══ */
+  .hp-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);}
+  .hp-card-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .hp-card-icon{font-size:1rem;}
+  .hp-card-title{font-size:0.78rem;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.06em;}
+
+  /* CEO VIDEO */
+  .hp-ceo-video{display:flex;flex-direction:column;gap:14px;}
+  .hp-video-wrap{position:relative;width:100%;padding-top:52%;border-radius:10px;overflow:hidden;background:#000;}
+  .hp-video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:10px;}
+  .hp-ceo-text{}
+
+  /* WHAT'S NEW */
+  .hp-news-list{display:flex;flex-direction:column;gap:8px;}
+  .hp-news-item{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border-radius:9px;background:var(--surface2);border-left:3px solid var(--accent);}
+  .hp-news-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px;}
+  .hp-news-text{font-size:0.73rem;color:var(--text2);line-height:1.5;flex:1;}
+  .hp-news-date{font-size:0.62rem;color:var(--muted);white-space:nowrap;margin-top:2px;}
+  .hp-live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:auto;animation:livePulse 1.5s ease-in-out infinite;}
+  @keyframes livePulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(1.3);}}
+
+  /* QUICK LINKS */
+  .hp-quick-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+  .hp-quick-item{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;border-radius:12px;border:1px solid var(--border);cursor:pointer;transition:all 0.18s;text-align:center;background:var(--surface2);}
+  .hp-quick-item:hover{transform:translateY(-3px);border-color:var(--ql-color,var(--accent));box-shadow:0 6px 18px rgba(0,0,0,0.1);}
+  .hp-qi-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .hp-qi-name{font-size:0.68rem;font-weight:600;color:var(--text);line-height:1.3;}
+  .hp-qi-tag{font-size:0.58rem;padding:2px 7px;border-radius:20px;background:rgba(240,165,0,0.12);color:var(--accent);font-weight:600;}
+
+  /* HOW TO USE */
+  .hp-guide-list{display:flex;flex-direction:column;gap:10px;}
+  .hp-guide-step{display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);}
+  .hp-step-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#000;font-size:0.65rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+  .hp-step-body{}
+  .hp-step-title{font-size:0.73rem;font-weight:700;color:var(--text);margin-bottom:3px;}
+  .hp-step-desc{font-size:0.68rem;color:var(--muted);line-height:1.55;}
+
+  /* EMERGENCY CONTACTS */
+  .hp-contacts-list{display:flex;flex-direction:column;gap:6px;}
+  .hp-contact-group-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:4px;}
+  .hp-contact-item{display:flex;gap:12px;align-items:center;padding:10px 13px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);}
+  .hp-contact-avatar{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:0.62rem;font-weight:800;flex-shrink:0;}
+  .hp-contact-info{flex:1;}
+  .hp-contact-name{font-size:0.72rem;font-weight:700;color:var(--text);margin-bottom:2px;}
+  .hp-contact-detail{font-size:0.65rem;color:var(--muted);}
+  .hp-contact-detail a{color:var(--accent2);text-decoration:none;}
+  .hp-contact-detail a:hover{text-decoration:underline;}
+  .hp-contact-avail{font-size:0.6rem;color:var(--muted);text-align:right;white-space:nowrap;}
+
+  /* ══ ABOUT ORGANISATION PANEL ══ */
+  .about-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;}
+  .about-tab{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.71rem;font-weight:600;cursor:pointer;transition:all 0.18s;}
+  .about-tab:hover{border-color:var(--accent);color:var(--accent);}
+  .about-tab.active{background:var(--accent);color:#000;border-color:var(--accent);}
+  .about-section{display:none;}
+  .about-section.active{display:block;}
+
+  /* Org Chart */
+  .org-tree{display:flex;flex-direction:column;align-items:center;gap:0;}
+  .org-node.ceo-node{display:flex;justify-content:center;margin-bottom:0;}
+  .org-card{display:flex;gap:10px;align-items:center;padding:12px 16px;border-radius:12px;background:var(--surface2);border:1.5px solid var(--border);min-width:200px;border-top:3px solid var(--nc,var(--accent));}
+  .org-avatar{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;}
+  .org-name{font-size:0.74rem;font-weight:700;color:var(--text);}
+  .org-role{font-size:0.64rem;color:var(--muted);margin-top:2px;}
+  .org-line-v{width:2px;height:24px;background:var(--border);margin:0 auto;}
+  .org-dept-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  .org-dept-col{display:flex;flex-direction:column;align-items:center;}
+
+  /* Leadership Cards */
+  .leader-card{display:flex;gap:14px;padding:14px 16px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);}
+  .leader-avatar{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:800;flex-shrink:0;background:rgba(240,165,0,0.15);color:var(--accent);}
+  .leader-name{font-size:0.78rem;font-weight:700;color:var(--text);}
+  .leader-role{font-size:0.66rem;color:var(--accent2);margin:2px 0 6px 0;}
+  .leader-desc{font-size:0.67rem;color:var(--muted);line-height:1.55;}
+  .leader-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+  .leader-tag{font-size:0.58rem;padding:2px 7px;border-radius:20px;background:rgba(240,165,0,0.1);color:var(--accent);font-weight:600;}
+
+  /* Location Cards */
+  .loc-card{padding:16px 18px;}
+  .loc-badge{font-size:0.58rem;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(240,165,0,0.12);color:var(--accent);margin-left:auto;text-transform:uppercase;letter-spacing:0.05em;}
+  .hq-badge{background:rgba(240,165,0,0.18);color:var(--accent);}
+  .loc-address{font-size:0.72rem;color:var(--text2);line-height:1.8;margin:10px 0;}
+  .loc-line{color:var(--text2);}
+  .loc-contacts{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+  .loc-contact-row{font-size:0.7rem;color:var(--muted);}
+  .loc-contact-row a{color:var(--accent2);text-decoration:none;}
+  .loc-map-btn{display:inline-block;padding:7px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);font-size:0.7rem;font-weight:600;text-decoration:none;transition:all 0.18s;}
+  .loc-map-btn:hover{background:var(--accent);color:#000;}
+
+  /* Timeline */
+  .timeline{display:flex;flex-direction:column;gap:0;}
+  .tl-item{display:grid;grid-template-columns:60px 20px 1fr;gap:10px;align-items:flex-start;padding-bottom:18px;}
+  .tl-year{font-size:0.75rem;font-weight:800;color:var(--muted);text-align:right;padding-top:2px;}
+  .tl-dot{width:14px;height:14px;border-radius:50%;border:2.5px solid var(--muted);background:var(--surface);flex-shrink:0;margin-top:2px;position:relative;}
+  .tl-dot::before{content:'';position:absolute;top:12px;left:50%;transform:translateX(-50%);width:2px;height:calc(100% + 16px);background:var(--border);}
+  .tl-item:last-child .tl-dot::before{display:none;}
+  .tl-title{font-size:0.74rem;font-weight:700;color:var(--text);margin-bottom:3px;}
+  .tl-desc{font-size:0.68rem;color:var(--muted);line-height:1.55;}
+
+  /* Brand */
+  .brand-color-row{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);}
+  .brand-swatch{width:42px;height:42px;border-radius:9px;flex-shrink:0;}
+  .brand-color-name{font-size:0.72rem;font-weight:700;color:var(--text);}
+  .brand-color-val{font-size:0.64rem;color:var(--accent2);font-family:monospace;margin:2px 0;}
+  .brand-color-use{font-size:0.63rem;color:var(--muted);}
   .sidebar-bottom{
     flex-shrink:0;padding:12px 16px;
     border-top:1px solid var(--border);
@@ -591,6 +705,11 @@
     /* Home panel */
     .home-panel { padding: 16px 12px 20px !important; }
     .home-welcome { font-size: 1.6rem !important; font-family: 'Playfair Display', serif !important; }
+    .hp-row2 { grid-template-columns: 1fr !important; }
+    .hp-quick-grid { grid-template-columns: repeat(3,1fr) !important; gap:8px !important; }
+    .hp-guide-step { padding: 9px 10px !important; }
+    .hp-contact-item { flex-wrap: wrap; gap:8px; }
+    .hp-contact-avail { width:100%; text-align:left !important; }
     .home-cards { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
     .hc-icon { font-size: 1.4rem !important; margin-bottom: 8px !important; }
     .hc-name { font-size: 0.82rem !important; }
@@ -1087,15 +1206,103 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <button class="theme-toggle" onclick="toggleTheme()" id="sidebarThemeBtn" style="width:100%;justify-content:center">🌙 Dark Mode</button>
   </div>
   <div class="sidebar-nav-scroll">
-    <div class="sidebar-section">Dashboards</div>
-    <div class="nav-item active" onclick="switchDB('home')" id="nav-home"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span><span class="nav-label">Home</span></div>
-    <div class="nav-item" onclick="switchDB('leads')" id="nav-leads"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></span><span class="nav-label">Lead Tracking</span><span class="nav-badge live">Live</span></div>
-    <div class="nav-item" onclick="switchDB('collection')" id="nav-collection"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></span><span class="nav-label">Collection</span><span class="nav-badge live">Live</span></div>
-    <div class="nav-item" onclick="switchDB('fms')" id="nav-fms"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span><span class="nav-label">FMS O2D</span><span class="nav-badge live">Live</span></div>
-    <div class="nav-item" onclick="switchDB('tasks')" id="nav-tasks"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span><span class="nav-label">Task Checklist</span><span class="nav-badge live">Live</span></div>
-    <div class="nav-item" onclick="switchDB('training')" id="nav-training"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span><span class="nav-label">Training</span><span class="nav-badge live" style="background:rgba(249,115,22,0.18);color:#f97316;border:1px solid rgba(249,115,22,0.35);">Videos</span></div>
-    <div class="nav-item" onclick="switchDB('resources')" id="nav-resources"><span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span><span class="nav-label">Resources</span><span class="nav-badge live" style="background:rgba(20,184,166,0.18);color:#14b8a6;border:1px solid rgba(20,184,166,0.35);">Docs</span></div>
-    <div class="sidebar-section" style="margin-top:8px">Coming Soon</div>
+
+    <!-- HOME -->
+    <div class="nav-item active" onclick="switchDB('home')" id="nav-home">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span>
+      <span class="nav-label">Home</span>
+    </div>
+
+    <!-- DASHBOARDS ACCORDION -->
+    <div class="nav-item nav-accordion-trigger" onclick="toggleDashboardAccordion()" id="nav-dashboards-trigger">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
+      <span class="nav-label">Dashboards</span>
+      <span class="nav-accordion-arrow" id="dashAccordionArrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </div>
+    <div class="nav-sub-group" id="dashboardSubGroup" style="display:none;">
+      <div class="nav-item nav-sub-item" onclick="switchDB('leads')" id="nav-leads">
+        <span class="nav-sub-dot"></span>
+        <span class="nav-label">Lead Tracking</span><span class="nav-badge live">Live</span>
+      </div>
+      <div class="nav-item nav-sub-item" onclick="switchDB('collection')" id="nav-collection">
+        <span class="nav-sub-dot"></span>
+        <span class="nav-label">Collection</span><span class="nav-badge live">Live</span>
+      </div>
+      <div class="nav-item nav-sub-item" onclick="switchDB('fms')" id="nav-fms">
+        <span class="nav-sub-dot"></span>
+        <span class="nav-label">FMS O2D</span><span class="nav-badge live">Live</span>
+      </div>
+      <div class="nav-item nav-sub-item" onclick="switchDB('tasks')" id="nav-tasks">
+        <span class="nav-sub-dot"></span>
+        <span class="nav-label">Task Checklist</span><span class="nav-badge live">Live</span>
+      </div>
+    </div>
+
+    <!-- ABOUT ORGANISATION -->
+    <div class="nav-item" onclick="switchDB('about')" id="nav-about">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><circle cx="12" cy="14" r="3"/></svg></span>
+      <span class="nav-label">About Organisation</span>
+    </div>
+
+    <!-- HR -->
+    <div class="nav-item disabled" title="Coming Soon" id="nav-hr">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>
+      <span class="nav-label">HR</span><span class="nav-badge soon">Soon</span>
+    </div>
+
+    <!-- SALES -->
+    <div class="nav-item disabled" title="Coming Soon" id="nav-sales">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></span>
+      <span class="nav-label">Sales</span><span class="nav-badge soon">Soon</span>
+    </div>
+
+    <!-- AFTER SALES -->
+    <div class="nav-item disabled" title="Coming Soon" id="nav-aftersales">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
+      <span class="nav-label">After Sales</span><span class="nav-badge soon">Soon</span>
+    </div>
+
+    <!-- FINANCE -->
+    <div class="nav-item disabled" title="Coming Soon" id="nav-finance">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+      <span class="nav-label">Finance</span><span class="nav-badge soon">Soon</span>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="nav-item disabled" title="Coming Soon" id="nav-products">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+      <span class="nav-label">Products</span><span class="nav-badge soon">Soon</span>
+    </div>
+
+    <!-- MARKETING -->
+    <div class="nav-item disabled" title="Coming Soon" id="nav-marketing">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg></span>
+      <span class="nav-label">Marketing</span><span class="nav-badge soon">Soon</span>
+    </div>
+
+    <!-- IT & ADMIN -->
+    <div class="nav-item disabled" title="Coming Soon" id="nav-itadmin">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+      <span class="nav-label">IT &amp; Admin</span><span class="nav-badge soon">Soon</span>
+    </div>
+
+    <!-- TRAINING -->
+    <div class="nav-item" onclick="switchDB('training')" id="nav-training">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>
+      <span class="nav-label">Training</span><span class="nav-badge live" style="background:rgba(249,115,22,0.18);color:#f97316;border:1px solid rgba(249,115,22,0.35);">Videos</span>
+    </div>
+
+    <!-- COMPLIANCE -->
+    <div class="nav-item disabled" title="Coming Soon" id="nav-compliance">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+      <span class="nav-label">Compliance</span><span class="nav-badge soon">Soon</span>
+    </div>
+
+    <!-- DOCUMENTS -->
+    <div class="nav-item" onclick="switchDB('resources')" id="nav-resources">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span>
+      <span class="nav-label">Documents</span><span class="nav-badge live" style="background:rgba(20,184,166,0.18);color:#14b8a6;border:1px solid rgba(20,184,166,0.35);">Docs</span>
+    </div>
 
   </div>
   <div class="sidebar-bottom" id="sidebarBottom"><span class="live-dot-sm"></span> Google Sheet Live</div>
@@ -1157,17 +1364,517 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 <!-- HOME -->
 <div class="dashboard-panel active" id="panel-home">
   <div class="home-panel">
-    <div class="home-welcome" id="homeWelcomeText">Welcome to <span>Aditi Tracking</span></div>
-    <div class="home-sub" style="margin-bottom:32px">Choose your dashboard — all data is live from Google Sheets.</div>
-    <div class="home-cards">
-      <div class="home-card" style="--card-top:#f0a500" onclick="switchDB('leads')"><div class="hc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div><div class="hc-name">Lead Tracking Dashboard</div><div class="hc-desc">Sales leads, pipeline health, win chances, rep leaderboard and more.</div><span class="hc-status live">Live</span></div>
-      <div class="home-card" style="--card-top:#00d4aa" onclick="switchDB('collection')"><div class="hc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></div><div class="hc-name">Collection Dashboard</div><div class="hc-desc">Daily commitment vs achievement, MTD progress, team leaderboard.</div><span class="hc-status live">Live</span></div>
-      <div class="home-card" style="--card-top:#00d4ff" onclick="switchDB('fms')"><div class="hc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div><div class="hc-name">FMS O2D Dashboard</div><div class="hc-desc">Order to delivery tracking, step-wise KPIs, PC status, prefilled form support.</div><span class="hc-status live">Live</span></div>
-      <div class="home-card" style="--card-top:#a855f7" onclick="switchDB('tasks')"><div class="hc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div class="hc-name">Task Checklist Dashboard</div><div class="hc-desc">Department-wise tasks, completion tracking, scores and performance.</div><span class="hc-status live">Live</span></div>
-      <div class="home-card" id="hc-training" style="--card-top:#f97316" onclick="switchDB('training')"><div class="hc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><div class="hc-name">Training Videos</div><div class="hc-desc">MIS, Odoo, PC, Click Task, Cool Bus, Smart Fleet — module-wise training folder access.</div><span class="hc-status live">Live</span></div>
-      <div class="home-card" id="hc-resources" style="--card-top:#14b8a6" onclick="switchDB('resources')"><div class="hc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div><div class="hc-name">Resources</div><div class="hc-desc">HR Policy, SOP and Organization Chart — all important company documents in one place.</div><span class="hc-status live">Live</span></div>
 
+    <!-- ══ WELCOME HEADER ══ -->
+    <div class="home-welcome" id="homeWelcomeText">Welcome to <span>Aditi Portal</span></div>
+    <div class="home-sub">Your unified command centre — track, train and grow from one place.</div>
+
+    <!-- ══ CEO MESSAGE ══ -->
+    <div class="hp-card hp-ceo" style="margin-bottom:16px;">
+      <div class="hp-card-header">
+        <span class="hp-card-icon">🎙️</span>
+        <span class="hp-card-title">Message from the CEO</span>
+      </div>
+      <!-- VIDEO PLACEHOLDER — Replace src with actual YouTube embed link -->
+      <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:18px;align-items:flex-start;">
+        <div class="hp-video-wrap">
+          <iframe
+            src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+            title="CEO Message"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            style="width:100%;height:100%;border-radius:10px;"
+          ></iframe>
+        </div>
+        <div class="hp-ceo-text" style="padding:6px 0;">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Chirag Rachh — founder &amp; CEO</div>
+          <p style="color:var(--text2);font-size:0.82rem;line-height:1.7;margin:0 0 14px 0;">"Our goal is to build a transparent, data-driven culture where every team member has the information they need to make the right decisions at the right time. This portal is our first step towards that vision."</p>
+          <p style="color:var(--text2);font-size:0.82rem;line-height:1.7;margin:0;">"Since founding Aditi Tracking in 2011, our commitment has remained unchanged — we don't just promise, we deliver. Thank you to our incredible team and customers for being part of this journey."</p>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:0.67rem;color:var(--muted);">Founded Aditi Tracking Support Pvt. Ltd. (ATSPL) · 2011 · Mumbai, India</div>
+        </div>
+      </div>
     </div>
+
+    <!-- ══ QUICK LINKS ══ -->
+    <div class="hp-card" style="margin-bottom:16px;">
+      <div class="hp-card-header">
+        <span class="hp-card-icon">⚡</span>
+        <span class="hp-card-title">Quick Links</span>
+        <span style="font-size:0.62rem;color:var(--muted);margin-left:6px;">6 most accessed pages</span>
+      </div>
+      <div class="hp-quick-grid">
+        <div class="hp-quick-item" onclick="switchDB('leads')" style="--ql-color:#f0a500">
+          <div class="hp-qi-icon" style="background:rgba(240,165,0,0.12);color:#f0a500"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>
+          <div class="hp-qi-name">Lead Tracking</div>
+          <div class="hp-qi-tag">Live</div>
+        </div>
+        <div class="hp-quick-item" onclick="switchDB('collection')" style="--ql-color:#00d4aa">
+          <div class="hp-qi-icon" style="background:rgba(0,212,170,0.12);color:#00d4aa"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></div>
+          <div class="hp-qi-name">Collection</div>
+          <div class="hp-qi-tag">Live</div>
+        </div>
+        <div class="hp-quick-item" onclick="switchDB('fms')" style="--ql-color:#00d4ff">
+          <div class="hp-qi-icon" style="background:rgba(0,212,255,0.12);color:#00d4ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+          <div class="hp-qi-name">FMS O2D</div>
+          <div class="hp-qi-tag">Live</div>
+        </div>
+        <div class="hp-quick-item" onclick="switchDB('tasks')" style="--ql-color:#a855f7">
+          <div class="hp-qi-icon" style="background:rgba(168,85,247,0.12);color:#a855f7"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+          <div class="hp-qi-name">Task Checklist</div>
+          <div class="hp-qi-tag">Live</div>
+        </div>
+        <div class="hp-quick-item" onclick="switchDB('training')" style="--ql-color:#f97316">
+          <div class="hp-qi-icon" style="background:rgba(249,115,22,0.12);color:#f97316"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
+          <div class="hp-qi-name">Training Videos</div>
+          <div class="hp-qi-tag">Videos</div>
+        </div>
+        <div class="hp-quick-item" onclick="switchDB('resources')" style="--ql-color:#14b8a6">
+          <div class="hp-qi-icon" style="background:rgba(20,184,166,0.12);color:#14b8a6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div>
+          <div class="hp-qi-name">Documents</div>
+          <div class="hp-qi-tag">Docs</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ROW 3: HOW TO USE + EMERGENCY CONTACTS ══ -->
+    <div class="hp-row2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+      <!-- HOW TO USE -->
+      <div class="hp-card">
+        <div class="hp-card-header">
+          <span class="hp-card-icon">📖</span>
+          <span class="hp-card-title">How to Use This Portal</span>
+        </div>
+        <div class="hp-guide-list">
+          <div class="hp-guide-step">
+            <div class="hp-step-num">1</div>
+            <div class="hp-step-body">
+              <div class="hp-step-title">Login with your credentials</div>
+              <div class="hp-step-desc">Use your official Aditi email ID and the password shared by IT. Contact IT helpdesk if you face login issues.</div>
+            </div>
+          </div>
+          <div class="hp-guide-step">
+            <div class="hp-step-num">2</div>
+            <div class="hp-step-body">
+              <div class="hp-step-title">Navigate via the left sidebar</div>
+              <div class="hp-step-desc">Click <strong>Dashboards</strong> to expand live dashboards — Lead Tracking, Collection, FMS O2D, Task Checklist. All data is live from Google Sheets.</div>
+            </div>
+          </div>
+          <div class="hp-guide-step">
+            <div class="hp-step-num">3</div>
+            <div class="hp-step-body">
+              <div class="hp-step-title">Use filters &amp; search</div>
+              <div class="hp-step-desc">Each dashboard has date, person, and keyword filters. Use the <em>Reset</em> button to clear all active filters at once.</div>
+            </div>
+          </div>
+          <div class="hp-guide-step">
+            <div class="hp-step-num">4</div>
+            <div class="hp-step-body">
+              <div class="hp-step-title">Access Training &amp; Documents</div>
+              <div class="hp-step-desc">Click <strong>Training</strong> for module-wise video guides or <strong>Documents</strong> for HR policies, SOPs and the org chart.</div>
+            </div>
+          </div>
+          <div class="hp-guide-step">
+            <div class="hp-step-num">5</div>
+            <div class="hp-step-body">
+              <div class="hp-step-title">Refresh data anytime</div>
+              <div class="hp-step-desc">Hit the <strong>Refresh</strong> button on any dashboard header to fetch the latest data from the Google Sheet source.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EMERGENCY CONTACTS -->
+      <div class="hp-card">
+        <div class="hp-card-header">
+          <span class="hp-card-icon">📞</span>
+          <span class="hp-card-title">Emergency Contacts</span>
+        </div>
+        <div class="hp-contacts-list">
+
+          <div class="hp-contact-group-label">🖥️ IT Helpdesk</div>
+          <div class="hp-contact-item">
+            <div class="hp-contact-avatar" style="background:rgba(78,154,241,0.15);color:#4e9af1">IT</div>
+            <div class="hp-contact-info">
+              <div class="hp-contact-name">IT Support Team</div>
+              <div class="hp-contact-detail"><a href="tel:+910000000001">+91 00000 00001</a></div>
+              <div class="hp-contact-detail"><a href="mailto:it@aditigroup.com">it@aditigroup.com</a></div>
+            </div>
+            <div class="hp-contact-avail">Mon–Sat 9am–7pm</div>
+          </div>
+
+          <div class="hp-contact-group-label" style="margin-top:12px">👥 HR Department</div>
+          <div class="hp-contact-item">
+            <div class="hp-contact-avatar" style="background:rgba(0,212,170,0.15);color:#00d4aa">HR</div>
+            <div class="hp-contact-info">
+              <div class="hp-contact-name">HR Team</div>
+              <div class="hp-contact-detail"><a href="tel:+910000000002">+91 00000 00002</a></div>
+              <div class="hp-contact-detail"><a href="mailto:hr@aditigroup.com">hr@aditigroup.com</a></div>
+            </div>
+            <div class="hp-contact-avail">Mon–Fri 9am–6pm</div>
+          </div>
+
+          <div class="hp-contact-group-label" style="margin-top:12px">🏢 Admin / Operations</div>
+          <div class="hp-contact-item">
+            <div class="hp-contact-avatar" style="background:rgba(240,165,0,0.15);color:#f0a500">AD</div>
+            <div class="hp-contact-info">
+              <div class="hp-contact-name">Admin Office</div>
+              <div class="hp-contact-detail"><a href="tel:+910000000003">+91 00000 00003</a></div>
+              <div class="hp-contact-detail"><a href="mailto:admin@aditigroup.com">admin@aditigroup.com</a></div>
+            </div>
+            <div class="hp-contact-avail">Mon–Sat 9am–6pm</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ABOUT ORGANISATION PANEL -->
+<div class="dashboard-panel" id="panel-about">
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>Aditi</span> About Organisation</div>
+      <div class="db-breadcrumb">Portal → About Organisation</div>
+    </div>
+    <div class="header-right">
+      <a href="https://www.adititracking.com/about-us/" target="_blank" rel="noopener" style="font-size:0.72rem;color:var(--accent2);text-decoration:none;border:1px solid var(--accent2);padding:5px 12px;border-radius:7px;">🌐 Visit Website</a>
+    </div>
+  </div>
+
+  <div class="db-content" style="display:block;">
+
+    <!-- ══ SECTION TABS ══ -->
+    <div class="about-tabs" id="aboutTabs">
+      <button class="about-tab active" onclick="switchAbout('overview')">🏢 About Aditi</button>
+      <button class="about-tab" onclick="switchAbout('orgchart')">🗂️ Org Chart</button>
+      <button class="about-tab" onclick="switchAbout('leadership')">👔 Leadership</button>
+      <button class="about-tab" onclick="switchAbout('locations')">📍 Locations</button>
+      <button class="about-tab" onclick="switchAbout('milestones')">🏆 Milestones</button>
+      <button class="about-tab" onclick="switchAbout('brand')">🎨 Brand Guidelines</button>
+    </div>
+
+    <!-- ══ OVERVIEW ══ -->
+    <div class="about-section active" id="about-overview">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;">
+        <div class="hp-card" style="text-align:center;padding:20px 16px;">
+          <div style="font-size:2rem;font-weight:800;color:var(--accent);">2011</div>
+          <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.07em;">Founded</div>
+        </div>
+        <div class="hp-card" style="text-align:center;padding:20px 16px;">
+          <div style="font-size:2rem;font-weight:800;color:var(--accent2);">14+</div>
+          <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.07em;">Years of Excellence</div>
+        </div>
+        <div class="hp-card" style="text-align:center;padding:20px 16px;">
+          <div style="font-size:2rem;font-weight:800;color:#a855f7;">3</div>
+          <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.07em;">Office Locations</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
+        <div class="hp-card">
+          <div class="hp-card-header"><span class="hp-card-icon">🏢</span><span class="hp-card-title">Our Story</span></div>
+          <p style="font-size:0.8rem;color:var(--text2);line-height:1.7;margin:0 0 12px 0;">Aditi Tracking Support Pvt. Ltd. (ATSPL) was founded in 2011 by Chirag Rachh, who after losing his job at a telecom company decided to embark on an entrepreneurial journey. Driven by a passion for telematics and GPS technology, he founded Aditi Tracking with a single-minded focus on success.</p>
+          <p style="font-size:0.8rem;color:var(--text2);line-height:1.7;margin:0;">Since 2011, Aditi Tracking has established itself as a trusted name among the top GPS tracking companies in India, specialising in advanced GPS tracking solutions that help businesses monitor commercial fleets, reduce operational costs, and enhance safety.</p>
+        </div>
+        <div class="hp-card">
+          <div class="hp-card-header"><span class="hp-card-icon">💎</span><span class="hp-card-title">Core Values</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;gap:10px;align-items:center;">
+              <span style="width:30px;height:30px;border-radius:8px;background:rgba(240,165,0,0.12);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;">⭐</span>
+              <div><div style="font-size:0.72rem;font-weight:700;color:var(--text);">Excellence</div><div style="font-size:0.67rem;color:var(--muted);">Setting high standards, continuously seeking to improve</div></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <span style="width:30px;height:30px;border-radius:8px;background:rgba(0,212,170,0.12);color:#00d4aa;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;">🛡️</span>
+              <div><div style="font-size:0.72rem;font-weight:700;color:var(--text);">Reliable</div><div style="font-size:0.67rem;color:var(--muted);">Trustworthy solutions, consistently delivering on promises</div></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <span style="width:30px;height:30px;border-radius:8px;background:rgba(0,212,255,0.12);color:#00d4ff;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;">🤝</span>
+              <div><div style="font-size:0.72rem;font-weight:700;color:var(--text);">Commitment</div><div style="font-size:0.67rem;color:var(--muted);">Dedicated to customers' success and goals</div></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <span style="width:30px;height:30px;border-radius:8px;background:rgba(168,85,247,0.12);color:#a855f7;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;">💫</span>
+              <div><div style="font-size:0.72rem;font-weight:700;color:var(--text);">Service</div><div style="font-size:0.67rem;color:var(--muted);">Exceptional service, going above and beyond</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="hp-card">
+          <div class="hp-card-header"><span class="hp-card-icon">🔭</span><span class="hp-card-title">Our Vision</span></div>
+          <p style="font-size:0.8rem;color:var(--text2);line-height:1.7;margin:0;">To Become the Globally Trusted Partner for Businesses, Providing Advanced Telematics Solutions that Drive Operational Excellence, Cost Savings, and Sustainable Growth, while Delivering Unmatched Accuracy, Reliability, and Insight.</p>
+        </div>
+        <div class="hp-card">
+          <div class="hp-card-header"><span class="hp-card-icon">🎯</span><span class="hp-card-title">Our Mission</span></div>
+          <p style="font-size:0.8rem;color:var(--text2);line-height:1.7;margin:0;">Revolutionizing Connectivity with Advanced Telematics and IoT Solutions, We Are Committed to Delivering Excellence and Prompt, Reliable Service. From GPS fleet management to Cool Bus and ClickTask — innovation at every step.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ORG CHART ══ -->
+    <div class="about-section" id="about-orgchart" style="display:none;">
+      <div class="hp-card">
+        <div class="hp-card-header"><span class="hp-card-icon">🗂️</span><span class="hp-card-title">Organisation Chart — Aditi Tracking Support Pvt. Ltd.</span><span style="font-size:0.62rem;color:var(--muted);margin-left:8px;">Department-wise hierarchy</span></div>
+        <div class="org-tree" id="orgTree">
+          <!-- CEO -->
+          <div class="org-node ceo-node">
+            <div class="org-card" style="--nc:#f0a500">
+              <div class="org-avatar" style="background:rgba(240,165,0,0.15);color:#f0a500;font-size:1.2rem;">👤</div>
+              <div class="org-info">
+                <div class="org-name">Chirag Rachh</div>
+                <div class="org-role">Co-founder &amp; CEO</div>
+              </div>
+            </div>
+          </div>
+          <div class="org-line-v"></div>
+          <div class="org-dept-row">
+            <div class="org-dept-col">
+              <div class="org-card" style="--nc:#00d4aa"><div class="org-avatar" style="background:rgba(0,212,170,0.12);color:#00d4aa;">💼</div><div class="org-info"><div class="org-name">Sales Department</div><div class="org-role">B2B &amp; Enterprise Sales</div></div></div>
+            </div>
+            <div class="org-dept-col">
+              <div class="org-card" style="--nc:#00d4ff"><div class="org-avatar" style="background:rgba(0,212,255,0.12);color:#00d4ff;">⚙️</div><div class="org-info"><div class="org-name">Operations &amp; FMS</div><div class="org-role">Fleet &amp; Order to Delivery</div></div></div>
+            </div>
+            <div class="org-dept-col">
+              <div class="org-card" style="--nc:#a855f7"><div class="org-avatar" style="background:rgba(168,85,247,0.12);color:#a855f7;">👥</div><div class="org-info"><div class="org-name">HR &amp; Admin</div><div class="org-role">People &amp; Administration</div></div></div>
+            </div>
+            <div class="org-dept-col">
+              <div class="org-card" style="--nc:#f97316"><div class="org-avatar" style="background:rgba(249,115,22,0.12);color:#f97316;">💻</div><div class="org-info"><div class="org-name">IT &amp; Technology</div><div class="org-role">Products &amp; Platform</div></div></div>
+            </div>
+            <div class="org-dept-col">
+              <div class="org-card" style="--nc:#14b8a6"><div class="org-avatar" style="background:rgba(20,184,166,0.12);color:#14b8a6;">📣</div><div class="org-info"><div class="org-name">Marketing</div><div class="org-role">Brand &amp; Growth</div></div></div>
+            </div>
+            <div class="org-dept-col">
+              <div class="org-card" style="--nc:#4e9af1"><div class="org-avatar" style="background:rgba(78,154,241,0.12);color:#4e9af1;">💰</div><div class="org-info"><div class="org-name">Finance</div><div class="org-role">Accounts &amp; Compliance</div></div></div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:0.68rem;color:var(--muted);margin-top:16px;text-align:center;">📌 For detailed org chart with photos and designations, contact HR at hr@aditigroup.com</p>
+      </div>
+    </div>
+
+    <!-- ══ LEADERSHIP ══ -->
+    <div class="about-section" id="about-leadership" style="display:none;">
+      <div class="hp-card" style="margin-bottom:16px;">
+        <div class="hp-card-header"><span class="hp-card-icon">👔</span><span class="hp-card-title">Leadership Team</span></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">
+          <div class="leader-card">
+            <div class="leader-avatar">CR</div>
+            <div class="leader-info">
+              <div class="leader-name">Chirag Rachh</div>
+              <div class="leader-role">Co-founder &amp; Chief Executive Officer</div>
+              <div class="leader-desc">Visionary leader with a passion for telematics and IoT. Founded Aditi Tracking in 2011. Spent over a decade in telecom before founding ATSPL.</div>
+              <div class="leader-tags"><span class="leader-tag">Strategy</span><span class="leader-tag">Vision</span><span class="leader-tag">Telematics</span></div>
+            </div>
+          </div>
+          <div class="leader-card">
+            <div class="leader-avatar" style="background:rgba(0,212,170,0.15);color:#00d4aa;">VP</div>
+            <div class="leader-info">
+              <div class="leader-name">VP – Sales &amp; Business Dev.</div>
+              <div class="leader-role">Head of Sales Operations</div>
+              <div class="leader-desc">Drives enterprise sales, B2B partnerships and revenue growth across Maharashtra, Goa and Gujarat regions.</div>
+              <div class="leader-tags"><span class="leader-tag">Sales</span><span class="leader-tag">Partnerships</span></div>
+            </div>
+          </div>
+          <div class="leader-card">
+            <div class="leader-avatar" style="background:rgba(0,212,255,0.15);color:#00d4ff;">GM</div>
+            <div class="leader-info">
+              <div class="leader-name">General Manager – Operations</div>
+              <div class="leader-role">Operations &amp; Delivery Head</div>
+              <div class="leader-desc">Oversees FMS O2D process, fleet management operations and customer delivery standards across all locations.</div>
+              <div class="leader-tags"><span class="leader-tag">Operations</span><span class="leader-tag">FMS</span></div>
+            </div>
+          </div>
+          <div class="leader-card">
+            <div class="leader-avatar" style="background:rgba(249,115,22,0.15);color:#f97316;">CTO</div>
+            <div class="leader-info">
+              <div class="leader-name">Chief Technology Officer</div>
+              <div class="leader-role">Technology &amp; Product Head</div>
+              <div class="leader-desc">Leads product development — GPS trackers, Cool Bus, ClickTask, CommutePulse and WasteTrail platforms.</div>
+              <div class="leader-tags"><span class="leader-tag">Technology</span><span class="leader-tag">Products</span></div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:0.68rem;color:var(--muted);margin-top:16px;text-align:center;">📌 For the complete leadership directory with contact details, reach HR at hr@aditigroup.com</p>
+      </div>
+    </div>
+
+    <!-- ══ LOCATIONS ══ -->
+    <div class="about-section" id="about-locations" style="display:none;">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">
+
+        <div class="hp-card loc-card" style="border-top:3px solid var(--accent);">
+          <div class="hp-card-header"><span class="hp-card-icon">🏛️</span><span class="hp-card-title">Mumbai — Headquarters</span><span class="loc-badge hq-badge">HQ</span></div>
+          <div class="loc-address">
+            <div class="loc-line">811, B2B Center</div>
+            <div class="loc-line">Besides Malad Industrial Estate</div>
+            <div class="loc-line">Kanchpada, Malad West</div>
+            <div class="loc-line">Mumbai, Maharashtra — 400064</div>
+          </div>
+          <div class="loc-contacts">
+            <div class="loc-contact-row">📞 <a href="tel:+919637396373">+91 96373 96373</a></div>
+            <div class="loc-contact-row">✉️ <a href="mailto:info@adititracking.com">info@adititracking.com</a></div>
+          </div>
+          <a href="https://maps.app.goo.gl/owoftmW8ufxLBqEQ7" target="_blank" rel="noopener" class="loc-map-btn">📍 View on Google Maps</a>
+        </div>
+
+        <div class="hp-card loc-card" style="border-top:3px solid #00d4aa;">
+          <div class="hp-card-header"><span class="hp-card-icon">🏖️</span><span class="hp-card-title">Goa</span><span class="loc-badge" style="background:rgba(0,212,170,0.12);color:#00d4aa;">Branch</span></div>
+          <div class="loc-address">
+            <div class="loc-line">Aditi Tracking — Goa Office</div>
+            <div class="loc-line">Operations since 2021</div>
+            <div class="loc-line">Serving North &amp; South Goa regions</div>
+          </div>
+          <div class="loc-contacts">
+            <div class="loc-contact-row">✉️ <a href="mailto:info@adititracking.com">info@adititracking.com</a></div>
+          </div>
+          <a href="https://www.adititracking.com/contact-us/" target="_blank" rel="noopener" class="loc-map-btn" style="border-color:#00d4aa;color:#00d4aa;">📞 Contact Goa Office</a>
+        </div>
+
+        <div class="hp-card loc-card" style="border-top:3px solid #a855f7;">
+          <div class="hp-card-header"><span class="hp-card-icon">🏙️</span><span class="hp-card-title">Ahmedabad</span><span class="loc-badge" style="background:rgba(168,85,247,0.12);color:#a855f7;">Branch</span></div>
+          <div class="loc-address">
+            <div class="loc-line">Aditi Tracking — Ahmedabad Office</div>
+            <div class="loc-line">Operations since 2022</div>
+            <div class="loc-line">Serving Gujarat region</div>
+          </div>
+          <div class="loc-contacts">
+            <div class="loc-contact-row">✉️ <a href="mailto:info@adititracking.com">info@adititracking.com</a></div>
+          </div>
+          <a href="https://www.adititracking.com/contact-us/" target="_blank" rel="noopener" class="loc-map-btn" style="border-color:#a855f7;color:#a855f7;">📞 Contact Ahmedabad Office</a>
+        </div>
+
+      </div>
+      <div class="hp-card">
+        <div class="hp-card-header"><span class="hp-card-icon">📡</span><span class="hp-card-title">Earlier Expansions</span></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div style="padding:10px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:0.72rem;"><strong>Pune</strong> — Since 2012</div>
+          <div style="padding:10px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:0.72rem;"><strong>Nagpur</strong> — Since 2012</div>
+          <div style="padding:10px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:0.72rem;"><strong>Indore</strong> — Since 2012</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MILESTONES ══ -->
+    <div class="about-section" id="about-milestones" style="display:none;">
+      <div class="hp-card">
+        <div class="hp-card-header"><span class="hp-card-icon">🏆</span><span class="hp-card-title">Company Milestones — 14-Year Journey</span></div>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-year" style="color:var(--accent)">2011</div><div class="tl-dot" style="border-color:var(--accent)"></div><div class="tl-content"><div class="tl-title">Birth of the Leader</div><div class="tl-desc">Chirag Rachh founded Aditi Tracking Support Pvt. Ltd. (ATSPL) in Mumbai after a decade in telecom. GPS tracking for commercial fleets was the core focus.</div></div></div>
+          <div class="tl-item"><div class="tl-year">2012</div><div class="tl-dot"></div><div class="tl-content"><div class="tl-title">Geographic Expansion</div><div class="tl-desc">Started operations in Pune, Nagpur &amp; Indore — taking Aditi's telematics solutions beyond Mumbai.</div></div></div>
+          <div class="tl-item"><div class="tl-year">2014</div><div class="tl-dot"></div><div class="tl-content"><div class="tl-title">Government Partnerships</div><div class="tl-desc">Aditi partners with Government Projects, marking a major step towards large-scale fleet compliance solutions.</div></div></div>
+          <div class="tl-item"><div class="tl-year">2016</div><div class="tl-dot"></div><div class="tl-content"><div class="tl-title">Fuel Monitoring Pioneer</div><div class="tl-desc">First to introduce Fuel Monitoring Solution — a breakthrough in reducing fuel theft and operational costs for fleets.</div></div></div>
+          <div class="tl-item"><div class="tl-year">2017</div><div class="tl-dot"></div><div class="tl-content"><div class="tl-title">Global Recognition</div><div class="tl-desc">Franchise operations launched. Participated in Global EXPO events — Dubai, ZYTEX, HKTDC — establishing international presence.</div></div></div>
+          <div class="tl-item"><div class="tl-year">2018</div><div class="tl-dot"></div><div class="tl-content"><div class="tl-title">Public Sector Vehicle Fleet</div><div class="tl-desc">Opportunity to work with 20+ PSVs (Public Service Vehicles) — expanding government &amp; institutional client base.</div></div></div>
+          <div class="tl-item"><div class="tl-year">2019</div><div class="tl-dot"></div><div class="tl-content"><div class="tl-title">Quality Certifications</div><div class="tl-desc">Acquired ISO Certification &amp; CMMI Level 3 certification — validating process excellence and quality commitment.</div></div></div>
+          <div class="tl-item"><div class="tl-year">2020</div><div class="tl-dot"></div><div class="tl-content"><div class="tl-title">AIS 140 Compliance</div><div class="tl-desc">Aditi Tracking gets AIS 140 Certified — government-mandated GPS standard for commercial vehicles in India.</div></div></div>
+          <div class="tl-item"><div class="tl-year">2021</div><div class="tl-dot"></div><div class="tl-content"><div class="tl-title">Goa Operations Launch</div><div class="tl-desc">Expanded to Goa, serving North &amp; South Goa's growing commercial fleet market.</div></div></div>
+          <div class="tl-item"><div class="tl-year">2022</div><div class="tl-dot"></div><div class="tl-content"><div class="tl-title">Ahmedabad Office</div><div class="tl-desc">Launched Gujarat operations from Ahmedabad — strengthening West India presence.</div></div></div>
+          <div class="tl-item"><div class="tl-year" style="color:#f97316;">2023</div><div class="tl-dot" style="border-color:#f97316;"></div><div class="tl-content"><div class="tl-title">Cool Bus Solution Launch</div><div class="tl-desc">Launched Cool Bus — an advanced school bus tracking and student safety solution, entering the education sector.</div></div></div>
+          <div class="tl-item"><div class="tl-year" style="color:var(--accent2);">2024</div><div class="tl-dot" style="border-color:var(--accent2);"></div><div class="tl-content"><div class="tl-title">CommutePulse &amp; WasteTrail</div><div class="tl-desc">Launched CommutePulse for employee transport tracking and WasteTrail for waste management fleet solutions.</div></div></div>
+          <div class="tl-item"><div class="tl-year" style="color:#22c55e;">2025</div><div class="tl-dot" style="border-color:#22c55e;background:#22c55e;"></div><div class="tl-content"><div class="tl-title">Aditi Tracking Portal</div><div class="tl-desc">Internal data portal launched — unifying Lead Tracking, Collection, FMS O2D and Task Checklist dashboards for the entire team.</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ BRAND GUIDELINES ══ -->
+    <div class="about-section" id="about-brand" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+        <div class="hp-card">
+          <div class="hp-card-header"><span class="hp-card-icon">🔵</span><span class="hp-card-title">Brand Colors</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="brand-color-row">
+              <div class="brand-swatch" style="background:#f0a500;"></div>
+              <div class="brand-color-info">
+                <div class="brand-color-name">Aditi Gold / Accent</div>
+                <div class="brand-color-val">#f0a500 · rgb(240,165,0)</div>
+                <div class="brand-color-use">Primary brand color — CTAs, highlights, badges</div>
+              </div>
+            </div>
+            <div class="brand-color-row">
+              <div class="brand-swatch" style="background:#222;border:1px solid var(--border)"></div>
+              <div class="brand-color-info">
+                <div class="brand-color-name">Dark / Primary Text</div>
+                <div class="brand-color-val">#222222 · rgb(34,34,34)</div>
+                <div class="brand-color-use">Body text, headings on light backgrounds</div>
+              </div>
+            </div>
+            <div class="brand-color-row">
+              <div class="brand-swatch" style="background:#ffffff;border:1px solid #ccc"></div>
+              <div class="brand-color-info">
+                <div class="brand-color-name">White / Backgrounds</div>
+                <div class="brand-color-val">#ffffff · rgb(255,255,255)</div>
+                <div class="brand-color-use">Background, cards, clean surfaces</div>
+              </div>
+            </div>
+            <div class="brand-color-row">
+              <div class="brand-swatch" style="background:#14b8a6;"></div>
+              <div class="brand-color-info">
+                <div class="brand-color-name">Teal / Secondary</div>
+                <div class="brand-color-val">#14b8a6 · rgb(20,184,166)</div>
+                <div class="brand-color-use">Documents, secondary accents</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hp-card">
+          <div class="hp-card-header"><span class="hp-card-icon">🔤</span><span class="hp-card-title">Typography</span></div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:1.4rem;font-weight:800;color:var(--text);font-family:'Playfair Display',serif;">Aditi Tracking</div>
+              <div style="font-size:0.67rem;color:var(--muted);margin-top:4px;font-weight:600;">PRIMARY HEADING — Playfair Display (Serif)</div>
+              <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">Use for: Portal headings, marketing headlines</div>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:1rem;font-weight:600;color:var(--text);font-family:'DM Sans',sans-serif;">Tracking intelligence for India</div>
+              <div style="font-size:0.67rem;color:var(--muted);margin-top:4px;font-weight:600;">BODY / UI — DM Sans (Sans-serif)</div>
+              <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">Use for: Dashboard text, labels, buttons, body copy</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hp-card" style="margin-bottom:16px;">
+        <div class="hp-card-header"><span class="hp-card-icon">🖼️</span><span class="hp-card-title">Logo Usage Guidelines</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <div style="font-size:0.72rem;font-weight:700;color:var(--text);margin-bottom:8px;">✅ Correct Usage</div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="font-size:0.7rem;color:var(--text2);display:flex;gap:7px;"><span style="color:#22c55e;font-weight:700;">✓</span> Use on white or light grey backgrounds</div>
+              <div style="font-size:0.7rem;color:var(--text2);display:flex;gap:7px;"><span style="color:#22c55e;font-weight:700;">✓</span> Maintain minimum clear space equal to the logo height on all sides</div>
+              <div style="font-size:0.7rem;color:var(--text2);display:flex;gap:7px;"><span style="color:#22c55e;font-weight:700;">✓</span> Use the full colour logo (gold + dark text) for primary use</div>
+              <div style="font-size:0.7rem;color:var(--text2);display:flex;gap:7px;"><span style="color:#22c55e;font-weight:700;">✓</span> Use white version on dark or coloured backgrounds</div>
+              <div style="font-size:0.7rem;color:var(--text2);display:flex;gap:7px;"><span style="color:#22c55e;font-weight:700;">✓</span> Download from company brand assets folder (contact IT)</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:0.72rem;font-weight:700;color:var(--text);margin-bottom:8px;">❌ Do NOT do this</div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="font-size:0.7rem;color:var(--text2);display:flex;gap:7px;"><span style="color:#ef4444;font-weight:700;">✗</span> Do not stretch, skew or distort the logo</div>
+              <div style="font-size:0.7rem;color:var(--text2);display:flex;gap:7px;"><span style="color:#ef4444;font-weight:700;">✗</span> Do not change the logo colours or add effects</div>
+              <div style="font-size:0.7rem;color:var(--text2);display:flex;gap:7px;"><span style="color:#ef4444;font-weight:700;">✗</span> Do not place logo on busy or clashing backgrounds</div>
+              <div style="font-size:0.7rem;color:var(--text2);display:flex;gap:7px;"><span style="color:#ef4444;font-weight:700;">✗</span> Do not use outdated or unofficial logo versions</div>
+              <div style="font-size:0.7rem;color:var(--text2);display:flex;gap:7px;"><span style="color:#ef4444;font-weight:700;">✗</span> Do not use below 40px height (legibility minimum)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hp-card">
+        <div class="hp-card-header"><span class="hp-card-icon">💬</span><span class="hp-card-title">Official Taglines</span></div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="border-left:3px solid var(--accent);padding:10px 14px;border-radius:0 8px 8px 0;background:var(--surface2);font-size:0.8rem;font-style:italic;color:var(--text);">"India's Leading Telematics Company" — <span style="font-style:normal;font-weight:600;font-size:0.7rem;color:var(--muted);">Primary tagline · All external communication</span></div>
+          <div style="border-left:3px solid var(--accent2);padding:10px 14px;border-radius:0 8px 8px 0;background:var(--surface2);font-size:0.8rem;font-style:italic;color:var(--text);">"Track and Manage Your Assets Like a Pro with Aditi Tracking!" — <span style="font-style:normal;font-weight:600;font-size:0.7rem;color:var(--muted);">Marketing collateral, brochures</span></div>
+          <div style="border-left:3px solid #a855f7;padding:10px 14px;border-radius:0 8px 8px 0;background:var(--surface2);font-size:0.8rem;font-style:italic;color:var(--text);">"We don't just promise; we deliver." — <span style="font-style:normal;font-weight:600;font-size:0.7rem;color:var(--muted);">Founder quote · Internal culture, customer pitches</span></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1814,11 +2521,44 @@ document.addEventListener('click',function(e){
   if(!e.target.closest('.bn-user-profile')){const p=document.getElementById('bnUserPopup');if(p)p.classList.remove('open');}
 });
 
+function toggleDashboardAccordion(){
+  var grp=document.getElementById('dashboardSubGroup');
+  var arrow=document.getElementById('dashAccordionArrow');
+  var trigger=document.getElementById('nav-dashboards-trigger');
+  if(!grp)return;
+  if(grp.style.display==='none'||grp.style.display===''){
+    grp.style.display='block';
+    if(arrow)arrow.classList.add('open');
+    if(trigger)trigger.classList.add('dash-open');
+  } else {
+    grp.style.display='none';
+    if(arrow)arrow.classList.remove('open');
+    if(trigger)trigger.classList.remove('dash-open');
+  }
+}
+
 function switchDB(id, fromPopState){
   document.querySelectorAll('.dashboard-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('panel-'+id).classList.add('active');
+  // Auto-open dashboard accordion when a sub-dashboard is selected
+  var dashPanels=['leads','collection','fms','tasks'];
+  if(dashPanels.indexOf(id)>=0){
+    var grp=document.getElementById('dashboardSubGroup');
+    var arrow=document.getElementById('dashAccordionArrow');
+    var trigger=document.getElementById('nav-dashboards-trigger');
+    if(grp){grp.style.display='block';}
+    if(arrow){arrow.classList.add('open');}
+    if(trigger){trigger.classList.add('dash-open');}
+  }
+  var panel=document.getElementById('panel-'+id);
+  if(!panel){
+    // Fallback for coming-soon panels — show home
+    document.getElementById('panel-home').classList.add('active');
+    document.getElementById('nav-home').classList.add('active');
+    return;
+  }
+  panel.classList.add('active');
   if(document.getElementById('nav-'+id)) document.getElementById('nav-'+id).classList.add('active');
   if(document.getElementById('bn-'+id)) document.getElementById('bn-'+id).classList.add('active');
   // Scroll to top on mobile
@@ -3788,12 +4528,25 @@ function toggleTheme(){
   }
 })();
 
+/* ══ ABOUT ORGANISATION — tab switcher ══ */
+function switchAbout(tab){
+  document.querySelectorAll('.about-section').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.about-tab').forEach(t=>t.classList.remove('active'));
+  var el=document.getElementById('about-'+tab);
+  if(el)el.style.display='block';
+  var tabs=document.querySelectorAll('.about-tab');
+  var idx={'overview':0,'orgchart':1,'leadership':2,'locations':3,'milestones':4,'brand':5}[tab]||0;
+  if(tabs[idx])tabs[idx].classList.add('active');
+}
+
 function doLogout(){
   localStorage.removeItem('aditiUser');
   localStorage.removeItem('aditiLoginTime');
   CURRENT_USER=null;
   location.reload();
 }
+
+
 </script>
 </body>
 </html>
