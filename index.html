@@ -807,6 +807,18 @@
 
     /* Home sub text */
     .home-sub { font-size: 0.78rem !important; margin-bottom: 16px !important; }
+
+    /* CEO section — video stacks above text on mobile */
+    .hp-ceo-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+
+    /* About Organisation — Our Story + Core Values stack */
+    .about-story-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+
+    /* About Organisation — Vision + Mission stack */
+    .about-vision-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+
+    /* About org stats — keep 3 cols but smaller */
+    #about-overview > div:first-child { gap: 8px !important; }
   }
 
   /* Very small screens */
@@ -816,6 +828,26 @@
     .kpi-value { font-size: clamp(1rem, 2.5vw, 1.3rem) !important; }
     .db-title { font-size: 0.8rem !important; }
   }
+
+  /* Mobile Menu Sheet — sidebar-style nav */
+  .mm-nav-list{display:flex;flex-direction:column;gap:2px;}
+  .mm-nav-item{
+    display:flex;align-items:center;gap:12px;
+    padding:11px 14px;border-radius:10px;
+    background:transparent;border:none;
+    color:var(--text2);font-size:0.85rem;font-family:'DM Sans',sans-serif;
+    cursor:pointer;transition:all 0.18s;text-align:left;width:100%;
+  }
+  .mm-nav-item:hover{background:var(--surface2);color:var(--text);}
+  .mm-active{background:rgba(240,165,0,0.1)!important;color:var(--accent)!important;}
+  .mm-nav-item.mm-disabled{cursor:not-allowed;opacity:0.45;pointer-events:none;}
+  .mm-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .mm-label{flex:1;font-weight:500;}
+  .mm-badge{font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;}
+  .mm-badge-live{background:rgba(0,212,170,0.12);color:var(--accent2);border:1px solid rgba(0,212,170,0.25);}
+  .mm-badge-soon{background:rgba(107,114,128,0.1);color:var(--muted);border:1px solid rgba(107,114,128,0.2);}
+  .mm-sub{padding-left:10px;}
+  .mm-subdot{width:6px;height:6px;border-radius:50%;border:1.5px solid var(--muted);flex-shrink:0;}
 
   /* Tablet */
   @media (min-width: 769px) and (max-width: 1100px) {
@@ -1245,15 +1277,15 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     </div>
 
     <!-- HR -->
-    <div class="nav-item disabled" title="Coming Soon" id="nav-hr">
+    <div class="nav-item" onclick="switchDB('hr')" id="nav-hr">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>
-      <span class="nav-label">HR</span><span class="nav-badge soon">Soon</span>
+      <span class="nav-label">HR</span>
     </div>
 
     <!-- SALES -->
-    <div class="nav-item disabled" title="Coming Soon" id="nav-sales">
+    <div class="nav-item" onclick="switchDB('sales')" id="nav-sales">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></span>
-      <span class="nav-label">Sales</span><span class="nav-badge soon">Soon</span>
+      <span class="nav-label">Sales</span>
     </div>
 
     <!-- AFTER SALES -->
@@ -1275,9 +1307,9 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     </div>
 
     <!-- MARKETING -->
-    <div class="nav-item disabled" title="Coming Soon" id="nav-marketing">
+    <div class="nav-item" onclick="switchDB('marketing')" id="nav-marketing">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg></span>
-      <span class="nav-label">Marketing</span><span class="nav-badge soon">Soon</span>
+      <span class="nav-label">Marketing</span>
     </div>
 
     <!-- IT & ADMIN -->
@@ -1320,29 +1352,19 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   <button class="mob-theme-btn" onclick="toggleTheme()" id="mobThemeBtn">🌙 Dark</button>
 </div>
 
-<!-- MOBILE BOTTOM NAV -->
+<!-- MOBILE BOTTOM NAV — 3 items only -->
 <div class="bottom-nav" id="bottomNav">
+  <!-- Home -->
   <button class="bn-item active" onclick="switchDB('home')" id="bn-home">
     <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span><span>Home</span>
   </button>
-  <button class="bn-item" onclick="switchDB('leads')" id="bn-leads">
-    <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></span><span>Leads</span>
+
+  <!-- Menu (all tabs) -->
+  <button class="bn-item" id="bn-menu" onclick="toggleMobMenu()">
+    <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></span><span>Menu</span>
   </button>
-  <button class="bn-item" onclick="switchDB('collection')" id="bn-collection">
-    <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></span><span>Collection</span>
-  </button>
-  <button class="bn-item" onclick="switchDB('fms')" id="bn-fms">
-    <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span><span>FMS</span>
-  </button>
-  <button class="bn-item" onclick="switchDB('tasks')" id="bn-tasks">
-    <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span><span>Tasks</span>
-  </button>
-  <button class="bn-item" onclick="switchDB('training')" id="bn-training">
-    <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span><span style="color:#f97316">Training</span>
-  </button>
-  <button class="bn-item" onclick="switchDB('resources')" id="bn-resources">
-    <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span><span style="color:#14b8a6">Resources</span>
-  </button>
+
+  <!-- User / Logout -->
   <div class="bn-user-profile" id="bnUserProfile" onclick="toggleUserPopup(event)">
     <div class="bnp-avatar" id="bnpAvatar">U</div>
     <span class="bnp-name" id="bnpName">User</span>
@@ -1356,6 +1378,135 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       </div>
       <button class="bup-logout" onclick="doLogout()">🚪 Logout</button>
     </div>
+  </div>
+</div>
+
+<!-- MOBILE MENU OVERLAY (slide-up) -->
+<div id="mobMenuOverlay" onclick="closeMobMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:490;"></div>
+<div id="mobMenuSheet" style="
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:495;
+  background:var(--surface);border-top:1px solid var(--border);
+  border-radius:20px 20px 0 0;padding:18px 16px 90px;
+  max-height:82vh;overflow-y:auto;
+  transform:translateY(100%);transition:transform 0.28s ease;
+">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:800;
+      background:linear-gradient(135deg,#f0a500,#ffcc44);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+      Navigation
+    </div>
+    <button onclick="closeMobMenu()" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+  </div>
+
+  <!-- Sidebar-style vertical nav list -->
+  <div class="mm-nav-list">
+
+    <!-- Home -->
+    <button class="mm-nav-item mm-active" id="mm-home" onclick="mobMenuGo('home')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span>
+      <span class="mm-label">Home</span>
+    </button>
+
+    <!-- Dashboards accordion -->
+    <button class="mm-nav-item" onclick="toggleMMDash()">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
+      <span class="mm-label">Dashboards</span>
+      <span id="mmDashArrow" style="margin-left:auto;font-size:0.7rem;color:var(--muted);transition:transform 0.2s;">▼</span>
+    </button>
+    <!-- Dash sub-items -->
+    <div id="mmDashSub" style="display:none;padding-left:16px;">
+      <button class="mm-nav-item mm-sub" onclick="mobMenuGo('leads')">
+        <span class="mm-subdot"></span><span class="mm-label">Lead Tracking</span>
+        <span class="mm-badge mm-badge-live">Live</span>
+      </button>
+      <button class="mm-nav-item mm-sub" onclick="mobMenuGo('collection')">
+        <span class="mm-subdot"></span><span class="mm-label">Collection</span>
+        <span class="mm-badge mm-badge-live">Live</span>
+      </button>
+      <button class="mm-nav-item mm-sub" onclick="mobMenuGo('fms')">
+        <span class="mm-subdot"></span><span class="mm-label">FMS O2D</span>
+        <span class="mm-badge mm-badge-live">Live</span>
+      </button>
+      <button class="mm-nav-item mm-sub" onclick="mobMenuGo('tasks')">
+        <span class="mm-subdot"></span><span class="mm-label">Task Checklist</span>
+        <span class="mm-badge mm-badge-live">Live</span>
+      </button>
+    </div>
+
+    <!-- About Organisation -->
+    <button class="mm-nav-item" id="mm-about" onclick="mobMenuGo('about')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><circle cx="12" cy="14" r="3"/></svg></span>
+      <span class="mm-label">About Organisation</span>
+    </button>
+
+    <!-- HR -->
+    <button class="mm-nav-item" id="mm-hr" onclick="mobMenuGo('hr')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>
+      <span class="mm-label">HR</span>
+    </button>
+
+    <!-- Sales -->
+    <button class="mm-nav-item" id="mm-sales" onclick="mobMenuGo('sales')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></span>
+      <span class="mm-label">Sales</span>
+    </button>
+
+    <!-- After Sales — Soon -->
+    <div class="mm-nav-item mm-disabled">
+      <span class="mm-icon" style="opacity:0.4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
+      <span class="mm-label">After Sales</span>
+      <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
+    </div>
+
+    <!-- Finance — Soon -->
+    <div class="mm-nav-item mm-disabled">
+      <span class="mm-icon" style="opacity:0.4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+      <span class="mm-label">Finance</span>
+      <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
+    </div>
+
+    <!-- Products — Soon -->
+    <div class="mm-nav-item mm-disabled">
+      <span class="mm-icon" style="opacity:0.4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+      <span class="mm-label">Products</span>
+      <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
+    </div>
+
+    <!-- Marketing -->
+    <button class="mm-nav-item" id="mm-marketing" onclick="mobMenuGo('marketing')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg></span>
+      <span class="mm-label">Marketing</span>
+    </button>
+
+    <!-- IT & Admin — Soon -->
+    <div class="mm-nav-item mm-disabled">
+      <span class="mm-icon" style="opacity:0.4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+      <span class="mm-label">IT &amp; Admin</span>
+      <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
+    </div>
+
+    <!-- Training -->
+    <button class="mm-nav-item" id="mm-training" onclick="mobMenuGo('training')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>
+      <span class="mm-label">Training</span>
+      <span class="mm-badge" style="margin-left:auto;background:rgba(249,115,22,0.18);color:#f97316;border:1px solid rgba(249,115,22,0.35);">Videos</span>
+    </button>
+
+    <!-- Compliance — Soon -->
+    <div class="mm-nav-item mm-disabled">
+      <span class="mm-icon" style="opacity:0.4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+      <span class="mm-label">Compliance</span>
+      <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
+    </div>
+
+    <!-- Documents -->
+    <button class="mm-nav-item" id="mm-resources" onclick="mobMenuGo('resources')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span>
+      <span class="mm-label">Documents</span>
+      <span class="mm-badge" style="margin-left:auto;background:rgba(20,184,166,0.18);color:#14b8a6;border:1px solid rgba(20,184,166,0.35);">Docs</span>
+    </button>
+
   </div>
 </div>
 
@@ -1376,10 +1527,10 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
         <span class="hp-card-title">Message from the CEO</span>
       </div>
       <!-- VIDEO PLACEHOLDER — Replace src with actual YouTube embed link -->
-      <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:18px;align-items:flex-start;">
+      <div class="hp-ceo-grid" style="display:grid;grid-template-columns:1.6fr 1fr;gap:18px;align-items:flex-start;">
         <div class="hp-video-wrap">
           <iframe
-            src="https://www.youtube.com/"
+            src="https://www.youtube.com/embed/dQw4w9WgXcQ"
             title="CEO Message"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -1388,7 +1539,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
           ></iframe>
         </div>
         <div class="hp-ceo-text" style="padding:6px 0;">
-          <div style="font-size:0.75rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Chirag Rachh — founder &amp; CEO</div>
+          <div style="font-size:0.75rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Chirag Rachh — Co-founder &amp; CEO</div>
           <p style="color:var(--text2);font-size:0.82rem;line-height:1.7;margin:0 0 14px 0;">"Our goal is to build a transparent, data-driven culture where every team member has the information they need to make the right decisions at the right time. This portal is our first step towards that vision."</p>
           <p style="color:var(--text2);font-size:0.82rem;line-height:1.7;margin:0;">"Since founding Aditi Tracking in 2011, our commitment has remained unchanged — we don't just promise, we deliver. Thank you to our incredible team and customers for being part of this journey."</p>
           <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:0.67rem;color:var(--muted);">Founded Aditi Tracking Support Pvt. Ltd. (ATSPL) · 2011 · Mumbai, India</div>
@@ -1499,7 +1650,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
             <div class="hp-contact-info">
               <div class="hp-contact-name">IT Support Team</div>
               <div class="hp-contact-detail"><a href="tel:+910000000001">+91 00000 00001</a></div>
-              <div class="hp-contact-detail"><a href="mailto:it@aditigroup.com">it@aditigroup.com</a></div>
+              <div class="hp-contact-detail"><a href="/cdn-cgi/l/email-protection#2d44596d4c494459444a5f42585d034e4240"><span class="__cf_email__" data-cfemail="cfa6bb8faeaba6bba6a8bda0babfe1aca0a2">[email&#160;protected]</span></a></div>
             </div>
             <div class="hp-contact-avail">Mon–Sat 9am–7pm</div>
           </div>
@@ -1510,7 +1661,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
             <div class="hp-contact-info">
               <div class="hp-contact-name">HR Team</div>
               <div class="hp-contact-detail"><a href="tel:+910000000002">+91 00000 00002</a></div>
-              <div class="hp-contact-detail"><a href="mailto:hr@aditigroup.com">hr@aditigroup.com</a></div>
+              <div class="hp-contact-detail"><a href="/cdn-cgi/l/email-protection#553d271534313c213c32273a20257b363a38"><span class="__cf_email__" data-cfemail="8be3f9cbeaefe2ffe2ecf9e4fefba5e8e4e6">[email&#160;protected]</span></a></div>
             </div>
             <div class="hp-contact-avail">Mon–Fri 9am–6pm</div>
           </div>
@@ -1521,7 +1672,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
             <div class="hp-contact-info">
               <div class="hp-contact-name">Admin Office</div>
               <div class="hp-contact-detail"><a href="tel:+910000000003">+91 00000 00003</a></div>
-              <div class="hp-contact-detail"><a href="mailto:admin@aditigroup.com">admin@aditigroup.com</a></div>
+              <div class="hp-contact-detail"><a href="/cdn-cgi/l/email-protection#c7a6a3aaaea987a6a3aeb3aea0b5a8b2b7e9a4a8aa"><span class="__cf_email__" data-cfemail="d4b5b0b9bdba94b5b0bda0bdb3a6bba1a4fab7bbb9">[email&#160;protected]</span></a></div>
             </div>
             <div class="hp-contact-avail">Mon–Sat 9am–6pm</div>
           </div>
@@ -1574,7 +1725,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
+      <div class="about-story-grid" style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
         <div class="hp-card">
           <div class="hp-card-header"><span class="hp-card-icon">🏢</span><span class="hp-card-title">Our Story</span></div>
           <p style="font-size:0.8rem;color:var(--text2);line-height:1.7;margin:0 0 12px 0;">Aditi Tracking Support Pvt. Ltd. (ATSPL) was founded in 2011 by Chirag Rachh, who after losing his job at a telecom company decided to embark on an entrepreneurial journey. Driven by a passion for telematics and GPS technology, he founded Aditi Tracking with a single-minded focus on success.</p>
@@ -1603,7 +1754,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="about-vision-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
         <div class="hp-card">
           <div class="hp-card-header"><span class="hp-card-icon">🔭</span><span class="hp-card-title">Our Vision</span></div>
           <p style="font-size:0.8rem;color:var(--text2);line-height:1.7;margin:0;">To Become the Globally Trusted Partner for Businesses, Providing Advanced Telematics Solutions that Drive Operational Excellence, Cost Savings, and Sustainable Growth, while Delivering Unmatched Accuracy, Reliability, and Insight.</p>
@@ -1652,7 +1803,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
             </div>
           </div>
         </div>
-        <p style="font-size:0.68rem;color:var(--muted);margin-top:16px;text-align:center;">📌 For detailed org chart with photos and designations, contact HR at hr@aditigroup.com</p>
+        <p style="font-size:0.68rem;color:var(--muted);margin-top:16px;text-align:center;">📌 For detailed org chart with photos and designations, contact HR at <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="eb8399ab8a8f829f828c99849e9bc5888486">[email&#160;protected]</a></p>
       </div>
     </div>
 
@@ -1698,7 +1849,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
             </div>
           </div>
         </div>
-        <p style="font-size:0.68rem;color:var(--muted);margin-top:16px;text-align:center;">📌 For the complete leadership directory with contact details, reach HR at hr@aditigroup.com</p>
+        <p style="font-size:0.68rem;color:var(--muted);margin-top:16px;text-align:center;">📌 For the complete leadership directory with contact details, reach HR at <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f29a80b293969b869b95809d8782dc919d9f">[email&#160;protected]</a></p>
       </div>
     </div>
 
@@ -1716,7 +1867,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
           </div>
           <div class="loc-contacts">
             <div class="loc-contact-row">📞 <a href="tel:+919637396373">+91 96373 96373</a></div>
-            <div class="loc-contact-row">✉️ <a href="mailto:info@adititracking.com">info@adititracking.com</a></div>
+            <div class="loc-contact-row">✉️ <a href="/cdn-cgi/l/email-protection#e28b8c848da283868b968b96908381898b8c85cc818d8f"><span class="__cf_email__" data-cfemail="036a6d656c4362676a776a77716260686a6d642d606c6e">[email&#160;protected]</span></a></div>
           </div>
           <a href="https://maps.app.goo.gl/owoftmW8ufxLBqEQ7" target="_blank" rel="noopener" class="loc-map-btn">📍 View on Google Maps</a>
         </div>
@@ -1729,7 +1880,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
             <div class="loc-line">Serving North &amp; South Goa regions</div>
           </div>
           <div class="loc-contacts">
-            <div class="loc-contact-row">✉️ <a href="mailto:info@adititracking.com">info@adititracking.com</a></div>
+            <div class="loc-contact-row">✉️ <a href="/cdn-cgi/l/email-protection#4d24232b220d2c29243924393f2c2e2624232a632e2220"><span class="__cf_email__" data-cfemail="254c4b434a6544414c514c515744464e4c4b420b464a48">[email&#160;protected]</span></a></div>
           </div>
           <a href="https://www.adititracking.com/contact-us/" target="_blank" rel="noopener" class="loc-map-btn" style="border-color:#00d4aa;color:#00d4aa;">📞 Contact Goa Office</a>
         </div>
@@ -1742,7 +1893,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
             <div class="loc-line">Serving Gujarat region</div>
           </div>
           <div class="loc-contacts">
-            <div class="loc-contact-row">✉️ <a href="mailto:info@adititracking.com">info@adititracking.com</a></div>
+            <div class="loc-contact-row">✉️ <a href="/cdn-cgi/l/email-protection#11787f777e517075786578656370727a787f763f727e7c"><span class="__cf_email__" data-cfemail="157c7b737a5574717c617c616774767e7c7b723b767a78">[email&#160;protected]</span></a></div>
           </div>
           <a href="https://www.adititracking.com/contact-us/" target="_blank" rel="noopener" class="loc-map-btn" style="border-color:#a855f7;color:#a855f7;">📞 Contact Ahmedabad Office</a>
         </div>
@@ -1904,7 +2055,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div class="charts-grid2">
       <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#a78bfa"></span> Daily Lead Volume</div><div class="chart-wrap"><canvas id="lChDay"></canvas></div></div>
       <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent3)"></span> Hero Product Demand</div><div class="chart-wrap"><canvas id="lChProd"></canvas></div></div>
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent2)"></span> Sales Rep Leaderboard</div><div id="lLBoard" style="margin-top:6px"></div></div>
+      
     </div>
     <div class="insights-grid">
       <div class="insight-card"><div class="insight-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg> Revenue</div><div id="lRevIns"></div></div>
@@ -2222,20 +2373,6 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div class="section-title">Company Documents</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
 
-      <!-- HR Policy -->
-      <a href="https://drive.google.com/drive/folders/1xIJvlp1u_0jUvp_XS4YBq2rnJuIDd_bj" target="_blank" style="text-decoration:none;">
-        <div class="home-card" style="--card-top:#f0a500;cursor:pointer;padding:1.5rem;">
-          <div class="hc-icon" style="background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          </div>
-          <div class="hc-name" style="font-size:1.05rem;">HR Policy</div>
-          <div class="hc-desc" style="font-size:0.82rem;line-height:1.6;">Company HR rules, leave policy, attendance, conduct guidelines and employee handbook.</div>
-          <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
-            <span style="font-size:0.72rem;font-weight:600;color:#f0a500;background:rgba(240,165,0,0.12);border:1px solid rgba(240,165,0,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
-          </div>
-        </div>
-      </a>
-
       <!-- SOP -->
       <a href="https://drive.google.com/drive/folders/1Gc6IUVy2ZR3DQfGJUISe6iEysCdY_4OE" target="_blank" style="text-decoration:none;">
         <div class="home-card" style="--card-top:#00d4ff;cursor:pointer;padding:1.5rem;">
@@ -2361,6 +2498,113 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+
+
+<!-- HR PANEL -->
+<div class="dashboard-panel" id="panel-hr">
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>Aditi</span> HR</div>
+      <div class="db-breadcrumb">Home › HR</div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge" style="background:rgba(240,165,0,0.12);border:1px solid rgba(240,165,0,0.3);"><div class="live-dot" style="background:#f0a500"></div> Google Drive</div>
+    </div>
+  </div>
+  <div class="db-content">
+    <div class="section-title">HR Documents</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
+
+      <!-- HR Policy -->
+      <a href="https://drive.google.com/drive/folders/1xIJvlp1u_0jUvp_XS4YBq2rnJuIDd_bj" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#f0a500;cursor:pointer;">
+          <div class="hc-icon" style="background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.3);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <div class="hc-name">HR Policy</div>
+          <div class="hc-desc">Company HR rules, leave policy, attendance, conduct guidelines and employee handbook.</div>
+          <span class="hc-status live" style="background:rgba(240,165,0,0.15);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">📁 Open Drive Folder</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+</div>
+
+<!-- SALES PANEL -->
+<div class="dashboard-panel" id="panel-sales">
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>Aditi</span> Sales</div>
+      <div class="db-breadcrumb">Home › Sales</div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.3);"><div class="live-dot" style="background:#00d4aa"></div> Resources</div>
+    </div>
+  </div>
+  <div class="db-content">
+    <div class="section-title">Sales Resources</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
+
+      <!-- SOP Inside Sales -->
+      <a href="https://docs.google.com/document/d/1iZozbF9AEhJDTiVs6M_JpS2_rFBA_3Md52OXJwrI67U/edit?usp=sharing" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#00d4aa;cursor:pointer;">
+          <div class="hc-icon" style="background:rgba(0,212,170,0.12);border-color:rgba(0,212,170,0.3);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          </div>
+          <div class="hc-name">SOP — Inside Sales</div>
+          <div class="hc-desc">Step-by-step process for Inside Sales — complete guide covering Discovery, Demo, Quotation, Negotiation and Closure follow-ups.</div>
+          <span class="hc-status live" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.3);">📄 Open Document</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+</div>
+
+<!-- MARKETING PANEL -->
+<div class="dashboard-panel" id="panel-marketing">
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>Aditi</span> Marketing</div>
+      <div class="db-breadcrumb">Home › Marketing</div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge" style="background:rgba(240,165,0,0.12);border:1px solid rgba(240,165,0,0.3);"><div class="live-dot" style="background:#f0a500"></div> Google Drive</div>
+    </div>
+  </div>
+  <div class="db-content">
+    <div class="section-title">Marketing Resources</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
+
+      <!-- Marketing Brochure -->
+      <a href="https://drive.google.com/drive/folders/15AiOGhbPOToFZGAIyMAEMdy6zg6c0NhM?usp=sharing" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#f0a500;cursor:pointer;">
+          <div class="hc-icon" style="background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.3);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="hc-name">Marketing Brochure</div>
+          <div class="hc-desc">Product brochures, flyers and promotional materials for Aditi Tracking — ready to share with clients and prospects.</div>
+          <span class="hc-status live" style="background:rgba(240,165,0,0.15);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">📁 Open Drive</span>
+        </div>
+      </a>
+
+      <!-- Solution Videos -->
+      <a href="https://drive.google.com/drive/folders/1-drIi8dmmMpOVPY1kz_nWbyFB3TCVfRl?usp=sharing" target="_blank" style="text-decoration:none;">
+        <div class="home-card" style="--card-top:#a855f7;cursor:pointer;">
+          <div class="hc-icon" style="background:rgba(168,85,247,0.12);border-color:rgba(168,85,247,0.3);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          </div>
+          <div class="hc-name">Solution Videos</div>
+          <div class="hc-desc">Solution demo videos for Aditi Tracking — explaining product features and benefits for client presentations.</div>
+          <span class="hc-status live" style="background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.3);">📁 Open Drive</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+</div>
+
 <!-- TASK CHECKLIST PANEL -->
 <div class="dashboard-panel" id="panel-tasks">
   <div class="db-header">
@@ -2480,7 +2724,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 
 
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ═══════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════
@@ -2594,7 +2838,7 @@ function initHistory(){
 // ═══════════════════════════════════
 const L_URL='https://script.google.com/macros/s/AKfycbzBjUbEJBqphzZeSWsjzv-5Uk_7tHJcd64PBlP84laEDcclmITLfLu5BYWNnSbwDhDl/exec';
 const REP_MAP={'supportmum@adititracking.com':{name:'Support MUM',color:'#f0a500',bg:'rgba(240,165,0,0.2)'},'salesmumbai@adititracking.com':{name:'Sales Mumbai',color:'#00d4aa',bg:'rgba(0,212,170,0.2)'},'salesgoa@adititracking.com':{name:'Sales Goa',color:'#ff5c7c',bg:'rgba(255,92,124,0.2)'},'salesgujarat@adititracking.com':{name:'Sales Gujarat',color:'#a78bfa',bg:'rgba(167,139,250,0.2)'},'coolbus.enterprise@adititracking.com':{name:'CoolBus',color:'#4e9af1',bg:'rgba(78,154,241,0.2)'}};
-const rN=e=>REP_MAP[e]?.name||(e||'').split('@')[0];
+const rN=e=>REP_MAP[e]?.name||(String(e||'')).split('@')[0];
 const rC=e=>REP_MAP[e]?.color||'#888';
 const rB=e=>REP_MAP[e]?.bg||'rgba(128,128,128,0.2)';
 const rI=e=>rN(e).charAt(0).toUpperCase();
@@ -2618,6 +2862,13 @@ async function loadLeads(){
     let rows;
     if(_leadsCache){rows=_leadsCache;_leadsCache=null;}
     else{const res=await fetch(L_URL);if(!res.ok)throw new Error(res.status);rows=await res.json();}
+    // Normalize {h:[headers], r:[[row],[row]]} compressed format → array of objects
+    if(rows&&!Array.isArray(rows)&&rows.h&&rows.r){
+      const headers=rows.h;
+      rows=rows.r.map(row=>{const obj={};headers.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});
+    } else if(rows&&!Array.isArray(rows)&&rows.data&&Array.isArray(rows.data)){
+      rows=rows.data;
+    }
     // Auto-detect CustomerName column (handles different naming conventions)
     if(!Array.isArray(rows)||!rows.length)throw new Error('API returned empty or invalid data');
     const sampleKeys=Object.keys(rows[0]||{});
@@ -2677,7 +2928,7 @@ function lBuildFilters(){
   const s2=document.getElementById('lFSol');s2.innerHTML='<option value="">All Solutions</option>';sol.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;s2.appendChild(o);});
   const s3=document.getElementById('lFRep');s3.innerHTML='<option value="">All Reps</option>';rep.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=rN(r);s3.appendChild(o);});
 }
-function lRenderAll(){lRenderKPIs();lRenderCharts();lRenderInsights();lRenderLB();lApply();}
+function lRenderAll(){lRenderKPIs();lRenderCharts();lRenderInsights();lApply();}
 function lGetCF(){return L.filter(r=>{
   if(Lkpi&&Lkpi!=='all'){if(Lkpi==='won'&&r['Lead Status']!=='Won')return false;if(Lkpi==='hot'&&r['LeadType']!=='Hot')return false;if(Lkpi==='warm'&&r['LeadType']!=='Warm')return false;if(Lkpi==='cold'&&r['LeadType']!=='Cold')return false;if(Lkpi==='quoted'&&r['Quotation Sent']!=='Yes')return false;}
   if(Lcf.leadType&&r['LeadType']!==Lcf.leadType)return false;
@@ -2733,7 +2984,7 @@ function lRenderCharts(){
   Lch.prod=new Chart(document.getElementById('lChProd'),{type:'bar',data:{labels:ps.map(([k])=>k),datasets:[{data:ps.map(([,v])=>v),backgroundColor:ps.map(([k])=>Lcf.product&&Lcf.product!==k?(document.body.classList.contains('light-mode')?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.06)'):'#ff5c7c'),borderRadius:6,borderWidth:0}]},options:{onClick:(_,e)=>{if(e.length)lCF('product',ps[e[0].index][0]);},plugins:{legend:{display:false}},scales:{x:{ticks:{color:lTC,font:{family:'DM Sans',size:9}},grid:{display:false}},y:{ticks:{color:lTC,font:{family:'DM Sans',size:10}},grid:{display:!lNG,color:lGC}}},responsive:true,maintainAspectRatio:false}});
   document.getElementById('lChProd').style.cursor='pointer';
 }
-function lRenderLB(){const rc={},rw={};L.forEach(r=>{const e=r['Emailaddress'];if(!e)return;rc[e]=(rc[e]||0)+1;if(r['Lead Status']==='Won')rw[e]=(rw[e]||0)+1;});const sorted=Object.entries(rc).sort((a,b)=>b[1]-a[1]);const mx=sorted[0]?.[1]||1;document.getElementById('lLBoard').innerHTML=sorted.map(([e,cnt],i)=>`<div class="lb-row"><span class="lb-rank">${i+1}</span><div style="background:${rB(e)};color:${rC(e)};width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.58rem;font-weight:700;flex-shrink:0">${rI(e)}</div><span style="font-size:0.73rem;flex:1;color:var(--text)">${rN(e)}</span><div class="lb-bar-wrap"><div class="lb-bar" style="width:${(cnt/mx*100).toFixed(0)}%;background:${rC(e)}"></div></div><span class="lb-count" style="color:${rC(e)}">${cnt}</span>${rw[e]?'<span style="font-size:0.62rem;color:var(--won);margin-left:3px">✓'+rw[e]+'</span>':''}</div>`).join('');}
+function lRenderLB(){const el=document.getElementById('lLBoard');if(!el)return;const rc={},rw={};L.forEach(r=>{const e=r['Emailaddress'];if(!e)return;rc[e]=(rc[e]||0)+1;if(r['Lead Status']==='Won')rw[e]=(rw[e]||0)+1;});const sorted=Object.entries(rc).sort((a,b)=>b[1]-a[1]);const mx=sorted[0]?.[1]||1;el.innerHTML=sorted.map(([e,cnt],i)=>`<div class="lb-row"><span class="lb-rank">${i+1}</span><div style="background:${rB(e)};color:${rC(e)};width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.58rem;font-weight:700;flex-shrink:0">${rI(e)}</div><span style="font-size:0.73rem;flex:1;color:var(--text)">${rN(e)}</span><div class="lb-bar-wrap"><div class="lb-bar" style="width:${(cnt/mx*100).toFixed(0)}%;background:${rC(e)}"></div></div><span class="lb-count" style="color:${rC(e)}">${cnt}</span>${rw[e]?'<span style="font-size:0.62rem;color:var(--won);margin-left:3px">✓'+rw[e]+'</span>':''}</div>`).join('');}
 function lRenderInsights(){
   const wd=L.filter(r=>r['Lead Status']==='Won'&&r['Order Value']);const tr=wd.reduce((s,r)=>s+(+r['Order Value']||0),0);const mx=[...wd].sort((a,b)=>(+b['Order Value']||0)-(+a['Order Value']||0))[0];
   document.getElementById('lRevIns').innerHTML=`<div class="insight-row"><span>Total Revenue</span><span class="insight-val">₹${tr.toLocaleString('en-IN')}</span></div><div class="insight-row"><span>Avg Deal</span><span class="insight-val">₹${wd.length?Math.round(tr/wd.length).toLocaleString('en-IN'):0}</span></div><div class="insight-row"><span>Biggest Deal</span><span class="insight-val">₹${mx?(+mx['Order Value']).toLocaleString('en-IN'):0}</span></div><div class="insight-row"><span>Won / Total</span><span class="insight-val">${wd.length} / ${L.length}</span></div><div class="insight-row"><span>Top Winner</span><span class="insight-val">${mx?rN(mx['Emailaddress']):'—'}</span></div>`;
@@ -4539,13 +4790,55 @@ function switchAbout(tab){
   if(tabs[idx])tabs[idx].classList.add('active');
 }
 
+/* ── MOBILE MENU SHEET ── */
+function toggleMobMenu(){
+  var sheet=document.getElementById('mobMenuSheet');
+  var overlay=document.getElementById('mobMenuOverlay');
+  if(sheet.style.display==='none'||sheet.style.display===''){
+    sheet.style.display='block';
+    overlay.style.display='block';
+    requestAnimationFrame(function(){
+      sheet.style.transform='translateY(0)';
+    });
+  } else {
+    closeMobMenu();
+  }
+}
+function closeMobMenu(){
+  var sheet=document.getElementById('mobMenuSheet');
+  var overlay=document.getElementById('mobMenuOverlay');
+  sheet.style.transform='translateY(100%)';
+  setTimeout(function(){
+    sheet.style.display='none';
+    overlay.style.display='none';
+  },280);
+}
+function toggleMMDash(){
+  var sub=document.getElementById('mmDashSub');
+  var arrow=document.getElementById('mmDashArrow');
+  if(sub.style.display==='none'||sub.style.display===''){
+    sub.style.display='block';
+    arrow.style.transform='rotate(180deg)';
+  } else {
+    sub.style.display='none';
+    arrow.style.transform='rotate(0deg)';
+  }
+}
+function mobMenuGo(panel){
+  // update active highlight in mobile menu
+  document.querySelectorAll('.mm-nav-item').forEach(function(el){el.classList.remove('mm-active');});
+  var target=document.getElementById('mm-'+panel);
+  if(target) target.classList.add('mm-active');
+  closeMobMenu();
+  switchDB(panel);
+}
+
 function doLogout(){
   localStorage.removeItem('aditiUser');
   localStorage.removeItem('aditiLoginTime');
   CURRENT_USER=null;
   location.reload();
 }
-
 
 </script>
 </body>
