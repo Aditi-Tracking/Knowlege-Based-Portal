@@ -381,6 +381,7 @@
 
   /* ── KPI CARDS ── */
   .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:20px;}
+  #tKpiGrid{grid-template-columns:repeat(5,1fr) !important;}
   .kpi-card{
     background:var(--surface);border:1px solid var(--border);
     border-radius:var(--radius);padding:18px 14px 14px;
@@ -736,6 +737,7 @@
     #panel-tasks .filter-select { width: 100% !important; }
     #panel-tasks .table-scroll { overflow-x: auto !important; }
     #panel-tasks .kpi-grid { grid-template-columns: repeat(2,1fr) !important; }
+    #tKpiGrid { grid-template-columns: repeat(2,1fr) !important; }
 
     /* Charts height smaller on mobile */
     .chart-wrap { height: 200px !important; }
@@ -857,6 +859,7 @@
     .sidebar-logo { font-size: 0.7rem; padding: 16px 10px; text-align: center; }
     .nav-item { justify-content: center; margin: 2px 4px; padding: 10px; }
     .kpi-grid { grid-template-columns: repeat(3, 1fr) !important; }
+    #tKpiGrid  { grid-template-columns: repeat(5, 1fr) !important; }
     .charts-grid, .charts-grid2, .charts-grid4 { grid-template-columns: 1fr 1fr !important; }
     .insights-grid { grid-template-columns: 1fr 1fr !important; }
     .home-cards { grid-template-columns: repeat(3, 1fr) !important; }
@@ -4028,30 +4031,24 @@ function tRenderKPIs(){
   // Unique employees (from date-filtered data)
   const uniqueEmp=[...new Set(baseData.map(r=>r['Name']).filter(Boolean))].length;
 
-  // Avg completion per person
-  const persons=[...new Set(baseData.map(r=>r['Name']).filter(Boolean))];
-  let avgPct=0;
-  if(persons.length){
-    const percs=persons.map(p=>{
-      const rows=baseData.filter(r=>r['Name']===p);
-      const d=rows.filter(r=>tIsDone(r)).length;
-      return rows.length?Math.round((d/rows.length)*100):0;
-    });
-    avgPct=Math.round(percs.reduce((a,b)=>a+b,0)/persons.length);
-  }
+  // Score = (completed / total * 100) - 100  → range: -100 to 0
+  const score = total ? Math.round((done/total)*100) - 100 : -100;
+  const scoreColor = score >= -10 ? '#00d4aa' : score >= -30 ? '#34d399' : score >= -50 ? '#4e9af1' : score >= -75 ? '#f0a500' : '#ff5c7c';
 
   const kpis=[
-    {id:'all',      label:'Total Tasks',      value:total,       color:'#a855f7', sub:'All records'},
-    {id:'done',     label:'Completed',        value:done,        color:'#00d4aa', sub:pct+'% completion'},
-    {id:'pending',  label:'Pending',          value:pending,     color:'#f0a500', sub:(100-pct)+'% remaining'},
-    {id:'pct',      label:'Completion %',     value:pct+'%',     color:'#00d4ff', sub:'Overall rate'},
-    {id:'emp',      label:'Total Employees',  value:uniqueEmp,   color:'#f472b6', sub:'Active members'},
-    {id:'avgpct',   label:'Avg Per Person',   value:avgPct+'%',  color:'#34d399', sub:'Team average'},
+    {id:'all',      label:'Total Tasks',      value:total,       color:'#a855f7', sub:'All records',           clickable:true},
+    {id:'done',     label:'Completed',        value:done,        color:'#00d4aa', sub:pct+'% completion',      clickable:true},
+    {id:'pending',  label:'Pending',          value:pending,     color:'#f0a500', sub:(100-pct)+'% remaining', clickable:true},
+    {id:'emp',      label:'Total Employees',  value:uniqueEmp,   color:'#f472b6', sub:'Active members',        clickable:true},
+    {id:'score',    label:'Score',            value:score,       color:scoreColor, sub:'Overall Rate',          clickable:true},
   ];
 
-  document.getElementById('tKpiGrid').innerHTML=kpis.map(k=>{
+  // Set grid to 5 columns — handled via CSS #tKpiGrid rule
+  const grid=document.getElementById('tKpiGrid');
+
+  grid.innerHTML=kpis.map(k=>{
     const isActive=tActiveKpi===k.id;
-    return `<div class="kpi-card ${isActive?'kpi-active':''}" 
+    return `<div class="kpi-card ${isActive?'kpi-active':''}"
       style="--card-accent:${k.color};cursor:pointer;transition:all 0.2s"
       onclick="tKpiClick('${k.id}')">
       <div class="kpi-label">${k.label}</div>
@@ -4068,7 +4065,7 @@ function tKpiClick(id){
     tActiveKpi=id;
     if(id==='done') tActiveStatus='done';
     else if(id==='pending') tActiveStatus='pending';
-    else tActiveStatus=null;
+    else tActiveStatus=null; // 'all', 'emp', 'score' → no status filter
   }
   tFiltered=tGetFiltered(); tPage=1;
   tRenderKPIs();
