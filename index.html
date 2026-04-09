@@ -4040,7 +4040,7 @@ function tRenderKPIs(){
     {id:'done',     label:'Completed',        value:done,        color:'#00d4aa', sub:pct+'% completion',      clickable:true},
     {id:'pending',  label:'Pending',          value:pending,     color:'#f0a500', sub:(100-pct)+'% remaining', clickable:true},
     {id:'emp',      label:'Total Employees',  value:uniqueEmp,   color:'#f472b6', sub:'Active members',        clickable:true},
-    {id:'score',    label:'Score',            value:score,       color:scoreColor, sub:'Overall Rate',          clickable:true},
+    {id:'score',    label:'Score',            value:score+'%',       color:scoreColor, sub:'Overall Rate',          clickable:true},
   ];
 
   // Set grid to 5 columns — handled via CSS #tKpiGrid rule
