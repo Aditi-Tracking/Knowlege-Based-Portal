@@ -5408,4 +5408,10 @@ function showResult() {
 
 <!-- MODULE QUIZ OVERLAY (Odoo, PC, Click Task, Cool Bus, Smart Fleet) -->
 <div id="module-quiz-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:var(--surface);border-radius:18px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,
+  <div style="background:var(--surface);border-radius:18px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.4);position:relative;">
+    <button onclick="closeModuleQuiz()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;">&#x2715;</button>
+    <div id="module-quiz-screen"></div>
+  </div>
+</div>
+</body>
+</html>
