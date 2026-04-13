@@ -265,6 +265,7 @@
   .dashboard-panel{display:none;flex-direction:column;min-height:100vh;}
   .dashboard-panel.active{display:flex;}
   #panel-tasks{overflow-x:auto;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 
   /* ── HOME PAGE ── */
   .home-panel{padding:36px 36px 60px;}
@@ -1305,9 +1306,9 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     </div>
 
     <!-- PRODUCTS -->
-    <div class="nav-item disabled" title="Coming Soon" id="nav-products">
+    <div class="nav-item" onclick="switchDB('products')" id="nav-products">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
-      <span class="nav-label">Products</span><span class="nav-badge soon">Soon</span>
+      <span class="nav-label">Products</span><span class="nav-badge live" style="background:rgba(168,85,247,0.18);color:#a855f7;border:1px solid rgba(168,85,247,0.35);">New</span>
     </div>
 
     <!-- MARKETING -->
@@ -1317,9 +1318,9 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     </div>
 
     <!-- IT & ADMIN -->
-    <div class="nav-item disabled" title="Coming Soon" id="nav-itadmin">
+    <div class="nav-item" onclick="switchDB('itadmin')" id="nav-itadmin">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
-      <span class="nav-label">IT &amp; Admin</span><span class="nav-badge soon">Soon</span>
+      <span class="nav-label">IT &amp; Admin</span><span class="nav-badge live" style="background:rgba(99,102,241,0.18);color:#818cf8;border:1px solid rgba(99,102,241,0.35);">Docs</span>
     </div>
 
     <!-- TRAINING -->
@@ -1338,6 +1339,18 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div class="nav-item" onclick="switchDB('resources')" id="nav-resources">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span>
       <span class="nav-label">Documents</span><span class="nav-badge live" style="background:rgba(20,184,166,0.18);color:#14b8a6;border:1px solid rgba(20,184,166,0.35);">Docs</span>
+    </div>
+
+    <!-- DIRECTORY -->
+    <div class="nav-item" onclick="switchDB('directory')" id="nav-directory">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>
+      <span class="nav-label">Directory</span><span class="nav-badge live" style="background:rgba(6,182,212,0.18);color:#06b6d4;border:1px solid rgba(6,182,212,0.35);">New</span>
+    </div>
+
+    <!-- REFERRAL -->
+    <div class="nav-item disabled" title="Coming Soon" id="nav-referral">
+      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span>
+      <span class="nav-label">Referral</span><span class="nav-badge soon">Soon</span>
     </div>
 
   </div>
@@ -1472,12 +1485,12 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
     </div>
 
-    <!-- Products — Soon -->
-    <div class="mm-nav-item mm-disabled">
-      <span class="mm-icon" style="opacity:0.4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+    <!-- Products -->
+    <button class="mm-nav-item" id="mm-products" onclick="mobMenuGo('products')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
       <span class="mm-label">Products</span>
-      <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
-    </div>
+      <span class="mm-badge" style="margin-left:auto;background:rgba(168,85,247,0.18);color:#a855f7;border:1px solid rgba(168,85,247,0.35);">New</span>
+    </button>
 
     <!-- Marketing -->
     <button class="mm-nav-item" id="mm-marketing" onclick="mobMenuGo('marketing')">
@@ -1486,12 +1499,12 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <span class="mm-badge" style="margin-left:auto;background:rgba(78,154,241,0.18);color:#4e9af1;border:1px solid rgba(78,154,241,0.35);">Media</span>
     </button>
 
-    <!-- IT & Admin — Soon -->
-    <div class="mm-nav-item mm-disabled">
-      <span class="mm-icon" style="opacity:0.4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+    <!-- IT & Admin -->
+    <button class="mm-nav-item" id="mm-itadmin" onclick="mobMenuGo('itadmin')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
       <span class="mm-label">IT &amp; Admin</span>
-      <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
-    </div>
+      <span class="mm-badge" style="margin-left:auto;background:rgba(99,102,241,0.18);color:#818cf8;border:1px solid rgba(99,102,241,0.35);">Docs</span>
+    </button>
 
     <!-- Training -->
     <button class="mm-nav-item" id="mm-training" onclick="mobMenuGo('training')">
@@ -1513,6 +1526,20 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <span class="mm-label">Documents</span>
       <span class="mm-badge" style="margin-left:auto;background:rgba(20,184,166,0.18);color:#14b8a6;border:1px solid rgba(20,184,166,0.35);">Docs</span>
     </button>
+
+    <!-- Directory -->
+    <button class="mm-nav-item" id="mm-directory" onclick="mobMenuGo('directory')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>
+      <span class="mm-label">Directory</span>
+      <span class="mm-badge" style="margin-left:auto;background:rgba(6,182,212,0.18);color:#06b6d4;border:1px solid rgba(6,182,212,0.35);">New</span>
+    </button>
+
+    <!-- Referral — Soon -->
+    <div class="mm-nav-item mm-disabled">
+      <span class="mm-icon" style="opacity:0.4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span>
+      <span class="mm-label">Referral</span>
+      <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
+    </div>
 
   </div>
 </div>
@@ -1545,6 +1572,64 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
           <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--muted);">Founded Aditi Tracking Support Pvt. Ltd. (ATSPL) · 2011 · Mumbai, India</div>
         </div>
       </div>
+
+    <!-- ══ PERFORMER OF THE MONTH ══ -->
+    <div class="hp-card" style="margin-bottom:16px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#f0a500,#ffcc44,#f0a500);background-size:200%;animation:shimmer 3s linear infinite;"></div>
+      <style>@keyframes shimmer{0%{background-position:0%}100%{background-position:200%}}</style>
+      <div class="hp-card-header">
+        <span class="hp-card-icon">🏆</span>
+        <span class="hp-card-title">Performer of the Month</span>
+        <span style="font-size:0.73rem;color:var(--accent);margin-left:auto;font-weight:600;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.25);padding:3px 10px;border-radius:20px;">April 2026</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:4px;">
+
+        <!-- Sales -->
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#f0a500;opacity:0.7;"></div>
+          <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(240,165,0,0.18),rgba(255,204,68,0.08));border:1px solid rgba(240,165,0,0.3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🥇</div>
+          <div>
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:600;margin-bottom:3px;">Sales</div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.0rem;font-weight:700;color:var(--text);">—</div>
+            <div style="font-size:0.76rem;color:var(--accent);margin-top:2px;font-weight:500;">To be announced</div>
+          </div>
+        </div>
+
+        <!-- Collection -->
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#00d4aa;opacity:0.7;"></div>
+          <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(0,212,170,0.18),rgba(0,212,170,0.06));border:1px solid rgba(0,212,170,0.3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🥇</div>
+          <div>
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:600;margin-bottom:3px;">Collection</div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.0rem;font-weight:700;color:var(--text);">—</div>
+            <div style="font-size:0.76rem;color:#00d4aa;margin-top:2px;font-weight:500;">To be announced</div>
+          </div>
+        </div>
+
+        <!-- Operations -->
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#00d4ff;opacity:0.7;"></div>
+          <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(0,212,255,0.18),rgba(0,212,255,0.06));border:1px solid rgba(0,212,255,0.3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🥇</div>
+          <div>
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:600;margin-bottom:3px;">Operations</div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.0rem;font-weight:700;color:var(--text);">—</div>
+            <div style="font-size:0.76rem;color:#00d4ff;margin-top:2px;font-weight:500;">To be announced</div>
+          </div>
+        </div>
+
+        <!-- Support -->
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#a855f7;opacity:0.7;"></div>
+          <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(168,85,247,0.18),rgba(168,85,247,0.06));border:1px solid rgba(168,85,247,0.3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🥇</div>
+          <div>
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:600;margin-bottom:3px;">Support</div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.0rem;font-weight:700;color:var(--text);">—</div>
+            <div style="font-size:0.76rem;color:#a855f7;margin-top:2px;font-weight:500;">To be announced</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
 
 
     <!-- ══ QUICK LINKS ══ -->
@@ -2281,6 +2366,49 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+<!-- DIRECTORY PANEL -->
+<div class="dashboard-panel" id="panel-directory">
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>aditi</span> Directory</div>
+      <div class="db-breadcrumb">Home › Directory</div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge" style="background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.3);"><div class="live-dot" style="background:#06b6d4"></div> People &amp; Vendors</div>
+    </div>
+  </div>
+  <div class="db-content">
+    <div class="section-title">Directory</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
+
+      <!-- Employee Directory -->
+      <div class="home-card" style="--card-top:#06b6d4;padding:1.5rem;cursor:default;">
+        <div class="hc-icon" style="background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <div class="hc-name" style="font-size:1.12rem;">Employee Directory</div>
+        <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">Browse all Aditi Tracking employees — departments, roles, contact details and reporting structure.</div>
+        <div style="margin-top:14px;">
+          <span class="hc-status soon" style="font-size:0.78rem;padding:4px 12px;">🔒 Coming Soon</span>
+        </div>
+      </div>
+
+      <!-- Vendor Directory -->
+      <div class="home-card" style="--card-top:#8b5cf6;padding:1.5rem;cursor:default;">
+        <div class="hc-icon" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        </div>
+        <div class="hc-name" style="font-size:1.12rem;">Vendor Directory</div>
+        <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">Complete list of approved vendors, suppliers &amp; service partners with contact info and categories.</div>
+        <div style="margin-top:14px;">
+          <span class="hc-status soon" style="font-size:0.78rem;padding:4px 12px;">🔒 Coming Soon</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- RESOURCES PANEL -->
 <div class="dashboard-panel" id="panel-resources">
   <div class="db-header">
@@ -2326,6 +2454,153 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 
     </div>
   </div>
+</div>
+
+<!-- IT & ADMIN PANEL -->
+<div class="dashboard-panel" id="panel-itadmin">
+
+  <!-- ══ VIEW 1: Main — 2 Cards ══ -->
+  <div id="itadmin-main">
+    <div class="db-header">
+      <div>
+        <div class="db-title"><span>aditi</span> IT &amp; Admin</div>
+        <div class="db-breadcrumb">Home › IT &amp; Admin</div>
+      </div>
+      <div class="header-right">
+        <div class="live-badge" style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);"><div class="live-dot" style="background:#818cf8"></div> Google Drive</div>
+      </div>
+    </div>
+    <div class="db-content">
+      <div class="section-title">IT &amp; Admin</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
+
+        <!-- Card 1: Company Docs & Certifications -->
+        <div onclick="itadminShowDocs()" style="text-decoration:none;cursor:pointer;">
+          <div class="home-card" style="--card-top:#818cf8;padding:1.5rem;">
+            <div class="hc-icon" style="background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            </div>
+            <div class="hc-name" style="font-size:1.12rem;">Company Docs &amp; Certifications</div>
+            <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">ISO certificates, company documents, GST, EPFO, ESIC, NSIC, Prof Tax — all official folders.</div>
+            <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
+              <span style="font-size:0.82rem;font-weight:600;color:#818cf8;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);padding:4px 12px;border-radius:20px;">📂 View Documents</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: NDA's -->
+        <a href="https://drive.google.com/drive/folders/1tme02gBZJDPYTkLPMfbZ_t-j7O7VH01s" target="_blank" style="text-decoration:none;">
+          <div class="home-card" style="--card-top:#f472b6;padding:1.5rem;">
+            <div class="hc-icon" style="background:rgba(244,114,182,0.12);border-color:rgba(244,114,182,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+            <div class="hc-name" style="font-size:1.12rem;">NDA's</div>
+            <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">Non-Disclosure Agreements — confidential contracts with employees, clients &amp; partners.</div>
+            <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
+              <span style="font-size:0.82rem;font-weight:600;color:#f472b6;background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
+            </div>
+          </div>
+        </a>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VIEW 2: Company Docs — 5 Sub-Cards ══ -->
+  <div id="itadmin-docs" style="display:none;">
+    <div class="db-header">
+      <div>
+        <div class="db-title"><span>aditi</span> IT &amp; Admin</div>
+        <div class="db-breadcrumb">
+          <span onclick="itadminShowMain()" style="cursor:pointer;color:var(--accent2);text-decoration:underline;text-underline-offset:3px;">IT &amp; Admin</span>
+          › Company Docs &amp; Certifications
+        </div>
+      </div>
+      <div class="header-right">
+        <button onclick="itadminShowMain()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:var(--radius-sm);font-size:0.83rem;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;">
+          ← Back
+        </button>
+        <div class="live-badge" style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);"><div class="live-dot" style="background:#818cf8"></div> Google Drive</div>
+      </div>
+    </div>
+    <div class="db-content">
+      <div class="section-title">Company Docs &amp; Certifications</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;">
+
+        <!-- 2025 ISO Certificates -->
+        <a href="https://drive.google.com/drive/folders/1_YdPqaYqIVEGxe4ofAVSn9obeqvFjttZ" target="_blank" style="text-decoration:none;">
+          <div class="home-card" style="--card-top:#818cf8;cursor:pointer;padding:1.4rem;">
+            <div class="hc-icon" style="background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.3);width:50px;height:50px;border-radius:13px;margin-bottom:14px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+            </div>
+            <div class="hc-name" style="font-size:1rem;">2025 ISO Certificates</div>
+            <div class="hc-desc" style="font-size:0.84rem;line-height:1.55;">Latest ISO certification documents for the year 2025.</div>
+            <div style="margin-top:13px;">
+              <span style="font-size:0.80rem;font-weight:600;color:#818cf8;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);padding:4px 11px;border-radius:20px;">📁 Open Folder</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Company DOCS -->
+        <a href="https://drive.google.com/drive/folders/17REokg4iljwlBoeXDuBvofRR0DlhgPiM" target="_blank" style="text-decoration:none;">
+          <div class="home-card" style="--card-top:#a78bfa;cursor:pointer;padding:1.4rem;">
+            <div class="hc-icon" style="background:rgba(167,139,250,0.12);border-color:rgba(167,139,250,0.3);width:50px;height:50px;border-radius:13px;margin-bottom:14px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <div class="hc-name" style="font-size:1rem;">Company DOCS</div>
+            <div class="hc-desc" style="font-size:0.84rem;line-height:1.55;">Core company documents, registrations &amp; official records.</div>
+            <div style="margin-top:13px;">
+              <span style="font-size:0.80rem;font-weight:600;color:#a78bfa;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);padding:4px 11px;border-radius:20px;">📁 Open Folder</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- GST EPFO ESIC -->
+        <a href="https://drive.google.com/drive/folders/1ukwJfX1uDg_KGiyOb6Jv9c7EaABpFjVP" target="_blank" style="text-decoration:none;">
+          <div class="home-card" style="--card-top:#34d399;cursor:pointer;padding:1.4rem;">
+            <div class="hc-icon" style="background:rgba(52,211,153,0.12);border-color:rgba(52,211,153,0.3);width:50px;height:50px;border-radius:13px;margin-bottom:14px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="hc-name" style="font-size:1rem;">GST EPFO ESIC Certification</div>
+            <div class="hc-desc" style="font-size:0.84rem;line-height:1.55;">GST, EPFO &amp; ESIC statutory compliance certificates.</div>
+            <div style="margin-top:13px;">
+              <span style="font-size:0.80rem;font-weight:600;color:#34d399;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);padding:4px 11px;border-radius:20px;">📁 Open Folder</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- NSIC Certificate 25-27 -->
+        <a href="https://drive.google.com/drive/folders/1ST1xis1Tgcetq1ODhAG03RStSjP6Qlih" target="_blank" style="text-decoration:none;">
+          <div class="home-card" style="--card-top:#f0a500;cursor:pointer;padding:1.4rem;">
+            <div class="hc-icon" style="background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.3);width:50px;height:50px;border-radius:13px;margin-bottom:14px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+            </div>
+            <div class="hc-name" style="font-size:1rem;">NSIC Certificate 25-27</div>
+            <div class="hc-desc" style="font-size:0.84rem;line-height:1.55;">National Small Industries Corporation certificate valid 2025–2027.</div>
+            <div style="margin-top:13px;">
+              <span style="font-size:0.80rem;font-weight:600;color:#f0a500;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.3);padding:4px 11px;border-radius:20px;">📁 Open Folder</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- Prof Tax and Certificate -->
+        <a href="https://drive.google.com/drive/folders/1fobc-LYiK07Y4EmRqN2SMIGE20up9lCT" target="_blank" style="text-decoration:none;">
+          <div class="home-card" style="--card-top:#fb923c;cursor:pointer;padding:1.4rem;">
+            <div class="hc-icon" style="background:rgba(251,146,60,0.12);border-color:rgba(251,146,60,0.3);width:50px;height:50px;border-radius:13px;margin-bottom:14px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+            </div>
+            <div class="hc-name" style="font-size:1rem;">Prof Tax &amp; Certificate</div>
+            <div class="hc-desc" style="font-size:0.84rem;line-height:1.55;">Professional tax registration &amp; related certificates.</div>
+            <div style="margin-top:13px;">
+              <span style="font-size:0.80rem;font-weight:600;color:#fb923c;background:rgba(251,146,60,0.1);border:1px solid rgba(251,146,60,0.3);padding:4px 11px;border-radius:20px;">📁 Open Folder</span>
+            </div>
+          </div>
+        </a>
+
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- TRAINING VIDEOS PANEL -->
@@ -2600,6 +2875,50 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+<!-- PRODUCTS PANEL -->
+<div class="dashboard-panel" id="panel-products">
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>aditi</span> Products</div>
+      <div class="db-breadcrumb">Home › Products</div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);"><div class="live-dot" style="background:#a855f7"></div> Supabase Live</div>
+    </div>
+  </div>
+  <div class="db-content">
+    <div class="section-title">Product Categories</div>
+    <div id="prod-loading" style="text-align:center;padding:48px 0;color:var(--muted);">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px;opacity:0.7;animation:spin 1s linear infinite;display:block;margin:0 auto 12px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      <div style="font-size:0.9rem;">Loading products from Supabase…</div>
+    </div>
+    <div id="prod-error" style="display:none;text-align:center;padding:40px 0;color:var(--muted);">
+      <div style="font-size:2rem;margin-bottom:8px;">⚠️</div>
+      <div id="prod-error-msg" style="font-size:0.9rem;"></div>
+    </div>
+    <div id="prod-category-grid" style="display:none;display:none;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;margin-bottom:2rem;"></div>
+  </div>
+</div>
+
+<!-- PRODUCT DETAIL OVERLAY (category wise products) -->
+<div id="prod-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:9998;overflow-y:auto;padding:16px;">
+  <div style="max-width:860px;margin:0 auto;background:var(--surface);border-radius:20px;padding:28px;position:relative;min-height:200px;">
+    <button onclick="closeProdOverlay()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;z-index:2;">✕</button>
+    <div id="prod-overlay-title" style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--text);margin-bottom:4px;padding-right:40px;"></div>
+    <div id="prod-overlay-count" style="font-size:0.82rem;color:var(--muted);margin-bottom:22px;"></div>
+    <div id="prod-overlay-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;"></div>
+  </div>
+</div>
+
+<!-- SINGLE PRODUCT PHOTO LIGHTBOX -->
+<div id="prod-lightbox" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.88);z-index:10000;align-items:center;justify-content:center;flex-direction:column;">
+  <button onclick="closeLightbox()" style="position:absolute;top:16px;right:18px;background:rgba(255,255,255,0.1);border:none;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.2rem;color:#fff;">✕</button>
+  <img id="prod-lightbox-img" src="" style="max-width:92vw;max-height:72vh;border-radius:12px;object-fit:contain;box-shadow:0 20px 60px rgba(0,0,0,0.5);" />
+  <div id="prod-lightbox-name" style="color:#fff;margin-top:14px;font-size:1.05rem;font-weight:700;text-align:center;max-width:600px;padding:0 16px;"></div>
+  <div id="prod-lightbox-price" style="color:#a855f7;margin-top:5px;font-size:1rem;font-weight:800;text-align:center;"></div>
+  <div id="prod-lightbox-desc" style="color:rgba(255,255,255,0.65);margin-top:6px;font-size:0.85rem;text-align:center;max-width:560px;padding:0 16px;line-height:1.6;"></div>
+</div>
+
 <!-- TASK CHECKLIST PANEL -->
 <div class="dashboard-panel" id="panel-tasks">
   <div class="db-header">
@@ -2776,6 +3095,17 @@ function toggleDashboardAccordion(){
   }
 }
 
+function itadminShowDocs(){
+  document.getElementById('itadmin-main').style.display='none';
+  document.getElementById('itadmin-docs').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function itadminShowMain(){
+  document.getElementById('itadmin-docs').style.display='none';
+  document.getElementById('itadmin-main').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
 function switchDB(id, fromPopState){
   document.querySelectorAll('.dashboard-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -2789,6 +3119,13 @@ function switchDB(id, fromPopState){
     if(grp){grp.style.display='block';}
     if(arrow){arrow.classList.add('open');}
     if(trigger){trigger.classList.add('dash-open');}
+  }
+  // Reset IT & Admin to main view when switching away
+  if(id!=='itadmin'){
+    var im=document.getElementById('itadmin-main');
+    var id2=document.getElementById('itadmin-docs');
+    if(im){im.style.display='block';}
+    if(id2){id2.style.display='none';}
   }
   var panel=document.getElementById('panel-'+id);
   if(!panel){
@@ -2806,6 +3143,7 @@ function switchDB(id, fromPopState){
   if(id==='leads'&&!lLoaded){lLoaded=true;loadLeads();}
   if(id==='collection'&&!cLoaded){cLoaded=true;loadColl();}
   if(id==='tasks'&&!tLoaded){tLoaded=true;loadTasks();}
+  if(id==='products'&&!prodLoaded){loadProducts();}
   // Training panel needs no data loading — just shows static links
   // Push history state so back button returns to home
   if(!fromPopState){
@@ -4845,6 +5183,7 @@ const MODULE_QUIZZES = {
     subtitle: 'Odoo ERP System',
     color: '#00d4ff',
     icon: '🔷',
+    supabaseModule: 'Odoo',
     driveUrl: 'https://drive.google.com/drive/folders/187nbxRXlOR2D-HpIlhAN3lJRu8tv66qC',
     questions: [
       { q: 'Odoo is primarily known as?', opts: ['A GPS tracking tool','An open-source ERP software','A payroll-only system','A social media platform'], ans: 1 },
@@ -4883,6 +5222,7 @@ const MODULE_QUIZZES = {
     subtitle: 'Click Task App',
     color: '#a855f7',
     icon: '✔️',
+    supabaseModule: 'Click Task',
     driveUrl: 'https://drive.google.com/drive/folders/1ojAyM6eGOm7xZ2eVzmn7d2vu-ZrPuglO',
     questions: [
       { q: 'Click Task is primarily used for?', opts: ['Tracking vehicle location','Managing and tracking work tasks and assignments','Payroll processing','Video conferencing'], ans: 1 },
@@ -4921,6 +5261,7 @@ const MODULE_QUIZZES = {
     subtitle: 'Smart Fleet System',
     color: '#22c55e',
     icon: '🚛',
+    supabaseModule: 'Smart Fleet',
     driveUrl: 'https://drive.google.com/drive/folders/1dMDdfvZRwoneI0YDYlQ9mYoNttiNSHaW',
     questions: [
       { q: 'Smart Fleet is a system for?', opts: ['Employee leave management','Managing and monitoring a fleet of commercial vehicles','Processing customer payments','Office supply tracking'], ans: 1 },
@@ -4950,12 +5291,174 @@ function openModuleQuiz(moduleKey) {
   showModuleQuizMenu();
 }
 
+// ── Per-module video data store ──
+const moduleVideosData = {};
+
+// ── Generic: fetch videos for a module using Module column ──
+async function fetchModuleVideos(key) {
+  const mod = MODULE_QUIZZES[key];
+  const cardsEl = document.getElementById(`modvid-cards-${key}`);
+  if (!cardsEl) return;
+  cardsEl.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.92rem;">⏳ Videos load ho rahe hain...</div>`;
+  try {
+    const moduleName = encodeURIComponent(mod.supabaseModule);
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Training_Videos?select=*&Module=eq.${moduleName}`,
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' } }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    moduleVideosData[key] = data.map(r => {
+      const keys = Object.keys(r);
+      const get = (...names) => {
+        for (const n of names) {
+          const found = keys.find(k => k.toLowerCase() === n.toLowerCase());
+          if (found !== undefined) return r[found];
+        }
+        return '';
+      };
+      return { id: get('id','ID'), Title: get('Title','title'), Video_URL: get('Video_URL','video_url','VideoURL','videourl') };
+    });
+    renderModuleVideoCards(key);
+  } catch(err) {
+    if (cardsEl) cardsEl.innerHTML = `<div style="text-align:center;padding:20px;color:#ef4444;font-size:0.9rem;">❌ Videos load nahi hue.<br><span style="font-size:0.78rem;color:var(--muted);">${err.message}</span></div>`;
+  }
+}
+
+function renderModuleVideoCards(key) {
+  const mod = MODULE_QUIZZES[key];
+  const cardsEl = document.getElementById(`modvid-cards-${key}`);
+  if (!cardsEl) return;
+  const data = moduleVideosData[key] || [];
+  if (!data.length) {
+    cardsEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);">Koi video nahi mili.<br><span style="font-size:0.8rem;">Supabase mein Module = '${mod.supabaseModule}' wali videos add karo.</span></div>`;
+    return;
+  }
+  cardsEl.innerHTML = data.map((row, idx) => {
+    const meta = getMISVideoMeta(row.Title);
+    return `
+      <div onclick="playModuleVideo('${key}',${idx})"
+           style="cursor:pointer;padding:16px;border-radius:12px;border:1.5px solid ${mod.color}44;background:${mod.color}12;transition:all 0.18s;"
+           onmouseover="this.style.borderColor='${mod.color}bb';this.style.background='${mod.color}22'"
+           onmouseout="this.style.borderColor='${mod.color}44';this.style.background='${mod.color}12'">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:48px;height:48px;border-radius:10px;background:${mod.color}28;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">${meta.icon}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;color:var(--text);font-size:0.97rem;">${row.Title}</div>
+            <div style="font-size:0.81rem;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Training Video</div>
+          </div>
+          <div style="width:36px;height:36px;border-radius:50%;background:${mod.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="color:#fff;font-size:0.85rem;margin-left:2px;">▶</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function playModuleVideo(key, idx) {
+  const row = (moduleVideosData[key] || [])[idx];
+  if (!row) return;
+  const meta = getMISVideoMeta(row.Title);
+  document.getElementById(`modvid-title-${key}`).textContent = `${meta.icon} ${row.Title}`;
+  document.getElementById(`modvid-desc-${key}`).textContent = meta.desc;
+  const videoEl = document.getElementById(`modvid-player-${key}`);
+  videoEl.src = row.Video_URL;
+  videoEl.load();
+  document.getElementById(`modvid-list-${key}`).style.display = 'none';
+  document.getElementById(`modvid-playerbox-${key}`).style.display = 'block';
+}
+
+function backToModuleVideoList(key) {
+  const v = document.getElementById(`modvid-player-${key}`);
+  if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+  document.getElementById(`modvid-playerbox-${key}`).style.display = 'none';
+  document.getElementById(`modvid-list-${key}`).style.display = 'block';
+}
+
+function switchModuleTab(key, tab) {
+  const vTab = document.getElementById(`modvid-vtab-${key}`);
+  const qTab = document.getElementById(`modvid-qtab-${key}`);
+  const btnV = document.getElementById(`modvid-btn-v-${key}`);
+  const btnQ = document.getElementById(`modvid-btn-q-${key}`);
+  const mod = MODULE_QUIZZES[key];
+  if (!vTab || !qTab) return;
+  if (tab === 'videos') {
+    vTab.style.display = 'block'; qTab.style.display = 'none';
+    btnV.style.background = `${mod.color}2e`; btnV.style.color = mod.color; btnV.style.fontWeight = '800';
+    btnQ.style.background = 'transparent'; btnQ.style.color = 'var(--muted)'; btnQ.style.fontWeight = '700';
+    const v = document.getElementById(`modvid-player-${key}`);
+    if (v) v.pause();
+  } else {
+    vTab.style.display = 'none'; qTab.style.display = 'block';
+    btnQ.style.background = `${mod.color}2e`; btnQ.style.color = mod.color; btnQ.style.fontWeight = '800';
+    btnV.style.background = 'transparent'; btnV.style.color = 'var(--muted)'; btnV.style.fontWeight = '700';
+  }
+}
+
 function showModuleQuizMenu() {
   const mod = moduleQuizActive;
   const key = moduleQuizCurrentKey;
-  // Determine border color based on module
   const borderColor = mod.color + '55';
   const bgColor = mod.color + '14';
+
+  // ── Modules with Supabase videos → Videos + Quiz tabs ──
+  if (mod.supabaseModule) {
+    document.getElementById('module-quiz-screen').innerHTML = `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:1.15rem;font-weight:800;color:var(--text);margin-bottom:4px;">${mod.icon} ${mod.title.replace(' Quiz','')}</div>
+        <div style="font-size:0.85rem;color:var(--muted);">Watch videos or test your knowledge!</div>
+      </div>
+      <div style="display:flex;gap:0;margin-bottom:18px;border-radius:12px;overflow:hidden;border:1.5px solid ${mod.color}40;">
+        <button id="modvid-btn-v-${key}" onclick="switchModuleTab('${key}','videos')"
+          style="flex:1;padding:10px 0;border:none;background:${mod.color}2e;color:${mod.color};font-weight:800;font-size:0.95rem;cursor:pointer;font-family:inherit;">▶ Videos</button>
+        <button id="modvid-btn-q-${key}" onclick="switchModuleTab('${key}','quiz')"
+          style="flex:1;padding:10px 0;border:none;background:transparent;color:var(--muted);font-weight:700;font-size:0.95rem;cursor:pointer;font-family:inherit;">📝 Quiz</button>
+      </div>
+
+      <!-- Videos Tab -->
+      <div id="modvid-vtab-${key}">
+        <div id="modvid-list-${key}">
+          <div style="font-size:0.82rem;font-weight:700;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:12px;">Training Videos</div>
+          <div id="modvid-cards-${key}" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="text-align:center;padding:24px;color:var(--muted);font-size:0.92rem;">⏳ Videos load ho rahe hain...</div>
+          </div>
+        </div>
+        <div id="modvid-playerbox-${key}" style="display:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <button onclick="backToModuleVideoList('${key}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;padding:0;line-height:1;">←</button>
+            <div>
+              <div id="modvid-title-${key}" style="font-size:1.02rem;font-weight:800;color:var(--text);"></div>
+              <div style="font-size:0.8rem;color:var(--muted);margin-top:2px;">Training Video</div>
+            </div>
+          </div>
+          <video id="modvid-player-${key}" controls controlsList="nodownload"
+            style="width:100%;border-radius:12px;background:#000;max-height:55vh;" preload="metadata">
+            Your browser does not support the video tag.
+          </video>
+          <div id="modvid-desc-${key}" style="margin-top:12px;font-size:0.87rem;color:var(--muted);line-height:1.65;"></div>
+        </div>
+      </div>
+
+      <!-- Quiz Tab -->
+      <div id="modvid-qtab-${key}" style="display:none;">
+        <div style="font-size:0.80rem;font-weight:700;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:12px;">Take the Quiz</div>
+        <button onclick="startModuleQuiz()" style="width:100%;text-align:left;padding:18px;border-radius:12px;border:1.5px solid ${borderColor};background:${bgColor};cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.borderColor='${mod.color}'" onmouseout="this.style.borderColor='${borderColor}'">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <span style="font-size:2rem;">${mod.icon}</span>
+            <div style="flex:1;">
+              <div style="font-weight:700;color:var(--text);font-size:0.97rem;margin-bottom:3px;">${mod.subtitle}</div>
+              <div style="font-size:0.78rem;color:var(--muted);">10 Questions • Multiple Choice</div>
+            </div>
+            <span style="color:${mod.color};font-size:1.2rem;">→</span>
+          </div>
+        </button>
+      </div>
+    `;
+    fetchModuleVideos(key);
+    return;
+  }
+
+  // ── Other modules (PC, Click Task, Cool Bus) → Drive button + Quiz ──
   document.getElementById('module-quiz-screen').innerHTML = `
     <div style="margin-bottom:20px;">
       <div style="font-size:1.15rem;font-weight:800;color:var(--text);margin-bottom:4px;">${mod.icon} ${mod.title.replace(' Quiz','')}</div>
@@ -4988,6 +5491,10 @@ function startModuleQuiz() {
 
 function closeModuleQuiz() {
   document.getElementById('module-quiz-overlay').style.display = 'none';
+  // Stop any playing module video
+  document.querySelectorAll('[id^="modvid-player-"]').forEach(v => {
+    if (v && v.pause) { v.pause(); v.removeAttribute('src'); v.load(); }
+  });
 }
 
 function renderModuleQuestion() {
@@ -5212,6 +5719,241 @@ function switchMISTab(tab) {
 const SUPABASE_URL  = 'https://rramdtpabwjsndgkohbi.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyYW1kdHBhYndqc25kZ2tvaGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDQ4ODUsImV4cCI6MjA5MTQ4MDg4NX0.hpdTOkhRrbqmbPM6VJWEtz2oEjkeXAjYJQS9rgzheec';
 
+// ═══════════════════════════════════════════════════════════
+// PRODUCTS PANEL — Supabase Product_Photos
+// ═══════════════════════════════════════════════════════════
+let prodLoaded = false;
+let prodAllData = [];
+
+// Hardcoded product data from adititracking.com — descriptions & prices
+const PROD_INFO = {
+  // Smart Fleet
+  'Advance 4G Tracker': {
+    price: '₹6,500',
+    desc: 'Superior 4G GPS tracker with fast real-time tracking, memory backup for no-network areas, remote immobilizer support, and internal battery backup. Ideal for advanced fleet management.'
+  },
+  'AIS - 140': {
+    price: '₹15,500',
+    desc: 'Government-approved AIS-140 compliant GPS tracker for RTO compliance. Mandatory for commercial vehicles, features panic button, overspeed alerts, and reliable 4G connectivity.'
+  },
+  'Basic 2G Tracker': {
+    price: '₹3,500',
+    desc: 'Entry-level 2G GPS tracker for real-time vehicle tracking, geofencing, and trip history monitoring. A cost-effective solution for small fleet owners.'
+  },
+  'Basic 4G Tracker': {
+    price: '₹5,500',
+    desc: 'Reliable 4G GPS tracker offering faster data speeds, real-time location updates, and essential fleet management features at an affordable price.'
+  },
+  'Dashcam': {
+    price: '₹32,500',
+    desc: 'AI-powered dual-camera dashcam with real-time video streaming, driver behavior monitoring, and incident recording to enhance vehicle and cargo safety.'
+  },
+  'E-LOCK': {
+    price: '₹17,700',
+    desc: 'GPS-enabled electronic lock for cargo and container security. Remotely monitor and control truck locks to prevent unauthorized access and detect theft in real time.'
+  },
+  'Fuel Management System': {
+    price: '₹20,000–₹22,500',
+    desc: 'Comprehensive fuel monitoring solution that accurately tracks fuel consumption, detects fuel theft, and sends refueling alerts — reducing overall fleet fuel costs significantly.'
+  },
+  'Simstracking': {
+    price: 'Subscription Based',
+    desc: 'SIM-based vehicle tracking without hardware installation. Get real-time location updates for personal vehicles or small fleets using just a SIM card.'
+  },
+  'Tempertaure Monitoring System': {
+    price: '₹8,000',
+    desc: 'Real-time temperature and humidity monitoring for refrigerated vehicles and cold-chain logistics, with instant alerts and data logging to ensure perishable goods stay safe.'
+  },
+  'Wireless Magnetic Tracker': {
+    price: '₹7,500',
+    desc: 'Battery-powered wireless GPS tracker for non-wired assets like trailers and containers. Easy to install magnetically with no wiring required and long battery life.'
+  },
+  'Wireless Magnetic Tracker 2': {
+    price: '₹7,500',
+    desc: 'Advanced wireless magnetic asset tracker with enhanced GPS accuracy and extended battery life. Perfect for tracking containers, trailers, and heavy equipment without wiring.'
+  },
+  // Solution
+  'Cool-Bus': {
+    price: 'Contact for Pricing',
+    desc: 'Smart school bus tracking solution with real-time notifications to parents, live route monitoring, driver behavior alerts, and complete student safety management.'
+  }
+};
+
+function getProdInfo(name) {
+  // Exact match first
+  if (PROD_INFO[name]) return PROD_INFO[name];
+  // Fuzzy match
+  const lower = name.toLowerCase();
+  for (const key of Object.keys(PROD_INFO)) {
+    if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) {
+      return PROD_INFO[key];
+    }
+  }
+  return { price: 'Contact for Pricing', desc: 'A reliable tracking solution by Aditi Tracking. Contact us for more details.' };
+}
+
+const PROD_CAT_COLORS = [
+  { color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
+  { color: '#00d4aa', bg: 'rgba(0,212,170,0.12)',  border: 'rgba(0,212,170,0.3)'  },
+  { color: '#4e9af1', bg: 'rgba(78,154,241,0.12)', border: 'rgba(78,154,241,0.3)' },
+  { color: '#f0a500', bg: 'rgba(240,165,0,0.12)',  border: 'rgba(240,165,0,0.3)'  },
+  { color: '#ff5c7c', bg: 'rgba(255,92,124,0.12)', border: 'rgba(255,92,124,0.3)' },
+  { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.3)'  },
+  { color: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.3)' },
+  { color: '#06b6d4', bg: 'rgba(6,182,212,0.12)',  border: 'rgba(6,182,212,0.3)'  },
+];
+
+async function loadProducts() {
+  if (prodLoaded) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/Product_Photos?select=*&order=Product_category,Product_name`, {
+      headers: {
+        'apikey': SUPABASE_ANON,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Accept': 'application/json'
+      }
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText}`);
+    }
+    const data = await res.json();
+    prodAllData = data;
+    prodLoaded = true;
+    renderProdCategories(data);
+  } catch(e) {
+    document.getElementById('prod-loading').style.display = 'none';
+    const errEl = document.getElementById('prod-error');
+    errEl.style.display = 'block';
+    document.getElementById('prod-error-msg').textContent = 'Products load nahi ho sake: ' + e.message;
+  }
+}
+
+function renderProdCategories(data) {
+  document.getElementById('prod-loading').style.display = 'none';
+  if (!data || data.length === 0) {
+    document.getElementById('prod-error').style.display = 'block';
+    document.getElementById('prod-error-msg').textContent = 'No products found in Supabase Product_Photos table.';
+    return;
+  }
+  const cats = {};
+  data.forEach(row => {
+    const cat = (row.Product_category || 'Uncategorized').trim();
+    if (!cats[cat]) cats[cat] = [];
+    cats[cat].push(row);
+  });
+  const catNames = Object.keys(cats).sort();
+  const grid = document.getElementById('prod-category-grid');
+  grid.style.display = 'grid';
+  grid.innerHTML = catNames.map((cat, i) => {
+    const theme = PROD_CAT_COLORS[i % PROD_CAT_COLORS.length];
+    const count = cats[cat].length;
+    const firstPhoto = cats[cat].find(r => r.Product_Url);
+    const thumbUrl = firstPhoto ? firstPhoto.Product_Url : '';
+    return `
+    <div class="home-card" style="--card-top:${theme.color};cursor:pointer;padding:0;overflow:hidden;"
+         onclick="openProdCategory('${cat.replace(/'/g,"\\'")}')">
+      ${thumbUrl
+        ? `<div style="width:100%;height:130px;overflow:hidden;border-radius:12px 12px 0 0;background:var(--surface2);">
+             <img src="${thumbUrl}" alt="${cat}" loading="lazy"
+                  style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.35s;"
+                  onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'"
+                  onerror="this.closest('div').style.background='${theme.bg}';this.style.display='none'" />
+           </div>`
+        : `<div style="width:100%;height:80px;border-radius:12px 12px 0 0;background:${theme.bg};display:flex;align-items:center;justify-content:center;font-size:2.2rem;">📦</div>`}
+      <div style="padding:14px 16px 16px;">
+        <div class="hc-icon" style="background:${theme.bg};border-color:${theme.border};margin-bottom:10px;width:38px;height:38px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${theme.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        </div>
+        <div class="hc-name">${cat}</div>
+        <div class="hc-desc">${count} product${count===1?'':'s'} available</div>
+        <span class="hc-status live" style="background:${theme.bg};color:${theme.color};border:1px solid ${theme.border};">📦 View Products</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openProdCategory(catName) {
+  const items = prodAllData.filter(r => (r.Product_category || 'Uncategorized').trim() === catName);
+  document.getElementById('prod-overlay-title').textContent = catName;
+  document.getElementById('prod-overlay-count').textContent = items.length + ' product' + (items.length===1?'':'s');
+
+  const allCats = [...new Set(prodAllData.map(r=>(r.Product_category||'Uncategorized').trim()))].sort();
+  const idx = allCats.indexOf(catName);
+  const theme = PROD_CAT_COLORS[Math.max(0,idx) % PROD_CAT_COLORS.length];
+
+  const grid = document.getElementById('prod-overlay-grid');
+  grid.innerHTML = items.map(row => {
+    const name = (row.Product_name || 'Product').trim();
+    const url  = (row.Product_Url || '').trim();
+    const info = getProdInfo(name);
+    const desc = info.desc;
+    const price = info.price;
+    const safeUrl  = url.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const safeName = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const safeDesc = desc.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const safePrice = price.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `
+    <div onclick="openLightbox('${safeUrl}','${safeName}','${safeDesc}','${safePrice}')"
+         style="background:var(--surface2);border-radius:14px;overflow:hidden;cursor:pointer;
+                border:1px solid var(--border);transition:transform 0.2s,box-shadow 0.2s;"
+         onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 32px rgba(0,0,0,0.35)'"
+         onmouseout="this.style.transform='';this.style.boxShadow=''">
+      <div style="width:100%;height:170px;background:${theme.bg};overflow:hidden;
+                  display:flex;align-items:center;justify-content:center;position:relative;">
+        ${url
+          ? `<img src="${url}" alt="${name}" loading="lazy"
+                  style="width:100%;height:100%;object-fit:contain;padding:8px;"
+                  onerror="this.outerHTML='<div style=font-size:2.8rem;>📷</div>'" />`
+          : `<div style="font-size:2.8rem;">📷</div>`}
+        <div style="position:absolute;bottom:8px;right:8px;background:${theme.color};
+                    color:#fff;font-size:0.63rem;font-weight:700;padding:3px 8px;border-radius:20px;">🔍 Full View</div>
+      </div>
+      <div style="padding:13px 14px 15px;">
+        <div style="font-weight:700;font-size:0.9rem;color:var(--text);margin-bottom:4px;line-height:1.35;">${name}</div>
+        <div style="font-size:0.88rem;font-weight:800;color:${theme.color};margin-bottom:7px;">${price}</div>
+        <div style="font-size:0.77rem;color:var(--muted);line-height:1.55;
+                    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${desc}</div>
+        <div style="margin-top:10px;display:inline-block;font-size:0.69rem;font-weight:700;
+                    color:${theme.color};background:${theme.bg};padding:3px 10px;
+                    border-radius:20px;border:1px solid ${theme.border};">${catName}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('prod-overlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeProdOverlay() {
+  document.getElementById('prod-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function openLightbox(url, name, desc, price) {
+  if (!url) return;
+  const lb = document.getElementById('prod-lightbox');
+  document.getElementById('prod-lightbox-img').src = url;
+  document.getElementById('prod-lightbox-name').textContent = name;
+  const priceEl = document.getElementById('prod-lightbox-price');
+  if (priceEl) priceEl.textContent = price || '';
+  document.getElementById('prod-lightbox-desc').textContent = desc || '';
+  lb.style.display = 'flex';
+}
+
+function closeLightbox() {
+  document.getElementById('prod-lightbox').style.display = 'none';
+  document.getElementById('prod-lightbox-img').src = '';
+}
+
+// Close overlays on background click
+document.addEventListener('click', function(e){
+  const ov = document.getElementById('prod-overlay');
+  if(ov && ov.style.display==='block' && e.target===ov) closeProdOverlay();
+  const lb = document.getElementById('prod-lightbox');
+  if(lb && lb.style.display==='flex' && e.target===lb) closeLightbox();
+});
+
 // Icon/color map keyed by lowercase title keywords
 function getMISVideoMeta(title) {
   const t = (title || '').toLowerCase();
@@ -5239,14 +5981,14 @@ function getMISVideoMeta(title) {
 // Loaded videos from DB (array of {id, Title, Video_URL})
 let misVideosData = [];
 
-// ── Fetch videos from Supabase table ──
+// ── Fetch videos from Supabase table (MIS only) ──
 async function fetchMISVideos() {
   const cardsEl = document.getElementById('mis-video-cards');
   cardsEl.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.92rem;">⏳ Videos load ho rahe hain...</div>`;
 
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/Training_Videos?select=*`,
+      `${SUPABASE_URL}/rest/v1/Training_Videos?select=*&Module=eq.MIS`,
       {
         headers: {
           'apikey': SUPABASE_ANON,
