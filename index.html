@@ -2709,7 +2709,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <div class="db-breadcrumb">Home › Training Videos</div>
     </div>
     <div class="header-right">
-      <div class="live-badge" style="background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.3);"><div class="live-dot" style="background:#f97316"></div> Google Drive</div>
+      <div class="live-badge" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);"><div class="live-dot" style="background:#a855f7"></div> Supabase Live</div>
     </div>
   </div>
 
@@ -2804,7 +2804,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <div class="db-breadcrumb">Home › HR</div>
     </div>
     <div class="header-right">
-      <div class="live-badge" style="background:rgba(240,165,0,0.12);border:1px solid rgba(240,165,0,0.3);"><div class="live-dot" style="background:#f0a500"></div> Google Drive</div>
+      <div class="live-badge" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);"><div class="live-dot" style="background:#a855f7"></div> Supabase Live</div>
     </div>
   </div>
   <div class="db-content">
@@ -3177,24 +3177,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
-<!-- PRODUCT DETAIL OVERLAY (category wise products) -->
-<div id="prod-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:9998;overflow-y:auto;padding:16px;">
-  <div style="max-width:860px;margin:0 auto;background:var(--surface);border-radius:20px;padding:28px;position:relative;min-height:200px;">
-    <button onclick="closeProdOverlay()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;z-index:2;">✕</button>
-    <div id="prod-overlay-title" style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--text);margin-bottom:4px;padding-right:40px;"></div>
-    <div id="prod-overlay-count" style="font-size:0.82rem;color:var(--muted);margin-bottom:22px;"></div>
-    <div id="prod-overlay-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;"></div>
-  </div>
-</div>
 
-<!-- SINGLE PRODUCT PHOTO LIGHTBOX -->
-<div id="prod-lightbox" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.88);z-index:10000;align-items:center;justify-content:center;flex-direction:column;">
-  <button onclick="closeLightbox()" style="position:absolute;top:16px;right:18px;background:rgba(255,255,255,0.1);border:none;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.2rem;color:#fff;">✕</button>
-  <img id="prod-lightbox-img" src="" style="max-width:92vw;max-height:72vh;border-radius:12px;object-fit:contain;box-shadow:0 20px 60px rgba(0,0,0,0.5);" />
-  <div id="prod-lightbox-name" style="color:#fff;margin-top:14px;font-size:1.05rem;font-weight:700;text-align:center;max-width:600px;padding:0 16px;"></div>
-  <div id="prod-lightbox-price" style="color:#a855f7;margin-top:5px;font-size:1rem;font-weight:800;text-align:center;"></div>
-  <div id="prod-lightbox-desc" style="color:rgba(255,255,255,0.65);margin-top:6px;font-size:0.85rem;text-align:center;max-width:560px;padding:0 16px;line-height:1.6;"></div>
-</div>
 
 <!-- TASK CHECKLIST PANEL -->
 <div class="dashboard-panel" id="panel-tasks">
@@ -6360,113 +6343,9 @@ function closeSalesOverlay() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// PRODUCTS PANEL — Supabase Product_Photos
+// PRODUCTS PANEL — Supabase Videos Only
 // ═══════════════════════════════════════════════════════════
 let prodLoaded = false;
-let prodAllData = [];
-
-// Hardcoded product data from adititracking.com — descriptions & prices
-const PROD_INFO = {
-  // Smart Fleet
-  'Advance 4G Tracker': {
-    price: '₹6,500',
-    desc: 'Superior 4G GPS tracker with fast real-time tracking, memory backup for no-network areas, remote immobilizer support, and internal battery backup. Ideal for advanced fleet management.'
-  },
-  'AIS - 140': {
-    price: '₹15,500',
-    desc: 'Government-approved AIS-140 compliant GPS tracker for RTO compliance. Mandatory for commercial vehicles, features panic button, overspeed alerts, and reliable 4G connectivity.'
-  },
-  'Basic 2G Tracker': {
-    price: '₹3,500',
-    desc: 'Entry-level 2G GPS tracker for real-time vehicle tracking, geofencing, and trip history monitoring. A cost-effective solution for small fleet owners.'
-  },
-  'Basic 4G Tracker': {
-    price: '₹5,500',
-    desc: 'Reliable 4G GPS tracker offering faster data speeds, real-time location updates, and essential fleet management features at an affordable price.'
-  },
-  'Dashcam': {
-    price: '₹32,500',
-    desc: 'AI-powered dual-camera dashcam with real-time video streaming, driver behavior monitoring, and incident recording to enhance vehicle and cargo safety.'
-  },
-  'E-LOCK': {
-    price: '₹17,700',
-    desc: 'GPS-enabled electronic lock for cargo and container security. Remotely monitor and control truck locks to prevent unauthorized access and detect theft in real time.'
-  },
-  'Fuel Management System': {
-    price: '₹20,000–₹22,500',
-    desc: 'Comprehensive fuel monitoring solution that accurately tracks fuel consumption, detects fuel theft, and sends refueling alerts — reducing overall fleet fuel costs significantly.'
-  },
-  'Simstracking': {
-    price: 'Subscription Based',
-    desc: 'SIM-based vehicle tracking without hardware installation. Get real-time location updates for personal vehicles or small fleets using just a SIM card.'
-  },
-  'Tempertaure Monitoring System': {
-    price: '₹8,000',
-    desc: 'Real-time temperature and humidity monitoring for refrigerated vehicles and cold-chain logistics, with instant alerts and data logging to ensure perishable goods stay safe.'
-  },
-  'Wireless Magnetic Tracker': {
-    price: '₹7,500',
-    desc: 'Battery-powered wireless GPS tracker for non-wired assets like trailers and containers. Easy to install magnetically with no wiring required and long battery life.'
-  },
-  'Wireless Magnetic Tracker 2': {
-    price: '₹7,500',
-    desc: 'Advanced wireless magnetic asset tracker with enhanced GPS accuracy and extended battery life. Perfect for tracking containers, trailers, and heavy equipment without wiring.'
-  },
-  // Solution
-  'Cool-Bus': {
-    price: 'Contact for Pricing',
-    desc: 'Smart school bus tracking solution with real-time notifications to parents, live route monitoring, driver behavior alerts, and complete student safety management.'
-  }
-};
-
-function getProdInfo(name) {
-  // Exact match first
-  if (PROD_INFO[name]) return PROD_INFO[name];
-  // Fuzzy match
-  const lower = name.toLowerCase();
-  for (const key of Object.keys(PROD_INFO)) {
-    if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) {
-      return PROD_INFO[key];
-    }
-  }
-  return { price: 'Contact for Pricing', desc: 'A reliable tracking solution by Aditi Tracking. Contact us for more details.' };
-}
-
-const PROD_CAT_COLORS = [
-  { color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)' },
-  { color: '#00d4aa', bg: 'rgba(0,212,170,0.12)',  border: 'rgba(0,212,170,0.3)'  },
-  { color: '#4e9af1', bg: 'rgba(78,154,241,0.12)', border: 'rgba(78,154,241,0.3)' },
-  { color: '#f0a500', bg: 'rgba(240,165,0,0.12)',  border: 'rgba(240,165,0,0.3)'  },
-  { color: '#ff5c7c', bg: 'rgba(255,92,124,0.12)', border: 'rgba(255,92,124,0.3)' },
-  { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.3)'  },
-  { color: '#f97316', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.3)' },
-  { color: '#06b6d4', bg: 'rgba(6,182,212,0.12)',  border: 'rgba(6,182,212,0.3)'  },
-];
-
-// ── Hardcoded product thumbnail images (reliable CDN / web sources) ──
-const PROD_IMAGES = {
-  'Advance 4G Tracker':          'https://www.adititracking.com/wp-content/uploads/2023/06/Advance-4G-GPS-Tracker.webp',
-  'AIS - 140':                   'https://www.adititracking.com/wp-content/uploads/2023/06/AIS-140-GPS-Tracker.webp',
-  'Basic 2G Tracker':            'https://www.adititracking.com/wp-content/uploads/2023/06/Basic-2G-GPS-Tracker.webp',
-  'Basic 4G Tracker':            'https://www.adititracking.com/wp-content/uploads/2023/06/Basic-4G-GPS-Tracker.webp',
-  'Dashcam':                     'https://www.adititracking.com/wp-content/uploads/2023/06/Dashcam.webp',
-  'E-LOCK':                      'https://www.adititracking.com/wp-content/uploads/2023/06/E-Lock.webp',
-  'Fuel Management System':      'https://www.adititracking.com/wp-content/uploads/2023/06/Fuel-Management-System.webp',
-  'Simstracking':                'https://www.adititracking.com/wp-content/uploads/2023/06/Simstracking.webp',
-  'Tempertaure Monitoring System':'https://www.adititracking.com/wp-content/uploads/2023/06/Temperature-Monitoring-System.webp',
-  'Wireless Magnetic Tracker':   'https://www.adititracking.com/wp-content/uploads/2023/06/Wireless-Magnetic-Tracker.webp',
-  'Wireless Magnetic Tracker 2': 'https://www.adititracking.com/wp-content/uploads/2023/06/Wireless-Magnetic-Tracker-2.webp',
-  'Cool-Bus':                    'https://www.adititracking.com/wp-content/uploads/2023/06/Cool-Bus.webp',
-  'Click Task':                  'https://www.adititracking.com/wp-content/uploads/2023/06/Click-Task.webp',
-};
-function getProdImage(name) {
-  if (PROD_IMAGES[name]) return PROD_IMAGES[name];
-  const lower = name.toLowerCase();
-  for (const key of Object.keys(PROD_IMAGES)) {
-    if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) return PROD_IMAGES[key];
-  }
-  return '';
-}
 
 async function loadProducts() {
   if (prodLoaded) return;
@@ -6512,7 +6391,7 @@ function renderProdVideos(videos) {
     const isSupabase    = url.includes('supabase.co');
     let mediaHtml = '';
     if (isDirectVideo || isSupabase) {
-      mediaHtml = `<video controls preload="metadata"
+      mediaHtml = `<video controls controlsList="nodownload" disablePictureInPicture oncontextmenu="return false;" preload="metadata"
         style="width:100%;height:100%;object-fit:cover;border-radius:12px 12px 0 0;display:block;background:#000;">
         <source src="${url}" type="video/mp4">
         <source src="${url}" type="video/webm">
@@ -6548,119 +6427,10 @@ function renderProdVideos(videos) {
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:0.71rem;font-weight:700;padding:3px 10px;border-radius:20px;background:${bg};color:${color};border:1px solid ${border};">🎬 Training Video</span>
-          ${url ? `<a href="${url}" target="_blank" rel="noopener"
-            style="font-size:0.71rem;font-weight:700;padding:3px 10px;border-radius:20px;
-                   background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid var(--border);
-                   text-decoration:none;transition:all 0.18s;"
-            onmouseover="this.style.color='${color}';this.style.borderColor='${color}'"
-            onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">↗ Open Full</a>` : ''}
         </div>
       </div>
     </div>`;
   }).join('');
-}
-
-function renderProdCategories(data) {
-  document.getElementById('prod-loading').style.display = 'none';
-  if (!data || data.length === 0) {
-    document.getElementById('prod-error').style.display = 'block';
-    document.getElementById('prod-error-msg').textContent = 'No products found in Supabase Product_Photos table.';
-    return;
-  }
-  const cats = {};
-  data.forEach(row => {
-    const cat = (row.Product_category || 'Uncategorized').trim();
-    if (!cats[cat]) cats[cat] = [];
-    cats[cat].push(row);
-  });
-  const catNames = Object.keys(cats).sort();
-  const grid = document.getElementById('prod-category-grid');
-  grid.style.display = 'grid';
-  grid.innerHTML = catNames.map((cat, i) => {
-    const theme = PROD_CAT_COLORS[i % PROD_CAT_COLORS.length];
-    const count = cats[cat].length;
-    // Use hardcoded product image for first product in category
-    const firstProd = cats[cat][0];
-    const thumbUrl = getProdImage(firstProd ? (firstProd.Product_name || '') : '');
-    return `
-    <div class="home-card" style="--card-top:${theme.color};cursor:pointer;padding:0;overflow:hidden;"
-         onclick="openProdCategory('${cat.replace(/'/g,"\\'")}')">
-      <div style="width:100%;height:130px;overflow:hidden;border-radius:12px 12px 0 0;background:${theme.bg};position:relative;">
-        ${thumbUrl
-          ? `<img src="${thumbUrl}" alt="${cat}" loading="lazy"
-                 style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.35s;"
-                 onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'"
-                 onerror="this.style.display='none';this.parentNode.querySelector('.prod-cat-icon').style.display='flex'" />
-             <div class="prod-cat-icon" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;font-size:2.5rem;">📦</div>`
-          : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;">📦</div>`}
-      </div>
-      <div style="padding:14px 16px 16px;">
-        <div class="hc-icon" style="background:${theme.bg};border-color:${theme.border};margin-bottom:10px;width:38px;height:38px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${theme.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-        </div>
-        <div class="hc-name">${cat}</div>
-        <div class="hc-desc">${count} product${count===1?'':'s'} available</div>
-        <span class="hc-status live" style="background:${theme.bg};color:${theme.color};border:1px solid ${theme.border};">📦 View Products</span>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function openProdCategory(catName) {
-  const items = prodAllData.filter(r => (r.Product_category || 'Uncategorized').trim() === catName);
-  document.getElementById('prod-overlay-title').textContent = catName;
-  document.getElementById('prod-overlay-count').textContent = items.length + ' product' + (items.length===1?'':'s');
-
-  const allCats = [...new Set(prodAllData.map(r=>(r.Product_category||'Uncategorized').trim()))].sort();
-  const idx = allCats.indexOf(catName);
-  const theme = PROD_CAT_COLORS[Math.max(0,idx) % PROD_CAT_COLORS.length];
-
-  const grid = document.getElementById('prod-overlay-grid');
-  grid.innerHTML = items.map(row => {
-    const name = (row.Product_name || 'Product').trim();
-    const info = getProdInfo(name);
-    const desc = info.desc;
-    const price = info.price;
-    const imgUrl = getProdImage(name);   // hardcoded product photo
-    const safeName = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const safeDesc = desc.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const safePrice = price.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const safeImg = imgUrl.replace(/'/g,"\\'");
-    return `
-    <div onclick="openLightbox('${safeImg}','${safeName}','${safeDesc}','${safePrice}')"
-         style="background:var(--surface2);border-radius:14px;overflow:hidden;cursor:pointer;
-                border:1px solid var(--border);transition:transform 0.2s,box-shadow 0.2s;"
-         onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 32px rgba(0,0,0,0.35)'"
-         onmouseout="this.style.transform='';this.style.boxShadow=''">
-      <div style="width:100%;height:170px;background:${theme.bg};overflow:hidden;
-                  display:flex;align-items:center;justify-content:center;position:relative;">
-        ${imgUrl
-          ? `<img src="${imgUrl}" alt="${name}" loading="lazy"
-                  style="width:100%;height:100%;object-fit:contain;padding:8px;"
-                  onerror="this.outerHTML='<div style=font-size:2.8rem;>📷</div>'" />`
-          : `<div style="font-size:2.8rem;">📷</div>`}
-        <div style="position:absolute;bottom:8px;right:8px;background:${theme.color};
-                    color:#fff;font-size:0.63rem;font-weight:700;padding:3px 8px;border-radius:20px;">🔍 Full View</div>
-      </div>
-      <div style="padding:13px 14px 15px;">
-        <div style="font-weight:700;font-size:0.9rem;color:var(--text);margin-bottom:4px;line-height:1.35;">${name}</div>
-        <div style="font-size:0.88rem;font-weight:800;color:${theme.color};margin-bottom:7px;">${price}</div>
-        <div style="font-size:0.77rem;color:var(--muted);line-height:1.55;
-                    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${desc}</div>
-        <div style="margin-top:10px;display:inline-block;font-size:0.69rem;font-weight:700;
-                    color:${theme.color};background:${theme.bg};padding:3px 10px;
-                    border-radius:20px;border:1px solid ${theme.border};">${catName}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  document.getElementById('prod-overlay').style.display = 'block';
-  document.body.style.overflow = 'hidden';
-}
-
-function closeProdOverlay() {
-  document.getElementById('prod-overlay').style.display = 'none';
-  document.body.style.overflow = '';
 }
 
 // ---- ORG CHART OVERLAY (Supabase Documents) ----
@@ -6765,30 +6535,6 @@ function closeDirectoryOverlay() {
   document.getElementById('directoryOverlay').style.display = 'none';
   document.body.style.overflow = '';
 }
-
-function openLightbox(url, name, desc, price) {
-  if (!url) return;
-  const lb = document.getElementById('prod-lightbox');
-  document.getElementById('prod-lightbox-img').src = url;
-  document.getElementById('prod-lightbox-name').textContent = name;
-  const priceEl = document.getElementById('prod-lightbox-price');
-  if (priceEl) priceEl.textContent = price || '';
-  document.getElementById('prod-lightbox-desc').textContent = desc || '';
-  lb.style.display = 'flex';
-}
-
-function closeLightbox() {
-  document.getElementById('prod-lightbox').style.display = 'none';
-  document.getElementById('prod-lightbox-img').src = '';
-}
-
-// Close overlays on background click
-document.addEventListener('click', function(e){
-  const ov = document.getElementById('prod-overlay');
-  if(ov && ov.style.display==='block' && e.target===ov) closeProdOverlay();
-  const lb = document.getElementById('prod-lightbox');
-  if(lb && lb.style.display==='flex' && e.target===lb) closeLightbox();
-});
 
 // Icon/color map keyed by lowercase title keywords
 function getMISVideoMeta(title) {
