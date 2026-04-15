@@ -1294,9 +1294,9 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     </div>
 
     <!-- AFTER SALES -->
-    <div class="nav-item disabled" title="Coming Soon" id="nav-aftersales">
+    <div class="nav-item" onclick="switchDB('aftersales')" id="nav-aftersales">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
-      <span class="nav-label">After Sales</span><span class="nav-badge soon">Soon</span>
+      <span class="nav-label">After Sales</span>
     </div>
 
     <!-- FINANCE -->
@@ -1467,12 +1467,11 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <span class="mm-badge" style="margin-left:auto;background:rgba(0,212,170,0.18);color:#00d4aa;border:1px solid rgba(0,212,170,0.35);">SOP</span>
     </button>
 
-    <!-- After Sales — Soon -->
-    <div class="mm-nav-item mm-disabled">
-      <span class="mm-icon" style="opacity:0.4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
+    <!-- After Sales -->
+    <button class="mm-nav-item" id="mm-aftersales" onclick="mobMenuGo('aftersales')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
       <span class="mm-label">After Sales</span>
-      <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
-    </div>
+    </button>
 
     <!-- Finance — Soon -->
     <div class="mm-nav-item mm-disabled">
@@ -2813,36 +2812,36 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
 
      <!-- SOP -->
-        <a href="https://drive.google.com/drive/folders/1Gc6IUVy2ZR3DQfGJUISe6iEysCdY_4OE" target="_blank" style="text-decoration:none;">
-          <div class="home-card" style="--card-top:#00d4ff;cursor:pointer;padding:1.5rem;">
+        <div onclick="openHRDocsOverlay('SOP')" style="height:100%;display:flex;cursor:pointer;">
+          <div class="home-card" style="--card-top:#00d4ff;cursor:pointer;padding:1.5rem;width:100%;">
             <div class="hc-icon" style="background:rgba(0,212,255,0.12);border-color:rgba(0,212,255,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             </div>
             <div class="hc-name" style="font-size:1.12rem;">SOP</div>
             <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">Standard Operating Procedures — step-by-step documented processes for every department.</div>
             <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
-              <span style="font-size:0.82rem;font-weight:600;color:#00d4ff;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
+              <span style="font-size:0.82rem;font-weight:600;color:#00d4ff;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);padding:4px 12px;border-radius:20px;">📂 View Files</span>
             </div>
           </div>
-        </a>
+        </div>
 
-     <!-- SOP -->
-        <a href="https://drive.google.com/drive/folders/1xIJvlp1u_0jUvp_XS4YBq2rnJuIDd_bj" target="_blank" style="text-decoration:none;">
-          <div class="home-card" style="--card-top:#00d4ff;cursor:pointer;padding:1.5rem;">
+     <!-- HR Policy -->
+        <div onclick="openHRDocsOverlay('HR Policy')" style="height:100%;display:flex;cursor:pointer;">
+          <div class="home-card" style="--card-top:#00d4ff;cursor:pointer;padding:1.5rem;width:100%;">
             <div class="hc-icon" style="background:rgba(0,212,255,0.12);border-color:rgba(240,165,0,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             </div>
             <div class="hc-name" style="font-size:1.12rem;">HR Policy</div>
             <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">Company HR rules, leave policy, attendance, conduct guidelines and employee handbook.</div>
             <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
-              <span style="font-size:0.82rem;font-weight:600;color:#00d4ff;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
+              <span style="font-size:0.82rem;font-weight:600;color:#00d4ff;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);padding:4px 12px;border-radius:20px;">📂 View Files</span>
             </div>
           </div>
-        </a>
+        </div>
 
             <!-- Organization Chart -->
-      <div onclick="openOrgChartPicker()" style="text-decoration:none;cursor:pointer;">
-        <div class="home-card" style="--card-top:#14b8a6;cursor:pointer;padding:1.5rem;">
+      <div onclick="openOrgChartPicker()" style="text-decoration:none;cursor:pointer;height:100%;display:flex;">
+        <div class="home-card" style="--card-top:#14b8a6;cursor:pointer;padding:1.5rem;width:100%;">
           <div class="hc-icon" style="background:rgba(20,184,166,0.12);border-color:rgba(20,184,166,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><rect x="1" y="17" width="6" height="4" rx="1"/><rect x="9" y="17" width="6" height="4" rx="1"/><rect x="17" y="17" width="6" height="4" rx="1"/><path d="M12 6v4M4 17v-3a2 2 0 012-2h12a2 2 0 012 2v3"/><line x1="12" y1="10" x2="12" y2="12"/></svg>
           </div>
@@ -2855,8 +2854,8 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       </div>
 
       <!-- Directory -->
-      <div onclick="openDirectoryOverlay()" style="text-decoration:none;cursor:pointer;">
-        <div class="home-card" style="--card-top:#06b6d4;cursor:pointer;padding:1.5rem;">
+      <div onclick="openDirectoryOverlay()" style="text-decoration:none;cursor:pointer;height:100%;display:flex;">
+        <div class="home-card" style="--card-top:#06b6d4;cursor:pointer;padding:1.5rem;width:100%;">
           <div class="hc-icon" style="background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           </div>
@@ -2927,6 +2926,26 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+<!-- HR DOCS OVERLAY (SOP / HR Policy) -->
+<div id="hrDocsOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:9998;overflow-y:auto;padding:16px;">
+  <div style="max-width:720px;margin:40px auto;background:var(--surface);border-radius:20px;padding:28px;position:relative;min-height:200px;">
+    <button onclick="closeHRDocsOverlay()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;z-index:2;">✕</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div id="hrDocsIcon" style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"></div>
+      <div>
+        <div id="hrDocsTitle" style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--text);"></div>
+        <div id="hrDocsSub" style="font-size:0.8rem;color:var(--muted);margin-top:2px;"></div>
+      </div>
+    </div>
+    <div id="hrDocsLoader" style="text-align:center;padding:40px 0;color:var(--muted);">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      <div style="font-size:0.85rem;">Loading from Supabase…</div>
+    </div>
+    <div id="hrDocsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;align-items:stretch;"></div>
+    <div id="hrDocsEmpty" style="display:none;text-align:center;padding:40px 0;color:var(--muted);font-size:0.9rem;">Koi document nahi mila.</div>
+  </div>
+</div>
+
 <!-- DIRECTORY OVERLAY -->
 <div id="directoryOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:9998;overflow-y:auto;padding:16px;">
   <div style="max-width:600px;margin:40px auto;background:var(--surface);border-radius:20px;padding:28px;position:relative;">
@@ -2936,8 +2955,8 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div style="display:flex;flex-direction:column;gap:12px;">
 
       <!-- Employee Directory -->
-      <a href="https://drive.google.com/drive/folders/1uG_sns25lQ5BRiIaXql7imEtsw77DPPG?usp=drive_link" target="_blank" style="text-decoration:none;">
-        <div style="background:var(--surface2);border:1.5px solid rgba(6,182,212,0.25);border-left:4px solid #06b6d4;border-radius:12px;padding:16px 18px;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;gap:14px;"
+      <div onclick="closeDirectoryOverlay();openHRDocsOverlay('Employee Contact Dir')" style="cursor:pointer;">
+        <div style="background:var(--surface2);border:1.5px solid rgba(6,182,212,0.25);border-left:4px solid #06b6d4;border-radius:12px;padding:16px 18px;transition:all 0.18s;display:flex;align-items:center;gap:14px;"
              onmouseover="this.style.background='rgba(6,182,212,0.08)';this.style.borderColor='rgba(6,182,212,0.6)';"
              onmouseout="this.style.background='var(--surface2)';this.style.borderColor='rgba(6,182,212,0.25)';">
           <div style="width:44px;height:44px;min-width:44px;border-radius:12px;background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.3);display:flex;align-items:center;justify-content:center;">
@@ -2949,11 +2968,11 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
           </div>
           <span style="color:#06b6d4;font-size:1.1rem;flex-shrink:0;">→</span>
         </div>
-      </a>
+      </div>
 
       <!-- Support Directory -->
-      <a href="https://drive.google.com/drive/folders/1k1KHDx27NSM1MB31P_L8x8L4kZ4WPoVr?usp=drive_link" target="_blank" style="text-decoration:none;">
-        <div style="background:var(--surface2);border:1.5px solid rgba(14,165,233,0.25);border-left:4px solid #0ea5e9;border-radius:12px;padding:16px 18px;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;gap:14px;"
+      <div onclick="closeDirectoryOverlay();openHRDocsOverlay('Support Dir')" style="cursor:pointer;">
+        <div style="background:var(--surface2);border:1.5px solid rgba(14,165,233,0.25);border-left:4px solid #0ea5e9;border-radius:12px;padding:16px 18px;transition:all 0.18s;display:flex;align-items:center;gap:14px;"
              onmouseover="this.style.background='rgba(14,165,233,0.08)';this.style.borderColor='rgba(14,165,233,0.6)';"
              onmouseout="this.style.background='var(--surface2)';this.style.borderColor='rgba(14,165,233,0.25)';">
           <div style="width:44px;height:44px;min-width:44px;border-radius:12px;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.3);display:flex;align-items:center;justify-content:center;">
@@ -2965,11 +2984,11 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
           </div>
           <span style="color:#0ea5e9;font-size:1.1rem;flex-shrink:0;">→</span>
         </div>
-      </a>
+      </div>
 
       <!-- Vendor Directory -->
-      <a href="https://drive.google.com/drive/folders/1dUifG8p-GWsobsDv5hSnJpGnJcs0bdl_?usp=drive_link" target="_blank" style="text-decoration:none;">
-        <div style="background:var(--surface2);border:1.5px solid rgba(139,92,246,0.25);border-left:4px solid #8b5cf6;border-radius:12px;padding:16px 18px;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;gap:14px;"
+      <div onclick="closeDirectoryOverlay();openHRDocsOverlay('Vendor Dir')" style="cursor:pointer;">
+        <div style="background:var(--surface2);border:1.5px solid rgba(139,92,246,0.25);border-left:4px solid #8b5cf6;border-radius:12px;padding:16px 18px;transition:all 0.18s;display:flex;align-items:center;gap:14px;"
              onmouseover="this.style.background='rgba(139,92,246,0.08)';this.style.borderColor='rgba(139,92,246,0.6)';"
              onmouseout="this.style.background='var(--surface2)';this.style.borderColor='rgba(139,92,246,0.25)';">
           <div style="width:44px;height:44px;min-width:44px;border-radius:12px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;">
@@ -2981,7 +3000,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
           </div>
           <span style="color:#8b5cf6;font-size:1.1rem;flex-shrink:0;">→</span>
         </div>
-      </a>
+      </div>
 
     </div>
   </div>
@@ -2995,86 +3014,84 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <div class="db-breadcrumb">Home › Sales</div>
     </div>
     <div class="header-right">
-      <div class="live-badge" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.3);"><div class="live-dot" style="background:#00d4aa"></div> Resources</div>
+      <div class="live-badge"><div class="live-dot"></div> Supabase Live</div>
     </div>
   </div>
   <div class="db-content">
-    <div class="section-title">Sales Resources</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
-
-      <!-- SOP -->
-      <a href="https://drive.google.com/drive/folders/1W71y1cdhf9LvEn4tdEFQpWNljyQJVu3C" target="_blank" style="text-decoration:none;">
-        <div class="home-card" style="--card-top:#00d4aa;cursor:pointer;">
-          <div class="hc-icon" style="background:rgba(0,212,170,0.12);border-color:rgba(0,212,170,0.3);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          </div>
-          <div class="hc-name">SOP</div>
-          <div class="hc-desc">Standard Operating Procedures for the Sales team — full process documentation to ensure consistent and effective sales execution.</div>
-          <span class="hc-status live" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.3);">📁 Open Drive</span>
-        </div>
-      </a>
-
-      <!-- Target Audience -->
-      <a href="https://drive.google.com/drive/folders/1Aw0dZ7xYoqFGoGDZpzibj0iuuQC7gUj7" target="_blank" style="text-decoration:none;">
-        <div class="home-card" style="--card-top:#4e9af1;cursor:pointer;">
-          <div class="hc-icon" style="background:rgba(78,154,241,0.12);border-color:rgba(78,154,241,0.3);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4e9af1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-          </div>
-          <div class="hc-name">Target Audience</div>
-          <div class="hc-desc">Detailed profiles and segmentation of our ideal customers — understand who to target, their pain points, and how to approach them effectively.</div>
-          <span class="hc-status live" style="background:rgba(78,154,241,0.12);color:#4e9af1;border:1px solid rgba(78,154,241,0.3);">📁 Open Drive</span>
-        </div>
-      </a>
-
-      <!-- How to Qualify Lead - SQL -->
-      <a href="https://drive.google.com/drive/folders/1LEihUqHFe5bEJCXd3IgXu6VyQ-Njp2In" target="_blank" style="text-decoration:none;">
-        <div class="home-card" style="--card-top:#f0a500;cursor:pointer;">
-          <div class="hc-icon" style="background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.3);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          </div>
-          <div class="hc-name">How to Qualify Lead — SQL</div>
-          <div class="hc-desc">Framework and criteria for qualifying leads into Sales Qualified Leads (SQL) — know when a prospect is truly ready to buy.</div>
-          <span class="hc-status live" style="background:rgba(240,165,0,0.12);color:#f0a500;border:1px solid rgba(240,165,0,0.3);">📁 Open Drive</span>
-        </div>
-      </a>
-
-      <!-- Sales Pitch -->
-      <a href="https://drive.google.com/drive/folders/1rcn2hw49h3bbWbCcBlteAwmU_Vwfbrvz" target="_blank" style="text-decoration:none;">
-        <div class="home-card" style="--card-top:#a855f7;cursor:pointer;">
-          <div class="hc-icon" style="background:rgba(168,85,247,0.12);border-color:rgba(168,85,247,0.3);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          </div>
-          <div class="hc-name">Sales Pitch</div>
-          <div class="hc-desc">Ready-to-use sales pitch scripts and decks — structured talking points to present Aditi Tracking's value proposition with confidence.</div>
-          <span class="hc-status live" style="background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.3);">📁 Open Drive</span>
-        </div>
-      </a>
-
-      <!-- Objections Handling -->
-      <a href="https://drive.google.com/drive/folders/1WCUcOWGJlr1j6NK-gN-B-gJGgsI4KojI" target="_blank" style="text-decoration:none;">
-        <div class="home-card" style="--card-top:#ff5c7c;cursor:pointer;">
-          <div class="hc-icon" style="background:rgba(255,92,124,0.12);border-color:rgba(255,92,124,0.3);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff5c7c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-          </div>
-          <div class="hc-name">Objections Handling</div>
-          <div class="hc-desc">Common sales objections and proven responses — turn hesitations into opportunities with smart, empathetic counter-arguments.</div>
-          <span class="hc-status live" style="background:rgba(255,92,124,0.12);color:#ff5c7c;border:1px solid rgba(255,92,124,0.3);">📁 Open Drive</span>
-        </div>
-      </a>
-
-      <!-- Intro & Follow-up Templates -->
-      <a href="https://drive.google.com/drive/folders/1-aqgsFBg7NXOVYTZeaEtZF6wm9FQroO2" target="_blank" style="text-decoration:none;">
-        <div class="home-card" style="--card-top:#00d4ff;cursor:pointer;">
-          <div class="hc-icon" style="background:rgba(0,212,255,0.12);border-color:rgba(0,212,255,0.3);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          </div>
-          <div class="hc-name">Intro &amp; Follow-up Templates</div>
-          <div class="hc-desc">Email and message templates for introductions and follow-ups — professionally crafted to make the right first impression and stay top-of-mind.</div>
-          <span class="hc-status live" style="background:rgba(0,212,255,0.12);color:#00d4ff;border:1px solid rgba(0,212,255,0.3);">📁 Open Drive</span>
-        </div>
-      </a>
-
+    <div id="sales-loading" style="text-align:center;padding:60px 0;color:var(--muted);">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 12px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      <div style="font-size:0.9rem;">Loading Sales resources…</div>
     </div>
+    <div id="sales-error" style="display:none;text-align:center;padding:48px 0;color:var(--muted);">
+      <div style="font-size:2rem;margin-bottom:8px;">⚠️</div>
+      <div id="sales-error-msg" style="font-size:0.9rem;"></div>
+    </div>
+    <div id="sales-cat-grid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;"></div>
+  </div>
+</div>
+
+<!-- SALES DOCS OVERLAY -->
+<div id="salesDocsOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:9998;overflow-y:auto;padding:16px;">
+  <div style="max-width:720px;margin:40px auto;background:var(--surface);border-radius:20px;padding:28px;position:relative;min-height:200px;">
+    <button onclick="closeSalesOverlay()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;z-index:2;">✕</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+      <div id="salesOverlayCatIcon" style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"></div>
+      <div>
+        <div id="salesOverlayTitle" style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--text);"></div>
+        <div id="salesOverlaySub" style="font-size:0.8rem;color:var(--muted);margin-top:2px;"></div>
+      </div>
+    </div>
+    <div id="salesOverlayLoader" style="text-align:center;padding:40px 0;color:var(--muted);">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      <div style="font-size:0.85rem;">Loading…</div>
+    </div>
+    <div id="salesOverlayGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;align-items:stretch;"></div>
+    <div id="salesOverlayEmpty" style="display:none;text-align:center;padding:40px 0;color:var(--muted);font-size:0.9rem;">Koi file nahi mili is category mein.</div>
+  </div>
+</div>
+
+<!-- AFTER SALES PANEL -->
+<div class="dashboard-panel" id="panel-aftersales">
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>aditi</span> After Sales</div>
+      <div class="db-breadcrumb">Home › After Sales</div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge"><div class="live-dot"></div> Supabase Live</div>
+    </div>
+  </div>
+  <div class="db-content">
+    <div id="aftersales-loading" style="text-align:center;padding:60px 0;color:var(--muted);">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 12px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      <div style="font-size:0.9rem;">Loading After Sales resources…</div>
+    </div>
+    <div id="aftersales-error" style="display:none;text-align:center;padding:48px 0;color:var(--muted);">
+      <div style="font-size:2rem;margin-bottom:8px;">⚠️</div>
+      <div id="aftersales-error-msg" style="font-size:0.9rem;"></div>
+    </div>
+    <div id="aftersales-cat-grid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;"></div>
+  </div>
+</div>
+
+<!-- AFTER SALES DOCS OVERLAY -->
+<div id="afterSalesOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:9998;overflow-y:auto;padding:16px;">
+  <div style="max-width:720px;margin:40px auto;background:var(--surface);border-radius:20px;padding:28px;position:relative;min-height:200px;">
+    <button onclick="closeAfterSalesOverlay()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;z-index:2;">✕</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div id="asCatIcon" style="width:44px;height:44px;border-radius:12px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+      </div>
+      <div>
+        <div id="asOverlayTitle" style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--text);"></div>
+        <div id="asOverlaySub" style="font-size:0.8rem;color:var(--muted);margin-top:2px;"></div>
+      </div>
+    </div>
+    <div id="asOverlayLoader" style="text-align:center;padding:40px 0;color:var(--muted);">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+    </div>
+    <div id="asOverlayGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;align-items:stretch;"></div>
+    <div id="asOverlayEmpty" style="display:none;text-align:center;padding:40px 0;color:var(--muted);font-size:0.9rem;">Koi file nahi mili.</div>
   </div>
 </div>
 
@@ -3137,24 +3154,26 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 <div class="dashboard-panel" id="panel-products">
   <div class="db-header">
     <div>
-      <div class="db-title"><span>aditi</span> Products</div>
-      <div class="db-breadcrumb">Home › Products</div>
+      <div class="db-title"><span>aditi</span> Videos</div>
+      <div class="db-breadcrumb">Home › Videos</div>
     </div>
     <div class="header-right">
       <div class="live-badge" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);"><div class="live-dot" style="background:#a855f7"></div> Supabase Live</div>
     </div>
   </div>
   <div class="db-content">
-    <div class="section-title">Product Categories</div>
-    <div id="prod-loading" style="text-align:center;padding:48px 0;color:var(--muted);">
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px;opacity:0.7;animation:spin 1s linear infinite;display:block;margin:0 auto 12px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-      <div style="font-size:0.9rem;">Loading products from Supabase…</div>
+
+    <!-- ── VIDEOS SECTION ── -->
+    <div class="section-title">Videos</div>
+    <div id="prod-vid-loading" style="text-align:center;padding:32px 0;color:var(--muted);">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      <div style="font-size:0.85rem;">Loading videos…</div>
     </div>
-    <div id="prod-error" style="display:none;text-align:center;padding:40px 0;color:var(--muted);">
-      <div style="font-size:2rem;margin-bottom:8px;">⚠️</div>
-      <div id="prod-error-msg" style="font-size:0.9rem;"></div>
+    <div id="prod-vid-error" style="display:none;text-align:center;padding:24px 0;color:var(--muted);">
+      <div style="font-size:1.8rem;margin-bottom:6px;">⚠️</div>
+      <div id="prod-vid-error-msg" style="font-size:0.85rem;"></div>
     </div>
-    <div id="prod-category-grid" style="display:none;display:none;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;margin-bottom:2rem;"></div>
+    <div id="prod-vid-grid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;margin-bottom:32px;"></div>
   </div>
 </div>
 
@@ -3418,6 +3437,8 @@ function switchDB(id, fromPopState){
   if(id==='leads'&&!lLoaded){lLoaded=true;loadLeads();}
   if(id==='collection'&&!cLoaded){cLoaded=true;loadColl();}
   if(id==='tasks'&&!tLoaded){tLoaded=true;loadTasks();}
+  if(id==='sales'&&!salesDocsLoaded){loadSalesDocs();}
+  if(id==='aftersales'&&!afterSalesLoaded){loadAfterSales();}
   if(id==='products'&&!prodLoaded){loadProducts();}
   // Training panel needs no data loading — just shows static links
   // Push history state so back button returns to home
@@ -5478,6 +5499,7 @@ const MODULE_QUIZZES = {
     subtitle: 'Process Coordinator',
     color: '#00d4aa',
     icon: '💼',
+    supabaseModule: 'PC',
     driveUrl: 'https://drive.google.com/drive/folders/1dhF8EERqrulmyBh7hIUMGOg9ppLTEHKD',
     questions: [
       { q: 'PC stands for?', opts: ['Purchase Controller','Process Coordinator','Project Creator','Payment Calculator'], ans: 1 },
@@ -5995,6 +6017,349 @@ const SUPABASE_URL  = 'https://rramdtpabwjsndgkohbi.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyYW1kdHBhYndqc25kZ2tvaGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDQ4ODUsImV4cCI6MjA5MTQ4MDg4NX0.hpdTOkhRrbqmbPM6VJWEtz2oEjkeXAjYJQS9rgzheec';
 
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// AFTER SALES PANEL — Supabase After_Sales table
+// ═══════════════════════════════════════════════════════════
+let afterSalesLoaded = false;
+let afterSalesData   = [];
+
+const AS_CAT_COLORS = [
+  { color:'#22c55e', bg:'rgba(34,197,94,0.12)',  border:'rgba(34,197,94,0.3)',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>`,
+    desc:'Step-by-step hardware setup guides and configuration docs for all Aditi Tracking devices.' },
+  { color:'#f0a500', bg:'rgba(240,165,0,0.12)',  border:'rgba(240,165,0,0.3)',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+    desc:'After sales documentation and support resources.' },
+  { color:'#4e9af1', bg:'rgba(78,154,241,0.12)', border:'rgba(78,154,241,0.3)',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>`,
+    desc:'After sales support and service resources.' },
+  { color:'#a855f7', bg:'rgba(168,85,247,0.12)', border:'rgba(168,85,247,0.3)',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+    desc:'After sales resources.' },
+];
+
+async function loadAfterSales() {
+  if (afterSalesLoaded) return;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/After%20Sales?select=*&order=Category,id`,
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' } }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    afterSalesData   = await res.json();
+    afterSalesLoaded = true;
+    renderAfterSalesCats();
+  } catch(e) {
+    document.getElementById('aftersales-loading').style.display = 'none';
+    document.getElementById('aftersales-error').style.display   = 'block';
+    document.getElementById('aftersales-error-msg').textContent = 'Data load nahi hua: ' + e.message;
+  }
+}
+
+function renderAfterSalesCats() {
+  document.getElementById('aftersales-loading').style.display = 'none';
+  if (!afterSalesData || !afterSalesData.length) {
+    document.getElementById('aftersales-error').style.display = 'block';
+    document.getElementById('aftersales-error-msg').textContent = 'Koi data nahi mila.';
+    return;
+  }
+  const cats = {};
+  afterSalesData.forEach(row => {
+    const cat = (row.Category || 'General').trim();
+    if (!cats[cat]) cats[cat] = [];
+    cats[cat].push(row);
+  });
+  const catNames = Object.keys(cats);
+  const grid = document.getElementById('aftersales-cat-grid');
+  grid.innerHTML = catNames.map((cat, i) => {
+    const th    = AS_CAT_COLORS[i % AS_CAT_COLORS.length];
+    const count = cats[cat].length;
+    const safecat = cat.replace(/'/g,"\\'");
+    return `
+    <div class="home-card" style="--card-top:${th.color};cursor:pointer;"
+         onclick="openAfterSalesOverlay('${safecat}')">
+      <div class="hc-icon" style="background:${th.bg};border-color:${th.border};color:${th.color};">${th.icon}</div>
+      <div class="hc-name">${cat}</div>
+      <div class="hc-desc">${th.desc}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+        <span class="hc-status live" style="background:${th.bg};color:${th.color};border:1px solid ${th.border};">📂 ${count} file${count===1?'':'s'}</span>
+        <span style="font-size:0.78rem;font-weight:600;color:${th.color};">View →</span>
+      </div>
+    </div>`;
+  }).join('');
+  grid.style.display = 'grid';
+}
+
+function openAfterSalesOverlay(cat) {
+  const items = afterSalesData.filter(r => (r.Category||'General').trim() === cat);
+  const i     = Object.keys(afterSalesData.reduce((a,r)=>{a[(r.Category||'General').trim()]=1;return a;},{})).indexOf(cat);
+  const th    = AS_CAT_COLORS[Math.max(0,i) % AS_CAT_COLORS.length];
+  document.getElementById('asOverlayTitle').textContent  = cat;
+  document.getElementById('asOverlaySub').textContent    = items.length + ' file' + (items.length===1?'':'s');
+  document.getElementById('asCatIcon').style.background  = th.bg;
+  document.getElementById('asCatIcon').style.border      = '1px solid ' + th.border;
+  document.getElementById('asCatIcon').innerHTML         = `<span style="color:${th.color}">${th.icon}</span>`;
+  document.getElementById('asOverlayLoader').style.display = 'none';
+  document.getElementById('asOverlayEmpty').style.display  = 'none';
+  document.getElementById('afterSalesOverlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  const grid = document.getElementById('asOverlayGrid');
+  if (!items.length) { document.getElementById('asOverlayEmpty').style.display='block'; grid.innerHTML=''; return; }
+  grid.innerHTML = items.map(row => {
+    const module = (row.Module || 'Document').trim();
+    const link   = (row.Link   || '').trim();
+    return renderOverlayCard(module, link, th);
+  }).join('');
+}
+
+function closeAfterSalesOverlay() {
+  document.getElementById('afterSalesOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHARED OVERLAY CARD RENDERER — used by HR, Sales, After Sales
+// ═══════════════════════════════════════════════════════════
+function renderOverlayCard(name, link, th) {
+  const ext   = link.split('?')[0].split('.').pop().toLowerCase();
+  const isVid = ['mp4','webm','mov'].includes(ext);
+  const isPdf = ext === 'pdf';
+  const label = isVid ? '🎬 Video' : isPdf ? '📄 PDF' : '📁 Open';
+  const fileIcon = isVid
+    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`
+    : isPdf
+    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`
+    : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+  return `
+  <a href="${link}" target="_blank" rel="noopener" style="text-decoration:none;display:flex;">
+    <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:16px;
+                padding:20px 16px;cursor:pointer;transition:all 0.22s;
+                border-top:3px solid ${th.color};
+                display:flex;flex-direction:column;width:100%;min-height:148px;"
+         onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.22)';this.style.borderColor='${th.color}'"
+         onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
+      <div style="width:42px;height:42px;border-radius:11px;background:${th.bg};border:1px solid ${th.border};
+                  display:flex;align-items:center;justify-content:center;margin-bottom:14px;
+                  flex-shrink:0;color:${th.color};">${fileIcon}</div>
+      <div style="font-size:0.87rem;font-weight:700;color:var(--text);line-height:1.45;
+                  flex:1;margin-bottom:14px;">${name}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
+        <span style="font-size:0.70rem;font-weight:700;padding:4px 11px;border-radius:20px;
+                     background:${th.bg};color:${th.color};border:1px solid ${th.border};">${label}</span>
+        <span style="font-size:0.78rem;font-weight:600;color:${th.color};">↗</span>
+      </div>
+    </div>
+  </a>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// HR DOCS OVERLAY — Supabase Documents table (SOP / HR Policy)
+// ═══════════════════════════════════════════════════════════
+let hrDocsCache = {};
+
+const HR_DOC_THEMES = {
+  'SOP':       { color:'#00d4ff', bg:'rgba(0,212,255,0.12)',  border:'rgba(0,212,255,0.3)',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>` },
+  'HR Policy': { color:'#f0a500', bg:'rgba(240,165,0,0.12)',  border:'rgba(240,165,0,0.3)',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>` },
+  'Employee Contact Dir': { color:'#06b6d4', bg:'rgba(6,182,212,0.12)', border:'rgba(6,182,212,0.3)',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>` },
+  'Support Dir': { color:'#0ea5e9', bg:'rgba(14,165,233,0.12)', border:'rgba(14,165,233,0.3)',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.02 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>` },
+  'Vendor Dir': { color:'#8b5cf6', bg:'rgba(139,92,246,0.12)', border:'rgba(139,92,246,0.3)',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>` },
+};
+
+async function openHRDocsOverlay(module) {
+  const th = HR_DOC_THEMES[module] || HR_DOC_THEMES['SOP'];
+  document.getElementById('hrDocsTitle').textContent  = module;
+  document.getElementById('hrDocsSub').textContent    = '';
+  document.getElementById('hrDocsIcon').style.background = th.bg;
+  document.getElementById('hrDocsIcon').style.border     = '1px solid ' + th.border;
+  document.getElementById('hrDocsIcon').innerHTML        = `<span style="color:${th.color}">${th.icon}</span>`;
+  document.getElementById('hrDocsLoader').style.display  = 'block';
+  document.getElementById('hrDocsGrid').innerHTML        = '';
+  document.getElementById('hrDocsEmpty').style.display   = 'none';
+  document.getElementById('hrDocsOverlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  // Use cache if available
+  if (hrDocsCache[module]) { renderHRDocs(hrDocsCache[module], th, module); return; }
+
+  try {
+    const enc = encodeURIComponent(module);
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Documents?select=*&Doc_Module=eq.${enc}&order=id`,
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' } }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    hrDocsCache[module] = data;
+    renderHRDocs(data, th, module);
+  } catch(e) {
+    document.getElementById('hrDocsLoader').style.display = 'none';
+    document.getElementById('hrDocsEmpty').style.display  = 'block';
+    document.getElementById('hrDocsEmpty').textContent    = 'Load nahi hua: ' + e.message;
+  }
+}
+
+function renderHRDocs(items, th, module) {
+  document.getElementById('hrDocsLoader').style.display = 'none';
+  document.getElementById('hrDocsSub').textContent = items.length + ' file' + (items.length===1?'':'s');
+  if (!items.length) { document.getElementById('hrDocsEmpty').style.display='block'; return; }
+  const grid = document.getElementById('hrDocsGrid');
+  grid.innerHTML = items.map(row => {
+    const name = (row.Doc_Name || 'Document').trim();
+    const link = (row.Doc_Link || '').trim();
+    return renderOverlayCard(name, link, th);
+  }).join('');
+}
+
+function closeHRDocsOverlay() {
+  document.getElementById('hrDocsOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ═══════════════════════════════════════════════════════════
+// SALES PANEL — Supabase Sales table → category cards → overlay
+// ═══════════════════════════════════════════════════════════
+let salesDocsLoaded = false;
+let salesAllData    = [];
+
+const SALES_CAT_THEME = {
+  'SOP':                { color:'#00d4aa', bg:'rgba(0,212,170,0.12)',  border:'rgba(0,212,170,0.3)',
+    desc:'Standard Operating Procedures — step-by-step documented processes for the Sales team.',
+    icon:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>` },
+  'Target Audience':    { color:'#4e9af1', bg:'rgba(78,154,241,0.12)', border:'rgba(78,154,241,0.3)',
+    desc:'Customer profiles and segmentation — understand who to target and how to approach them effectively.',
+    icon:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>` },
+  'Qualify Leads':      { color:'#f0a500', bg:'rgba(240,165,0,0.12)',  border:'rgba(240,165,0,0.3)',
+    desc:'Lead qualification framework and SQL criteria — know when a prospect is truly ready to buy.',
+    icon:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>` },
+  'Sales Pitch':        { color:'#a855f7', bg:'rgba(168,85,247,0.12)', border:'rgba(168,85,247,0.3)',
+    desc:'Ready-to-use pitch scripts and decks — present Aditi Tracking value proposition with confidence.',
+    icon:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>` },
+  'Objection Handling': { color:'#ff5c7c', bg:'rgba(255,92,124,0.12)', border:'rgba(255,92,124,0.3)',
+    desc:'Common objections and proven responses — turn hesitations into opportunities.',
+    icon:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>` },
+  'Intro & Follow-up':  { color:'#00d4ff', bg:'rgba(0,212,255,0.12)',  border:'rgba(0,212,255,0.3)',
+    desc:'Email and message templates for introductions and follow-ups — make the right first impression.',
+    icon:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>` },
+};
+const SALES_FALLBACK_COLORS = [
+  { color:'#f0a500', bg:'rgba(240,165,0,0.12)',  border:'rgba(240,165,0,0.3)'  },
+  { color:'#a855f7', bg:'rgba(168,85,247,0.12)', border:'rgba(168,85,247,0.3)' },
+  { color:'#00d4aa', bg:'rgba(0,212,170,0.12)',  border:'rgba(0,212,170,0.3)'  },
+  { color:'#4e9af1', bg:'rgba(78,154,241,0.12)', border:'rgba(78,154,241,0.3)' },
+  { color:'#ff5c7c', bg:'rgba(255,92,124,0.12)', border:'rgba(255,92,124,0.3)' },
+  { color:'#00d4ff', bg:'rgba(0,212,255,0.12)',  border:'rgba(0,212,255,0.3)'  },
+];
+function getSalesCatTheme(cat, idx) {
+  // exact match
+  if (SALES_CAT_THEME[cat]) return SALES_CAT_THEME[cat];
+  // fuzzy match
+  for (const key of Object.keys(SALES_CAT_THEME)) {
+    if (cat.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(cat.toLowerCase()))
+      return SALES_CAT_THEME[key];
+  }
+  const fb = SALES_FALLBACK_COLORS[(idx||0) % SALES_FALLBACK_COLORS.length];
+  return { ...fb, desc: 'Sales resources for ' + cat + '.', icon:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>` };
+}
+
+async function loadSalesDocs(force) {
+  if (salesDocsLoaded && !force) return;
+  document.getElementById('sales-loading').style.display = 'block';
+  document.getElementById('sales-error').style.display   = 'none';
+  document.getElementById('sales-cat-grid').style.display = 'none';
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Sales?select=*&order=Category,sales_doc_id`,
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' } }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    salesAllData    = await res.json();
+    salesDocsLoaded = true;
+    renderSalesCatCards();
+  } catch(e) {
+    document.getElementById('sales-loading').style.display = 'none';
+    document.getElementById('sales-error').style.display   = 'block';
+    document.getElementById('sales-error-msg').textContent = 'Sales data load nahi hua: ' + e.message;
+  }
+}
+
+function renderSalesCatCards() {
+  document.getElementById('sales-loading').style.display = 'none';
+  if (!salesAllData || !salesAllData.length) {
+    document.getElementById('sales-error').style.display = 'block';
+    document.getElementById('sales-error-msg').textContent = 'Koi data nahi mila.';
+    return;
+  }
+  // group by Category
+  const cats = {};
+  salesAllData.forEach(row => {
+    const cat = (row.Category || 'General').trim();
+    if (!cats[cat]) cats[cat] = [];
+    cats[cat].push(row);
+  });
+  const catNames = Object.keys(cats);
+  const grid = document.getElementById('sales-cat-grid');
+  grid.innerHTML = catNames.map((cat, i) => {
+    const th    = getSalesCatTheme(cat, i);
+    const count = cats[cat].length;
+    const safecat = cat.replace(/'/g,"\\'");
+    return `
+    <div class="home-card" style="--card-top:${th.color};cursor:pointer;"
+         onclick="openSalesOverlay('${safecat}')"
+         onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.3)';this.style.borderColor='${th.color}'"
+         onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
+      <div class="hc-icon" style="background:${th.bg};border-color:${th.border};color:${th.color};">${th.icon}</div>
+      <div class="hc-name">${cat}</div>
+      <div class="hc-desc">${th.desc}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+        <span class="hc-status live" style="background:${th.bg};color:${th.color};border:1px solid ${th.border};">📂 ${count} file${count===1?'':'s'}</span>
+        <span style="font-size:0.78rem;font-weight:600;color:${th.color};">View →</span>
+      </div>
+    </div>`;
+  }).join('');
+  grid.style.display = 'grid';
+}
+
+function openSalesOverlay(cat) {
+  const items = salesAllData.filter(r => (r.Category||'General').trim() === cat);
+  const th    = getSalesCatTheme(cat);
+  // Set header
+  document.getElementById('salesOverlayTitle').textContent = cat;
+  document.getElementById('salesOverlaySub').textContent   = items.length + ' file' + (items.length===1?'':'s');
+  const iconEl = document.getElementById('salesOverlayCatIcon');
+  iconEl.style.background = th.bg;
+  iconEl.style.border     = '1px solid ' + th.border;
+  iconEl.innerHTML = `<span style="color:${th.color}">${th.icon}</span>`;
+  // Show overlay immediately, loader visible
+  document.getElementById('salesOverlayLoader').style.display = 'block';
+  document.getElementById('salesOverlayGrid').innerHTML       = '';
+  document.getElementById('salesOverlayEmpty').style.display  = 'none';
+  document.getElementById('salesDocsOverlay').style.display   = 'block';
+  document.body.style.overflow = 'hidden';
+  // Render cards
+  setTimeout(() => {
+    document.getElementById('salesOverlayLoader').style.display = 'none';
+    if (!items.length) { document.getElementById('salesOverlayEmpty').style.display = 'block'; return; }
+    const grid = document.getElementById('salesOverlayGrid');
+    grid.innerHTML = items.map(row => {
+      const module = (row.Module || 'Document').trim();
+      const link   = (row.Link   || '').trim();
+      return renderOverlayCard(module, link, th);
+    }).join('');
+  }, 100);
+}
+
+function closeSalesOverlay() {
+  document.getElementById('salesDocsOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ═══════════════════════════════════════════════════════════
 // PRODUCTS PANEL — Supabase Product_Photos
 // ═══════════════════════════════════════════════════════════
 let prodLoaded = false;
@@ -6078,30 +6443,121 @@ const PROD_CAT_COLORS = [
   { color: '#06b6d4', bg: 'rgba(6,182,212,0.12)',  border: 'rgba(6,182,212,0.3)'  },
 ];
 
+// ── Hardcoded product thumbnail images (reliable CDN / web sources) ──
+const PROD_IMAGES = {
+  'Advance 4G Tracker':          'https://www.adititracking.com/wp-content/uploads/2023/06/Advance-4G-GPS-Tracker.webp',
+  'AIS - 140':                   'https://www.adititracking.com/wp-content/uploads/2023/06/AIS-140-GPS-Tracker.webp',
+  'Basic 2G Tracker':            'https://www.adititracking.com/wp-content/uploads/2023/06/Basic-2G-GPS-Tracker.webp',
+  'Basic 4G Tracker':            'https://www.adititracking.com/wp-content/uploads/2023/06/Basic-4G-GPS-Tracker.webp',
+  'Dashcam':                     'https://www.adititracking.com/wp-content/uploads/2023/06/Dashcam.webp',
+  'E-LOCK':                      'https://www.adititracking.com/wp-content/uploads/2023/06/E-Lock.webp',
+  'Fuel Management System':      'https://www.adititracking.com/wp-content/uploads/2023/06/Fuel-Management-System.webp',
+  'Simstracking':                'https://www.adititracking.com/wp-content/uploads/2023/06/Simstracking.webp',
+  'Tempertaure Monitoring System':'https://www.adititracking.com/wp-content/uploads/2023/06/Temperature-Monitoring-System.webp',
+  'Wireless Magnetic Tracker':   'https://www.adititracking.com/wp-content/uploads/2023/06/Wireless-Magnetic-Tracker.webp',
+  'Wireless Magnetic Tracker 2': 'https://www.adititracking.com/wp-content/uploads/2023/06/Wireless-Magnetic-Tracker-2.webp',
+  'Cool-Bus':                    'https://www.adititracking.com/wp-content/uploads/2023/06/Cool-Bus.webp',
+  'Click Task':                  'https://www.adititracking.com/wp-content/uploads/2023/06/Click-Task.webp',
+};
+function getProdImage(name) {
+  if (PROD_IMAGES[name]) return PROD_IMAGES[name];
+  const lower = name.toLowerCase();
+  for (const key of Object.keys(PROD_IMAGES)) {
+    if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) return PROD_IMAGES[key];
+  }
+  return '';
+}
+
 async function loadProducts() {
   if (prodLoaded) return;
+  prodLoaded = true;
+
+  // ── Load videos from Supabase (Product_category = Videos) ──
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/Product_Photos?select=*&order=Product_category,Product_name`, {
-      headers: {
-        'apikey': SUPABASE_ANON,
-        'Authorization': `Bearer ${SUPABASE_ANON}`,
-        'Accept': 'application/json'
-      }
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errText}`);
-    }
-    const data = await res.json();
-    prodAllData = data;
-    prodLoaded = true;
-    renderProdCategories(data);
+    const vidRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/Product_Photos?select=*&Product_category=eq.Videos&order=Product_id`,
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' } }
+    );
+    const vidData = vidRes.ok ? await vidRes.json() : [];
+    renderProdVideos(vidData);
   } catch(e) {
-    document.getElementById('prod-loading').style.display = 'none';
-    const errEl = document.getElementById('prod-error');
-    errEl.style.display = 'block';
-    document.getElementById('prod-error-msg').textContent = 'Products load nahi ho sake: ' + e.message;
+    document.getElementById('prod-vid-loading').style.display = 'none';
+    document.getElementById('prod-vid-error').style.display = 'block';
+    document.getElementById('prod-vid-error-msg').textContent = 'Videos load nahi ho sake: ' + e.message;
   }
+}
+
+function renderProdVideos(videos) {
+  const loadEl = document.getElementById('prod-vid-loading');
+  const gridEl = document.getElementById('prod-vid-grid');
+  if (loadEl) loadEl.style.display = 'none';
+
+  if (!videos || videos.length === 0) {
+    const errEl = document.getElementById('prod-vid-error');
+    if (errEl) { errEl.style.display = 'block'; document.getElementById('prod-vid-error-msg').textContent = 'Koi training video nahi mili.'; }
+    return;
+  }
+
+  const vidColors = ['#a855f7','#00d4aa','#4e9af1','#f0a500'];
+  gridEl.style.display = 'grid';
+  gridEl.innerHTML = videos.map((row, i) => {
+    const name  = (row.Product_name || 'Video').trim();
+    const url   = (row.Product_Url  || '').trim();
+    const color = vidColors[i % vidColors.length];
+    const bg    = color + '18';
+    const border= color + '44';
+    // Determine if URL is a direct video file or an embed link
+    const isDirectVideo = url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i);
+    const isYouTube     = url.includes('youtube.com') || url.includes('youtu.be');
+    const isSupabase    = url.includes('supabase.co');
+    let mediaHtml = '';
+    if (isDirectVideo || isSupabase) {
+      mediaHtml = `<video controls preload="metadata"
+        style="width:100%;height:100%;object-fit:cover;border-radius:12px 12px 0 0;display:block;background:#000;">
+        <source src="${url}" type="video/mp4">
+        <source src="${url}" type="video/webm">
+        Your browser does not support the video tag.
+      </video>`;
+    } else if (isYouTube) {
+      const ytId = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1] || '';
+      mediaHtml = ytId
+        ? `<iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen
+            style="width:100%;height:100%;border-radius:12px 12px 0 0;display:block;"></iframe>`
+        : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:var(--muted);">Preview unavailable</div>`;
+    } else if (url) {
+      mediaHtml = `<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:${bg};">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="${color}" stroke="none"/></svg>
+        <div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:0 16px;">Click below to open video</div>
+      </div>`;
+    } else {
+      mediaHtml = `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:${bg};">🎥</div>`;
+    }
+    return `
+    <div style="background:var(--surface);border:1.5px solid ${border};border-radius:14px;overflow:hidden;
+                box-shadow:0 4px 20px rgba(0,0,0,0.2);transition:transform 0.22s,box-shadow 0.22s;"
+         onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.35)'"
+         onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(0,0,0,0.2)'">
+      <div style="width:100%;height:200px;overflow:hidden;position:relative;background:#000;">${mediaHtml}</div>
+      <div style="padding:14px 16px 16px;border-top:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="width:32px;height:32px;border-radius:8px;background:${bg};border:1px solid ${border};
+                      display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          </div>
+          <div style="font-weight:700;font-size:0.95rem;color:var(--text);line-height:1.3;">${name}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:0.71rem;font-weight:700;padding:3px 10px;border-radius:20px;background:${bg};color:${color};border:1px solid ${border};">🎬 Training Video</span>
+          ${url ? `<a href="${url}" target="_blank" rel="noopener"
+            style="font-size:0.71rem;font-weight:700;padding:3px 10px;border-radius:20px;
+                   background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid var(--border);
+                   text-decoration:none;transition:all 0.18s;"
+            onmouseover="this.style.color='${color}';this.style.borderColor='${color}'"
+            onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">↗ Open Full</a>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderProdCategories(data) {
@@ -6123,19 +6579,21 @@ function renderProdCategories(data) {
   grid.innerHTML = catNames.map((cat, i) => {
     const theme = PROD_CAT_COLORS[i % PROD_CAT_COLORS.length];
     const count = cats[cat].length;
-    const firstPhoto = cats[cat].find(r => r.Product_Url);
-    const thumbUrl = firstPhoto ? firstPhoto.Product_Url : '';
+    // Use hardcoded product image for first product in category
+    const firstProd = cats[cat][0];
+    const thumbUrl = getProdImage(firstProd ? (firstProd.Product_name || '') : '');
     return `
     <div class="home-card" style="--card-top:${theme.color};cursor:pointer;padding:0;overflow:hidden;"
          onclick="openProdCategory('${cat.replace(/'/g,"\\'")}')">
-      ${thumbUrl
-        ? `<div style="width:100%;height:130px;overflow:hidden;border-radius:12px 12px 0 0;background:var(--surface2);">
-             <img src="${thumbUrl}" alt="${cat}" loading="lazy"
-                  style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.35s;"
-                  onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'"
-                  onerror="this.closest('div').style.background='${theme.bg}';this.style.display='none'" />
-           </div>`
-        : `<div style="width:100%;height:80px;border-radius:12px 12px 0 0;background:${theme.bg};display:flex;align-items:center;justify-content:center;font-size:2.2rem;">📦</div>`}
+      <div style="width:100%;height:130px;overflow:hidden;border-radius:12px 12px 0 0;background:${theme.bg};position:relative;">
+        ${thumbUrl
+          ? `<img src="${thumbUrl}" alt="${cat}" loading="lazy"
+                 style="width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.35s;"
+                 onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'"
+                 onerror="this.style.display='none';this.parentNode.querySelector('.prod-cat-icon').style.display='flex'" />
+             <div class="prod-cat-icon" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;font-size:2.5rem;">📦</div>`
+          : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;">📦</div>`}
+      </div>
       <div style="padding:14px 16px 16px;">
         <div class="hc-icon" style="background:${theme.bg};border-color:${theme.border};margin-bottom:10px;width:38px;height:38px;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${theme.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
@@ -6160,24 +6618,24 @@ function openProdCategory(catName) {
   const grid = document.getElementById('prod-overlay-grid');
   grid.innerHTML = items.map(row => {
     const name = (row.Product_name || 'Product').trim();
-    const url  = (row.Product_Url || '').trim();
     const info = getProdInfo(name);
     const desc = info.desc;
     const price = info.price;
-    const safeUrl  = url.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const imgUrl = getProdImage(name);   // hardcoded product photo
     const safeName = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const safeDesc = desc.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const safePrice = price.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const safeImg = imgUrl.replace(/'/g,"\\'");
     return `
-    <div onclick="openLightbox('${safeUrl}','${safeName}','${safeDesc}','${safePrice}')"
+    <div onclick="openLightbox('${safeImg}','${safeName}','${safeDesc}','${safePrice}')"
          style="background:var(--surface2);border-radius:14px;overflow:hidden;cursor:pointer;
                 border:1px solid var(--border);transition:transform 0.2s,box-shadow 0.2s;"
          onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 32px rgba(0,0,0,0.35)'"
          onmouseout="this.style.transform='';this.style.boxShadow=''">
       <div style="width:100%;height:170px;background:${theme.bg};overflow:hidden;
                   display:flex;align-items:center;justify-content:center;position:relative;">
-        ${url
-          ? `<img src="${url}" alt="${name}" loading="lazy"
+        ${imgUrl
+          ? `<img src="${imgUrl}" alt="${name}" loading="lazy"
                   style="width:100%;height:100%;object-fit:contain;padding:8px;"
                   onerror="this.outerHTML='<div style=font-size:2.8rem;>📷</div>'" />`
           : `<div style="font-size:2.8rem;">📷</div>`}
