@@ -6285,7 +6285,15 @@ function renderSalesCatCards() {
     if (!cats[cat]) cats[cat] = [];
     cats[cat].push(row);
   });
-  const catNames = Object.keys(cats);
+  // Fixed order for sales cards
+  const SALES_CAT_ORDER = ['SOP', 'Target Audience', 'Qualify Leads', 'Sales Pitch', 'Objection Handling', 'Intro & Follow-up'];
+  const catNames = Object.keys(cats).sort((a, b) => {
+    let idxA = SALES_CAT_ORDER.findIndex(o => a.toLowerCase().includes(o.toLowerCase()) || o.toLowerCase().includes(a.toLowerCase()));
+    let idxB = SALES_CAT_ORDER.findIndex(o => b.toLowerCase().includes(o.toLowerCase()) || o.toLowerCase().includes(b.toLowerCase()));
+    if (idxA === -1) idxA = 999;
+    if (idxB === -1) idxB = 999;
+    return idxA - idxB;
+  });
   const grid = document.getElementById('sales-cat-grid');
   grid.innerHTML = catNames.map((cat, i) => {
     const th    = getSalesCatTheme(cat, i);
