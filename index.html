@@ -304,6 +304,88 @@
   }
   .home-card.disabled{cursor:not-allowed;opacity:0.38;}
   .home-card.disabled:hover{transform:none;border-color:var(--border);box-shadow:none;}
+
+  /* ── EMPLOYEE PROFILE PHOTO CARD ── */
+  .emp-profile-banner{
+    display:flex;align-items:center;gap:20px;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius-lg);padding:18px 22px;
+    margin-bottom:20px;position:relative;overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .emp-profile-banner::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,#f0a500,#ffcc44,#00d4aa);
+    background-size:200%;animation:shimmerPro 3s linear infinite;
+  }
+  @keyframes shimmerPro{0%{background-position:0%}100%{background-position:200%}}
+  .emp-photo-wrap{
+    width:90px;height:90px;border-radius:50%;overflow:hidden;
+    border:3px solid rgba(240,165,0,0.4);flex-shrink:0;
+    background:var(--surface2);display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 4px rgba(240,165,0,0.12),var(--glow-gold);
+    position:relative;
+  }
+  .emp-photo-wrap img{
+    width:100%;height:100%;object-fit:cover;
+    transition:transform 0.3s ease;
+  }
+  .emp-photo-wrap:hover img{transform:scale(1.05);}
+  .emp-photo-placeholder{
+    width:90px;height:90px;border-radius:50%;
+    border:3px solid rgba(240,165,0,0.3);flex-shrink:0;
+    background:linear-gradient(135deg,rgba(240,165,0,0.15),rgba(240,165,0,0.05));
+    display:flex;align-items:center;justify-content:center;
+    font-size:2rem;font-weight:800;color:#f0a500;
+    box-shadow:0 0 0 4px rgba(240,165,0,0.08);
+    font-family:'DM Sans',sans-serif;
+  }
+  .emp-photo-loading{
+    width:90px;height:90px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);
+    background-size:200% 100%;animation:photoShimmer 1.4s ease infinite;
+  }
+  @keyframes photoShimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+  .emp-profile-info{flex:1;}
+  .emp-profile-name{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:4px;}
+  .emp-profile-dept{font-size:0.84rem;color:var(--accent);font-weight:600;background:rgba(240,165,0,0.1);display:inline-block;padding:3px 10px;border-radius:20px;border:1px solid rgba(240,165,0,0.2);margin-bottom:6px;}
+  .emp-profile-meta{font-size:0.80rem;color:var(--muted);}
+  .emp-no-photo-hint{font-size:0.76rem;color:var(--muted);margin-top:5px;font-style:italic;}
+
+  /* ── PERFORMER OF THE MONTH CARDS ── */
+  .potm-card{
+    background:var(--surface2);border:1px solid var(--border);
+    border-radius:14px;padding:16px 14px;
+    display:flex;flex-direction:column;align-items:center;
+    text-align:center;position:relative;overflow:hidden;
+    transition:transform 0.2s,box-shadow 0.2s;
+  }
+  .potm-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,0.25);}
+  .potm-card-bar{position:absolute;top:0;left:0;right:0;height:3px;}
+  .potm-photo{
+    width:64px;height:64px;border-radius:50%;object-fit:cover;
+    border:2px solid rgba(240,165,0,0.4);
+    box-shadow:0 0 0 3px rgba(240,165,0,0.1);
+    margin-bottom:10px;background:var(--surface);
+  }
+  .potm-avatar{
+    width:64px;height:64px;border-radius:50%;
+    border:2px solid rgba(240,165,0,0.35);
+    background:linear-gradient(135deg,rgba(240,165,0,0.18),rgba(240,165,0,0.05));
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.5rem;font-weight:800;color:#f0a500;
+    margin-bottom:10px;font-family:'DM Sans',sans-serif;
+    box-shadow:0 0 0 3px rgba(240,165,0,0.08);
+  }
+  .potm-shimmer{
+    width:64px;height:64px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);
+    background-size:200% 100%;animation:photoShimmer 1.4s ease infinite;
+    margin-bottom:10px;
+  }
+  .potm-name{font-family:'Playfair Display',serif;font-size:0.92rem;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.2;}
+  .potm-dept{font-size:0.72rem;font-weight:600;padding:3px 9px;border-radius:20px;display:inline-block;}
+  .potm-trophy{font-size:1rem;margin-bottom:6px;}
   .hc-icon{font-size:1.7rem;margin-bottom:12px;display:flex;align-items:center;justify-content:center;width:44px;height:44px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;}.hc-icon svg{width:22px!important;height:22px!important;}
   .hc-name{font-family:'Playfair Display',serif;font-weight:700;font-size:1.00rem;margin-bottom:5px;color:var(--text);}
   .hc-desc{font-size:0.82rem;color:var(--muted);line-height:1.5;margin-bottom:14px;font-weight:400;}
@@ -865,6 +947,74 @@
     .insights-grid { grid-template-columns: 1fr 1fr !important; }
     .home-cards { grid-template-columns: repeat(3, 1fr) !important; }
   }
+
+  /* ══════════════════════════════════════════
+     GLOBAL FONT SIZE INCREASE — PWA / Web App
+     Sab cards, labels, text thoda bada kiya
+  ══════════════════════════════════════════ */
+  html { font-size: 17px; }
+
+  /* KPI Cards */
+  .kpi-label       { font-size: 0.78rem !important; }
+  .kpi-value       { font-size: clamp(1.25rem, 1.8vw, 2rem) !important; }
+  .kpi-sub         { font-size: 0.84rem !important; }
+  .kpi-badge       { font-size: 0.77rem !important; }
+  .kpi-click-hint  { font-size: 0.73rem !important; }
+
+  /* Home Cards */
+  .hc-name   { font-size: 1.08rem !important; }
+  .hc-desc   { font-size: 0.90rem !important; }
+  .hc-status { font-size: 0.79rem !important; }
+  .hp-card-title { font-size: 1.04rem !important; }
+  .home-sub  { font-size: 1.02rem !important; }
+
+  /* Nav Sidebar */
+  .nav-item  { font-size: 1.02rem !important; }
+  .nav-sub-item { font-size: 0.97rem !important; }
+  .nav-badge { font-size: 0.74rem !important; }
+  .sidebar-section { font-size: 0.74rem !important; }
+
+  /* Tables — td / th */
+  table td   { font-size: 0.91rem !important; }
+  table th   { font-size: 0.80rem !important; }
+
+  /* Filters */
+  .filter-label  { font-size: 0.84rem !important; }
+  .filter-select { font-size: 0.90rem !important; }
+
+  /* Live badge, breadcrumbs */
+  .live-badge  { font-size: 0.73rem !important; }
+  .db-title    { font-size: 1.14rem !important; }
+  .db-breadcrumb { font-size: 0.85rem !important; }
+
+  /* Home page utility text */
+  .hp-news-text  { font-size: 0.91rem !important; }
+  .hp-news-date  { font-size: 0.80rem !important; }
+  .hp-qi-name    { font-size: 0.87rem !important; }
+  .hp-step-title { font-size: 0.91rem !important; }
+  .hp-step-desc  { font-size: 0.87rem !important; }
+  .hp-contact-name   { font-size: 0.90rem !important; }
+  .hp-contact-detail { font-size: 0.83rem !important; }
+
+  /* About / Org section */
+  .org-name    { font-size: 0.92rem !important; }
+  .org-role    { font-size: 0.82rem !important; }
+  .leader-name { font-size: 0.96rem !important; }
+  .leader-role { font-size: 0.84rem !important; }
+  .leader-desc { font-size: 0.85rem !important; }
+  .about-tab   { font-size: 0.95rem !important; }
+  .tl-title    { font-size: 0.92rem !important; }
+  .tl-desc     { font-size: 0.86rem !important; }
+
+  /* Performer of Month */
+  .potm-name  { font-size: 1.02rem !important; }
+  .potm-dept  { font-size: 0.80rem !important; }
+  .potm-trophy { font-size: 1.1rem !important; }
+
+  /* Employee Profile Banner */
+  .emp-profile-name { font-size: 1.5rem !important; }
+  .emp-profile-dept { font-size: 0.92rem !important; }
+  .emp-profile-meta { font-size: 0.87rem !important; }
 </style>
 </head>
 <body>
@@ -1542,6 +1692,17 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div class="home-welcome" id="homeWelcomeText">Welcome, <span class="hw-name">there</span></div>
     <div class="home-sub" id="homeWelcomeSub">to our <strong>Aditi Portal</strong> — your unified command centre to track, train and grow.</div>
 
+    <!-- ══ EMPLOYEE PROFILE PHOTO BANNER ══ -->
+    <div class="emp-profile-banner" id="empProfileBanner" style="display:none">
+      <div class="emp-photo-loading" id="empPhotoContainer"></div>
+      <div class="emp-profile-info">
+        <div class="emp-profile-name" id="empProfileName">—</div>
+        <div class="emp-profile-dept" id="empProfileDept">Loading...</div>
+        <div class="emp-profile-meta" id="empProfileMeta">Aditi Tracking Support Pvt. Ltd.</div>
+        <div class="emp-no-photo-hint" id="empNoPhotoHint" style="display:none">📷 Profile photo abhi nahi hai. MIS se contact karo apna photo upload karwane ke liye.</div>
+      </div>
+    </div>
+
     <!-- ══ CEO MESSAGE ══ -->
     <div class="hp-card hp-ceo" style="margin-bottom:16px;">
       <div class="hp-card-header">
@@ -1570,52 +1731,10 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
         <span class="hp-card-title">Performer of the Month</span>
         <span style="font-size:0.73rem;color:var(--accent);margin-left:auto;font-weight:600;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.25);padding:3px 10px;border-radius:20px;">April 2026</span>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:4px;">
-
-        <!-- Sales -->
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
-          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#f0a500;opacity:0.7;"></div>
-          <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(240,165,0,0.18),rgba(255,204,68,0.08));border:1px solid rgba(240,165,0,0.3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🥇</div>
-          <div>
-            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:600;margin-bottom:3px;">Sales</div>
-            <div style="font-family:'Playfair Display',serif;font-size:1.0rem;font-weight:700;color:var(--text);">—</div>
-            <div style="font-size:0.76rem;color:var(--accent);margin-top:2px;font-weight:500;">To be announced</div>
-          </div>
-        </div>
-
-        <!-- Collection -->
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
-          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#00d4aa;opacity:0.7;"></div>
-          <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(0,212,170,0.18),rgba(0,212,170,0.06));border:1px solid rgba(0,212,170,0.3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🥇</div>
-          <div>
-            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:600;margin-bottom:3px;">Collection</div>
-            <div style="font-family:'Playfair Display',serif;font-size:1.0rem;font-weight:700;color:var(--text);">—</div>
-            <div style="font-size:0.76rem;color:#00d4aa;margin-top:2px;font-weight:500;">To be announced</div>
-          </div>
-        </div>
-
-        <!-- Operations -->
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
-          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#00d4ff;opacity:0.7;"></div>
-          <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(0,212,255,0.18),rgba(0,212,255,0.06));border:1px solid rgba(0,212,255,0.3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🥇</div>
-          <div>
-            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:600;margin-bottom:3px;">Operations</div>
-            <div style="font-family:'Playfair Display',serif;font-size:1.0rem;font-weight:700;color:var(--text);">—</div>
-            <div style="font-size:0.76rem;color:#00d4ff;margin-top:2px;font-weight:500;">To be announced</div>
-          </div>
-        </div>
-
-        <!-- Support -->
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;">
-          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#a855f7;opacity:0.7;"></div>
-          <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(168,85,247,0.18),rgba(168,85,247,0.06));border:1px solid rgba(168,85,247,0.3);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🥇</div>
-          <div>
-            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:600;margin-bottom:3px;">Support</div>
-            <div style="font-family:'Playfair Display',serif;font-size:1.0rem;font-weight:700;color:var(--text);">—</div>
-            <div style="font-size:0.76rem;color:#a855f7;margin-top:2px;font-weight:500;">To be announced</div>
-          </div>
-        </div>
-
+      <!-- Performers Grid — photos Supabase se load honge -->
+      <div id="potmGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-top:4px;">
+        <!-- JS se fill hoga -->
+        <div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1;font-size:0.88rem;">⏳ Loading performers...</div>
       </div>
     </div>
 
@@ -5310,6 +5429,10 @@ function showPortal(){
   if(mobBtn2) mobBtn2.textContent = (isLight ? '☀️ Light' : '🌙 Dark');
   // Employee restrictions
   if(CURRENT_USER.role!=='owner'){restrictEmployee();}
+  // Fetch employee profile photo from Supabase → home page pe dikhao
+  fetchUserProfilePhoto();
+  // Performer of the Month cards load karo
+  loadPerformers();
   // Pre-fetch all dashboard data in background
   setTimeout(prefetchAllData, 0);
 }
@@ -5998,6 +6121,210 @@ function switchMISTab(tab) {
 // ── Supabase Config ──
 const SUPABASE_URL  = 'https://rramdtpabwjsndgkohbi.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyYW1kdHBhYndqc25kZ2tvaGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDQ4ODUsImV4cCI6MjA5MTQ4MDg4NX0.hpdTOkhRrbqmbPM6VJWEtz2oEjkeXAjYJQS9rgzheec';
+
+// ═══════════════════════════════════════════════════════════
+// EMPLOYEE PROFILE PHOTO — Supabase Employee_Profile_Photos
+// Employee_name se match karo, photo home page pe dikhao
+// ═══════════════════════════════════════════════════════════
+async function fetchUserProfilePhoto() {
+  const banner  = document.getElementById('empProfileBanner');
+  const photoEl = document.getElementById('empPhotoContainer');
+  const nameEl  = document.getElementById('empProfileName');
+  const deptEl  = document.getElementById('empProfileDept');
+  const hintEl  = document.getElementById('empNoPhotoHint');
+  if (!banner || !CURRENT_USER) return;
+
+  // Banner show karo (loading state ke saath)
+  banner.style.display = 'flex';
+
+  // User ka naam Supabase format mein
+  const userName = (CURRENT_USER.name || '').trim();
+  if (!userName) return;
+
+  try {
+    // Employee_name se filter — exact match (case-insensitive ke liye ilike use karo)
+    const encodedName = encodeURIComponent(userName);
+    const url = `${SUPABASE_URL}/rest/v1/Employee_Profile_Photos?select=*&Employee_name=ilike.${encodedName}&limit=1`;
+    const res = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Accept': 'application/json'
+      }
+    });
+    const data = await res.json();
+
+    // Name aur dept fill karo
+    nameEl.textContent = userName;
+
+    // Dept: Employee_Dept column se, ya rawRole fallback
+    const row = (Array.isArray(data) && data.length > 0) ? data[0] : null;
+    const dept = row ? (row['Employee_Dept'] || CURRENT_USER.rawRole || 'Employee') : (CURRENT_USER.rawRole || 'Employee');
+    deptEl.textContent = '🏢 ' + dept.charAt(0).toUpperCase() + dept.slice(1);
+
+    if (row && row['Link']) {
+      // Photo mili — img tag banao
+      const img = document.createElement('img');
+      img.src = row['Link'];
+      img.alt = userName;
+      img.style.cssText = 'width:90px;height:90px;object-fit:cover;border-radius:50%;';
+      img.onerror = function() {
+        // URL broken hai — placeholder dikhao
+        _showPhotoPlaceholder(photoEl, userName);
+        hintEl.style.display = 'block';
+        hintEl.textContent = '⚠️ Photo URL broken hai. MIS se contact karo.';
+      };
+      // Replace loading div with actual photo
+      const wrap = document.createElement('div');
+      wrap.className = 'emp-photo-wrap';
+      wrap.appendChild(img);
+      photoEl.replaceWith(wrap);
+      hintEl.style.display = 'none';
+    } else {
+      // Koi photo nahi mili — naam ka pehla letter dikhao
+      _showPhotoPlaceholder(photoEl, userName);
+      hintEl.style.display = 'block';
+    }
+
+  } catch (err) {
+    console.warn('[Profile Photo] Fetch error:', err);
+    _showPhotoPlaceholder(photoEl, userName);
+    nameEl.textContent = userName;
+    deptEl.textContent = '🏢 ' + (CURRENT_USER.rawRole || 'Employee').charAt(0).toUpperCase() + (CURRENT_USER.rawRole || 'Employee').slice(1);
+  }
+}
+
+function _showPhotoPlaceholder(el, name) {
+  const placeholder = document.createElement('div');
+  placeholder.className = 'emp-photo-placeholder';
+  placeholder.textContent = (name || 'U')[0].toUpperCase();
+  el.replaceWith(placeholder);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PERFORMER OF THE MONTH — April 2026
+// Supabase Employee_Profile_Photos se photos + dept fetch
+// ═══════════════════════════════════════════════════════════
+
+// 👇 Yahan names update karo har mahine
+const POTM_NAMES = [
+  'Hemant Rai',
+  'Sakshi Tupe',
+  'Komal',
+  'Surya',
+  'Akshay More',
+  'Kush',
+  'Ankush'
+];
+
+// Dept ke hisaab se color
+const DEPT_COLORS = {
+  'mis':       { bar:'#4e9af1', badge:'rgba(78,154,241,0.12)', text:'#4e9af1' },
+  'support':   { bar:'#a855f7', badge:'rgba(168,85,247,0.12)', text:'#a855f7' },
+  'accounts':  { bar:'#00d4aa', badge:'rgba(0,212,170,0.12)',  text:'#00d4aa' },
+  'sales':     { bar:'#f0a500', badge:'rgba(240,165,0,0.12)',  text:'#f0a500' },
+  'ceo':       { bar:'#ff5c7c', badge:'rgba(255,92,124,0.12)', text:'#ff5c7c' },
+  'default':   { bar:'#f0a500', badge:'rgba(240,165,0,0.12)',  text:'#f0a500' }
+};
+
+function _getDeptColor(dept) {
+  const key = (dept || '').toLowerCase().trim();
+  return DEPT_COLORS[key] || DEPT_COLORS['default'];
+}
+
+async function loadPerformers() {
+  const grid = document.getElementById('potmGrid');
+  if (!grid) return;
+
+  try {
+    // Saare performers ek hi API call mein fetch karo
+    const names = POTM_NAMES.map(n => `Employee_name.ilike.${encodeURIComponent(n)}`).join(',');
+    const url = `${SUPABASE_URL}/rest/v1/Employee_Profile_Photos?select=Employee_name,Employee_Dept,Link,Location&or=(${names})`;
+    const res = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_ANON,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Accept': 'application/json'
+      }
+    });
+    const rows = await res.json();
+
+    // Name → row map banao (case-insensitive)
+    const rowMap = {};
+    if (Array.isArray(rows)) {
+      rows.forEach(r => {
+        rowMap[(r['Employee_name'] || '').toLowerCase().trim()] = r;
+      });
+    }
+
+    // Cards banao
+    grid.innerHTML = '';
+    POTM_NAMES.forEach((name, idx) => {
+      const row = rowMap[name.toLowerCase().trim()];
+      const dept  = row ? (row['Employee_Dept'] || '—') : '—';
+      const loc   = row ? (row['Location']      || '')  : '';
+      const link  = row ? (row['Link'] || null) : null;
+      const clr   = _getDeptColor(dept);
+      const trophies = ['🥇','🥇','🥇','🥇','🥇','🥇','🥇'];
+      const deptText = dept !== '—'
+        ? `🏢 ${dept}${loc ? ' <span style="color:var(--muted);font-weight:400;">(${loc})</span>' : ''}`
+        : '—';
+
+      const card = document.createElement('div');
+      card.className = 'potm-card';
+      card.innerHTML = `
+        <div class="potm-card-bar" style="background:${clr.bar};opacity:0.8;"></div>
+        <div class="potm-trophy">${trophies[idx] || '🏅'}</div>
+        <div class="potm-shimmer" id="potm-img-${idx}"></div>
+        <div class="potm-name">${name}</div>
+        <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">
+          ${deptText}
+        </div>
+      `;
+      grid.appendChild(card);
+
+      // Photo async load karo
+      const imgSlot = card.querySelector(`#potm-img-${idx}`);
+      if (link) {
+        const img = document.createElement('img');
+        img.className = 'potm-photo';
+        img.alt = name;
+        img.src = link;
+        img.onerror = function() {
+          const av = document.createElement('div');
+          av.className = 'potm-avatar';
+          av.textContent = name[0].toUpperCase();
+          img.replaceWith(av);
+        };
+        imgSlot.replaceWith(img);
+      } else {
+        const av = document.createElement('div');
+        av.className = 'potm-avatar';
+        av.textContent = name[0].toUpperCase();
+        imgSlot.replaceWith(av);
+      }
+    });
+
+  } catch (err) {
+    console.warn('[POTM] Fetch error:', err);
+    // Fallback — sirf avatars dikhao
+    grid.innerHTML = '';
+    POTM_NAMES.forEach(name => {
+      const card = document.createElement('div');
+      card.className = 'potm-card';
+      const clr = DEPT_COLORS['default'];
+      card.innerHTML = `
+        <div class="potm-card-bar" style="background:${clr.bar};opacity:0.7;"></div>
+        <div class="potm-trophy">🥇</div>
+        <div class="potm-avatar">${name[0].toUpperCase()}</div>
+        <div class="potm-name">${name}</div>
+        <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">—</div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+}
+
 
 // ═══════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════
