@@ -3379,6 +3379,11 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <div class="table-header" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">
         <span class="table-title">All Tasks</span>
         <span class="table-count" id="tTblCnt">—</span>
+        <button id="tForceRefreshBtn" onclick="tForceRefresh()" title="Sheet se fresh data lo" style="margin-left:8px;display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1.5px solid rgba(240,165,0,0.35);background:rgba(240,165,0,0.08);color:#f0a500;font-size:0.80rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.background='rgba(240,165,0,0.18)'" onmouseout="this.style.background='rgba(240,165,0,0.08)'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          Refresh
+        </button>
+        <span id="tLastSyncBadge" style="font-size:0.72rem;color:var(--muted);margin-left:4px;"></span>
 
       </div>
       <div class="table-scroll" style="overflow-x:auto">
@@ -4526,6 +4531,63 @@ const TASK_API = 'https://script.google.com/macros/s/AKfycbyo_iI8z_ySsww7vz47eum
 const SUPPORT_API = 'https://script.google.com/macros/s/AKfycbykCc7Hdzy9gLcIXSusKnbg-6mfP7CnMFiuhvDYSr6lvm1XoRWg5ihErGDg7cVH9s1d/exec';
 const SALES_API = 'https://script.google.com/macros/s/AKfycbwSeXqD-8U4fL2TVEDxAYIoAypEO8qkpudWByXr52DBhukuPE_8LGMcAPQqyKhW-9xE/exec';
 
+// ═══════════════════════════════════════════════════════════════════════
+// GOOGLE FORM AUTO-SUBMIT CONFIG  (early — taaki tRenderTable mein use ho sake)
+// ═══════════════════════════════════════════════════════════════════════
+// Agar form mein Task ID ke alawa aur required fields hain, toh unke entry
+// IDs yahan add karein. Entry ID kaise find karein:
+//   1. Google Form "Get pre-filled link" use karein
+//   2. Har field mein dummy value (jaise "TEST") daalo, "Get link" → Copy
+//   3. Copied URL mein `entry.XXXXXXXXX=TEST` pattern dhundein
+// Agar sirf Task ID hi required hai toh current config se hi kaam chal jaayega.
+const FORM_SUBMIT_CONFIG = {
+  // Main form — Collection, HR, Finance, Accounts departments
+  main: {
+    url: 'https://docs.google.com/forms/d/e/1FAIpQLScAhyCfOdHfqJHJry36UuNZ-tn4B5bzsH8ONjWrIsdCq7LRGg/formResponse',
+    entries: {
+      taskId: 'entry.254147949',
+      // name:       'entry.XXXXXXXXX',  // ← uncomment & apna entry ID dalein
+      // email:      'entry.XXXXXXXXX',
+      // department: 'entry.XXXXXXXXX',
+      // actual:     'entry.XXXXXXXXX',
+      // status:     'entry.XXXXXXXXX',
+      // remarks:    'entry.XXXXXXXXX',
+    }
+  },
+  // Support form — NEW (17-Apr-2026): "Support Checklist HO"
+  // Form link: https://docs.google.com/forms/d/e/1FAIpQLSe7l-3ReXeVnSZoMZXcfSxfa7Af5Iuggzvj382eDUxucQp74A/viewform
+  // Fields: Task Id (entry.1669745459), Remarks (optional), Timestamp (auto)
+  support: {
+    url: 'https://docs.google.com/forms/d/e/1FAIpQLSe7l-3ReXeVnSZoMZXcfSxfa7Af5Iuggzvj382eDUxucQp74A/formResponse',
+    entries: {
+      taskId: 'entry.1669745459',
+      // remarks: 'entry.XXXXXXXXX', // ← agar Remarks field ka entry ID bhi chahiye toh add karein
+    }
+  },
+  // Sales form
+  sales: {
+    url: 'https://docs.google.com/forms/d/e/1FAIpQLSePSFFo6QH5tf3-yqEhQ1Vuv97IFxNbXt4v5ipXUahpSKkoVA/formResponse',
+    entries: {
+      taskId: 'entry.1645674088',
+    }
+  }
+};
+
+function tPickFormConfig(dept, source){
+  const d = String(dept||'').toLowerCase();
+  const s = String(source||'').toLowerCase();
+  if(d==='support' || s==='support') return FORM_SUBMIT_CONFIG.support;
+  if(d==='sales'   || s==='sales')   return FORM_SUBMIT_CONFIG.sales;
+  return FORM_SUBMIT_CONFIG.main;
+}
+
+// NOTE: `tSubmitFormBackground()` function REMOVED (17-Apr-2026).
+// Pehle ye chupke se Google Form ko POST karta tha fetch() se, par uski wajah
+// se DUPLICATE entries aati thi — ek background POST se, ek user ke manual
+// submit se. Ab user sirf manually form mein Submit dabayega, data seedha
+// sheet tak jaayega. Portal live sync (tSilentRefresh) se sheet ka latest
+// state ~45 sec mein portal pe reflect hota rahega.
+
 // Department → sheet mapping
 // TASK_API    = Collection, HR, Finance, Accounts (Sheet 3)
 // SUPPORT_API = Support (Sheet 2)
@@ -4690,10 +4752,9 @@ async function refreshTasks(){
   tActiveKpi=null; tActivePerson=null; tActiveDept=null; tActiveStatus=null;
   // Clear ALL prefetch caches — fresh data from Google Sheet
   _tasksCache=null; _tasksSuppCache=null; _tasksSalesCache=null; _tasksAllReady=false;
-  // *** KEY FIX: Clear done-task localStorage cache on every Refresh ***
-  // Google Sheet is the source of truth. If a form response was deleted from sheet,
-  // the task must show as Pending. Only the sheet decides what's done.
-  try{ localStorage.removeItem('aditiDoneTasks'); }catch(e){}
+  // NOTE: localStorage ko refresh pe clear nahi karte — kyunki Google Sheet ko
+  // form submission reflect karne mein time lagta hai (kabhi-kabhi minutes).
+  // tApplyDoneTasks() age-based cleanup karega: sheet confirm kare ya 7 din baad.
   tLoaded=true;
   await loadTasks();
   btn.classList.remove('spinning');
@@ -5069,9 +5130,31 @@ function tRenderTable(){
   const start=(tPage-1)*T_PER_PAGE;
   const pg=tFiltered.slice(start,start+T_PER_PAGE);
   document.getElementById('tTblCnt').textContent=tFiltered.length+' tasks';
-  const FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLScAhyCfOdHfqJHJry36UuNZ-tn4B5bzsH8ONjWrIsdCq7LRGg/viewform';
-  const SUPPORT_FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLScAcLaUXRhZYl4tiBo7KaMfUyXQCTiPVaUT3d5O7cwsJZoLyQ/viewform';
-  const SALES_FORM_URL='https://docs.google.com/forms/d/e/1FAIpQLSePSFFo6QH5tf3-yqEhQ1Vuv97IFxNbXt4v5ipXUahpSKkoVA/viewform';
+  // Pre-filled form URL build karne ka helper — FORM_SUBMIT_CONFIG ke entry IDs use karta hai
+  // Agar aap config mein aur entry IDs add karte ho, toh yahan bhi automatic pre-fill ho jayega.
+  const buildPrefillUrl = function(r){
+    const cfg = (typeof tPickFormConfig==='function')
+      ? tPickFormConfig(r['Department'], r['_source'])
+      : null;
+    if(!cfg){
+      // Fallback: original hard-coded URLs (if config not yet loaded)
+      const isSup=(r['Department']||'').toLowerCase()==='support'||r['_source']==='support';
+      const isSal=(r['Department']||'').toLowerCase()==='sales'||r['_source']==='sales';
+      if(isSup) return 'https://docs.google.com/forms/d/e/1FAIpQLSe7l-3ReXeVnSZoMZXcfSxfa7Af5Iuggzvj382eDUxucQp74A/viewform?usp=pp_url&rm=minimal&entry.1669745459='+encodeURIComponent(r['Task ID']||'');
+      if(isSal) return 'https://docs.google.com/forms/d/e/1FAIpQLSePSFFo6QH5tf3-yqEhQ1Vuv97IFxNbXt4v5ipXUahpSKkoVA/viewform?usp=pp_url&rm=minimal&entry.1645674088='+encodeURIComponent(r['Task ID']||'');
+      return 'https://docs.google.com/forms/d/e/1FAIpQLScAhyCfOdHfqJHJry36UuNZ-tn4B5bzsH8ONjWrIsdCq7LRGg/viewform?usp=pp_url&rm=minimal&entry.254147949='+encodeURIComponent(r['Task ID']||'');
+    }
+    // formResponse → viewform convert kiya (user ke liye form page)
+    const viewUrl = cfg.url.replace('/formResponse','/viewform');
+    const params = ['usp=pp_url','rm=minimal'];
+    const e = cfg.entries;
+    if(e.taskId && r['Task ID'])        params.push(e.taskId+'='+encodeURIComponent(r['Task ID']));
+    if(e.name && r['Name'])             params.push(e.name+'='+encodeURIComponent(r['Name']));
+    if(e.email && r['Email'])           params.push(e.email+'='+encodeURIComponent(r['Email']));
+    if(e.department && r['Department']) params.push(e.department+'='+encodeURIComponent(r['Department']));
+    if(e.remarks && r['Remarks'])       params.push(e.remarks+'='+encodeURIComponent(r['Remarks']));
+    return viewUrl+'?'+params.join('&');
+  };
   document.getElementById('tTblBody').innerHTML=pg.map((r,i)=>{
     const done=tIsDone(r);
     const isSupport=(r['Department']||'').toLowerCase()==='support'||r['_source']==='support';
@@ -5079,14 +5162,10 @@ function tRenderTable(){
     const statusBadge=done
       ?'<span class="badge" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.25)">✅ Done</span>'
       :'<span class="badge" style="background:rgba(240,165,0,0.1);color:#f0a500;border:1px solid rgba(240,165,0,0.2)">⏳ Pending</span>';
-    const fUrl = isSupport
-      ? `${SUPPORT_FORM_URL}?usp=pp_url&rm=minimal&entry.2029632130=${encodeURIComponent(r['Task ID']||'')}`
-      : isSales
-        ? `${SALES_FORM_URL}?usp=pp_url&rm=minimal&entry.1645674088=${encodeURIComponent(r['Task ID']||'')}`
-        : `${FORM_URL}?usp=pp_url&rm=minimal&entry.254147949=${encodeURIComponent(r['Task ID']||'')}`;
+    const fUrl = buildPrefillUrl(r);
     const actionCell=done
       ?`<span style="color:#00d4aa;font-size:0.85rem;font-weight:600">✅ Done</span>`
-      :`<a href="${fUrl}" target="_blank"
+      :`<a href="${fUrl}" target="_blank" rel="noopener"
           onclick="tMarkDoneMySQL('${r['Task ID']||''}','${(r['Department']||'').toLowerCase()}','${r['_source']||''}')"
           style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:7px 10px;font-size:0.82rem;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 8px rgba(168,85,247,0.4)">
           ✅ Mark Done
@@ -5139,16 +5218,16 @@ function tSaveDoneTask(taskId, actualTime){
 }
 
 function tApplyDoneTasks(){
-  // Apply locally-saved done states ONLY if they were saved within the last 90 seconds.
-  // This covers the brief window between clicking "Mark Done" and Google Sheet updating.
-  // After 90 seconds, the sheet is authoritative — if it says "not done", we trust it.
-  // On Refresh, localStorage is already cleared by refreshTasks(), so this runs on empty.
+  // Locally-saved done states sirf click ke turant baad visual feedback ke liye.
+  // 60s TTL — agar user form submit kare aur sheet se confirm aa jaye, pehle se
+  // "Done" dikhta rahega. Agar user submit na kare, 60s baad task wapas Pending.
+  // Live sync har ~45s pe chalti hai — sheet = source of truth always.
   try{
     const key='aditiDoneTasks';
     const saved=JSON.parse(localStorage.getItem(key)||'{}');
     if(!Object.keys(saved).length) return;
     const nowMs=Date.now();
-    const MAX_AGE_MS=90*1000; // 90 seconds — Google Form usually writes to sheet within 30s
+    const MAX_AGE_MS=0; // 0 = disabled — sheet is ALWAYS source of truth (row delete = turant Pending)
     const stillNeeded={};
     tAllData.forEach(r=>{
       const tid=String(r['Task ID']);
@@ -5198,32 +5277,173 @@ function tMarkDoneMySQL(taskId, dept, source){
   const mn=String(now.getMinutes()).padStart(2,'0');
   const sc=String(now.getSeconds()).padStart(2,'0');
   const actualForDisplay = day+'/'+mon+'/'+yr+' '+hr+':'+mn+':'+sc;
-
-  // Persist to localStorage so refresh doesn't lose done state
-  tSaveDoneTask(taskId, actualForDisplay);
-
-  // Local in-memory update
   const tid = String(taskId);
-  tAllData.forEach(r=>{
-    if(String(r['Task ID'])===tid){
-      r['Status']='done';
-      r['Actual']=actualForDisplay;
-    }
-  });
-  tFiltered.forEach(r=>{
-    if(String(r['Task ID'])===tid){
-      r['Status']='done';
-      r['Actual']=actualForDisplay;
-    }
-  });
+  const d = String(dept||'').toLowerCase();
+  const s = String(source||'').toLowerCase();
 
-  // Re-render
-  setTimeout(()=>{
+  // Turant UI mein Done dikhao
+  tAllData.forEach(r=>{ if(String(r['Task ID'])===tid){ r['Status']='done'; r['Actual']=actualForDisplay; }});
+  tFiltered.forEach(r=>{ if(String(r['Task ID'])===tid){ r['Status']='done'; r['Actual']=actualForDisplay; }});
+  setTimeout(()=>{ tRenderKPIs(); tRenderCharts(); tRenderTable(); }, 300);
+
+  // Sales ke liye: form khul gaya (href se) + background mein Sales sheet mein bhi likho
+  // (kyunki form Support sheet mein jaata hai, Sales sheet mein nahi)
+  if(d==='sales' || s==='sales'){
+    fetch(SALES_API + '?action=write&taskId=' + encodeURIComponent(tid) + '&t=' + Date.now())
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.ok){
+          console.log('[SALES WRITE ✅]', tid);
+          setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 3000);
+        } else {
+          console.warn('[SALES WRITE ❌]', data.error||'Unknown');
+        }
+      })
+      .catch(e=>console.warn('[SALES WRITE ❌] Network:', e));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// LIVE SYNC — portal aur sheet real-time sync mein rahein
+// ═══════════════════════════════════════════════════════════════════════
+// Background mein silently fresh data fetch karta hai bina spinner ya filter
+// reset kare. Jab user tab pe wapas aata hai ya har 45 sec pe automatically
+// chalta hai. Isse sheet ka har change (add karo ya delete karo) ~45s mein
+// portal pe reflect ho jayega.
+let _tasksLastSync = 0;
+let _tasksSyncing = false;
+const TASKS_LIVE_POLL_MS = 15*1000;     // 15 seconds polling — row delete ~15s mein reflect hoga
+const TASKS_LIVE_MIN_GAP_MS = 8*1000;   // Minimum 8s gap between syncs
+
+async function tSilentRefresh(){
+  if(_tasksSyncing || !tLoaded) return;
+  _tasksSyncing = true;
+  try {
+    let mainRaw=[], suppRaw=[], salesRaw=[];
+    const apis = getTaskAPIsForUser();
+    const fetches=[];
+    const _cb='?refresh=true&t='+Date.now(); // GAS cache bypass + browser cache bypass
+    if(apis.main)  fetches.push(fetch(TASK_API+_cb).then(r=>r.json()).then(d=>{mainRaw=decompressAPI(d);}).catch(()=>{}));
+    if(apis.supp)  fetches.push(fetch(SUPPORT_API+_cb).then(r=>r.json()).then(d=>{
+      if(d&&d.h&&d.r){suppRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}
+      else{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}
+    }).catch(()=>{}));
+    if(apis.sales) fetches.push(fetch(SALES_API+_cb).then(r=>r.json()).then(d=>{
+      if(d&&d.h&&d.r){salesRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}
+      else{salesRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}
+    }).catch(()=>{}));
+    await Promise.allSettled(fetches);
+
+    // Normalize (same shape as in loadTasks->mergeAndRender)
+    const _sk=suppRaw.length>0?Object.keys(suppRaw[0]):[];
+    const _sName=_sk.find(k=>/^name$/i.test(k))||_sk.find(k=>/name/i.test(k))||"Name";
+    const _sEmail=_sk.find(k=>/^email$/i.test(k))||_sk.find(k=>/email/i.test(k))||"Email";
+    const _sTaskId=_sk.find(k=>/task.?id/i.test(k))||"Task ID";
+    const _sTask=_sk.find(k=>/^task$/i.test(k))||_sk.find(k=>/^task/i.test(k))||"Task";
+    const _sFreq=_sk.find(k=>/freq/i.test(k))||"Freq";
+    const _sDept=_sk.find(k=>/dept/i.test(k))||"Department";
+    const _sPlanned=_sk.find(k=>/planned/i.test(k))||"Planned";
+    const _sActual=_sk.find(k=>/actual/i.test(k))||"Actual";
+    const _sStatus=_sk.find(k=>/status/i.test(k))||"Status";
+    const _sRemark=_sk.find(k=>/remark/i.test(k))||"Remarks";
+    const norm_supp = suppRaw.map(r=>({
+      'Name':String(r[_sName]||'').trim(),'Email':String(r[_sEmail]||'').trim(),
+      'Department':String(r[_sDept]||'Support').trim(),'Task ID':String(r[_sTaskId]||r['TaskID']||'').trim(),
+      'Freq':String(r[_sFreq]||'').trim(),'Task':String(r[_sTask]||'').trim(),
+      'Planned':String(r[_sPlanned]||'').trim(),'Actual':String(r[_sActual]||'').trim(),
+      'Status':String(r[_sStatus]||'').trim(),'Remarks':String(r[_sRemark]||'').trim(),'_source':'support'
+    }));
+    const norm_sales = salesRaw.map(r=>({
+      'Name':String(r['Name']||'').trim(),'Email':String(r['Email']||'').trim(),
+      'Department':String(r['Department']||'Sales').trim(),'Task ID':String(r['Task ID']||r['TaskID']||'').trim(),
+      'Freq':String(r['Freq']||'').trim(),'Task':String(r['Task']||'').trim(),
+      'Planned':r['Planned'] instanceof Date?r['Planned'].toISOString():String(r['Planned']||'').trim(),
+      'Actual':r['Actual'] instanceof Date?r['Actual'].toISOString():String(r['Actual']||'').trim(),
+      'Status':String(r['Status']||'').trim(),'Remarks':String(r['Remarks']||'').trim(),'_source':'sales'
+    }));
+    const norm_main = mainRaw.map(r=>{if(r['Freq'])r['Freq']=String(r['Freq']).trim();return r;});
+    const combined=[...norm_main,...norm_supp,...norm_sales];
+    const allRaw=combined.filter(r=>r['Name']&&String(r['Name']).trim()!=='');
+
+    let newData;
+    if(CURRENT_USER && CURRENT_USER.role!=='owner'){
+      const myEmail=String(CURRENT_USER.email||'').trim().toLowerCase();
+      const myName=String(CURRENT_USER.name||'').trim().toLowerCase();
+      newData=allRaw.filter(r=>{
+        const rName=String(r['Name']||'').trim().toLowerCase();
+        const rEmail=String(r['Email']||'').trim().toLowerCase();
+        if(rEmail&&rEmail===myEmail)return true;
+        if(rName&&myName&&rName===myName)return true;
+        if(rName&&myName&&rName.replace(/\s+/g,' ')===myName.replace(/\s+/g,' '))return true;
+        const myEmailLocal=myEmail.split('@')[0].toLowerCase();
+        if(myEmailLocal&&rEmail&&rEmail.split('@')[0]===myEmailLocal)return true;
+        return false;
+      });
+    } else {
+      newData = allRaw;
+    }
+
+    newData.forEach(r=>{ r['_tDate']=tParseDate(r['Planned']); });
+
+    tAllData = newData;
+    tApplyDoneTasks(); // short-TTL localStorage overrides
+
+    // Preserve filters + page
+    const prevPage = tPage || 1;
+    tFiltered = tGetFiltered();
+    const maxPage = Math.max(1, Math.ceil(tFiltered.length / T_PER_PAGE));
+    tPage = Math.min(prevPage, maxPage);
+
+    // Destroy + rebuild charts (to avoid stale chart state)
+    Object.values(tCharts).forEach(c=>c&&c.destroy&&c.destroy()); tCharts={};
     tRenderKPIs();
     tRenderCharts();
     tRenderTable();
-  }, 300);
+    tUpdateBadge();
+
+    // Last sync badge update
+    const syncBadge = document.getElementById('tLastSyncBadge');
+    if(syncBadge) syncBadge.textContent = '✓ Synced ' + new Date().toLocaleTimeString();
+    const refreshBtn = document.getElementById('tForceRefreshBtn');
+    if(refreshBtn){ refreshBtn.textContent=''; refreshBtn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Refresh'; refreshBtn.disabled=false; refreshBtn.style.opacity='1'; }
+
+    const sync = document.getElementById('tasksSync');
+    if(sync) sync.textContent='Live · '+new Date().toLocaleTimeString();
+    _tasksLastSync = Date.now();
+  } catch(e){
+    console.warn('[LIVE SYNC] error:', e);
+  } finally {
+    _tasksSyncing = false;
+  }
 }
+
+// Manual force refresh — user button click se
+async function tForceRefresh(){
+  const btn = document.getElementById('tForceRefreshBtn');
+  if(btn){ btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Fetching...'; btn.disabled=true; btn.style.opacity='0.6'; }
+  const syncBadge = document.getElementById('tLastSyncBadge');
+  if(syncBadge) syncBadge.textContent = '⟳ Sheet se fetch ho raha hai...';
+  _tasksLastSync = 0; // Force bypass min-gap check
+  await tSilentRefresh();
+}
+
+function tMaybeLiveSync(){
+  if(!tLoaded) return;
+  if(Date.now() - _tasksLastSync < TASKS_LIVE_MIN_GAP_MS) return;
+  tSilentRefresh();
+}
+
+// Tab visible hone pe (form submit karke wapas aane pe)
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden) tMaybeLiveSync();
+});
+// Window focus milne pe
+window.addEventListener('focus', tMaybeLiveSync);
+
+// Har 45 seconds pe background sync — sheet ka koi bhi change ~45s mein dikhega
+setInterval(function(){
+  if(!document.hidden) tMaybeLiveSync();
+}, TASKS_LIVE_POLL_MS);
 </script>
 
 <script>
