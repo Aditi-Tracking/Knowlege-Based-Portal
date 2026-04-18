@@ -949,9 +949,11 @@
   }
 
   /* ══════════════════════════════════════════
-     GLOBAL FONT SIZE INCREASE — PWA / Web App
-     Sab cards, labels, text thoda bada kiya
+     GLOBAL FONT SIZE INCREASE — PWA / Web App ONLY
+     Yeh block SIRF installed PWA (standalone mode) mein apply hota hai.
+     Regular browser (website) mein default smaller fonts rehte hain.
   ══════════════════════════════════════════ */
+  @media (display-mode: standalone) {
   html { font-size: 17px; }
 
   /* KPI Cards */
@@ -1015,6 +1017,15 @@
   .emp-profile-name { font-size: 1.5rem !important; }
   .emp-profile-dept { font-size: 0.92rem !important; }
   .emp-profile-meta { font-size: 0.87rem !important; }
+
+  /* Locations cards — mobile/PWA pe ek ke niche ek */
+  #about-locations-grid { grid-template-columns: 1fr !important; }
+  } /* end @media (display-mode: standalone) */
+
+  /* Mobile browser view mein bhi stack karo (PWA wrap ke bahar taaki regular mobile browser mein bhi apply ho) */
+  @media (max-width: 768px) {
+    #about-locations-grid { grid-template-columns: 1fr !important; }
+  }
 </style>
 </head>
 <body>
@@ -1739,47 +1750,6 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     </div>
 
 
-    <!-- ══ QUICK LINKS ══ -->
-    <div class="hp-card" style="margin-bottom:16px;">
-      <div class="hp-card-header">
-        <span class="hp-card-icon">⚡</span>
-        <span class="hp-card-title">Quick Links</span>
-        <span style="font-size:0.73rem;color:var(--muted);margin-left:6px;">6 most accessed pages</span>
-      </div>
-      <div class="hp-quick-grid">
-        <div class="hp-quick-item" onclick="switchDB('leads')" style="--ql-color:#f0a500">
-          <div class="hp-qi-icon" style="background:rgba(240,165,0,0.12);color:#f0a500"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>
-          <div class="hp-qi-name">Lead Tracking</div>
-          <div class="hp-qi-tag">Live</div>
-        </div>
-        <div class="hp-quick-item" onclick="switchDB('collection')" style="--ql-color:#00d4aa">
-          <div class="hp-qi-icon" style="background:rgba(0,212,170,0.12);color:#00d4aa"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></div>
-          <div class="hp-qi-name">Collection</div>
-          <div class="hp-qi-tag">Live</div>
-        </div>
-        <div class="hp-quick-item" onclick="switchDB('fms')" style="--ql-color:#00d4ff">
-          <div class="hp-qi-icon" style="background:rgba(0,212,255,0.12);color:#00d4ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
-          <div class="hp-qi-name">FMS O2D</div>
-          <div class="hp-qi-tag">Live</div>
-        </div>
-        <div class="hp-quick-item" onclick="switchDB('tasks')" style="--ql-color:#a855f7">
-          <div class="hp-qi-icon" style="background:rgba(168,85,247,0.12);color:#a855f7"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
-          <div class="hp-qi-name">Task Checklist</div>
-          <div class="hp-qi-tag">Live</div>
-        </div>
-        <div class="hp-quick-item" onclick="switchDB('training')" style="--ql-color:#f97316">
-          <div class="hp-qi-icon" style="background:rgba(249,115,22,0.12);color:#f97316"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
-          <div class="hp-qi-name">Training Videos</div>
-          <div class="hp-qi-tag">Videos</div>
-        </div>
-        <div class="hp-quick-item" onclick="switchDB('resources')" style="--ql-color:#14b8a6">
-          <div class="hp-qi-icon" style="background:rgba(20,184,166,0.12);color:#14b8a6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div>
-          <div class="hp-qi-name">Documents</div>
-          <div class="hp-qi-tag">Docs</div>
-        </div>
-      </div>
-    </div>
-
     <!-- ══ ROW 3: HOW TO USE + EMERGENCY CONTACTS ══ -->
     <div class="hp-row2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
 
@@ -1957,7 +1927,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 
     <!-- ══ LOCATIONS ══ -->
     <div class="about-section" id="about-locations" style="display:none;">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">
+      <div id="about-locations-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">
 
         <div class="hp-card loc-card" style="border-top:3px solid var(--accent);">
           <div class="hp-card-header"><span class="hp-card-icon">🏛️</span><span class="hp-card-title">Mumbai — Headquarters</span><span class="loc-badge hq-badge">HQ</span></div>
@@ -3222,24 +3192,28 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <div class="db-breadcrumb">Home › Marketing</div>
     </div>
     <div class="header-right">
-      <div class="live-badge" style="background:rgba(240,165,0,0.12);border:1px solid rgba(240,165,0,0.3);"><div class="live-dot" style="background:#f0a500"></div> Google Drive</div>
+      <div class="live-badge" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);"><div class="live-dot" style="background:#a855f7"></div> Supabase Live</div>
     </div>
   </div>
   <div class="db-content">
     <div class="section-title">Marketing Resources</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
 
-      <!-- Marketing Brochure -->
-      <a href="https://drive.google.com/drive/folders/15AiOGhbPOToFZGAIyMAEMdy6zg6c0NhM?usp=sharing" target="_blank" style="text-decoration:none;">
-        <div class="home-card" style="--card-top:#f0a500;cursor:pointer;">
-          <div class="hc-icon" style="background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.3);">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          </div>
-          <div class="hc-name">Marketing Brochure</div>
-          <div class="hc-desc">Product brochures, flyers and promotional materials for Aditi Tracking — ready to share with clients and prospects.</div>
-          <span class="hc-status live" style="background:rgba(240,165,0,0.15);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">📁 Open Drive</span>
+      <!-- Marketing Brochure (Supabase) -->
+      <div class="home-card" style="--card-top:#f0a500;cursor:pointer;"
+           onclick="openMarketingOverlay('Marketing Brochure')"
+           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.3)';this.style.borderColor='#f0a500'"
+           onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
+        <div class="hc-icon" style="background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.3);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         </div>
-      </a>
+        <div class="hc-name">Marketing Brochure</div>
+        <div class="hc-desc">Product brochures, flyers and promotional materials for Aditi Tracking — ready to share with clients and prospects.</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+          <span class="hc-status live" id="mkt-brochure-count" style="background:rgba(240,165,0,0.15);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">📂 Loading…</span>
+          <span style="font-size:0.78rem;font-weight:600;color:#f0a500;">View →</span>
+        </div>
+      </div>
 
       <!-- Solution Videos -->
       <a href="https://drive.google.com/drive/folders/1-drIi8dmmMpOVPY1kz_nWbyFB3TCVfRl?usp=sharing" target="_blank" style="text-decoration:none;">
@@ -3266,6 +3240,28 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       </a>
 
     </div>
+  </div>
+</div>
+
+<!-- MARKETING DOCS OVERLAY (Supabase) -->
+<div id="marketingOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:9998;overflow-y:auto;padding:16px;">
+  <div style="max-width:720px;margin:40px auto;background:var(--surface);border-radius:20px;padding:28px;position:relative;min-height:200px;">
+    <button onclick="closeMarketingOverlay()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;z-index:2;">✕</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div id="mktOverlayIcon" style="width:44px;height:44px;border-radius:12px;background:rgba(240,165,0,0.12);border:1px solid rgba(240,165,0,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <div>
+        <div id="mktOverlayTitle" style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--text);"></div>
+        <div id="mktOverlaySub" style="font-size:0.8rem;color:var(--muted);margin-top:2px;"></div>
+      </div>
+    </div>
+    <div id="mktOverlayLoader" style="text-align:center;padding:40px 0;color:var(--muted);">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      <div style="font-size:0.85rem;">Loading…</div>
+    </div>
+    <div id="mktOverlayGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;align-items:stretch;"></div>
+    <div id="mktOverlayEmpty" style="display:none;text-align:center;padding:40px 0;color:var(--muted);font-size:0.9rem;">Koi file nahi mili is category mein.</div>
   </div>
 </div>
 
@@ -3547,6 +3543,7 @@ function switchDB(id, fromPopState){
   if(id==='sales'&&!salesDocsLoaded){loadSalesDocs();}
   if(id==='aftersales'&&!afterSalesLoaded){loadAfterSales();}
   if(id==='products'&&!prodLoaded){loadProducts();}
+  if(id==='marketing'){loadMarketingCounts();}
   // Training panel needs no data loading — just shows static links
   // Push history state so back button returns to home
   if(!fromPopState){
@@ -6437,6 +6434,18 @@ const POTM_NAMES = [
   'Ankush'
 ];
 
+// 👇 Location override — Supabase ki Location column ko ignore karke ye use hoga
+// Key case-insensitive match hoga
+const POTM_LOCATIONS = {
+  'hemant':      'Mumbai',
+  'sakshi tupe': 'Mumbai',
+  'komal':       'Mumbai',
+  'surya':       'Mumbai',
+  'akshay more': 'Mumbai',
+  'kush':        'Goa',
+  'ankush':      'Bangalore'
+};
+
 // Dept ke hisaab se color
 const DEPT_COLORS = {
   'mis':       { bar:'#4e9af1', badge:'rgba(78,154,241,0.12)', text:'#4e9af1' },
@@ -6482,13 +6491,19 @@ async function loadPerformers() {
     POTM_NAMES.forEach((name, idx) => {
       const row = rowMap[name.toLowerCase().trim()];
       const dept  = row ? (row['Employee_Dept'] || '—') : '—';
-      const loc   = row ? (row['Location']      || '')  : '';
+      // Location: pehle hard-coded override dekho, fir Supabase se
+      const loc   = POTM_LOCATIONS[name.toLowerCase().trim()] || (row ? (row['Location'] || '')  : '');
       const link  = row ? (row['Link'] || null) : null;
       const clr   = _getDeptColor(dept);
       const trophies = ['🥇','🥇','🥇','🥇','🥇','🥇','🥇'];
-      const deptText = dept !== '—'
-        ? `🏢 ${dept}${loc ? ' <span style="color:var(--muted);font-weight:400;">(${loc})</span>' : ''}`
-        : '—';
+      // Plain string concatenation — nested template literals kabhi kabhi flaky hote hain
+      let deptText = '—';
+      if (dept !== '—') {
+        deptText = '🏢 ' + dept;
+        if (loc) {
+          deptText += ' <span style="color:var(--muted);font-weight:400;">(' + loc + ')</span>';
+        }
+      }
 
       const card = document.createElement('div');
       card.className = 'potm-card';
@@ -6897,6 +6912,102 @@ function openSalesOverlay(cat) {
 
 function closeSalesOverlay() {
   document.getElementById('salesDocsOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ═══════════════════════════════════════════════════════════
+// MARKETING PANEL — Supabase Marketing table → overlay
+// Table: Marketing | Columns: Type, Category, Module, Link
+// Filter: Category = 'Marketing Brochure'
+// ═══════════════════════════════════════════════════════════
+let marketingDataCache = {};
+let marketingInitLoaded = false;
+
+const MKT_THEME = {
+  color: '#f0a500',
+  bg:    'rgba(240,165,0,0.12)',
+  border:'rgba(240,165,0,0.3)'
+};
+
+// Marketing panel khulte hi count badge update karo
+async function loadMarketingCounts() {
+  if (marketingInitLoaded) return;
+  marketingInitLoaded = true;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Marketing?select=*&Category=eq.Marketing%20Brochure`,
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' } }
+    );
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error('HTTP ' + res.status + (errText ? ' — ' + errText.slice(0,120) : ''));
+    }
+    const data = await res.json();
+    marketingDataCache['Marketing Brochure'] = data;
+    const badge = document.getElementById('mkt-brochure-count');
+    if (badge) badge.textContent = '📂 ' + data.length + ' file' + (data.length === 1 ? '' : 's');
+  } catch(e) {
+    marketingInitLoaded = false; // allow retry
+    const badge = document.getElementById('mkt-brochure-count');
+    if (badge) badge.textContent = '⚠️ Retry';
+    console.warn('[Marketing] count load failed:', e.message);
+  }
+}
+
+async function openMarketingOverlay(category) {
+  const th = MKT_THEME;
+  document.getElementById('mktOverlayTitle').textContent = category;
+  document.getElementById('mktOverlaySub').textContent   = '';
+  document.getElementById('mktOverlayLoader').style.display = 'block';
+  document.getElementById('mktOverlayGrid').innerHTML       = '';
+  document.getElementById('mktOverlayEmpty').style.display  = 'none';
+  document.getElementById('marketingOverlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  // Cache se serve karo agar available hai
+  if (marketingDataCache[category]) {
+    renderMarketingDocs(marketingDataCache[category], th);
+    return;
+  }
+
+  try {
+    const enc = encodeURIComponent(category);
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Marketing?select=*&Category=eq.${enc}`,
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' } }
+    );
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error('HTTP ' + res.status + (errText ? ' — ' + errText.slice(0,160) : ''));
+    }
+    const data = await res.json();
+    marketingDataCache[category] = data;
+    renderMarketingDocs(data, th);
+  } catch(e) {
+    document.getElementById('mktOverlayLoader').style.display = 'none';
+    document.getElementById('mktOverlayEmpty').style.display  = 'block';
+    document.getElementById('mktOverlayEmpty').textContent    = 'Load nahi hua: ' + e.message;
+    console.warn('[Marketing] overlay load failed:', e.message);
+  }
+}
+
+function renderMarketingDocs(items, th) {
+  document.getElementById('mktOverlayLoader').style.display = 'none';
+  document.getElementById('mktOverlaySub').textContent = items.length + ' file' + (items.length === 1 ? '' : 's');
+  if (!items.length) {
+    document.getElementById('mktOverlayEmpty').style.display = 'block';
+    return;
+  }
+  const grid = document.getElementById('mktOverlayGrid');
+  grid.innerHTML = items.map(row => {
+    const name = (row.Module || 'Document').trim();
+    const link = (row.Link   || '').trim();
+    return renderOverlayCard(name, link, th);
+  }).join('');
+}
+
+function closeMarketingOverlay() {
+  document.getElementById('marketingOverlay').style.display = 'none';
   document.body.style.overflow = '';
 }
 
