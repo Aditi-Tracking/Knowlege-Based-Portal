@@ -1025,6 +1025,19 @@
   /* Mobile browser view mein bhi stack karo (PWA wrap ke bahar taaki regular mobile browser mein bhi apply ho) */
   @media (max-width: 768px) {
     #about-locations-grid { grid-template-columns: 1fr !important; }
+
+    /* About Organisation tabs — teeno ek line mein rahe */
+    .about-tabs { flex-wrap: nowrap !important; gap: 4px !important; }
+    .about-tab {
+      padding: 7px 8px !important;
+      font-size: 0.78rem !important;
+      flex: 1 1 0 !important;
+      min-width: 0 !important;
+      white-space: nowrap !important;
+      text-align: center !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
   }
 </style>
 </head>
@@ -3044,7 +3057,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div style="display:flex;flex-direction:column;gap:12px;">
 
       <!-- Employee Directory -->
-      <div onclick="closeDirectoryOverlay();openHRDocsOverlay('Employee Contact Dir')" style="cursor:pointer;">
+      <div onclick="closeDirectoryOverlay();openHRDocsOverlay('Employee Dir')" style="cursor:pointer;">
         <div style="background:var(--surface2);border:1.5px solid rgba(6,182,212,0.25);border-left:4px solid #06b6d4;border-radius:12px;padding:16px 18px;transition:all 0.18s;display:flex;align-items:center;gap:14px;"
              onmouseover="this.style.background='rgba(6,182,212,0.08)';this.style.borderColor='rgba(6,182,212,0.6)';"
              onmouseout="this.style.background='var(--surface2)';this.style.borderColor='rgba(6,182,212,0.25)';">
@@ -6711,7 +6724,7 @@ const HR_DOC_THEMES = {
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>` },
   'HR Policy': { color:'#f0a500', bg:'rgba(240,165,0,0.12)',  border:'rgba(240,165,0,0.3)',
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>` },
-  'Employee Contact Dir': { color:'#06b6d4', bg:'rgba(6,182,212,0.12)', border:'rgba(6,182,212,0.3)',
+  'Employee Dir': { color:'#06b6d4', bg:'rgba(6,182,212,0.12)', border:'rgba(6,182,212,0.3)',
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>` },
   'Support Dir': { color:'#0ea5e9', bg:'rgba(14,165,233,0.12)', border:'rgba(14,165,233,0.3)',
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.02 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>` },
@@ -6736,13 +6749,21 @@ async function openHRDocsOverlay(module) {
   if (hrDocsCache[module]) { renderHRDocs(hrDocsCache[module], th, module); return; }
 
   try {
-    const enc = encodeURIComponent(module);
+    // ilike wildcard query — case-insensitive + leading/trailing whitespace tolerant
+    // Agar module "Employee Dir" hai toh pattern "*Employee*Dir*" banega
+    // jo "Employee Dir", " Employee Dir ", "employee dir", "Employee Contact Dir" sab match karega
+    const pattern = '*' + module.trim().replace(/\s+/g, '*') + '*';
+    const enc = encodeURIComponent(pattern);
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/Documents?select=*&Doc_Module=eq.${enc}&order=id`,
+      `${SUPABASE_URL}/rest/v1/Documents?select=*&Doc_Module=ilike.${enc}&order=id`,
       { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' } }
     );
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error('HTTP ' + res.status + (errText ? ' — ' + errText.slice(0,160) : ''));
+    }
     const data = await res.json();
+    console.log('[HR Docs] module=' + module + ' → ' + data.length + ' rows');
     hrDocsCache[module] = data;
     renderHRDocs(data, th, module);
   } catch(e) {
