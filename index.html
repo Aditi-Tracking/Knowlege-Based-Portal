@@ -7620,7 +7620,7 @@ function showResult() {
     </div>
 
     <!-- Iframe body -->
-    <div id="file-viewer-body" style="flex:1;background:#323639;position:relative;overflow:hidden;">
+    <div id="file-viewer-body" style="flex:1;background:#323639;position:relative;overflow:hidden;overscroll-behavior:contain;">
       <div id="file-viewer-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.92rem;gap:10px;flex-direction:column;z-index:4;">
         <div style="width:36px;height:36px;border:3px solid var(--border);border-top-color:#14b8a6;border-radius:50%;animation:fvspin 0.9s linear infinite;"></div>
         <div>Loading documents…</div>
@@ -7637,7 +7637,7 @@ function showResult() {
       <div id="file-viewer-dl-mask" style="position:absolute;top:0;left:0;right:0;height:64px;background:#323639;display:none;z-index:9;"></div>
       <!-- Extra right-corner mask for the bottom-right "Pop out to new window" button Google adds sometimes -->
       <div id="file-viewer-dl-mask2" style="position:absolute;bottom:0;right:0;width:72px;height:64px;background:#323639;display:none;z-index:9;"></div>
-      <!-- RIGHT-CLICK BLOCKER: pointer-events auto = right-click block, wheel event re-dispatch = smooth scroll -->
+      <!-- RIGHT-CLICK BLOCKER: pointer-events auto = right-click block; wheel/touch pe turant pointer-events:none hota hai taaki native scroll fast kaam kare -->
       <div id="iframe-rcb" style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:10;background:transparent;pointer-events:auto;overscroll-behavior:contain;touch-action:pan-y;"></div>
     </div>
     </div>
@@ -7814,14 +7814,17 @@ document.addEventListener('click', function(e){
 });
 
 /* ─────────────────────────────────────────────────────────────
-   IFRAME RIGHT-CLICK BLOCKER v4 — Smooth Scroll + Right-Click Block
+   IFRAME RIGHT-CLICK BLOCKER v6 — Fast Native Scroll + Right-Click Block
    
    Technique:
    1. Overlay pointer-events:auto → right-click hamesha block
-   2. Wheel event aate hi → preventDefault (body scroll rokta hai)
-      + pointer-events:none → next events seedha iframe ko jaate hain
-      + Re-dispatch WheelEvent on iframe → first delta bhi scroll karta hai
-   3. 1200ms baad → overlay wapas auto ho jaata hai
+   2. Wheel/touch event aate hi → pointer-events:none (passive listener)
+      → native browser scroll direct iframe pe jaata hai, zero lag
+   3. NO preventDefault, NO synthetic re-dispatch (cross-origin iframe pe
+      kaam hi nahi karta tha — pehla tick hamesha lost ho raha tha)
+   4. 2000ms timeout — continuous scrolling me overlay re-engage nahi hota,
+      isliye periodic tick loss nahi hota (ye pehle wali problem thi)
+   5. Mouse iframe se bahar nikalne pe overlay turant auto (smart reset)
    ───────────────────────────────────────────────────────────── */
 (function(){
   function setupOverlay(){
@@ -7843,43 +7846,21 @@ document.addEventListener('click', function(e){
       setTimeout(function(){ overlay.style.pointerEvents = 'auto'; }, 350);
     }, true);
 
-    /* Wheel / Scroll handler — smooth scroll fix */
-    overlay.addEventListener('wheel', function(e){
-      // 1. Body ko scroll hone se rokta hai
-      e.preventDefault();
-
-      // 2. Overlay transparent karo — baaki wheel events seedha iframe jaayenge
+    /* Wheel / Scroll handler — native smooth scroll (FAST)
+       Strategy: overlay ko turant transparent karo taaki wheel events iframe ko
+       naturally jaayen. preventDefault NAHI karte — passive:true browser ki
+       native scroll optimization on rakhta hai.
+       Timeout 2000ms — continuous scrolling me overlay re-engage nahi hota,
+       koi tick lost nahi hota. User scroll rok ke 2 sec wait kare toh overlay
+       wapas auto ho jaata hai right-click protection ke liye. */
+    overlay.addEventListener('wheel', function(){
       overlay.style.pointerEvents = 'none';
-
-      // 3. Is pehle event ka delta bhi iframe ko do (re-dispatch)
-      //    pointer-events:none hone ke baad elementFromPoint iframe dega
-      try {
-        var el = document.elementFromPoint(e.clientX, e.clientY);
-        if(el){
-          el.dispatchEvent(new WheelEvent('wheel', {
-            deltaX    : e.deltaX,
-            deltaY    : e.deltaY,
-            deltaZ    : e.deltaZ,
-            deltaMode : e.deltaMode,
-            clientX   : e.clientX,
-            clientY   : e.clientY,
-            screenX   : e.screenX,
-            screenY   : e.screenY,
-            ctrlKey   : e.ctrlKey,
-            bubbles   : true,
-            cancelable: true
-          }));
-        }
-      } catch(err){}
-
-      // 4. 1200ms baad wapas auto (touchpad momentum ke liye kaafi)
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(function(){
         scrollTimer = null;
         overlay.style.pointerEvents = 'auto';
-      }, 1200);
-
-    }, { passive: false });
+      }, 2000);
+    }, { passive: true });
 
     /* Touch scroll fix — mobile/tablet pe overlay bypass karo
        Mobile mein right-click hota hi nahi, toh safely pass through kar sakte hain */
@@ -7889,7 +7870,7 @@ document.addEventListener('click', function(e){
       scrollTimer = setTimeout(function(){
         scrollTimer = null;
         overlay.style.pointerEvents = 'auto';
-      }, 1500);
+      }, 2000);
     }, { passive: true });
 
     overlay.addEventListener('touchend', function(){
@@ -7897,8 +7878,21 @@ document.addEventListener('click', function(e){
       scrollTimer = setTimeout(function(){
         scrollTimer = null;
         overlay.style.pointerEvents = 'auto';
-      }, 800);
+      }, 1000);
     }, { passive: true });
+
+    /* Smart reset: jab mouse iframe area se bahar jaata hai, overlay turant
+       wapas auto kar do. Iska fayda — scroll ke baad user mouse nikalega
+       to right-click protection immediately restore ho jaati hai,
+       2 sec wait nahi karna padta. */
+    var body = document.getElementById('file-viewer-body');
+    if(body){
+      body.addEventListener('mouseleave', function(){
+        clearTimeout(scrollTimer);
+        scrollTimer = null;
+        overlay.style.pointerEvents = 'auto';
+      });
+    }
   }
 
   if(document.readyState === 'loading'){
