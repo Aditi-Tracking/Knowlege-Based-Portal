@@ -3375,6 +3375,13 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <select class="filter-select" id="tFDept" onchange="tApply()"><option value="">All Departments</option></select>
       <select class="filter-select" id="tFPerson" onchange="tApply()"><option value="">All People</option></select>
       <select class="filter-select" id="tFFreq" onchange="tApply()"><option value="">All Frequency</option></select>
+      <select class="filter-select" id="tFLocation" onchange="tApply()" style="display:none">
+        <option value="">All Locations</option>
+        <option value="Mumbai">🏙️ Mumbai (HO)</option>
+        <option value="Gujarat">🏭 Gujarat</option>
+        <option value="Goa">🌴 Goa</option>
+        <option value="Bangalore">🏢 Bangalore</option>
+      </select>
       <select class="filter-select" id="tFStatus" onchange="tApply()">
         <option value="">All Status</option>
         <option value="done">✅ Done</option>
@@ -3449,10 +3456,14 @@ function prefetchAllData(){
   if(!_tasksCache){
     const _apisToFetch = getTaskAPIsForUser();
     const _prefetchArr = [];
-    // TASK_API = Google Sheet (no filter)
+    // HO APIs
     if(_apisToFetch.main)  _prefetchArr.push(fetch(TASK_API).then(r=>r.json()).then(d=>{_tasksCache=d;}).catch(()=>{}));
     if(_apisToFetch.supp)  _prefetchArr.push(fetch(SUPPORT_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){_tasksSuppCache=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{const sd=d;_tasksSuppCache=Array.isArray(sd)?sd:(sd&&Array.isArray(sd.data)?sd.data:[]);}console.log("[SUPP PREFETCH]",_tasksSuppCache.length,"rows",_tasksSuppCache.length>0?Object.keys(_tasksSuppCache[0]):[]);}).catch(e=>console.log("[SUPP PREFETCH ERR]",e)));
     if(_apisToFetch.sales) _prefetchArr.push(fetch(SALES_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){_tasksSalesCache=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{_tasksSalesCache=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log('[SALES PREFETCH]',_tasksSalesCache.length,'rows');}).catch(e=>console.log('[SALES PREFETCH ERR]',e)));
+    // Branch location APIs
+    if(_apisToFetch.guj)   _prefetchArr.push(fetch(GUJARAT_API).then(r=>r.json()).then(d=>{_tasksGujCache=d;console.log('[GUJ PREFETCH]',decompressAPI(d).length,'rows');}).catch(e=>console.log('[GUJ PREFETCH ERR]',e)));
+    if(_apisToFetch.goa)   _prefetchArr.push(fetch(GOA_API).then(r=>r.json()).then(d=>{_tasksGoaCache=d;console.log('[GOA PREFETCH]',decompressAPI(d).length,'rows');}).catch(e=>console.log('[GOA PREFETCH ERR]',e)));
+    if(_apisToFetch.bng)   _prefetchArr.push(fetch(BANGALORE_API).then(r=>r.json()).then(d=>{_tasksBngCache=d;console.log('[BNG PREFETCH]',decompressAPI(d).length,'rows');}).catch(e=>console.log('[BNG PREFETCH ERR]',e)));
     Promise.all(_prefetchArr).then(()=>{_tasksAllReady=true;});
   }
 
@@ -4541,6 +4552,30 @@ const TASK_API = 'https://script.google.com/macros/s/AKfycbyo_iI8z_ySsww7vz47eum
 const SUPPORT_API = 'https://script.google.com/macros/s/AKfycbykCc7Hdzy9gLcIXSusKnbg-6mfP7CnMFiuhvDYSr6lvm1XoRWg5ihErGDg7cVH9s1d/exec';
 const SALES_API = 'https://script.google.com/macros/s/AKfycbwSeXqD-8U4fL2TVEDxAYIoAypEO8qkpudWByXr52DBhukuPE_8LGMcAPQqyKhW-9xE/exec';
 
+// ── BRANCH LOCATION APIs ──
+const GUJARAT_API   = 'https://script.google.com/macros/s/AKfycbzGBHZr_g2ElCNDlyvuztHq-_RWip5IvBdOVkZCorU3H014NR2pu_CKFPkZYJoTrzQ/exec';
+const GOA_API       = 'https://script.google.com/macros/s/AKfycbzk9mCiwH1j9M_HOK_L65zEyD7XKFuO48ruFSUHPOATRtdTz47Zh4kiTettPv_h4Is/exec';
+const BANGALORE_API = 'https://script.google.com/macros/s/AKfycbyVAKkPppeqD-T_SFQ2RnK9xR1opE9E4X5l_mgSxBTWAnDYPoxej0iJx4whqc19vmBnNg/exec';
+
+// ── HARDCODED BRANCH EMPLOYEE → LOCATION MAP ──
+// Name (lowercase) → Location. Sirf is map mein hain unhe direct usi API se fetch karo.
+const BRANCH_EMPLOYEE_MAP = {
+  // Bangalore
+  'ankush bidari':      'Bangalore',
+  // Gujarat
+  'kinchit parmar':     'Gujarat',
+  'atul':               'Gujarat',
+  'bhumit parmar':      'Gujarat',
+  // Goa
+  'viresh khanolkar':   'Goa',
+  'kush kotharkar':     'Goa',
+  'pranali tupe':       'Goa',
+  'priyanka kudnekar':  'Goa',
+  'disha degvekar':     'Goa',
+  'fazal sayyad':       'Goa',
+  'swapnil belvalkar':  'Goa',
+};
+
 // ═══════════════════════════════════════════════════════════════════════
 // GOOGLE FORM AUTO-SUBMIT CONFIG  (early — taaki tRenderTable mein use ho sake)
 // ═══════════════════════════════════════════════════════════════════════
@@ -4580,10 +4615,37 @@ const FORM_SUBMIT_CONFIG = {
     entries: {
       taskId: 'entry.1645674088',
     }
+  },
+  // Gujarat branch form
+  gujarat: {
+    url: 'https://docs.google.com/forms/d/e/1FAIpQLSf0MlQDDEuk68PTGYxF1ANGxvOztUwKmnZ7LeI_wjV5s3sLVQ/formResponse',
+    entries: {
+      taskId: 'entry.2120774614',
+    }
+  },
+  // Goa branch form
+  goa: {
+    url: 'https://docs.google.com/forms/d/e/1FAIpQLSfywYH_ybTqvUA-jKOnJEWJuRGpmNEbgqKciykCsh3owZuJsQ/formResponse',
+    entries: {
+      taskId: 'entry.1673935384',
+    }
+  },
+  // Bangalore branch form
+  bangalore: {
+    url: 'https://docs.google.com/forms/d/e/1FAIpQLScMhISoTemOFcVyBNuIjPBCCRIITRvEYVb9vZIaHu5FwMFQUw/formResponse',
+    entries: {
+      taskId: 'entry.1371260066',
+    }
   }
 };
 
-function tPickFormConfig(dept, source){
+function tPickFormConfig(dept, source, location){
+  const loc = String(location||'').toLowerCase().trim();
+  // Location-based routing — branch employees ko sahi form milega
+  if(loc==='gujarat')   return FORM_SUBMIT_CONFIG.gujarat;
+  if(loc==='goa')       return FORM_SUBMIT_CONFIG.goa;
+  if(loc==='bangalore') return FORM_SUBMIT_CONFIG.bangalore;
+  // HO dept-based routing
   const d = String(dept||'').toLowerCase();
   const s = String(source||'').toLowerCase();
   if(d==='support' || s==='support') return FORM_SUBMIT_CONFIG.support;
@@ -4599,27 +4661,46 @@ function tPickFormConfig(dept, source){
 // state ~45 sec mein portal pe reflect hota rahega.
 
 // Department → sheet mapping
-// TASK_API    = Collection, HR, Finance, Accounts (Sheet 3)
-// SUPPORT_API = Support (Sheet 2)
-// SALES_API   = Sales (Sheet 1)
-// Owner/MIS/PC = fetch all 3
+// TASK_API    = Collection, HR, Finance, Accounts (HO Sheet 3)
+// SUPPORT_API = Support (HO Sheet 2)
+// SALES_API   = Sales (HO Sheet 1)
+// GUJARAT_API / GOA_API / BANGALORE_API = Branch location APIs
+// Owner/MIS/PC = fetch all
 function getTaskAPIsForUser(){
-  if(!CURRENT_USER) return {main:true, supp:true, sales:true};
+  if(!CURRENT_USER) return {main:true, supp:true, sales:true, guj:true, goa:true, bng:true};
   // Full access roles always get all sheets
-  if(CURRENT_USER.role==='owner') return {main:true, supp:true, sales:true};
-  // For employees: decide based on rawRole / department
+  if(CURRENT_USER.role==='owner') return {main:true, supp:true, sales:true, guj:true, goa:true, bng:true};
+
+  // ── Step 1: Check hardcoded branch map (name se direct location milti hai) ──
+  const nameLower = (CURRENT_USER.name||'').toLowerCase().trim();
+  const mappedLoc = BRANCH_EMPLOYEE_MAP[nameLower];
+  const resolvedLoc = mappedLoc || (CURRENT_USER.location||'');
+
+  // ── Step 2: Location-based routing ──
+  const loc = resolvedLoc.toLowerCase().trim();
+  const isGuj = loc.includes('gujarat') || loc.includes('guj') || loc.includes('ahmedabad');
+  const isGoa = loc.includes('goa');
+  const isBng = loc.includes('bangalore') || loc.includes('bengaluru') || loc.includes('blr') || loc.includes('banglore');
+
+  if(isGuj) return {main:false, supp:false, sales:false, guj:true,  goa:false, bng:false};
+  if(isGoa) return {main:false, supp:false, sales:false, guj:false, goa:true,  bng:false};
+  if(isBng) return {main:false, supp:false, sales:false, guj:false, goa:false, bng:true};
+
+  // ── Step 3: HO employees — dept-based routing (only their own sheet) ──
   const role=(CURRENT_USER.rawRole||'').toLowerCase().trim();
   const salesRoles   = ['sales'];
   const supportRoles = ['support'];
   const mainRoles    = ['collection','hr','finance','accounts','collections'];
-  if(salesRoles.includes(role))   return {main:false, supp:false, sales:true};
-  if(supportRoles.includes(role)) return {main:false, supp:true,  sales:false};
-  if(mainRoles.includes(role))    return {main:true,  supp:false, sales:false};
-  // Unknown role: fetch all to be safe
-  return {main:true, supp:true, sales:true};
+  if(salesRoles.includes(role))   return {main:false, supp:false, sales:true,  guj:false, goa:false, bng:false};
+  if(supportRoles.includes(role)) return {main:false, supp:true,  sales:false, guj:false, goa:false, bng:false};
+  if(mainRoles.includes(role))    return {main:true,  supp:false, sales:false, guj:false, goa:false, bng:false};
+  // Unknown: fetch all to be safe
+  return {main:true, supp:true, sales:true, guj:true, goa:true, bng:true};
 }
 let tAllData=[], tFiltered=[], tPage=1, tLoaded=false;
-let tActiveKpi=null, tActivePerson=null, tActiveDept=null, tActiveStatus=null, tActiveFreq=null, tActiveDateFrom=null, tActiveDateTo=null;
+let tActiveKpi=null, tActivePerson=null, tActiveDept=null, tActiveStatus=null, tActiveFreq=null, tActiveDateFrom=null, tActiveDateTo=null, tActiveLocation=null;
+// Cache vars for location APIs
+let _tasksGujCache=null, _tasksGoaCache=null, _tasksBngCache=null;
 
 function tParseDate(v){
   if(!v) return '';
@@ -4642,6 +4723,9 @@ async function loadTasks(){
     let mainRaw = [];
     let suppRaw = [];
     let salesRaw = [];
+    let gujRaw  = [];
+    let goaRaw  = [];
+    let bngRaw  = [];
 
     // Show skeleton + render partial data as soon as first API responds
     let firstDataShown = false;
@@ -4654,7 +4738,7 @@ async function loadTasks(){
         'Department':String(r[_sDept]||'Support').trim(),'Task ID':String(r[_sTaskId]||r['TaskID']||'').trim(),
         'Freq':String(r[_sFreq]||'').trim(),'Task':String(r[_sTask]||'').trim(),
         'Planned':String(r[_sPlanned]||'').trim(),'Actual':String(r[_sActual]||'').trim(),
-        'Status':String(r[_sStatus]||'').trim(),'Remarks':String(r[_sRemark]||'').trim(),'_source':'support'
+        'Status':String(r[_sStatus]||'').trim(),'Remarks':String(r[_sRemark]||'').trim(),'_source':'support','_location':'Mumbai'
       }));
       const norm_sales = salesRaw.map(r=>({
         'Name':String(r['Name']||'').trim(),'Email':String(r['Email']||'').trim(),
@@ -4662,10 +4746,40 @@ async function loadTasks(){
         'Freq':String(r['Freq']||'').trim(),'Task':String(r['Task']||'').trim(),
         'Planned':r['Planned'] instanceof Date?r['Planned'].toISOString():String(r['Planned']||'').trim(),
         'Actual':r['Actual'] instanceof Date?r['Actual'].toISOString():String(r['Actual']||'').trim(),
-        'Status':String(r['Status']||'').trim(),'Remarks':String(r['Remarks']||'').trim(),'_source':'sales'
+        'Status':String(r['Status']||'').trim(),'Remarks':String(r['Remarks']||'').trim(),'_source':'sales','_location':'Mumbai'
       }));
-      const norm_main = mainRaw.map(r=>{if(r['Freq'])r['Freq']=String(r['Freq']).trim();return r;});
-      const combined=[...norm_main,...norm_supp,...norm_sales];
+      const norm_main = mainRaw.map(r=>{if(r['Freq'])r['Freq']=String(r['Freq']).trim();r['_location']='Mumbai';return r;});
+
+      // ── Normalize branch location APIs (Gujarat / Goa / Bangalore) ──
+      function normBranch(raw, locationLabel){
+        if(!raw||!raw.length) return [];
+        const keys=Object.keys(raw[0]);
+        const fk=(...names)=>{for(const n of names){const f=keys.find(k=>k.toLowerCase().replace(/\s/g,'')===n.toLowerCase().replace(/\s/g,''));if(f)return f;}return names[0];};
+        const kName=fk('Name','name'); const kEmail=fk('Email','email');
+        const kDept=fk('Department','dept','Dept'); const kTaskId=fk('Task ID','TaskID','taskid','Task Id');
+        const kTask=fk('Task','task'); const kFreq=fk('Freq','freq','Frequency');
+        const kPlanned=fk('Planned','planned'); const kActual=fk('Actual','actual');
+        const kStatus=fk('Status','status'); const kRemarks=fk('Remarks','remarks','Remark');
+        return raw.map(r=>({
+          'Name':     String(r[kName]||'').trim(),
+          'Email':    String(r[kEmail]||'').trim(),
+          'Department':String(r[kDept]||locationLabel).trim(),
+          'Task ID':  String(r[kTaskId]||'').trim(),
+          'Freq':     String(r[kFreq]||'').trim(),
+          'Task':     String(r[kTask]||'').trim(),
+          'Planned':  String(r[kPlanned]||'').trim(),
+          'Actual':   String(r[kActual]||'').trim(),
+          'Status':   String(r[kStatus]||'').trim(),
+          'Remarks':  String(r[kRemarks]||'').trim(),
+          '_source':  locationLabel.toLowerCase(),
+          '_location':locationLabel,
+        }));
+      }
+      const norm_guj = normBranch(gujRaw, 'Gujarat');
+      const norm_goa = normBranch(goaRaw, 'Goa');
+      const norm_bng = normBranch(bngRaw, 'Bangalore');
+
+      const combined=[...norm_main,...norm_supp,...norm_sales,...norm_guj,...norm_goa,...norm_bng];
       const allRaw=combined.filter(r=>r['Name']&&String(r['Name']).trim()!=='');
       if(CURRENT_USER && CURRENT_USER.role!=='owner'){
         const myEmail=String(CURRENT_USER.email||'').trim().toLowerCase();
@@ -4724,6 +4838,9 @@ async function loadTasks(){
       if(_tasksCache)      {mainRaw=decompressAPI(_tasksCache);_tasksCache=null;}
       if(_tasksSuppCache)  {const d=_tasksSuppCache;if(d&&d.h&&d.r){suppRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log("[SUPP CACHE]",suppRaw.length,"rows");_tasksSuppCache=null;}
       if(_tasksSalesCache){const d=_tasksSalesCache;if(d&&d.h&&d.r){salesRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{salesRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log('[SALES CACHE]',salesRaw.length,'rows');_tasksSalesCache=null;}
+      if(_tasksGujCache)  {const d=_tasksGujCache; gujRaw=decompressAPI(d);console.log('[GUJ CACHE]',gujRaw.length,'rows');_tasksGujCache=null;}
+      if(_tasksGoaCache)  {const d=_tasksGoaCache; goaRaw=decompressAPI(d);console.log('[GOA CACHE]',goaRaw.length,'rows');_tasksGoaCache=null;}
+      if(_tasksBngCache)  {const d=_tasksBngCache; bngRaw=decompressAPI(d);console.log('[BNG CACHE]',bngRaw.length,'rows');_tasksBngCache=null;}
       _tasksAllReady=false;
       mergeAndRender();
       return; // instant — no fetch needed
@@ -4733,6 +4850,9 @@ async function loadTasks(){
     if(_cacheApis.main   && _tasksCache)     {mainRaw=decompressAPI(_tasksCache);_tasksCache=null;}
     if(_cacheApis.supp   && _tasksSuppCache) {const d=_tasksSuppCache;if(d&&d.h&&d.r){suppRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log("[SUPP CACHE2]",suppRaw.length,"rows");_tasksSuppCache=null;}
     if(_cacheApis.sales  && _tasksSalesCache){salesRaw=decompressAPI(_tasksSalesCache);_tasksSalesCache=null;}
+    if(_cacheApis.guj    && _tasksGujCache)  {gujRaw=decompressAPI(_tasksGujCache);_tasksGujCache=null;}
+    if(_cacheApis.goa    && _tasksGoaCache)  {goaRaw=decompressAPI(_tasksGoaCache);_tasksGoaCache=null;}
+    if(_cacheApis.bng    && _tasksBngCache)  {bngRaw=decompressAPI(_tasksBngCache);_tasksBngCache=null;}
 
     const _isOwner2 = CURRENT_USER && CURRENT_USER.role === 'owner';
     const _myEmail2 = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.email||'').trim().toLowerCase()) : '';
@@ -4744,6 +4864,10 @@ async function loadTasks(){
     // SUPPORT/SALES APIs
     if(_cacheApis.supp  && !suppRaw.length)  fetches.push(fetch(SUPPORT_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){suppRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log("[SUPP]",suppRaw.length,"rows",suppRaw.length>0?Object.keys(suppRaw[0]):[]);}).catch(e=>console.log("[SUPP ERR]",e)));
     if(_cacheApis.sales && !salesRaw.length) fetches.push(fetch(SALES_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){salesRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{salesRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}console.log('[SALES]',salesRaw.length,'rows');}).catch(e=>console.log('[SALES ERR]',e)));
+    // Branch location APIs
+    if(_cacheApis.guj   && !gujRaw.length)  fetches.push(fetch(GUJARAT_API).then(r=>r.json()).then(d=>{gujRaw=decompressAPI(d);console.log('[GUJ]',gujRaw.length,'rows');}).catch(e=>console.log('[GUJ ERR]',e)));
+    if(_cacheApis.goa   && !goaRaw.length)  fetches.push(fetch(GOA_API).then(r=>r.json()).then(d=>{goaRaw=decompressAPI(d);console.log('[GOA]',goaRaw.length,'rows');}).catch(e=>console.log('[GOA ERR]',e)));
+    if(_cacheApis.bng   && !bngRaw.length)  fetches.push(fetch(BANGALORE_API).then(r=>r.json()).then(d=>{bngRaw=decompressAPI(d);console.log('[BNG]',bngRaw.length,'rows');}).catch(e=>console.log('[BNG ERR]',e)));
     if(fetches.length>0) await Promise.allSettled(fetches);
     mergeAndRender();
     return;
@@ -4762,6 +4886,7 @@ async function refreshTasks(){
   tActiveKpi=null; tActivePerson=null; tActiveDept=null; tActiveStatus=null;
   // Clear ALL prefetch caches — fresh data from Google Sheet
   _tasksCache=null; _tasksSuppCache=null; _tasksSalesCache=null; _tasksAllReady=false;
+  _tasksGujCache=null; _tasksGoaCache=null; _tasksBngCache=null;
   // NOTE: localStorage ko refresh pe clear nahi karte — kyunki Google Sheet ko
   // form submission reflect karne mein time lagta hai (kabhi-kabhi minutes).
   // tApplyDoneTasks() age-based cleanup karega: sheet confirm kare ya 7 din baad.
@@ -4804,6 +4929,7 @@ function tGetFiltered(){
   return tAllData.filter(r=>{
     if(tActivePerson&&r['Name']!==tActivePerson) return false;
     if(tActiveDept&&r['Department']!==tActiveDept) return false;
+    if(tActiveLocation&&(r['_location']||'')!==tActiveLocation) return false;
     if(tActiveStatus==='done'&&!tIsDone(r)) return false;
     if(tActiveStatus==='pending'&&tIsDone(r)) return false;
     if(tActiveFreq&&String(r['Freq']||'').trim()!==tActiveFreq) return false;
@@ -4873,7 +4999,7 @@ function tRenderCharts(){
   Object.values(tCharts).forEach(c=>c&&c.destroy&&c.destroy()); tCharts={};
   const {tc,gc,noGrid}=chartColors();
   // Use date-filtered data as base; apply kpi/status filter on top if active
-  const chartData=(tFiltered&&tFiltered.length&&(tActiveKpi||tActivePerson||tActiveDept||tActiveStatus||tActiveFreq))?tFiltered:tGetDateFiltered();
+  const chartData=(tFiltered&&tFiltered.length&&(tActiveKpi||tActivePerson||tActiveDept||tActiveStatus||tActiveFreq||tActiveLocation))?tFiltered:tGetDateFiltered();
 
   // 1. Status donut - clickable
   const doneCount=chartData.filter(r=>tIsDone(r)).length;
@@ -5010,6 +5136,7 @@ function tUpdateBadge(){
   }
   if(tActivePerson) parts.push(`<strong style="color:#00d4ff">👤 ${tActivePerson}</strong>`);
   if(tActiveDept) parts.push(`<strong style="color:#a855f7">🏢 ${tActiveDept}</strong>`);
+  if(tActiveLocation) parts.push(`<strong style="color:#06b6d4">📍 ${tActiveLocation}</strong>`);
   if(tActiveFreq) parts.push(`<strong style="color:#34d399">🔄 ${tActiveFreq}</strong>`);
   if(tActiveStatus) parts.push(`<strong style="color:#f0a500">${tActiveStatus==='done'?'✅ Completed':'⏳ Pending'}</strong>`);
   if(parts.length){
@@ -5029,6 +5156,13 @@ function tPopulateFilters(){
   document.getElementById('tFDept').innerHTML='<option value="">All Departments</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
   document.getElementById('tFPerson').innerHTML='<option value="">All People</option>'+persons.map(p=>`<option value="${p}">${p}</option>`).join('');
   document.getElementById('tFFreq').innerHTML='<option value="">All Frequency</option>'+freqs.map(f=>`<option value="${f}">${f}</option>`).join('');
+  // Show location filter only for owner/mis/pc
+  const locEl=document.getElementById('tFLocation');
+  if(locEl && CURRENT_USER && CURRENT_USER.role==='owner'){
+    locEl.style.display='';
+  } else if(locEl){
+    locEl.style.display='none';
+  }
 }
 
 function tApply(){
@@ -5038,12 +5172,15 @@ function tApply(){
   const freq=document.getElementById('tFFreq').value;
   const dateFrom=document.getElementById('tFDateFrom').value;
   const dateTo=document.getElementById('tFDateTo').value;
+  const locEl=document.getElementById('tFLocation');
+  const loc=locEl?locEl.value:'';
   tActiveDept=dept||null;
   tActivePerson=person||null;
   tActiveStatus=status||null;
   tActiveFreq=freq||null;
   tActiveDateFrom=dateFrom||null;
   tActiveDateTo=dateTo||null;
+  tActiveLocation=loc||null;
   if(!status) tActiveKpi=null;
   tFiltered=tGetFiltered(); tPage=1;
   tRenderKPIs();
@@ -5053,7 +5190,7 @@ function tApply(){
 }
 
 function tClearAll(){
-  tActiveKpi=null; tActivePerson=null; tActiveDept=null; tActiveStatus=null; tActiveFreq=null; tActiveDateFrom=null; tActiveDateTo=null;
+  tActiveKpi=null; tActivePerson=null; tActiveDept=null; tActiveStatus=null; tActiveFreq=null; tActiveDateFrom=null; tActiveDateTo=null; tActiveLocation=null;
   document.getElementById('tSearch').value='';
   document.getElementById('tFDept').value='';
   document.getElementById('tFPerson').value='';
@@ -5061,6 +5198,7 @@ function tClearAll(){
   document.getElementById('tFStatus').value='';
   document.getElementById('tFDateFrom').value='';
   document.getElementById('tFDateTo').value='';
+  const locEl=document.getElementById('tFLocation'); if(locEl) locEl.value='';
   tFiltered=[...tAllData]; tPage=1;
   tRenderKPIs();
   tRenderCharts();
@@ -5144,10 +5282,14 @@ function tRenderTable(){
   // Agar aap config mein aur entry IDs add karte ho, toh yahan bhi automatic pre-fill ho jayega.
   const buildPrefillUrl = function(r){
     const cfg = (typeof tPickFormConfig==='function')
-      ? tPickFormConfig(r['Department'], r['_source'])
+      ? tPickFormConfig(r['Department'], r['_source'], r['_location'])
       : null;
     if(!cfg){
-      // Fallback: original hard-coded URLs (if config not yet loaded)
+      // Fallback: location check first, then dept/source
+      const loc=(r['_location']||'').toLowerCase();
+      if(loc==='gujarat')   return 'https://docs.google.com/forms/d/e/1FAIpQLSf0MlQDDEuk68PTGYxF1ANGxvOztUwKmnZ7LeI_wjV5s3sLVQ/viewform?usp=pp_url&rm=minimal&entry.2120774614='+encodeURIComponent(r['Task ID']||'');
+      if(loc==='goa')       return 'https://docs.google.com/forms/d/e/1FAIpQLSfywYH_ybTqvUA-jKOnJEWJuRGpmNEbgqKciykCsh3owZuJsQ/viewform?usp=pp_url&rm=minimal&entry.1673935384='+encodeURIComponent(r['Task ID']||'');
+      if(loc==='bangalore') return 'https://docs.google.com/forms/d/e/1FAIpQLScMhISoTemOFcVyBNuIjPBCCRIITRvEYVb9vZIaHu5FwMFQUw/viewform?usp=pp_url&rm=minimal&entry.1371260066='+encodeURIComponent(r['Task ID']||'');
       const isSup=(r['Department']||'').toLowerCase()==='support'||r['_source']==='support';
       const isSal=(r['Department']||'').toLowerCase()==='sales'||r['_source']==='sales';
       if(isSup) return 'https://docs.google.com/forms/d/e/1FAIpQLSe7l-3ReXeVnSZoMZXcfSxfa7Af5Iuggzvj382eDUxucQp74A/viewform?usp=pp_url&rm=minimal&entry.1669745459='+encodeURIComponent(r['Task ID']||'');
@@ -5264,10 +5406,11 @@ function tApplyDoneTasks(){
 
 // ── Date-aware base data for KPI & Charts ────────────────────────────
 function tGetDateFiltered(){
-  // KPI & Charts base data: date + person + dept + freq (NO status/kpi filter)
+  // KPI & Charts base data: date + person + dept + freq + location (NO status/kpi filter)
   return tAllData.filter(r=>{
     if(tActivePerson&&r['Name']!==tActivePerson) return false;
     if(tActiveDept&&r['Department']!==tActiveDept) return false;
+    if(tActiveLocation&&(r['_location']||'')!==tActiveLocation) return false;
     if(tActiveFreq&&String(r['Freq']||'').trim()!==tActiveFreq) return false;
     if(tActiveDateFrom&&r['_tDate']&&r['_tDate']<tActiveDateFrom) return false;
     if(tActiveDateTo&&r['_tDate']&&r['_tDate']>tActiveDateTo) return false;
@@ -5471,7 +5614,7 @@ function warmupAPIs(){
   // Pre-fetch users list so login is instant
   _usersFetchPromise=fetch(USERS_URL).then(r=>r.json()).then(data=>{_usersCache=data;return data;}).catch(()=>null);
   // Warm-up ping to all other Google Apps Scripts (fire & forget)
-  [L_URL,C_URL,TASK_API,SUPPORT_API,SALES_API,FMS_API].forEach(url=>{
+  [L_URL,C_URL,TASK_API,SUPPORT_API,SALES_API,FMS_API,GUJARAT_API,GOA_API,BANGALORE_API].forEach(url=>{
     fetch(url+'?ping=1',{method:'GET',mode:'cors'}).catch(()=>{});
   });
 }
@@ -5488,6 +5631,9 @@ window.addEventListener('load',function(){
       localStorage.removeItem('aditiLoginTime');
     } else {
       CURRENT_USER=JSON.parse(saved);
+      // Hardcoded branch map se location override karo (cached user ke liye bhi)
+      const _savedMapLoc = BRANCH_EMPLOYEE_MAP[(CURRENT_USER.name||'').toLowerCase().trim()];
+      if(_savedMapLoc) CURRENT_USER.location = _savedMapLoc;
       showPortal();
     }
   }
@@ -5532,8 +5678,12 @@ async function doLogin(){
         email:email,
         role:_fullAccessRoles.includes(_rawR)?'owner':'employee',
         rawRole:_rawR,
-        name:String(user['Name']||email.split('@')[0])
+        name:String(user['Name']||email.split('@')[0]),
+        location:String(user['Location']||user['location']||user['Branch']||user['branch']||'').trim()
       };
+      // Hardcoded branch map se location override karo (users sheet se zyada fast & reliable)
+      const _mapLoc = BRANCH_EMPLOYEE_MAP[(CURRENT_USER.name||'').toLowerCase().trim()];
+      if(_mapLoc) CURRENT_USER.location = _mapLoc;
       localStorage.setItem('aditiUser',JSON.stringify(CURRENT_USER));
       localStorage.setItem('aditiLoginTime',Date.now().toString());
       showPortal();
