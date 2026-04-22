@@ -1758,7 +1758,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <!-- Performers Grid — photos Supabase se load honge -->
       <div id="potmGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-top:4px;">
         <!-- JS se fill hoga -->
-        <div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1;font-size:0.88rem;">⏳ Loading performers...</div>
+        <div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1;font-size:0.88rem;">⏳ Loading…</div>
       </div>
     </div>
 
@@ -2941,6 +2941,20 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
           </div>
         </div>
 
+     <!-- Mediclaim -->
+        <div onclick="openHRDocsOverlay('Mediclaim')" style="height:100%;display:flex;cursor:pointer;">
+          <div class="home-card" style="--card-top:#ef4444;cursor:pointer;padding:1.5rem;width:100%;">
+            <div class="hc-icon" style="background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.5a5.5 5.5 0 0111-1 5.5 5.5 0 0111 1c0 7-8 11.5-8 11.5"/><line x1="12" y1="8" x2="12" y2="14"/><line x1="9" y1="11" x2="15" y2="11"/></svg>
+            </div>
+            <div class="hc-name" style="font-size:1.12rem;">Mediclaim</div>
+            <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">Medical insurance policy documents, claim forms, hospital network list and benefit details.</div>
+            <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
+              <span style="font-size:0.82rem;font-weight:600;color:#ef4444;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);padding:4px 12px;border-radius:20px;">📂 View Files</span>
+            </div>
+          </div>
+        </div>
+
             <!-- Organization Chart -->
       <div onclick="openOrgChartPicker()" style="text-decoration:none;cursor:pointer;height:100%;display:flex;">
         <div class="home-card" style="--card-top:#14b8a6;cursor:pointer;padding:1.5rem;width:100%;">
@@ -3019,10 +3033,10 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       </div>
       <div id="orgChartOverlayLoader" style="text-align:center;padding:40px 0;color:var(--muted);">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-        <div style="font-size:0.88rem;">Loading from Supabase…</div>
+        <div style="font-size:0.88rem;">Loading…</div>
       </div>
       <div id="orgChartOverlayGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;"></div>
-      <div id="orgChartOverlayEmpty" style="display:none;text-align:center;padding:40px 0;color:var(--muted);font-size:0.9rem;">Koi document nahi mila.</div>
+      <div id="orgChartOverlayEmpty" style="display:none;text-align:center;padding:40px 0;color:var(--muted);font-size:0.9rem;">No Documents Found</div>
       <div id="orgChartOverlayError" style="display:none;text-align:center;padding:40px 0;color:#ff5c7c;font-size:0.9rem;"></div>
     </div>
   </div>
@@ -3041,10 +3055,24 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     </div>
     <div id="hrDocsLoader" style="text-align:center;padding:40px 0;color:var(--muted);">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-      <div style="font-size:0.85rem;">Loading from Supabase…</div>
+      <div style="font-size:0.85rem;">Loading…</div>
     </div>
+
+    <!-- UPLOAD SECTION (only shown for Mediclaim module) -->
+    <div id="hrDocsUploadSection" style="display:none;margin-bottom:16px;padding:14px;background:var(--surface2);border-radius:12px;border:1px dashed var(--border);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="font-size:0.85rem;color:var(--muted);">📤 HR can upload new documents here</div>
+        <button id="hrDocsUploadBtn" onclick="triggerMediclaimUpload()" style="background:#ef4444;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload File
+        </button>
+      </div>
+      <input type="file" id="hrDocsFileInput" style="display:none;" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" />
+      <div id="hrDocsUploadStatus" style="margin-top:10px;font-size:0.82rem;display:none;"></div>
+    </div>
+
     <div id="hrDocsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;align-items:stretch;"></div>
-    <div id="hrDocsEmpty" style="display:none;text-align:center;padding:40px 0;color:var(--muted);font-size:0.9rem;">Koi document nahi mila.</div>
+    <div id="hrDocsEmpty" style="display:none;text-align:center;padding:40px 0;color:var(--muted);font-size:0.9rem;">No documents Found.</div>
   </div>
 </div>
 
@@ -3122,7 +3150,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   <div class="db-content">
     <div id="sales-loading" style="text-align:center;padding:60px 0;color:var(--muted);">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 12px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-      <div style="font-size:0.9rem;">Loading Sales resources…</div>
+      <div style="font-size:0.9rem;">Loading…</div>
     </div>
     <div id="sales-error" style="display:none;text-align:center;padding:48px 0;color:var(--muted);">
       <div style="font-size:2rem;margin-bottom:8px;">⚠️</div>
@@ -3166,7 +3194,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   <div class="db-content">
     <div id="aftersales-loading" style="text-align:center;padding:60px 0;color:var(--muted);">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 12px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-      <div style="font-size:0.9rem;">Loading After Sales resources…</div>
+      <div style="font-size:0.9rem;">Loading…</div>
     </div>
     <div id="aftersales-error" style="display:none;text-align:center;padding:48px 0;color:var(--muted);">
       <div style="font-size:2rem;margin-bottom:8px;">⚠️</div>
@@ -3303,7 +3331,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div class="section-title">Videos</div>
     <div id="prod-vid-loading" style="text-align:center;padding:32px 0;color:var(--muted);">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-      <div style="font-size:0.85rem;">Loading videos…</div>
+      <div style="font-size:0.85rem;">Loading…</div>
     </div>
     <div id="prod-vid-error" style="display:none;text-align:center;padding:24px 0;color:var(--muted);">
       <div style="font-size:1.8rem;margin-bottom:6px;">⚠️</div>
@@ -3332,7 +3360,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   <div class="db-loading" id="tasksLoad" style="display:none">
     <div class="loader-logo">TASK CHECKLIST</div>
     <div class="loader-bar"><div class="loader-fill"></div></div>
-    <div class="loader-text">Loading tasks...</div>
+    <div class="loader-text">Loading...</div>
   </div>
 
   <div id="tNoTaskWarn" style="display:none"></div>
@@ -6882,6 +6910,8 @@ const HR_DOC_THEMES = {
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>` },
   'HR Policy': { color:'#f0a500', bg:'rgba(240,165,0,0.12)',  border:'rgba(240,165,0,0.3)',
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>` },
+  'Mediclaim': { color:'#ef4444', bg:'rgba(239,68,68,0.12)',  border:'rgba(239,68,68,0.3)',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.5a5.5 5.5 0 0111-1 5.5 5.5 0 0111 1c0 7-8 11.5-8 11.5"/><line x1="12" y1="8" x2="12" y2="14"/><line x1="9" y1="11" x2="15" y2="11"/></svg>` },
   'Employee Dir': { color:'#06b6d4', bg:'rgba(6,182,212,0.12)', border:'rgba(6,182,212,0.3)',
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>` },
   'Support Dir': { color:'#0ea5e9', bg:'rgba(14,165,233,0.12)', border:'rgba(14,165,233,0.3)',
@@ -6902,6 +6932,14 @@ async function openHRDocsOverlay(module) {
   document.getElementById('hrDocsEmpty').style.display   = 'none';
   document.getElementById('hrDocsOverlay').style.display = 'block';
   document.body.style.overflow = 'hidden';
+
+  // Show upload section only for Mediclaim
+  const uploadSec = document.getElementById('hrDocsUploadSection');
+  if (uploadSec) {
+    uploadSec.style.display = (module === 'Mediclaim') ? 'block' : 'none';
+    document.getElementById('hrDocsUploadStatus').style.display = 'none';
+    document.getElementById('hrDocsFileInput').value = '';
+  }
 
   // Use cache if available
   if (hrDocsCache[module]) { renderHRDocs(hrDocsCache[module], th, module); return; }
@@ -6946,6 +6984,151 @@ function renderHRDocs(items, th, module) {
 function closeHRDocsOverlay() {
   document.getElementById('hrDocsOverlay').style.display = 'none';
   document.body.style.overflow = '';
+}
+
+// ═══════════════════════════════════════════════════════════
+// MEDICLAIM UPLOAD — HR can upload files directly
+// ═══════════════════════════════════════════════════════════
+const MEDICLAIM_UPLOAD_PASSWORD = 'hr@aditi2026';  // Change this to your preferred password
+const MEDICLAIM_BUCKET = 'Documents';
+const MEDICLAIM_FOLDER = 'Mediclaim';
+
+function triggerMediclaimUpload() {
+  // Password gate
+  const pwd = prompt('Enter HR password to upload:');
+  if (pwd === null) return;  // User cancelled
+  if (pwd !== MEDICLAIM_UPLOAD_PASSWORD) {
+    alert('Galat password. Upload cancelled.');
+    return;
+  }
+  // Trigger file picker
+  document.getElementById('hrDocsFileInput').click();
+}
+
+// Wire up file input change handler after DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  const fileInput = document.getElementById('hrDocsFileInput');
+  if (fileInput) {
+    fileInput.addEventListener('change', handleMediclaimFileSelected);
+  }
+});
+// Also bind immediately in case DOMContentLoaded already fired
+(function() {
+  const fileInput = document.getElementById('hrDocsFileInput');
+  if (fileInput && !fileInput._mediclaimBound) {
+    fileInput.addEventListener('change', handleMediclaimFileSelected);
+    fileInput._mediclaimBound = true;
+  }
+})();
+
+async function handleMediclaimFileSelected(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('hrDocsUploadStatus');
+  const uploadBtn = document.getElementById('hrDocsUploadBtn');
+  const setStatus = (msg, color) => {
+    statusEl.style.display = 'block';
+    statusEl.style.color = color || 'var(--muted)';
+    statusEl.textContent = msg;
+  };
+
+  // Ask for display name (default = file name without extension)
+  const defaultName = file.name.replace(/\.[^.]+$/, '');
+  const displayName = prompt('Display name for this document:', defaultName);
+  if (displayName === null || !displayName.trim()) {
+    e.target.value = '';
+    return;
+  }
+
+  try {
+    uploadBtn.disabled = true;
+    uploadBtn.style.opacity = '0.6';
+    uploadBtn.style.cursor = 'wait';
+    setStatus('⏳ Uploading file…', '#f0a500');
+
+    // 1. Build unique storage path: Mediclaim/<timestamp>_<filename>
+    const ts = Date.now();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = `${MEDICLAIM_FOLDER}/${ts}_${safeName}`;
+
+    // 2. Upload file to Supabase Storage
+    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${MEDICLAIM_BUCKET}/${encodeURIComponent(storagePath)}`;
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Content-Type': file.type || 'application/octet-stream',
+        'x-upsert': 'false'
+      },
+      body: file
+    });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text().catch(() => '');
+      throw new Error('Storage upload fail: HTTP ' + uploadRes.status + (errText ? ' — ' + errText.slice(0, 200) : ''));
+    }
+
+    // 3. Build public URL
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${MEDICLAIM_BUCKET}/${storagePath}`;
+
+    setStatus('⏳ Saving to database…', '#f0a500');
+
+    // 3.5 Fetch current max id (workaround for out-of-sync sequence)
+    let nextId = null;
+    try {
+      const maxRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/Documents?select=id&order=id.desc&limit=1`,
+        { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' } }
+      );
+      if (maxRes.ok) {
+        const maxRows = await maxRes.json();
+        if (Array.isArray(maxRows) && maxRows.length && typeof maxRows[0].id === 'number') {
+          nextId = maxRows[0].id + 1;
+        }
+      }
+    } catch (_) { /* fall through — let DB auto-gen */ }
+
+    // 4. Insert row into Documents table
+    const payload = {
+      Doc_Module: 'Mediclaim',
+      Doc_Name: displayName.trim(),
+      Doc_Link: publicUrl
+    };
+    if (nextId !== null) payload.id = nextId;
+
+    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/Documents`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!insertRes.ok) {
+      const errText = await insertRes.text().catch(() => '');
+      throw new Error('DB insert fail: HTTP ' + insertRes.status + (errText ? ' — ' + errText.slice(0, 200) : ''));
+    }
+
+    setStatus('✅ Upload successful! Refreshing list…', '#00d4aa');
+
+    // 5. Clear cache and reload overlay
+    delete hrDocsCache['Mediclaim'];
+    e.target.value = '';
+    setTimeout(() => {
+      openHRDocsOverlay('Mediclaim');
+    }, 800);
+
+  } catch (err) {
+    console.error('[Mediclaim Upload]', err);
+    setStatus('❌ ' + err.message, '#ff5c7c');
+  } finally {
+    uploadBtn.disabled = false;
+    uploadBtn.style.opacity = '';
+    uploadBtn.style.cursor = 'pointer';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -7799,7 +7982,7 @@ function showResult() {
     <div id="file-viewer-body" style="flex:1;background:#323639;position:relative;overflow:hidden;overscroll-behavior:contain;">
       <div id="file-viewer-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.92rem;gap:10px;flex-direction:column;z-index:4;">
         <div style="width:36px;height:36px;border:3px solid var(--border);border-top-color:#14b8a6;border-radius:50%;animation:fvspin 0.9s linear infinite;"></div>
-        <div>Loading documents…</div>
+        <div>Loading…</div>
       </div>
       <!-- Iframe is absolutely positioned so we can shift it UP to clip the toolbar off the top.
            Container has overflow:hidden so the shifted-off portion is invisible. -->
