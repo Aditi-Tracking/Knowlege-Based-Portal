@@ -7662,7 +7662,7 @@ async function fetchMISVideos() {
   } catch(err) {
     cardsEl.innerHTML = `
       <div style="text-align:center;padding:20px;">
-        <div style="color:#ef4444;font-size:0.93rem;margin-bottom:8px;">❌ Videos load nahi hue.</div>
+        <div style="color:#ef4444;font-size:0.93rem;margin-bottom:8px;">Loading...</div>
         <div style="font-size:0.78rem;color:var(--muted);background:var(--surface2);padding:10px;border-radius:8px;text-align:left;word-break:break-all;max-height:80px;overflow:auto;">${err.message}</div>
         <div style="margin-top:10px;font-size:0.82rem;color:var(--muted);">💡 SQL Editor mein run karo:<br>
         <code style="background:var(--surface2);padding:4px 8px;border-radius:6px;font-size:0.78rem;">CREATE POLICY "read_all" ON "Training_Videos" FOR SELECT TO anon USING (true);</code></div>
