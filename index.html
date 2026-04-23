@@ -193,6 +193,25 @@
   .hp-contact-detail a:hover{text-decoration:underline;}
   .hp-contact-avail{font-size:0.71rem;color:var(--muted);text-align:right;white-space:nowrap;}
 
+  /* ══ FAQ ACCORDION ══ */
+  .hp-faq-intro{font-size:0.85rem;color:var(--muted);line-height:1.6;margin-bottom:14px;}
+  .hp-faq-list{display:flex;flex-direction:column;gap:8px;}
+  .hp-faq-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;}
+  .hp-faq-item[open]{border-color:rgba(240,165,0,0.3);box-shadow:0 2px 8px rgba(240,165,0,0.06);}
+  .hp-faq-item summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:0.88rem;font-weight:600;color:var(--text);user-select:none;transition:color 0.2s;}
+  .hp-faq-item summary::-webkit-details-marker{display:none;}
+  .hp-faq-item summary:hover{color:var(--accent);}
+  .hp-faq-q-num{flex-shrink:0;width:26px;height:26px;border-radius:7px;background:rgba(240,165,0,0.12);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:0.76rem;font-weight:700;font-family:'DM Sans',sans-serif;}
+  .hp-faq-q-text{flex:1;line-height:1.45;}
+  .hp-faq-chevron{flex-shrink:0;width:18px;height:18px;color:var(--muted);transition:transform 0.25s;}
+  .hp-faq-item[open] .hp-faq-chevron{transform:rotate(180deg);color:var(--accent);}
+  .hp-faq-answer{padding:0 14px 14px 50px;font-size:0.84rem;color:var(--text2);line-height:1.65;}
+  .hp-faq-answer a{color:var(--accent2);text-decoration:none;}
+  .hp-faq-answer a:hover{text-decoration:underline;}
+  .hp-faq-footer{margin-top:14px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:0.82rem;color:var(--text2);text-align:center;}
+  .hp-faq-footer a{color:var(--accent2);text-decoration:none;font-weight:600;}
+  .hp-faq-footer a:hover{text-decoration:underline;}
+
   /* ══ ABOUT ORGANISATION PANEL ══ */
   .about-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;}
   .about-tab{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.18s;}
@@ -795,6 +814,9 @@
     .hp-guide-step { padding: 9px 10px !important; }
     .hp-contact-item { flex-wrap: wrap; gap:8px; }
     .hp-contact-avail { width:100%; text-align:left !important; }
+    .hp-faq-item summary { padding: 10px 12px !important; font-size: 0.82rem !important; gap: 8px !important; }
+    .hp-faq-q-num { width: 22px !important; height: 22px !important; font-size: 0.7rem !important; }
+    .hp-faq-answer { padding: 0 12px 12px 42px !important; font-size: 0.78rem !important; }
     .home-cards { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
     .hc-icon { font-size: 1.4rem !important; margin-bottom: 8px !important; }
     .hc-name { font-size: 0.82rem !important; }
@@ -1853,6 +1875,229 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
           </div>
 
         </div>
+      </div>
+    </div>
+
+    <!-- ══ FREQUENTLY ASKED QUESTIONS ══ -->
+    <div class="hp-card" style="margin-top:16px;">
+      <div class="hp-card-header">
+        <span class="hp-card-icon">❓</span>
+        <span class="hp-card-title">Frequently Asked Questions</span>
+        <span style="font-size:0.73rem;color:var(--accent2);margin-left:auto;font-weight:600;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.25);padding:3px 10px;border-radius:20px;">23 Questions</span>
+      </div>
+      <div class="hp-faq-intro">Frequently asked questions about Aditi Tracking’s products, services, and features. Click on any question to view the answer.</div>
+      <div class="hp-faq-list">
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">1</span>
+            <span class="hp-faq-q-text">What is a Fleet Management System?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">The Fleet Management System is an avant-garde, intelligent combination of features that are engineered to protect your assets from theft and misplacement. You can manage fleet operations with real-time vehicle status and ensure safety with instant speeding &amp; violation alarms.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">2</span>
+            <span class="hp-faq-q-text">How does the Fleet Management System actually work?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">It safeguards your vehicle and improves customer experience by purveying high-tech state-of-the-art solutions like Vehicle Tracking, Fuel Monitoring, Asset Management, Temperature Management, E.V Solutions, and more. This intuitive fleet management software is tried, tested, and effective, and can be integrated into your vehicle conveniently.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">3</span>
+            <span class="hp-faq-q-text">What are the benefits of using a Fleet Management System?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Fleet Management Software is packed with several distinctive benefits. Through this cutting-edge, utility-driving system, you are offered Intelligent GPS Tracking with live alerts, PAN India Service, and SOS/Panic Button. The comprehensive Fleet Management System also includes a web dashboard and native mobile application access, live real-time tracking of your vehicle, and top-notch service with hassle-free installation.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">4</span>
+            <span class="hp-faq-q-text">How does the RTO Approved AIS 140 Vehicle Tracking System work?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">The RTO Approved AIS 140 Vehicle Tracking System renders the real-time location of your car and provides easy access to 24/7 vehicle tracking. The system also incorporates futuristic features like an emergency response button and the Intelligent Driver Scoring methodology.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">5</span>
+            <span class="hp-faq-q-text">How do I reduce fuel consumption in vehicles with a Fleet Management System?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">With the Fleet Management System, fuel monitoring becomes seamlessly possible. The reliable GPS Integrated Fuel Monitoring System enables you to track and reconcile your fuel inventory from a central dashboard. Thus, you can view a consolidated report of fuel usage, wastage and drip duration within a single click. The fleet management system also provides fuel consumption tracking that not only prompts you in case of fuel theft but also shows you the exact location and time of when the theft occurred. With the comprehensive fuel mileage and idle wastage analysis, you can save fuel significantly by cutting down on wastage and optimizing your travels.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">6</span>
+            <span class="hp-faq-q-text">Which is the best mobile-friendly Fleet Management System?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Aditi Tracking's Fleet Management Software is one of the most cutting-edge tech-first systems for vehicle and asset protection that also works seamlessly on your smartphone. Through intuitive applications, you can access crucial information about your vehicle and monitor the same at all times. The SIM-tracking solution is compatible with all major network providers and is efficient &amp; cost-effective.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">7</span>
+            <span class="hp-faq-q-text">What is GPS fleet tracking software, and how does it work?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">GPS fleet tracking software lets you monitor trucks, cars, and commercial vehicles in real-time using satellite data. Aditi Tracking's GPS solution shows live location, route history, vehicle health, and driver behavior to improve safety, efficiency, and operational control.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">8</span>
+            <span class="hp-faq-q-text">How does a GPS tracker operate?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">A GPS tracker communicates with satellites to determine location. This data is sent to Aditi Tracking's platform via mobile networks, where users can monitor vehicle activity, set geofences, and get AI-powered alerts on events like speeding or unauthorized movement.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">9</span>
+            <span class="hp-faq-q-text">What is an OBD GPS tracker?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">An OBD (On-Board Diagnostics) GPS tracker plugs into your vehicle's OBD-II port, commonly found in cars and light commercial vehicles. It not only tracks location but also sends engine diagnostics and performance data.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">10</span>
+            <span class="hp-faq-q-text">How do I install a real-time GPS tracker in my truck or car?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">It depends on the device type. Plug-and-play devices can be self-installed in the OBD-II port within minutes. Professional installation is available through Aditi Tracking for hardwired options in trucks and heavy commercial vehicles.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">11</span>
+            <span class="hp-faq-q-text">Is it easy to install and set up Aditi Tracking devices?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Yes! Our plug-and-play GPS units are ready to go instantly. For larger fleets or commercial vehicles, we offer full installation support by trained technicians.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">12</span>
+            <span class="hp-faq-q-text">What warranty do you offer on your GPS tracking hardware?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">All Aditi Tracking devices come with a standard warranty. For exact terms, check the product manual or reach out to our support team.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">13</span>
+            <span class="hp-faq-q-text">Will GPS tracking work in areas with poor or no mobile network?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Yes. While data transmission uses cellular networks, our devices store data during outages and sync it once coverage is restored, ensuring you don't lose trip data.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">14</span>
+            <span class="hp-faq-q-text">How does GPS tracking help individuals and businesses in India?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">For both personal and business use, GPS tracking improves security, route planning, and fuel efficiency. It also helps transporters comply with local vehicle movement laws like AIS-140.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">15</span>
+            <span class="hp-faq-q-text">How can Aditi Tracking improve driver safety and asset utilization?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Our AI-driven platform monitors driver behavior, flagging speeding, harsh braking, and idling. This helps with driver training and ensures trucks and vehicles are used optimally.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">16</span>
+            <span class="hp-faq-q-text">What are the benefits of using a telematics solution for fleet managers?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Telematics solutions like Aditi Tracking offer live tracking, driver scorecards, vehicle health monitoring, and fuel insights, leading to lower operational costs and better decision-making.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">17</span>
+            <span class="hp-faq-q-text">Is it cost-effective? How much does it save?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Absolutely. With GPS tracking, companies reduce fuel expenses, cut idle time, prevent misuse, and lower maintenance costs, often seeing ROI within months.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">18</span>
+            <span class="hp-faq-q-text">What's the price of Aditi Tracking GPS units in India?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Prices range from ₹3,500 to ₹15,500 based on features (basic tracking to full telematics). Check our website for the latest pricing or get a custom quote based on your fleet size.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">19</span>
+            <span class="hp-faq-q-text">Can I get a demo before purchase?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Yes! We offer free product demos so you can see how the system works with your fleet setup. <a href="https://www.adititracking.com/contact-us/" target="_blank" rel="noopener">Just reach out to our team.</a></div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">20</span>
+            <span class="hp-faq-q-text">Is Aditi Tracking AIS-140 certified?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Yes. Our devices are compliant with AIS-140, a mandatory government standard for GPS devices in commercial and public transport vehicles in India.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">21</span>
+            <span class="hp-faq-q-text">How does GPS tracking protect against vehicle theft?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Our solution includes real-time location monitoring, geofence alerts, and even remote engine immobilization, enabling fast response during theft attempts.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">22</span>
+            <span class="hp-faq-q-text">Can your system integrate with our current software or ERP?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Yes, we offer easy API integrations with existing ERP, logistics, and transport management systems for seamless data flow.</div>
+        </details>
+
+        <details class="hp-faq-item">
+          <summary>
+            <span class="hp-faq-q-num">23</span>
+            <span class="hp-faq-q-text">Do you offer 24/7 customer support?</span>
+            <svg class="hp-faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <div class="hp-faq-answer">Yes! Our dedicated support team is available round-the-clock to help with setup, troubleshooting, or any queries you might have.</div>
+        </details>
+
+      </div>
+      <div class="hp-faq-footer">
+        Still have questions? Visit <a href="https://www.adititracking.com/faqs/" target="_blank" rel="noopener">adititracking.com/faqs</a> or <a href="https://www.adititracking.com/contact-us/" target="_blank" rel="noopener">contact our team</a>.
       </div>
     </div>
 
