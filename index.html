@@ -3671,33 +3671,24 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div class="table-card">
       <div class="table-header" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">
         <span class="table-title">All Tasks</span>
-        <span class="table-count" id="tTblCnt">—</span>
-        <button id="tForceRefreshBtn" onclick="tForceRefresh()" title="Sheet se fresh data lo" style="margin-left:8px;display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1.5px solid rgba(240,165,0,0.35);background:rgba(240,165,0,0.08);color:#f0a500;font-size:0.80rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.background='rgba(240,165,0,0.18)'" onmouseout="this.style.background='rgba(240,165,0,0.08)'">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-          Refresh
-        </button>
         <span id="tLastSyncBadge" style="font-size:0.72rem;color:var(--muted);margin-left:4px;"></span>
-
+        <span class="table-count" id="tTblCnt" style="margin-left:auto">—</span>
       </div>
       <div class="table-scroll" style="overflow-x:auto">
-        <table style="width:100%;table-layout:fixed;min-width:900px">
+        <table style="width:100%;table-layout:fixed;min-width:780px">
           <colgroup>
-            <col style="width:12%">
-            <col style="width:9%">
-            <col style="width:6%">
-            <col style="width:5%">
-            <col style="width:20%">
-            <col style="width:8%">
-            <col style="width:9%">
-            <col style="width:8%">
+            <col style="width:14%">
+            <col style="width:7%">
+            <col style="width:25%">
+            <col style="width:10%">
+            <col style="width:11%">
+            <col style="width:10%">
             <col style="width:10%">
             <col style="width:13%">
           </colgroup>
           <thead><tr>
             <th>NAME</th>
-            <th>DEPARTMENT</th>
             <th>TASK ID</th>
-            <th>FREQ</th>
             <th>TASK</th>
             <th>PLANNED</th>
             <th>ACTUAL</th>
@@ -5176,7 +5167,7 @@ async function loadTasks(){
   }catch(e){
     document.getElementById('tasksLoad').style.display='none';
     document.getElementById('tasksCont').style.display='block';
-    document.getElementById('tTblBody').innerHTML=`<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--hot)">❌ ${e.message}</td></tr>`;
+    document.getElementById('tTblBody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--hot)">❌ ${e.message}</td></tr>`;
   }
 }
 
@@ -5630,10 +5621,8 @@ function tRenderTable(){
     const deptColor = (r['Department']||'').toLowerCase()==='support' ? '#00d4ff' : (r['Department']||'').toLowerCase()==='sales' ? '#00d4aa' : '#a855f7';
     const deptBg = (r['Department']||'').toLowerCase()==='support' ? 'rgba(0,212,255,0.1)' : (r['Department']||'').toLowerCase()==='sales' ? 'rgba(0,212,170,0.1)' : 'rgba(168,85,247,0.1)';
     return `<tr>
-      <td><div style="font-weight:600">${r['Name']||'—'}</div><div style="font-size:0.78rem;color:var(--muted)">${r['Email']||''}</div></td>
-      <td><span style="font-size:0.83rem;background:${deptBg};color:${deptColor};padding:3px 8px;border-radius:6px">${r['Department']||'—'}</span></td>
+      <td><div style="font-weight:600">${r['Name']||'—'}</div></td>
       <td style="font-size:0.88rem;color:var(--muted);text-align:center;font-weight:600">${r['Task ID']||'—'}</td>
-      <td style="text-align:center"><span style="font-size:0.83rem;background:rgba(0,212,255,0.1);color:#00d4ff;padding:2px 7px;border-radius:5px">${r['Freq']||'—'}</span></td>
       <td style="font-size:0.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Task']||'').replace(/"/g,'')}">${r['Task']||'—'}</td>
       <td style="font-size:0.85rem;color:var(--muted)">${fmtDate(r['Planned'])}</td>
       <td style="font-size:0.85rem;color:${r['Actual']?'#00d4aa':'var(--muted)'}">${fmtDate(r['Actual'])}</td>
@@ -6441,6 +6430,65 @@ async function fetchModuleVideos(key) {
   }
 }
 
+// ── Search filter for generic module video lists (Odoo, PC, ClickTask, CoolBus, SmartFleet) ──
+function filterModuleVideos(key) {
+  const inp = document.getElementById('modvid-search-' + key);
+  if (!inp) return;
+  const q = inp.value.toLowerCase().trim();
+  const container = document.getElementById('modvid-cards-' + key);
+  if (!container) return;
+  const cards = container.querySelectorAll('[data-vtitle]');
+  let visible = 0;
+  cards.forEach(c => {
+    const title = c.getAttribute('data-vtitle') || '';
+    if (!q || title.includes(q)) { c.style.display = ''; visible++; }
+    else { c.style.display = 'none'; }
+  });
+  // No-results message
+  let nrEl = document.getElementById('modvid-nores-' + key);
+  if (visible === 0 && q && cards.length > 0) {
+    if (!nrEl) {
+      nrEl = document.createElement('div');
+      nrEl.id = 'modvid-nores-' + key;
+      nrEl.style.cssText = 'text-align:center;padding:20px;color:var(--muted);font-size:0.9rem;';
+      container.appendChild(nrEl);
+    }
+    nrEl.textContent = 'Koi video nahi mili "' + inp.value.trim() + '" ke liye.';
+    nrEl.style.display = '';
+  } else if (nrEl) {
+    nrEl.style.display = 'none';
+  }
+}
+
+// ── Search filter for MIS video list ──
+function filterMISVideos() {
+  const inp = document.getElementById('mis-video-search');
+  if (!inp) return;
+  const q = inp.value.toLowerCase().trim();
+  const container = document.getElementById('mis-video-cards');
+  if (!container) return;
+  const cards = container.querySelectorAll('[data-vtitle]');
+  let visible = 0;
+  cards.forEach(c => {
+    const title = c.getAttribute('data-vtitle') || '';
+    if (!q || title.includes(q)) { c.style.display = ''; visible++; }
+    else { c.style.display = 'none'; }
+  });
+  let nrEl = document.getElementById('mis-video-nores');
+  if (visible === 0 && q && cards.length > 0) {
+    if (!nrEl) {
+      nrEl = document.createElement('div');
+      nrEl.id = 'mis-video-nores';
+      nrEl.style.cssText = 'text-align:center;padding:20px;color:var(--muted);font-size:0.9rem;';
+      container.appendChild(nrEl);
+    }
+    nrEl.textContent = 'Koi video nahi mili "' + inp.value.trim() + '" ke liye.';
+    nrEl.style.display = '';
+  } else if (nrEl) {
+    nrEl.style.display = 'none';
+  }
+}
+
 function renderModuleVideoCards(key) {
   const mod = MODULE_QUIZZES[key];
   const cardsEl = document.getElementById(`modvid-cards-${key}`);
@@ -6452,8 +6500,9 @@ function renderModuleVideoCards(key) {
   }
   cardsEl.innerHTML = data.map((row, idx) => {
     const meta = getMISVideoMeta(row.Title);
+    const safeTitle = (row.Title||'').toLowerCase().replace(/"/g,'&quot;');
     return `
-      <div onclick="playModuleVideo('${key}',${idx})"
+      <div data-vtitle="${safeTitle}" onclick="playModuleVideo('${key}',${idx})"
            style="cursor:pointer;padding:16px;border-radius:12px;border:1.5px solid ${mod.color}44;background:${mod.color}12;transition:all 0.18s;"
            onmouseover="this.style.borderColor='${mod.color}bb';this.style.background='${mod.color}22'"
            onmouseout="this.style.borderColor='${mod.color}44';this.style.background='${mod.color}12'">
@@ -6469,6 +6518,8 @@ function renderModuleVideoCards(key) {
         </div>
       </div>`;
   }).join('');
+  // Re-apply search filter if user already typed something before re-render
+  if (typeof filterModuleVideos === 'function') filterModuleVideos(key);
 }
 
 function playModuleVideo(key, idx) {
@@ -6536,6 +6587,16 @@ function showModuleQuizMenu() {
       <div id="modvid-vtab-${key}">
         <div id="modvid-list-${key}">
           <div style="font-size:0.82rem;font-weight:700;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:12px;">Training Videos</div>
+          <div style="position:relative;margin-bottom:12px;">
+            <input type="text" id="modvid-search-${key}"
+              placeholder="Search videos..."
+              oninput="filterModuleVideos('${key}')"
+              style="width:100%;padding:10px 14px 10px 38px;border-radius:10px;border:1.5px solid ${mod.color}40;background:var(--surface2);color:var(--text);font-size:0.9rem;font-family:inherit;outline:none;transition:border-color 0.18s;box-sizing:border-box;"
+              onfocus="this.style.borderColor='${mod.color}bb'" onblur="this.style.borderColor='${mod.color}40'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${mod.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+          </div>
           <div id="modvid-cards-${key}" style="display:flex;flex-direction:column;gap:10px;">
             <div style="text-align:center;padding:24px;color:var(--muted);font-size:0.92rem;">Loading...</div>
           </div>
@@ -7978,8 +8039,9 @@ function renderMISVideoCards(data) {
 
   cardsEl.innerHTML = data.map((row, idx) => {
     const meta = getMISVideoMeta(row.Title);
+    const safeTitle = (row.Title||'').toLowerCase().replace(/"/g,'&quot;');
     return `
-      <div onclick="playMISVideo(${idx})"
+      <div data-vtitle="${safeTitle}" onclick="playMISVideo(${idx})"
            style="cursor:pointer;padding:16px;border-radius:12px;border:1.5px solid ${meta.color}44;background:${meta.color}12;transition:all 0.18s;"
            onmouseover="this.style.borderColor='${meta.color}bb';this.style.background='${meta.color}22'"
            onmouseout="this.style.borderColor='${meta.color}44';this.style.background='${meta.color}12'">
@@ -7995,6 +8057,8 @@ function renderMISVideoCards(data) {
         </div>
       </div>`;
   }).join('');
+  // Re-apply search filter if user already typed something before re-render
+  if (typeof filterMISVideos === 'function') filterMISVideos();
 }
 
 // ── Play video by index ──
@@ -8171,6 +8235,16 @@ function showResult() {
     <div id="mis-videos-tab">
       <div id="mis-video-list">
         <div style="font-size:0.85rem;font-weight:700;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:12px;">Training Videos</div>
+        <div style="position:relative;margin-bottom:12px;">
+          <input type="text" id="mis-video-search"
+            placeholder="Search videos..."
+            oninput="filterMISVideos()"
+            style="width:100%;padding:10px 14px 10px 38px;border-radius:10px;border:1.5px solid rgba(240,165,0,0.35);background:var(--surface2);color:var(--text);font-size:0.9rem;font-family:inherit;outline:none;transition:border-color 0.18s;box-sizing:border-box;"
+            onfocus="this.style.borderColor='rgba(240,165,0,0.75)'" onblur="this.style.borderColor='rgba(240,165,0,0.35)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </div>
         <div style="display:flex;flex-direction:column;gap:10px;" id="mis-video-cards">
           <div style="text-align:center;padding:24px;color:var(--muted);font-size:0.92rem;">Loading</div>
         </div>
