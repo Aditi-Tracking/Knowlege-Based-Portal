@@ -3645,10 +3645,10 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div class="filters-bar" style="flex-wrap:wrap;gap:8px">
       <span class="filter-label">Filter:</span>
       <input class="filter-input" id="tSearch" placeholder="🔍 Name, task, dept..." oninput="tApply()" style="min-width:160px">
-      <span class="filter-label">📅 From:</span>
-      <input type="date" class="filter-input" id="tFDateFrom" onchange="tApply()" style="min-width:130px;max-width:145px;cursor:pointer">
-      <span class="filter-label">To:</span>
-      <input type="date" class="filter-input" id="tFDateTo" onchange="tApply()" style="min-width:130px;max-width:145px;cursor:pointer">
+      <span class="filter-label tDateFilterEl">📅 From:</span>
+      <input type="date" class="filter-input tDateFilterEl" id="tFDateFrom" onchange="tApply()" style="min-width:130px;max-width:145px;cursor:pointer">
+      <span class="filter-label tDateFilterEl">To:</span>
+      <input type="date" class="filter-input tDateFilterEl" id="tFDateTo" onchange="tApply()" style="min-width:130px;max-width:145px;cursor:pointer">
       <select class="filter-select" id="tFDept" onchange="tApply()"><option value="">All Departments</option></select>
       <select class="filter-select" id="tFPerson" onchange="tApply()"><option value="">All People</option></select>
       <select class="filter-select" id="tFFreq" onchange="tApply()"><option value="">All Frequency</option></select>
@@ -5039,8 +5039,10 @@ async function loadTasks(){
         const kName=fk('Name','name'); const kEmail=fk('Email','email');
         const kDept=fk('Department','dept','Dept'); const kTaskId=fk('Task ID','TaskID','taskid','Task Id');
         const kTask=fk('Task','task'); const kFreq=fk('Freq','freq','Frequency');
-        const kPlanned=fk('Planned','planned'); const kActual=fk('Actual','actual');
-        const kStatus=fk('Status','status'); const kRemarks=fk('Remarks','remarks','Remark');
+        const kPlanned=fk('Planned','planned'); const kActual=fk('Actual','actual','Actual Date','ActualDate');
+        const kStatus=fk('Status','status'); const kRemarks=fk('Remarks','remarks','Remark','Remark/Feedback');
+        // Goa fix: agar Remarks column mein date/timestamp aa raha hai to blank karo
+        const isDateVal = v => /^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(String(v||'').trim());
         return raw.map(r=>({
           'Name':     String(r[kName]||'').trim(),
           'Email':    String(r[kEmail]||'').trim(),
@@ -5051,7 +5053,7 @@ async function loadTasks(){
           'Planned':  String(r[kPlanned]||'').trim(),
           'Actual':   String(r[kActual]||'').trim(),
           'Status':   String(r[kStatus]||'').trim(),
-          'Remarks':  String(r[kRemarks]||'').trim(),
+          'Remarks':  isDateVal(r[kRemarks]) ? '' : String(r[kRemarks]||'').trim(),
           '_source':  locationLabel.toLowerCase(),
           '_location':locationLabel,
         }));
@@ -5455,6 +5457,19 @@ function tPopulateFilters(){
   } else if(locEl){
     locEl.style.display='none';
   }
+  // ── Date filter visibility: sirf owner/MIS/PC ko hi date change karne ka option mile.
+  // Baaki employees ke liye From/To inputs aur unke labels hide ho jaate hain — but
+  // background mein "today" ka filter pehle se applied hai (tInit mein set hota hai),
+  // toh unhe by-default aaj ke tasks dikhte rahenge.
+  const _isPrivilegedDate = CURRENT_USER && (
+    CURRENT_USER.role === 'owner' ||
+    CURRENT_USER.rawRole === 'owner' ||
+    CURRENT_USER.rawRole === 'mis' ||
+    CURRENT_USER.rawRole === 'pc'
+  );
+  document.querySelectorAll('.tDateFilterEl').forEach(el=>{
+    el.style.display = _isPrivilegedDate ? '' : 'none';
+  });
 }
 
 function tApply(){
@@ -5488,10 +5503,29 @@ function tClearAll(){
   document.getElementById('tFPerson').value='';
   document.getElementById('tFFreq').value='';
   document.getElementById('tFStatus').value='';
-  document.getElementById('tFDateFrom').value='';
-  document.getElementById('tFDateTo').value='';
+  // ── Reset behaviour: privileged (owner/MIS/PC) ka date filter clear ho jaata hai
+  // (poori range dikhe). Non-privileged employees ke liye today's date wapas restore
+  // ho jaati hai — kyunki unke liye date filter UI hidden hai aur default "today" ka
+  // hi rehna chahiye.
+  const _isPrivilegedDate2 = CURRENT_USER && (
+    CURRENT_USER.role === 'owner' ||
+    CURRENT_USER.rawRole === 'owner' ||
+    CURRENT_USER.rawRole === 'mis' ||
+    CURRENT_USER.rawRole === 'pc'
+  );
+  if(_isPrivilegedDate2){
+    document.getElementById('tFDateFrom').value='';
+    document.getElementById('tFDateTo').value='';
+  } else {
+    const _t=new Date();
+    const _ts=_t.getFullYear()+'-'+String(_t.getMonth()+1).padStart(2,'0')+'-'+String(_t.getDate()).padStart(2,'0');
+    document.getElementById('tFDateFrom').value=_ts;
+    document.getElementById('tFDateTo').value=_ts;
+    tActiveDateFrom=_ts; tActiveDateTo=_ts;
+  }
   const locEl=document.getElementById('tFLocation'); if(locEl) locEl.value='';
-  tFiltered=[...tAllData]; tPage=1;
+  tFiltered=_isPrivilegedDate2 ? [...tAllData] : tGetFiltered();
+  tPage=1;
   tRenderKPIs();
   tRenderCharts();
   tRenderTable();
@@ -5602,18 +5636,29 @@ function tRenderTable(){
   document.getElementById('tTblBody').innerHTML=pg.map((r,i)=>{
     const done=tIsDone(r);
     const isSupport=(r['Department']||'').toLowerCase()==='support'||r['_source']==='support';
-    const isSales=(r['Department']||'').toLowerCase()==='sales'||r['_source']==='sales';
+    // ── FIX (Goa): isSales check sirf HO Sales sheet ke liye chale, branch (goa/gujarat/bangalore)
+    // ke Sales-dept rows ke liye nahi. Branch employees pre-filled Google Form direct kholenge,
+    // jaisa support/HO main mein hota hai. Pehle Department='Sales' Goa sheet mein hone se
+    // remarks-popup khul jata tha — wo galat behaviour tha.
+    const _src=String(r['_source']||'').toLowerCase();
+    const isBranch=_src==='goa'||_src==='gujarat'||_src==='bangalore';
+    const isSales=!isBranch && _src==='sales';
     const statusBadge=done
       ?'<span class="badge" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.25)">✅ Done</span>'
       :'<span class="badge" style="background:rgba(240,165,0,0.1);color:#f0a500;border:1px solid rgba(240,165,0,0.2)">⏳ Pending</span>';
     const fUrl = buildPrefillUrl(r);
     const actionCell=done
       ?`<span style="color:#00d4aa;font-size:0.85rem;font-weight:600">✅ Done</span>`
-      :`<a href="${fUrl}" target="_blank" rel="noopener"
-          onclick="tMarkDoneMySQL('${r['Task ID']||''}','${(r['Department']||'').toLowerCase()}','${r['_source']||''}')"
-          style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:7px 10px;font-size:0.82rem;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 8px rgba(168,85,247,0.4)">
-          ✅ Mark Done
-        </a>`;
+      : isSales
+        ?`<button onclick="salesShowRemarksInput('${r['Task ID']||''}')"
+            style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:7px 10px;font-size:0.82rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 8px rgba(168,85,247,0.4)">
+            ✅ Mark Done
+          </button>`
+        :`<a href="${fUrl}" target="_blank" rel="noopener"
+            onclick="tMarkDoneMySQL('${r['Task ID']||''}','${(r['Department']||'').toLowerCase()}','${r['_source']||''}')"
+            style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:7px 10px;font-size:0.82rem;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 8px rgba(168,85,247,0.4)">
+            ✅ Mark Done
+          </a>`;
     const remarks = r['Remarks']||'';
     const remarkCell = remarks
       ? `<span style="font-size:0.82rem;color:var(--text);background:var(--surface2);padding:3px 7px;border-radius:5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${remarks.replace(/"/g,'')}">${remarks}</span>`
@@ -5628,7 +5673,7 @@ function tRenderTable(){
       <td style="font-size:0.85rem;color:${r['Actual']?'#00d4aa':'var(--muted)'}">${fmtDate(r['Actual'])}</td>
       <td>${statusBadge}</td>
       <td>${remarkCell}</td>
-      <td style="white-space:nowrap">${actionCell}</td>
+      <td style="white-space:nowrap;max-width:140px;overflow:hidden;" id="act_${r['Task ID']||''}">${actionCell}</td>
     </tr>`;
   }).join('');
 
@@ -5729,21 +5774,85 @@ function tMarkDoneMySQL(taskId, dept, source){
   tFiltered.forEach(r=>{ if(String(r['Task ID'])===tid){ r['Status']='done'; r['Actual']=actualForDisplay; }});
   setTimeout(()=>{ tRenderKPIs(); tRenderCharts(); tRenderTable(); }, 300);
 
-  // Sales ke liye: form khul gaya (href se) + background mein Sales sheet mein bhi likho
-  // (kyunki form Support sheet mein jaata hai, Sales sheet mein nahi)
-  if(d==='sales' || s==='sales'){
-    fetch(SALES_API + '?action=write&taskId=' + encodeURIComponent(tid) + '&t=' + Date.now())
-      .then(r=>r.json())
-      .then(data=>{
-        if(data.ok){
-          console.log('[SALES WRITE ✅]', tid);
-          setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 3000);
-        } else {
-          console.warn('[SALES WRITE ❌]', data.error||'Unknown');
-        }
-      })
-      .catch(e=>console.warn('[SALES WRITE ❌] Network:', e));
-  }
+  // Sales: ab inline modal se handle hota hai (salesShowRemarksInput)
+  // Isliye yahan sales ke liye API call nahi karte
+}
+
+// ── Sales: Inline Remarks Input (Support jaisa flow) ────────────────
+function salesShowRemarksInput(taskId){
+  const btn = document.querySelector('[onclick*="salesShowRemarksInput(\'' + taskId + '\')"]');
+  if(!btn) return;
+  const td = btn.closest('td');
+  if(!td) return;
+  // TD ka white-space override karo taaki content wrap ho sake
+  td.style.whiteSpace = 'normal';
+  td.style.minWidth   = '0';
+  td.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:4px;width:100%;box-sizing:border-box;">
+      <input type="text" id="sale_rem_${taskId}"
+             placeholder="Remarks..."
+             style="padding:5px 7px;border-radius:6px;border:1.5px solid var(--border);
+                    background:var(--surface2);color:var(--text);font-size:0.80rem;
+                    width:100%;box-sizing:border-box;outline:none;font-family:inherit;"
+             onkeydown="if(event.key==='Enter') salesSubmitDone('${taskId}')">
+      <div style="display:flex;gap:4px;width:100%;">
+        <button onclick="salesSubmitDone('${taskId}')"
+                style="flex:1;background:#00d4aa;color:#000;border:none;border-radius:6px;
+                       padding:4px 6px;font-size:0.78rem;font-weight:700;cursor:pointer;
+                       white-space:nowrap;">✅ Submit</button>
+        <button onclick="tRenderTable()"
+                style="flex:0 0 auto;background:var(--surface2);color:var(--text2);
+                       border:1px solid var(--border);border-radius:6px;
+                       padding:4px 8px;font-size:0.78rem;cursor:pointer;">✕</button>
+      </div>
+    </div>`;
+  try{ document.getElementById('sale_rem_'+taskId).focus(); }catch(e){}
+}
+
+function salesSubmitDone(taskId){
+  const tid = String(taskId);
+  const inp = document.getElementById('sale_rem_'+tid);
+  const remarks = (inp ? inp.value : '').trim();
+
+  const now = new Date();
+  const day=String(now.getDate()).padStart(2,'0');
+  const mon=String(now.getMonth()+1).padStart(2,'0');
+  const yr=now.getFullYear();
+  const hr=String(now.getHours()).padStart(2,'0');
+  const mn=String(now.getMinutes()).padStart(2,'0');
+  const sc=String(now.getSeconds()).padStart(2,'0');
+  const actualForDisplay = day+'/'+mon+'/'+yr+' '+hr+':'+mn+':'+sc;
+
+  // Turant UI update
+  [tAllData, tFiltered].forEach(arr=>{
+    arr.forEach(r=>{
+      if(String(r['Task ID'])===tid){
+        r['Status']='done';
+        r['Actual']=actualForDisplay;
+        r['Remarks']=remarks;
+      }
+    });
+  });
+  setTimeout(()=>{ tRenderKPIs(); tRenderCharts(); tRenderTable(); }, 200);
+  tSaveDoneTask(tid, actualForDisplay);
+
+  // SALES_API ko taskId + remarks bhejo
+  fetch(SALES_API
+    + '?action=write'
+    + '&taskId='   + encodeURIComponent(tid)
+    + '&remarks='  + encodeURIComponent(remarks)
+    + '&t='        + Date.now()
+  )
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.ok){
+        console.log('[SALES WRITE ✅] TaskId:', tid, '| Remarks:', remarks);
+        setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 3000);
+      } else {
+        console.warn('[SALES WRITE ❌]', data.error||'Unknown error');
+      }
+    })
+    .catch(e=>console.warn('[SALES WRITE ❌] Network error:', e));
 }
 
 // ═══════════════════════════════════════════════════════════════════════
