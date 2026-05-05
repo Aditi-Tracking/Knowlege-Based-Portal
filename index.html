@@ -4506,7 +4506,7 @@ function showProfileDetails(){
 
   // Step 1 – Email_Id se match karo (most reliable — email unique hota hai)
   const tryEmailLookup = email
-    ? fetch(`${SUPABASE_URL}/rest/v1/Employee_Profile_Photos?select=*&Email_Id=ilike.${encodeURIComponent(email)}&limit=1`,{headers:_hdrs}).then(r=>r.json())
+    ? fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=*&Email_Id=ilike.${encodeURIComponent(email)}&limit=1`,{headers:_hdrs}).then(r=>r.json())
     : Promise.resolve([]);
 
   tryEmailLookup
@@ -4515,7 +4515,7 @@ function showProfileDetails(){
     if(rows&&rows.length>0){ _fillProfileModal(rows[0],name,rawRole,grid,errMsg,loadMsg); return null; }
     // Step 2 – Employee_name exact match fallback
     const encodedName=encodeURIComponent(name.trim());
-    return fetch(`${SUPABASE_URL}/rest/v1/Employee_Profile_Photos?select=*&Employee_name=ilike.${encodedName}&limit=1`,{headers:_hdrs}).then(r=>r.json());
+    return fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=*&Employee_name=ilike.${encodedName}&limit=1`,{headers:_hdrs}).then(r=>r.json());
   })
   .then(rows=>{
     if(rows===null) return null; // already filled in step 1
@@ -4524,7 +4524,7 @@ function showProfileDetails(){
     // Step 3 – first name only fallback
     const firstName=name.trim().split(/\s+/)[0];
     if(firstName&&firstName.toLowerCase()!==name.toLowerCase()){
-      return fetch(`${SUPABASE_URL}/rest/v1/Employee_Profile_Photos?select=*&Employee_name=ilike.${encodeURIComponent(firstName)}&limit=1`,{headers:_hdrs}).then(r=>r.json()).then(rows2=>{
+      return fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=*&Employee_name=ilike.${encodeURIComponent(firstName)}&limit=1`,{headers:_hdrs}).then(r=>r.json()).then(rows2=>{
         if(rows2&&rows2.length>0){ _fillProfileModal(rows2[0],name,rawRole,grid,errMsg,loadMsg); return null; }
         _profileNotFound(name,loadMsg,errMsg);
         return null;
@@ -4650,9 +4650,9 @@ async function uploadProfilePhoto(file) {
     const ts = Date.now();
     const avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${filePath}?t=${ts}`;
 
-    // 3. Employee_Profile_Photos table mein avatar_url update karo
+    // 3. Employee_details table mein avatar_url update karo
     const patchRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/Employee_Profile_Photos?Email_Id=ilike.${encodeURIComponent(email)}`,
+      `${SUPABASE_URL}/rest/v1/Employee_details?Email_Id=ilike.${encodeURIComponent(email)}`,
       {
         method: 'PATCH',
         headers: {
@@ -8808,7 +8808,7 @@ function _cnRenderOverlayContent(nodeId, catName, th, gridId, subId, emptyId, pa
 
 
 // ═══════════════════════════════════════════════════════════
-// EMPLOYEE PROFILE PHOTO — Supabase Employee_Profile_Photos
+// EMPLOYEE PROFILE PHOTO — Supabase Employee_details
 // Employee_name se match karo, photo home page pe dikhao
 // ═══════════════════════════════════════════════════════════
 async function fetchUserProfilePhoto() {
@@ -8833,7 +8833,7 @@ async function fetchUserProfilePhoto() {
     const _hdrs = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' };
 
     if (userEmail) {
-      const urlE = `${SUPABASE_URL}/rest/v1/Employee_Profile_Photos?select=*&Email_Id=ilike.${encodeURIComponent(userEmail)}&limit=1`;
+      const urlE = `${SUPABASE_URL}/rest/v1/Employee_details?select=*&Email_Id=ilike.${encodeURIComponent(userEmail)}&limit=1`;
       const resE = await fetch(urlE, { headers: _hdrs });
       const dataE = await resE.json();
       if (Array.isArray(dataE) && dataE.length > 0) row = dataE[0];
@@ -8842,7 +8842,7 @@ async function fetchUserProfilePhoto() {
     // Step 2 – Email se nahi mila toh Employee_name se try karo (case-insensitive)
     if (!row) {
       const encodedName = encodeURIComponent(userName);
-      const url = `${SUPABASE_URL}/rest/v1/Employee_Profile_Photos?select=*&Employee_name=ilike.${encodedName}&limit=1`;
+      const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=*&Employee_name=ilike.${encodedName}&limit=1`;
       const res = await fetch(url, { headers: _hdrs });
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) row = data[0];
@@ -8895,7 +8895,7 @@ function _showPhotoPlaceholder(el, name) {
 
 // ═══════════════════════════════════════════════════════════
 // PERFORMER OF THE MONTH — April 2026
-// Supabase Employee_Profile_Photos se photos + dept fetch
+// Supabase Employee_details se photos + dept fetch
 // ═══════════════════════════════════════════════════════════
 
 // 👇 Yahan names update karo har mahine
@@ -8943,7 +8943,7 @@ async function loadPerformers() {
   try {
     // Saare performers ek hi API call mein fetch karo
     const names = POTM_NAMES.map(n => `Employee_name.ilike.${encodeURIComponent(n)}`).join(',');
-    const url = `${SUPABASE_URL}/rest/v1/Employee_Profile_Photos?select=Employee_name,Employee_Dept,Link,Location&or=(${names})`;
+    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Employee_Dept,Link,Location&or=(${names})`;
     const res = await fetch(url, {
       headers: {
         'apikey': SUPABASE_ANON,
