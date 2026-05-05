@@ -23,7 +23,7 @@
     --border2:rgba(255,255,255,0.04);
     --accent:#f0a500;--accent2:#00d4aa;--accent3:#ff5c7c;--accent4:#4e9af1;
     --hot:#ff5c7c;--warm:#f0a500;--cold:#4e9af1;
-    --text:#e8eaf0;--text2:#b0b4be;--muted:#5a6070;--won:#00d4aa;--lost:#ff5c7c;
+    --text:#e8eaf0;--text2:#c8ccd8;--muted:#b0b8cc;--won:#00d4aa;--lost:#ff5c7c;
     --sw:240px;
     --radius:14px;--radius-lg:18px;--radius-sm:8px;
     --shadow:0 4px 24px rgba(0,0,0,0.4);
@@ -1608,7 +1608,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
         <span class="nav-sub-dot"></span>
         <span class="nav-label">Task Checklist</span><span class="nav-badge live">Live</span>
       </div>
-      <!-- IMS — MIS · Owner · PC only -->
+      <!-- IMS — MIS · Managing Director · PC only -->
       <div class="nav-item nav-sub-item" onclick="switchDB('ims')" id="nav-ims" style="display:none;">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">IMS</span><span class="nav-badge live" style="background:rgba(245,166,35,0.18);color:#f5a623;border:1px solid rgba(245,166,35,0.35);">Live</span>
@@ -4014,14 +4014,14 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 
 <!-- ═══════════════════════════════════════════════════════
      IMS DASHBOARD PANEL
-     Access: MIS · Owner · PC only
+     Access: MIS · Managing Director · PC only
      ═══════════════════════════════════════════════════════ -->
 <div class="dashboard-panel" id="panel-ims">
 
   <!-- IMS CSS (scoped inside panel) -->
   <style>
     #panel-ims .ims-kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:22px;}
-    #panel-ims .ims-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:18px 16px 14px;position:relative;overflow:hidden;transition:transform 0.2s;}
+    #panel-ims .ims-kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 16px 14px;position:relative;overflow:hidden;transition:transform 0.2s;}
     #panel-ims .ims-kpi:hover{transform:translateY(-2px);}
     #panel-ims .ims-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ik,var(--accent));}
     #panel-ims .ims-kpi-label{font-size:0.67rem;text-transform:uppercase;letter-spacing:0.11em;color:var(--muted);font-weight:600;margin-bottom:8px;}
@@ -4029,11 +4029,11 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     #panel-ims .ims-kpi-sub{font-size:0.73rem;color:var(--muted);}
     #panel-ims .ims-kpi-ico{position:absolute;bottom:12px;right:14px;font-size:1.9rem;opacity:0.1;}
     #panel-ims .ims-charts{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-bottom:22px;}
-    #panel-ims .ims-chart-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:18px;}
+    #panel-ims .ims-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;}
     #panel-ims .ims-chart-title{font-family:'Playfair Display',serif;font-size:0.88rem;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
     #panel-ims .ims-chart-title .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);}
     #panel-ims .ims-chart-wrap{position:relative;height:210px;}
-    #panel-ims .ims-controls{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+    #panel-ims .ims-controls{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;}
     #panel-ims .ims-search-wrap{position:relative;flex:1;min-width:200px;}
     #panel-ims .ims-search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;}
     #panel-ims .ims-search{width:100%;padding:8px 14px 8px 36px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.18s;}
@@ -4042,12 +4042,12 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     #panel-ims .ims-fbtn{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.80rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.18s;white-space:nowrap;}
     #panel-ims .ims-fbtn.active{background:var(--accent);color:#000;border-color:var(--accent);}
     #panel-ims .ims-fbtn:hover:not(.active){border-color:var(--accent);color:var(--accent);}
-    #panel-ims .ims-table-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-width:0;}
+    #panel-ims .ims-table-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-width:0;}
     #panel-ims .ims-table-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
     #panel-ims .ims-table-title{font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:700;color:var(--text);}
     #panel-ims .ims-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
     #panel-ims table{width:100%;border-collapse:collapse;font-size:0.81rem;white-space:nowrap;min-width:400px;}
-    #panel-ims thead tr{background:var(--surface);border-bottom:1px solid var(--border);}
+    #panel-ims thead tr{background:var(--surface2);border-bottom:1px solid var(--border);}
     #panel-ims th{padding:9px 13px;text-align:left;font-size:0.67rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.09em;}
     #panel-ims th.r{text-align:right;}
     #panel-ims td{padding:8px 13px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle;}
@@ -4122,7 +4122,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   <div class="db-header">
     <div>
       <div class="db-title"><span>aditi</span> IMS</div>
-      <div class="db-breadcrumb">Home › Inventory Management System</div>
+      <div class="db-breadcrumb" id="imsBreadcrumb">Home › IMS — Head Quarter</div>
     </div>
     <div class="header-right">
       <div id="imsLiveBadge" style="display:flex;align-items:center;gap:6px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.22);padding:5px 12px;border-radius:20px;font-size:0.78rem;color:var(--accent2);font-weight:500;">
@@ -4148,7 +4148,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <!-- Loading -->
     <div id="imsLoader" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;gap:14px;">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-      <div style="font-size:0.85rem;color:var(--muted);">Loading live data…</div>
+      <div style="font-size:0.85rem;color:var(--muted);">Loading...</div>
     </div>
 
     <!-- KPI Cards -->
@@ -4168,17 +4168,38 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 
     <!-- Controls -->
     <div class="ims-controls" id="imsControls" style="display:none;">
-      <!-- Date filter — built dynamically after data loads -->
-      <div id="imsDateFilterWrap" style="display:flex;align-items:center;gap:8px;"></div>
-      <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
-      <div class="ims-search-wrap">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="ims-search" id="imsSearch" placeholder="Search item or SKU code…" oninput="imsApplyFilter()">
+
+      <!-- Location filter row -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:0.75rem;font-weight:600;color:var(--muted);white-space:nowrap;">📍 Location:</span>
+        <select onchange="imsSetLocation(this.value)"
+          style="padding:7px 12px;background:var(--surface2);border:1.5px solid rgba(0,212,170,0.4);
+                 border-radius:8px;color:var(--accent2);font-size:0.82rem;font-family:'DM Sans',sans-serif;
+                 font-weight:700;outline:none;cursor:pointer;min-width:160px;transition:border-color 0.18s;"
+          onfocus="this.style.borderColor='rgba(0,212,170,0.7)'"
+          onblur="this.style.borderColor='rgba(0,212,170,0.4)'">
+          <option value="hq">🏢 Head Quarter</option>
+          <option value="goa">🌊 Goa</option>
+          <option value="gujarat">🌾 Gujarat</option>
+          <option value="bangalore">🏙️ Bangalore</option>
+        </select>
       </div>
-      <button class="ims-fbtn active" onclick="imsSetFilter(this,'all')">All</button>
-      <button class="ims-fbtn" onclick="imsSetFilter(this,'zero')">🔴 Zero Stock</button>
-      <button class="ims-fbtn" onclick="imsSetFilter(this,'low')">🟡 Low Stock</button>
-      <button class="ims-fbtn" onclick="imsSetFilter(this,'ok')">🟢 Healthy</button>
+
+      <!-- Date + Search + Status filter row -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <!-- Date filter — built dynamically after data loads -->
+        <div id="imsDateFilterWrap" style="display:flex;align-items:center;gap:8px;"></div>
+        <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
+        <div class="ims-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="ims-search" id="imsSearch" placeholder="Search item or SKU code…" oninput="imsApplyFilter()">
+        </div>
+        <button class="ims-fbtn active" onclick="imsSetFilter(this,'all')">All</button>
+        <button class="ims-fbtn" onclick="imsSetFilter(this,'zero')">🔴 Zero Stock</button>
+        <button class="ims-fbtn" onclick="imsSetFilter(this,'low')">🟡 Low Stock</button>
+        <button class="ims-fbtn" onclick="imsSetFilter(this,'ok')">🟢 Healthy</button>
+      </div>
+
     </div>
 
     <!-- Table -->
@@ -4411,7 +4432,7 @@ function prefetchAllData(){
     });
   }
 
-  // Owner/MIS/PC: also fetch leads, collection, FMS in background
+  // Managing Director/MIS/PC: also fetch leads, collection, FMS in background
   if(_isOwner){
     if(!_leadsCache) fetch(L_URL).then(r=>r.json()).then(d=>{_leadsCache=d;}).catch(()=>{});
     if(!_collCache)  fetch(C_URL).then(r=>r.json()).then(d=>{_collCache=d;}).catch(()=>{});
@@ -4431,7 +4452,7 @@ function _syncProfileUI(){
   if(typeof CURRENT_USER==='undefined' || !CURRENT_USER) return;
   const name     = CURRENT_USER.name || CURRENT_USER.email.split('@')[0] || 'User';
   const rawRole  = CURRENT_USER.rawRole || 'employee';
-  const roleLabel= rawRole === 'owner' ? 'Managing Director' : rawRole.charAt(0).toUpperCase() + rawRole.slice(1);
+  const roleLabel= rawRole === 'owner' ? 'Managing Director' : rawRole.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
   const roleIcon = rawRole === 'owner' ? '👑' : rawRole === 'mis' ? '📊' : rawRole === 'pc' ? '💼' : '👤';
   const initial  = name.charAt(0).toUpperCase();
   // Desktop sidebar
@@ -4581,7 +4602,7 @@ const VIDEO_DOWNLOAD_EMAILS = [
   'care3@adititracking.com',   // Akshay More
   'mis@adititracking.com',     // Hemant (MIS)
   'mis1@adititracking.com',    // Krishna (MIS)
-  'chirag@adititracking.com',  // Owner
+  'chirag@adititracking.com',  // Managing Director
 ];
 function _canDownloadVideo() {
   if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
@@ -5336,7 +5357,7 @@ switchDB = function(id){
 };
 
 async function fmsLoadData(){
-  document.getElementById('fMainTableBody').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;padding:3rem;gap:1rem;color:var(--muted);"><div class="loader-bar"><div class="loader-fill"></div></div><p style="font-size:0.89rem;">Fetching live data...</p></div>`;
+  document.getElementById('fMainTableBody').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;padding:3rem;gap:1rem;color:var(--muted);"><div class="loader-bar"><div class="loader-fill"></div></div><p style="font-size:0.89rem;">Loading...</p></div>`;
   try{
     const res=await fetch(FMS_API);
     const text=await res.text();
@@ -5366,10 +5387,11 @@ async function fmsLoadData(){
       customerName: gv(r,'Customer Name','CustomerName','customerName'),
       product:      gv(r,'Product','product'),
     })).filter(r=>r.uniqueKey&&!r.uniqueKey.includes('#N/A'));
-    document.getElementById('fmsLastRefresh').textContent='Updated '+new Date().toLocaleTimeString();
+    const el=document.getElementById('fmsLastRefresh');
+    if(el) el.textContent='Updated '+new Date().toLocaleTimeString();
     fmsProcessData();
   }catch(e){
-    document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--hot);">❌ ${e.message}<br><small style="color:var(--muted);">Please check the Apps Script URL</small><br><button onclick="fmsLoadData()" style="margin-top:0.8rem;padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">🔄 Retry</button></div>`;
+    document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--hot);">❌ ${e.message}<br><small style="color:var(--muted);">Set Apps Script URL or check CORS</small><button onclick="fmsLoadData()" style="margin-top:0.8rem;display:block;margin-left:auto;margin-right:auto;padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">🔄 Retry</button></div>`;
   }
 }
 
@@ -5701,63 +5723,17 @@ function fmsClearAllFilters(){
   document.getElementById('fStatusFilter').value='';
   document.getElementById('fDateFrom').value='';
   document.getElementById('fDateTo').value='';
-  fmsDateFrom=null;fmsDateTo=null;
-  fmsKpiFilter('all');
+  fmsDateFrom=null; fmsDateTo=null;
+  fmsCurrentFilter='all';
+  fmsFiltered=[...fmsAllData];
+  fmsMainPage=1;
+  fmsRefreshAll();
 }
 
 function fmsExportCSV(){
   const h=['Unique Key','Customer Name','Product','Doer Name','Planned Step','Planned','For PC','Doer Email','Form Link'];
   const rows=fmsFiltered.map(r=>[r.uniqueKey,r.customerName,r.product,r.doerName,r.plannedStep,r.planned,r.forPC,r.doerEmail,r.link].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...rows].join('\n'));a.download='fms_tasks_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
-}
-
-
-
-// fmsLoadData is called by the switchDB override above
-async function fmsLoadData(){
-  const loader=`<div style="display:flex;flex-direction:column;align-items:center;padding:3rem;gap:1rem;color:var(--muted);"><div class="loader-bar"><div class="loader-fill"></div></div><p style="font-size:0.89rem;">Fetching live data...</p></div>`;
-  document.getElementById('fMainTableBody').innerHTML=loader;
-  try{
-    const res=await fetch(FMS_API);
-    const text=await res.text();
-    let json;try{json=JSON.parse(text);}catch(e){throw new Error('Invalid JSON from API');}
-    let raw=[];
-    if(Array.isArray(json)) raw=json;
-    else if(json.data&&Array.isArray(json.data)) raw=json.data;
-    else if(json.records&&Array.isArray(json.records)) raw=json.records;
-    else if(json.rows&&Array.isArray(json.rows)) raw=json.rows;
-    // Handle {h:[headers], r:[[row],[row]]} format
-    else if(json.h&&json.r){raw=json.r.map(row=>{const o={};json.h.forEach((k,i)=>{o[k]=row[i]??'';});return o;});}
-    console.log('[FMS] API response type:', typeof json, Array.isArray(json)?'array':'object');
-    console.log('[FMS] Parsed rows:', raw.length);
-    if(raw.length) console.log('[FMS] Column names:', Object.keys(raw[0]));
-    if(!raw.length){
-      document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--muted);">
-        <div style="font-size:1.5rem;margin-bottom:0.5rem;">📭</div>
-        No data found in Sheet<br>
-        <small style="color:var(--muted);font-size:0.85rem;">Check [FMS] logs in Browser Console (F12)</small>
-      </div>`;
-      return;
-    }
-    const firstRow=raw[0],keys=Object.keys(firstRow);
-    function gv(r,...cols){for(const c of cols){if(r[c]!==undefined&&String(r[c]).trim()!='')return String(r[c]);const f=keys.find(k=>k.toLowerCase().replace(/[^a-z0-9]/g,'')==c.toLowerCase().replace(/[^a-z0-9]/g,''));if(f&&r[f]!==undefined&&String(r[f]).trim()!='')return String(r[f]);}return '';}
-    fmsAllData=raw.map(r=>({
-      uniqueKey:    gv(r,'Unique Key','UniqueKey','uniqueKey'),
-      planned:      gv(r,'Planned Step','PlannedStep','Planned','planned'),
-      plannedStep:  gv(r,'Planned Step','PlannedStep','How','how'),
-      how:          gv(r,'How','how'),
-      doerName:     gv(r,'Final Doer Name','FinalDoerName','Doer Name','DoerName','doerName'),
-      link:         gv(r,'Link','link'),
-      forPC:        gv(r,'For PC','ForPC','forPC'),
-      doerEmail:    gv(r,'Final Doer Email','FinalDoerEmail','Doer Email','DoerEmail','doerEmail'),
-      customerName: gv(r,'Customer Name','CustomerName','customerName'),
-      product:      gv(r,'Product','product'),
-    })).filter(r=>r.uniqueKey&&!r.uniqueKey.includes('#N/A'));
-    document.getElementById('fmsLastRefresh').textContent='Updated '+new Date().toLocaleTimeString();
-    fmsProcessData();
-  }catch(e){
-    document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--hot);">❌ ${e.message}<br><small style="color:var(--muted);">Set Apps Script URL or check CORS</small><button onclick="fmsLoadData()" style="margin-top:0.8rem;display:block;margin-left:auto;margin-right:auto;padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">🔄 Retry</button></div>`;
-  }
 }
 
 
@@ -5786,10 +5762,15 @@ const TASK_API = 'https://script.google.com/macros/s/AKfycbyo_iI8z_ySsww7vz47eum
 const SUPPORT_API = 'https://script.google.com/macros/s/AKfycbykCc7Hdzy9gLcIXSusKnbg-6mfP7CnMFiuhvDYSr6lvm1XoRWg5ihErGDg7cVH9s1d/exec';
 const SALES_API = 'https://script.google.com/macros/s/AKfycbwSeXqD-8U4fL2TVEDxAYIoAypEO8qkpudWByXr52DBhukuPE_8LGMcAPQqyKhW-9xE/exec';
 
-// ── BRANCH LOCATION APIs ──
+// ── BRANCH LOCATION APIs (Task Checklist) ──
 const GUJARAT_API   = 'https://script.google.com/macros/s/AKfycbzGBHZr_g2ElCNDlyvuztHq-_RWip5IvBdOVkZCorU3H014NR2pu_CKFPkZYJoTrzQ/exec';
 const GOA_API       = 'https://script.google.com/macros/s/AKfycbzk9mCiwH1j9M_HOK_L65zEyD7XKFuO48ruFSUHPOATRtdTz47Zh4kiTettPv_h4Is/exec';
 const BANGALORE_API = 'https://script.google.com/macros/s/AKfycbyVAKkPppeqD-T_SFQ2RnK9xR1opE9E4X5l_mgSxBTWAnDYPoxej0iJx4whqc19vmBnNg/exec';
+
+// ── IMS BRANCH INVENTORY APIs (separate from Task APIs) ──
+const IMS_GUJARAT_API   = 'https://script.google.com/macros/s/AKfycbz3m_D7OETa5BIX1JBL8wj4rZ_kVELBOzhqRpZSeSQi-gEBnCoHKCp9p4ir3TNwfFiR/exec';
+const IMS_GOA_API       = 'https://script.google.com/macros/s/AKfycbyJdOUvUvSDgRkFtVUlFahtABXzR-H1nrcv-Syj--wf1ehNoQIteTLuoXTZIwWBPQtByg/exec';
+const IMS_BANGALORE_API = 'https://script.google.com/macros/s/AKfycbz6NrjwVJxfivZfTlbeolSXy3Azsq0kdrHbMDgDT9UioBOQ4Gl-0Ypd--QtpvJjM3Sf_w/exec';
 
 // ── HARDCODED BRANCH EMPLOYEE → LOCATION MAP ──
 // Name (lowercase) → Location. Sirf is map mein hain unhe direct usi API se fetch karo.
@@ -5899,7 +5880,7 @@ function tPickFormConfig(dept, source, location){
 // SUPPORT_API = Support (HO Sheet 2)
 // SALES_API   = Sales (HO Sheet 1)
 // GUJARAT_API / GOA_API / BANGALORE_API = Branch location APIs
-// Owner/MIS/PC = fetch all
+// Managing Director/MIS/PC = fetch all
 function getTaskAPIsForUser(){
   if(!CURRENT_USER) return {main:true, supp:true, sales:true, guj:true, goa:true, bng:true};
   // Full access roles always get all sheets
@@ -6179,7 +6160,7 @@ function updateHomeTaskBanner(){
   const banner = document.getElementById('homeTaskBanner');
   if(!banner) return;
 
-  // Don't show for Owner, MIS, or PC roles
+  // Don't show for Managing Director, MIS, or PC roles
   const role = CURRENT_USER && (CURRENT_USER.rawRole||'').toLowerCase();
   if(!CURRENT_USER || CURRENT_USER.role==='owner' || role==='owner' || role==='mis' || role==='pc'){
     banner.style.display='none';
@@ -6478,14 +6459,14 @@ function tPopulateFilters(){
   document.getElementById('tFDept').innerHTML='<option value="">All Departments</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
   document.getElementById('tFPerson').innerHTML='<option value="">All People</option>'+persons.map(p=>`<option value="${p}">${p}</option>`).join('');
   document.getElementById('tFFreq').innerHTML='<option value="">All Frequency</option>'+freqs.map(f=>`<option value="${f}">${f}</option>`).join('');
-  // Show location filter only for owner/mis/pc
+  // Show location filter only for Managing Director/mis/pc
   const locEl=document.getElementById('tFLocation');
   if(locEl && CURRENT_USER && CURRENT_USER.role==='owner'){
     locEl.style.display='';
   } else if(locEl){
     locEl.style.display='none';
   }
-  // ── Date filter visibility: sirf owner/MIS/PC ko hi date change karne ka option mile.
+  // ── Date filter visibility: sirf Managing Director/MIS/PC ko hi date change karne ka option mile.
   // Baaki employees ke liye From/To inputs aur unke labels hide ho jaate hain — but
   // background mein "today" ka filter pehle se applied hai (tInit mein set hota hai),
   // toh unhe by-default aaj ke tasks dikhte rahenge.
@@ -6531,7 +6512,7 @@ function tClearAll(){
   document.getElementById('tFPerson').value='';
   document.getElementById('tFFreq').value='';
   document.getElementById('tFStatus').value='';
-  // ── Reset behaviour: privileged (owner/MIS/PC) ka date filter clear ho jaata hai
+  // ── Reset behaviour: privileged (Managing Director/MIS/PC) ka date filter clear ho jaata hai
   // (poori range dikhe). Non-privileged employees ke liye today's date wapas restore
   // ho jaati hai — kyunki unke liye date filter UI hidden hai aur default "today" ka
   // hi rehna chahiye.
@@ -7092,6 +7073,12 @@ window.addEventListener('load',function(){
       localStorage.removeItem('aditiLoginTime');
     } else {
       CURRENT_USER=JSON.parse(saved);
+      // Re-normalize managing director rawRole (stale localStorage fix)
+      if((CURRENT_USER.rawRole||'').toLowerCase().trim()==='managing director'){
+        CURRENT_USER.rawRole='owner';
+        CURRENT_USER.role='owner';
+        localStorage.setItem('aditiUser',JSON.stringify(CURRENT_USER));
+      }
       // Hardcoded branch map se location override karo (cached user ke liye bhi)
       const _savedMapLoc = BRANCH_EMPLOYEE_MAP[(CURRENT_USER.name||'').toLowerCase().trim()];
       if(_savedMapLoc) CURRENT_USER.location = _savedMapLoc;
@@ -7171,11 +7158,11 @@ async function doLogin(){
 
     if(user){
       const _rawR=String(user['Role']||user['role']||'employee').trim().toLowerCase();
-      const _fullAccessRoles=['owner','mis','pc'];
+      const _fullAccessRoles=['managing director','mis','pc'];
       CURRENT_USER={
         email:email,
         role:_fullAccessRoles.includes(_rawR)?'owner':'employee',
-        rawRole:_rawR,
+        rawRole:_rawR==='managing director'?'owner':_rawR,
         name:String(user['Name']||user['name']||email.split('@')[0]),
         location:String(user['Location']||user['location']||user['Branch']||user['branch']||'').trim()
       };
@@ -7314,9 +7301,9 @@ function showPortal(){
   if(mobBtn2) mobBtn2.textContent = (isLight ? '☀️ Light' : '🌙 Dark');
   // Employee restrictions
   if(CURRENT_USER.role!=='owner'){restrictEmployee();}
-  // Upload buttons — sirf MIS aur Owner ke liye dikhao
+  // Upload buttons — sirf MIS aur Managing Director ke liye dikhao
   _applyUploadVisibility();
-  // IMS nav — sirf MIS, Owner, PC ke liye dikhao
+  // IMS nav — sirf MIS, Managing Director, PC ke liye dikhao
   _applyIMSNavVisibility();
   // Fetch employee profile photo from Supabase → home page pe dikhao
   fetchUserProfilePhoto();
@@ -10791,9 +10778,9 @@ function _holNormLoc(loc) {
 
 function renderHolidayCard(branchFilter) {
   const isOwner = CURRENT_USER && (CURRENT_USER.role === 'owner' ||
-    ['owner','mis','pc'].includes((CURRENT_USER.rawRole||'').toLowerCase()));
+    ['managing director','mis','pc'].includes((CURRENT_USER.rawRole||'').toLowerCase()));
 
-  // Show branch tabs for owner/mis/pc
+  // Show branch tabs for Managing Director/mis/pc
   const tabsEl = document.getElementById('holidayBranchTabs');
   if (isOwner) tabsEl.style.display = 'flex';
 
@@ -12112,7 +12099,7 @@ async function confirmDeleteTrainingVideo(videoId, videoTitle, subKey) {
 
 // ═══════════════════════════════════════════════════════════════════
 // IMS DASHBOARD
-// Access: MIS · Owner · PC
+// Access: MIS · Managing Director · PC
 // ═══════════════════════════════════════════════════════════════════
 
 // ── CONFIG ────────────────────────────────────────────────────────
@@ -12128,12 +12115,21 @@ let _imsDateIdx      = -1;   // -1 = latest date (default); index into _imsDateH
 let _imsBarChart     = null;
 let _imsDonutChart   = null;
 let _imsRefInterval  = null;
+let _imsLocation     = 'hq'; // 'hq' | 'goa' | 'gujarat' | 'bangalore'
+
+// ── Location API map ──────────────────────────────────────────────
+function _imsGetAPI() {
+  if (_imsLocation === 'goa')       return IMS_GOA_API;
+  if (_imsLocation === 'gujarat')   return IMS_GUJARAT_API;
+  if (_imsLocation === 'bangalore') return IMS_BANGALORE_API;
+  return IMS_API_URL; // HQ
+}
 
 // ── Role ──────────────────────────────────────────────────────────
 function _canAccessIMS() {
   if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
   const r = String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim();
-  return r === 'mis' || r === 'owner' || r === 'pc';
+  return r === 'mis' || r === 'owner' || r === 'pc' || r === 'managing director';
 }
 function _applyIMSNavVisibility() {
   const el = document.getElementById('nav-ims');
@@ -12167,6 +12163,21 @@ function _imsSt(row) {
   return 'ok';
 }
 
+// ── Location switch ───────────────────────────────────────────────
+function imsSetLocation(loc) {
+  if (_imsLocation === loc) return;
+  _imsLocation = loc;
+  _imsLoaded   = false;
+  // Sync dropdown value
+  const dd = document.querySelector('#imsControls select');
+  if (dd) dd.value = loc;
+  // Update breadcrumb title
+  const labels = { hq:'Head Quarter', goa:'Goa', gujarat:'Gujarat', bangalore:'Bangalore' };
+  const titleEl = document.querySelector('#panel-ims .db-breadcrumb');
+  if (titleEl) titleEl.textContent = 'Home › IMS — ' + (labels[loc] || loc);
+  loadIMSDashboard();
+}
+
 // ── Refresh ───────────────────────────────────────────────────────
 function imsRefresh() { _imsLoaded = false; loadIMSDashboard(); }
 
@@ -12174,8 +12185,8 @@ function imsRefresh() { _imsLoaded = false; loadIMSDashboard(); }
 async function loadIMSDashboard() {
   if (_imsLoaded) return;
   if (!_canAccessIMS()) { switchDB('home'); return; }
-  if (!IMS_API_URL || IMS_API_URL.includes('PASTE_YOUR')) {
-    _imsShowError('IMS_API_URL is not configured. Please paste the URL in the JS.');
+  if (_imsLocation === 'hq' && (!IMS_API_URL || IMS_API_URL.includes('PASTE_YOUR'))) {
+    _imsShowError('IMS_API_URL is not configured.');
     document.getElementById('imsLoader').style.display = 'none';
     return;
   }
@@ -12183,7 +12194,8 @@ async function loadIMSDashboard() {
   const ico = document.getElementById('imsRefIco');
   if (ico) ico.style.animation = 'spin 0.8s linear infinite';
   try {
-    const res  = await fetch(IMS_API_URL);
+    const apiUrl = _imsGetAPI();
+    const res  = await fetch(apiUrl);
     const json = await res.json();
     if (!json.success) throw new Error(json.error || 'API error');
     _imsParseData(json);
