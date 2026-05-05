@@ -4431,12 +4431,13 @@ function _syncProfileUI(){
   if(typeof CURRENT_USER==='undefined' || !CURRENT_USER) return;
   const name     = CURRENT_USER.name || CURRENT_USER.email.split('@')[0] || 'User';
   const rawRole  = CURRENT_USER.rawRole || 'employee';
-  const roleLabel= rawRole.charAt(0).toUpperCase() + rawRole.slice(1);
+  const roleLabel= rawRole === 'owner' ? 'Managing Director' : rawRole.charAt(0).toUpperCase() + rawRole.slice(1);
+  const roleIcon = rawRole === 'owner' ? '👑' : rawRole === 'mis' ? '📊' : rawRole === 'pc' ? '💼' : '👤';
   const initial  = name.charAt(0).toUpperCase();
   // Desktop sidebar
   const sbpAv=document.getElementById('sbpAvatar'); if(sbpAv) sbpAv.textContent=initial;
   const sbpNm=document.getElementById('sbpName');   if(sbpNm) sbpNm.textContent=name;
-  const sbpRl=document.getElementById('sbpRole');   if(sbpRl) sbpRl.textContent='👤 '+roleLabel;
+  const sbpRl=document.getElementById('sbpRole');   if(sbpRl) sbpRl.textContent=roleIcon+' '+roleLabel;
   // Mobile bottom nav
   const bnpAv=document.getElementById('bnpAvatar'); if(bnpAv) bnpAv.textContent=initial;
   const bnpNm=document.getElementById('bnpName');   if(bnpNm) bnpNm.textContent=name.split(' ')[0];
@@ -7268,7 +7269,7 @@ function showPortal(){
         <div style="background:${CURRENT_USER.role==='owner'?'rgba(240,165,0,0.2)':'rgba(0,212,170,0.2)'};color:${CURRENT_USER.role==='owner'?'#f0a500':'#00d4aa'};width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.91rem;font-weight:700;flex-shrink:0">${(CURRENT_USER.name||CURRENT_USER.email)[0].toUpperCase()}</div>
         <div style="overflow:hidden">
           <div class="user-name-text" style="font-size:0.82rem;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${CURRENT_USER.name||CURRENT_USER.email.split('@')[0]}</div>
-          <div style="font-size:0.71rem;color:var(--text2)">${CURRENT_USER.rawRole==='owner'?'👑 Owner':CURRENT_USER.rawRole==='mis'?'📊 MIS':CURRENT_USER.rawRole==='pc'?'💼 PC':CURRENT_USER.role==='owner'?'👑 Owner':'👤 '+( (CURRENT_USER.rawRole&&CURRENT_USER.rawRole!=='employee')?CURRENT_USER.rawRole.charAt(0).toUpperCase()+CURRENT_USER.rawRole.slice(1):'Employee')}</div>
+          <div style="font-size:0.71rem;color:var(--text2)">${CURRENT_USER.rawRole==='owner'?'👑 Managing Director':CURRENT_USER.rawRole==='mis'?'📊 MIS':CURRENT_USER.rawRole==='pc'?'💼 PC':CURRENT_USER.role==='owner'?'👑 Managing Director':'👤 '+( (CURRENT_USER.rawRole&&CURRENT_USER.rawRole!=='employee')?CURRENT_USER.rawRole.charAt(0).toUpperCase()+CURRENT_USER.rawRole.slice(1):'Employee')}</div>
         </div>
       </div>
       <button onclick="doLogout()" style="width:100%;background:rgba(255,92,124,0.1);border:1px solid rgba(255,92,124,0.25);color:#ff5c7c;border-radius:8px;padding:8px;font-size:0.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s" onmouseover="this.style.background='rgba(255,92,124,0.25)'" onmouseout="this.style.background='rgba(255,92,124,0.1)'">
@@ -7281,8 +7282,8 @@ function showPortal(){
     const isO3=CURRENT_USER.role==='owner';
     const uN3=CURRENT_USER.name||CURRENT_USER.email.split('@')[0];
     const rr3=CURRENT_USER.rawRole||'';
-    let rl3=isO3?'👑 Owner':'👤 Employee';
-    if(rr3==='owner') rl3='👑 Owner';
+    let rl3=isO3?'👑 Managing Director':'👤 Employee';
+    if(rr3==='owner') rl3='👑 Managing Director';
     else if(rr3==='mis') rl3='📊 MIS';
     else if(rr3==='pc') rl3='💼 PC';
     else if(rr3==='support') rl3='🎧 Support';
@@ -10990,13 +10991,9 @@ async function openUploadModal(sectionName) {
     alert('⛔ Upload access is restricted to MIS users only.');
     return;
   }
-  // Password gate
-  const pwd = prompt('Enter upload password:');
-  if (!pwd) return;
-  if (pwd.trim() !== UPLOAD_PASSWORD) { alert('Wrong password.'); return; }
-
   _uploadSection = sectionName;
   _uploadFile    = null;
+  _uploadFiles   = [];
   _uploadMode    = 'existing';
   _uploadType    = 'file';
 
@@ -11013,6 +11010,8 @@ async function openUploadModal(sectionName) {
   document.getElementById('uploadFileInput').value        = '';
   document.getElementById('uploadDropZone').style.borderColor = '';
   document.getElementById('uploadDropZone').style.background  = '';
+  const mflReset = document.getElementById('multiFileList');
+  if (mflReset) mflReset.style.display = 'none';
   const subW = document.getElementById('uploadSubCardWrap');
   if (subW) subW.style.display = 'none';
 
@@ -11262,6 +11261,7 @@ async function createCardOnly() {
 
 // ── Upload type: 'file' or 'youtube' ────────────────────────────────────
 let _uploadType = 'file';
+let _uploadFiles = []; // Array for multiple file support
 
 function setUploadType(type) {
   _uploadType = type;
@@ -11304,28 +11304,66 @@ function _extractYtId(url) {
 }
 
 // ── File selected (from input or drop) ───────────────────────────────────
-function uploadFileSelected(file) {
-  if (!file) return;
-  _uploadFile = file;
+function uploadFileSelected(filesOrFile) {
+  // Accept FileList, File[], or single File
+  let files = [];
+  if (filesOrFile instanceof FileList || Array.isArray(filesOrFile)) {
+    files = Array.from(filesOrFile);
+  } else if (filesOrFile instanceof File) {
+    files = [filesOrFile];
+  }
+  if (!files.length) return;
+  _uploadFiles = files;
+  _uploadFile  = files[0]; // backward compat
+
   const label = document.getElementById('uploadDropLabel');
   const meta  = document.getElementById('uploadDropMeta');
-  label.textContent = '✅ ' + file.name;
-  meta.textContent  = (file.size / 1024 / 1024).toFixed(2) + ' MB — ' + (file.type || 'unknown type');
+
+  if (files.length === 1) {
+    label.textContent = '✅ ' + files[0].name;
+    meta.textContent  = (files[0].size / 1024 / 1024).toFixed(2) + ' MB — ' + (files[0].type || 'unknown type');
+    // Auto-fill display name
+    const nameInput = document.getElementById('uploadFileName');
+    if (!nameInput.value.trim()) {
+      nameInput.value = files[0].name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+    }
+    // Hide multi-file list if shown
+    const mfl = document.getElementById('multiFileList');
+    if (mfl) mfl.style.display = 'none';
+  } else {
+    label.textContent = `✅ ${files.length} files selected`;
+    const totalMB = files.reduce((s, f) => s + f.size, 0) / 1024 / 1024;
+    meta.textContent  = `Total: ${totalMB.toFixed(2)} MB — Names will be auto-filled from filenames`;
+    // Show file list
+    let mfl = document.getElementById('multiFileList');
+    if (!mfl) {
+      mfl = document.createElement('div');
+      mfl.id = 'multiFileList';
+      mfl.style.cssText = 'margin-top:10px;max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;';
+      document.getElementById('uploadDropZone').after(mfl);
+    }
+    mfl.style.display = 'flex';
+    mfl.innerHTML = files.map((f, i) =>
+      `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font-size:0.80rem;">
+        <span style="color:var(--accent2);font-weight:700;min-width:20px;">${i+1}.</span>
+        <span style="flex:1;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</span>
+        <span style="color:var(--muted);flex-shrink:0;">${(f.size/1024/1024).toFixed(1)}MB</span>
+      </div>`
+    ).join('');
+    // Clear display name field — multi mode uses auto-names
+    document.getElementById('uploadFileName').value = '';
+  }
+
   document.getElementById('uploadDropZone').style.borderColor = '#00d4aa';
   document.getElementById('uploadDropZone').style.background  = 'rgba(0,212,170,0.04)';
-  // Auto-fill display name from file name (without extension)
-  const nameInput = document.getElementById('uploadFileName');
-  if (!nameInput.value.trim()) {
-    nameInput.value = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
-  }
 }
 
 function uploadHandleDrop(e) {
   e.preventDefault();
   document.getElementById('uploadDropZone').style.borderColor = '';
   document.getElementById('uploadDropZone').style.background  = '';
-  const file = e.dataTransfer.files && e.dataTransfer.files[0];
-  if (file) uploadFileSelected(file);
+  const files = e.dataTransfer.files;
+  if (files && files.length) uploadFileSelected(files);
 }
 
 // ── Set upload status message ─────────────────────────────────────────────
@@ -11368,8 +11406,10 @@ async function submitUpload() {
   }
 
   // File mode validation
-  if (!_uploadFile) { _uploadSetStatus('⚠️ Please select a file first.', '#f0a500'); return; }
-  if (!displayName)  { _uploadSetStatus('⚠️ Please enter a display name for the file.', '#f0a500'); return; }
+  const filesToUpload = (_uploadFiles && _uploadFiles.length) ? _uploadFiles : (_uploadFile ? [_uploadFile] : []);
+  if (!filesToUpload.length) { _uploadSetStatus('⚠️ Please select a file first.', '#f0a500'); return; }
+  const isMulti = filesToUpload.length > 1;
+  if (!isMulti && !displayName) { _uploadSetStatus('⚠️ Please enter a display name for the file.', '#f0a500'); return; }
   if (_uploadMode === 'new' && !newCardName) { _uploadSetStatus('⚠️ Please enter a card name.', '#f0a500'); return; }
 
   submitBtn.disabled = true;
@@ -11391,15 +11431,12 @@ async function submitUpload() {
       let parentId = null;
 
       if (_newCardType === 'sub') {
-        // Sub-card: parent is the selected existing card
         const selVal = document.getElementById('newSubParentSelect').value;
         if (!selVal) { _uploadSetStatus('⚠️ Please select a parent card for the sub-card.', '#f0a500'); submitBtn.disabled=false; return; }
         parentId = parseInt(selVal);
       } else {
-        // Top-level: parent is section
         const section = CN.getSection(_uploadSection);
         if (!section) {
-          // Section doesn't exist yet — create it first
           _uploadSetProgress(15, 'Creating section…');
           const secRes = await fetch(`${SUPABASE_URL}/rest/v1/content_nodes`, {
             method: 'POST',
@@ -11434,10 +11471,8 @@ async function submitUpload() {
       nodeId = Array.isArray(catData) ? catData[0].id : catData.id;
 
     } else {
-      // Existing card — check if sub-card is selected
       const mainCardId = parseInt(document.getElementById('uploadCardSelect').value);
       if (!mainCardId) { _uploadSetStatus('⚠️ Please select a card.', '#f0a500'); submitBtn.disabled=false; return; }
-
       const subWrap   = document.getElementById('uploadSubCardWrap');
       const subVal    = document.getElementById('uploadSubCardSelect').value;
       const useSubCard = subWrap.style.display !== 'none' && subVal && subVal !== '__parent__';
@@ -11445,74 +11480,80 @@ async function submitUpload() {
       if (!nodeId) { _uploadSetStatus('⚠️ Please select a valid card.', '#f0a500'); submitBtn.disabled=false; return; }
     }
 
-    // ── Step 2: Upload file to Supabase Storage bucket "files" ────────
-    _uploadSetProgress(30, 'Uploading file…');
-    const ts       = Date.now();
-    const safeName = _uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const path     = `${_uploadSection.replace(/\s+/g,'_')}/${nodeId}/${ts}_${safeName}`;
-    const storageUrl = `${SUPABASE_URL}/storage/v1/object/files/${encodeURIComponent(path)}`;
+    // ── Step 2: Upload all files one by one ────────────────────────────
+    let successCount = 0;
+    for (let fi = 0; fi < filesToUpload.length; fi++) {
+      const currentFile = filesToUpload[fi];
+      const fileDisplayName = isMulti
+        ? currentFile.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ')
+        : displayName;
 
-    // Stream progress via XHR for real progress bar
-    await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', storageUrl);
-      xhr.setRequestHeader('apikey', SUPABASE_ANON);
-      xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON}`);
-      xhr.setRequestHeader('Content-Type', _uploadFile.type || 'application/octet-stream');
-      xhr.setRequestHeader('x-upsert', 'false');
-      xhr.upload.onprogress = (ev) => {
-        if (ev.lengthComputable) {
-          const pct = Math.round(30 + (ev.loaded / ev.total) * 50);
-          _uploadSetProgress(pct, `Uploading… ${Math.round(ev.loaded/1024)}KB / ${Math.round(ev.total/1024)}KB`);
-        }
-      };
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) resolve();
-        else reject(new Error('Storage upload: HTTP ' + xhr.status + ' — ' + xhr.responseText.slice(0,200)));
-      };
-      xhr.onerror = () => reject(new Error('Network error during upload'));
-      xhr.send(_uploadFile);
-    });
+      _uploadSetProgress(
+        Math.round(((fi) / filesToUpload.length) * 80) + 10,
+        isMulti ? `Uploading file ${fi+1} of ${filesToUpload.length}: ${currentFile.name}` : 'Uploading file…'
+      );
 
-    // ── Step 3: Build public URL ───────────────────────────────────────
-    _uploadSetProgress(85, 'Saving record…');
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/files/${path}`;
+      const ts       = Date.now();
+      const safeName = currentFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path     = `${_uploadSection.replace(/\s+/g,'_')}/${nodeId}/${ts}_${safeName}`;
+      const storageUrl = `${SUPABASE_URL}/storage/v1/object/files/${encodeURIComponent(path)}`;
 
-    // ── Step 4: Insert into files table ─────────────────────────────
-    // Exact columns: id, name, file_type, file_url, node_id, description
-    // file_type: "pdf" | "image" | "video" | "doc" | "audio"
-    const _ext2 = (_uploadFile.name.split('.').pop() || '').toLowerCase();
-    const _fileType2 = (
-      ['pdf'].includes(_ext2)                         ? 'pdf'   :
-      ['jpg','jpeg','png','gif','webp','svg'].includes(_ext2) ? 'image' :
-      ['mp4','webm','mov','avi','mkv'].includes(_ext2)        ? 'video' :
-      ['mp3','wav','aac','ogg'].includes(_ext2)               ? 'audio' :
-      ['doc','docx','xls','xlsx','ppt','pptx'].includes(_ext2)? 'doc'   :
-      'file'
-    );
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', storageUrl);
+        xhr.setRequestHeader('apikey', SUPABASE_ANON);
+        xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON}`);
+        xhr.setRequestHeader('Content-Type', currentFile.type || 'application/octet-stream');
+        xhr.setRequestHeader('x-upsert', 'false');
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) {
+            const base = Math.round(((fi) / filesToUpload.length) * 80) + 10;
+            const chunk = Math.round((ev.loaded / ev.total) * (80 / filesToUpload.length));
+            _uploadSetProgress(base + chunk,
+              isMulti ? `Uploading ${fi+1}/${filesToUpload.length}: ${Math.round(ev.loaded/1024)}KB / ${Math.round(ev.total/1024)}KB` :
+              `Uploading… ${Math.round(ev.loaded/1024)}KB / ${Math.round(ev.total/1024)}KB`
+            );
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error('Storage upload: HTTP ' + xhr.status + ' — ' + xhr.responseText.slice(0,200)));
+        };
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.send(currentFile);
+      });
 
-    const insertPayload = {
-      node_id:  nodeId,
-      name:     displayName,
-      file_type: _fileType2,
-      file_url: publicUrl
-    };
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/files/${path}`;
+      const _ext2 = (currentFile.name.split('.').pop() || '').toLowerCase();
+      const _fileType2 = (
+        ['pdf'].includes(_ext2)                                  ? 'pdf'   :
+        ['jpg','jpeg','png','gif','webp','svg'].includes(_ext2)  ? 'image' :
+        ['mp4','webm','mov','avi','mkv'].includes(_ext2)         ? 'video' :
+        ['mp3','wav','aac','ogg'].includes(_ext2)                ? 'audio' :
+        ['doc','docx','xls','xlsx','ppt','pptx'].includes(_ext2) ? 'doc'   :
+        'file'
+      );
 
-    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/files`, {
-      method: 'POST',
-      headers: { ...hdrs, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify(insertPayload)
-    });
-    if (!insertRes.ok) {
-      const errText = await insertRes.text().catch(() => '');
-      throw new Error('DB insert: HTTP ' + insertRes.status + ' — ' + errText.slice(0, 300));
+      const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/files`, {
+        method: 'POST',
+        headers: { ...hdrs, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ node_id: nodeId, name: fileDisplayName, file_type: _fileType2, file_url: publicUrl })
+      });
+      if (!insertRes.ok) {
+        const errText = await insertRes.text().catch(() => '');
+        throw new Error('DB insert: HTTP ' + insertRes.status + ' — ' + errText.slice(0, 300));
+      }
+      successCount++;
     }
 
-    // ── Step 5: Success — refresh section ─────────────────────────────
+    // ── Step 3: Success ────────────────────────────────────────────────
     _uploadSetProgress(100, 'Done!');
-    _uploadSetStatus('✅ File uploaded successfully!', '#00d4aa');
+    _uploadSetStatus(
+      isMulti ? `✅ ${successCount} files uploaded successfully!` : '✅ File uploaded successfully!',
+      '#00d4aa'
+    );
 
-    // Reset CN cache so next load is fresh
+    // ── Step 4: Refresh caches and reload ────────────────────────────
     CN.loaded  = false;
     CN.nodes   = [];
     CN.files   = [];
@@ -11640,10 +11681,7 @@ async function _submitYoutubeLink(ytUrl, displayName, newCardName, submitBtn) {
 async function confirmDeleteCard(nodeId, cardName) {
   const _role = CURRENT_USER ? String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim() : '';
   if (_role !== 'mis') { alert('⛔ Delete access is restricted to MIS users only.'); return; }
-  const pwd = prompt(`Delete card "${cardName}" and ALL its files?\nEnter password to confirm:`);
-  if (!pwd) return;
-  if (pwd.trim() !== UPLOAD_PASSWORD) { alert('Wrong password.'); return; }
-  if (!confirm(`⚠️ This will permanently delete "${cardName}" and all files inside it.\nAre you sure?`)) return;
+  if (!confirm(`⚠️ "${cardName}" aur uske saare files permanently delete ho jaayenge.\nKya aap sure hain?`)) return;
   await _doDeleteCard(nodeId, cardName);
 }
 
@@ -11771,10 +11809,7 @@ async function _doDeleteCard(nodeId, cardName) {
 async function confirmDeleteFile(fileId, fileUrl) {
   const _role = CURRENT_USER ? String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim() : '';
   if (_role !== 'mis') { alert('⛔ Delete access is restricted to MIS users only.'); return; }
-  const pwd = prompt('Delete this file?\nEnter password to confirm:');
-  if (!pwd) return;
-  if (pwd.trim() !== UPLOAD_PASSWORD) { alert('Wrong password.'); return; }
-  if (!confirm('⚠️ This will permanently delete this file. Are you sure?')) return;
+  if (!confirm('⚠️ Yeh file permanently delete ho jaayegi. Kya aap sure hain?')) return;
   await _doDeleteFile(fileId, fileUrl);
 }
 
@@ -12049,9 +12084,6 @@ function injectTrainingDeleteBtns() { /* no-op — handled by loadTrainingSectio
 
 // Delete a single video from files table
 async function confirmDeleteTrainingVideo(videoId, videoTitle, subKey) {
-  const pwd = prompt('Delete this video?\nEnter password:');
-  if (!pwd) return;
-  if (pwd.trim() !== UPLOAD_PASSWORD) { alert('Wrong password.'); return; }
   if (!confirm('Delete "' + videoTitle + '"? This cannot be undone.')) return;
   // Look up URL from cached data
   let videoUrl = '';
@@ -12661,10 +12693,10 @@ function _imsShowError(msg) {
       ondragleave="this.style.borderColor='';this.style.background=''"
       ondrop="uploadHandleDrop(event)">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 10px;"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
-      <div id="uploadDropLabel" style="font-size:0.88rem;color:var(--muted);">Click to choose or drag &amp; drop a file</div>
+      <div id="uploadDropLabel" style="font-size:0.88rem;color:var(--muted);">Click to choose or drag &amp; drop files (multiple allowed)</div>
       <div id="uploadDropMeta" style="font-size:0.78rem;color:var(--muted);margin-top:4px;">PDF, Video, Image, Doc — any format</div>
     </div>
-    <input id="uploadFileInput" type="file" style="display:none;" onchange="uploadFileSelected(this.files[0])">
+    <input id="uploadFileInput" type="file" multiple style="display:none;" onchange="uploadFileSelected(this.files)">
 
     <!-- YouTube URL input (hidden by default) -->
     <div id="uploadYtWrap" style="display:none;margin-bottom:16px;">
