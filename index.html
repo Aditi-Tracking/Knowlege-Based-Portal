@@ -4453,7 +4453,7 @@ function _syncProfileUI(){
   const name     = CURRENT_USER.name || CURRENT_USER.email.split('@')[0] || 'User';
   const rawRole  = CURRENT_USER.rawRole || 'employee';
   const roleLabel= rawRole === 'owner' ? 'Managing Director' : rawRole.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
-  const roleIcon = rawRole === 'owner' ? '👑' : rawRole === 'mis' ? '📊' : rawRole === 'pc' ? '💼' : '👤';
+  const roleIcon = rawRole === 'owner' ? '👑' : rawRole === 'mis' ? '📊' : rawRole === 'pc' ? '💼' : rawRole === 'executive assistant' || rawRole === 'ea' ? '🤝' : '👤';
   const initial  = name.charAt(0).toUpperCase();
   // Desktop sidebar
   const sbpAv=document.getElementById('sbpAvatar'); if(sbpAv) sbpAv.textContent=initial;
@@ -4850,7 +4850,7 @@ function initHistory(){
 // ═══════════════════════════════════
 // LEAD TRACKING DASHBOARD
 // ═══════════════════════════════════
-const L_URL='https://script.google.com/macros/s/AKfycbzBjUbEJBqphzZeSWsjzv-5Uk_7tHJcd64PBlP84laEDcclmITLfLu5BYWNnSbwDhDl/exec';
+const L_URL='https://script.google.com/macros/s/AKfycbxsC_glUfbC5RJSs0BPFYQI5jbsM5p6VeIraKcl-cO8zC8VjVnLqFYQuumhRP69oEy2/exec';
 const REP_MAP={'supportmum@adititracking.com':{name:'Support MUM',color:'#f0a500',bg:'rgba(240,165,0,0.2)'},'salesmumbai@adititracking.com':{name:'Sales Mumbai',color:'#00d4aa',bg:'rgba(0,212,170,0.2)'},'salesgoa@adititracking.com':{name:'Sales Goa',color:'#ff5c7c',bg:'rgba(255,92,124,0.2)'},'salesgujarat@adititracking.com':{name:'Sales Gujarat',color:'#a78bfa',bg:'rgba(167,139,250,0.2)'},'coolbus.enterprise@adititracking.com':{name:'CoolBus',color:'#4e9af1',bg:'rgba(78,154,241,0.2)'}};
 const rN=e=>REP_MAP[e]?.name||(String(e||'')).split('@')[0];
 const rC=e=>REP_MAP[e]?.color||'#888';
@@ -6162,7 +6162,7 @@ function updateHomeTaskBanner(){
 
   // Don't show for Managing Director, MIS, or PC roles
   const role = CURRENT_USER && (CURRENT_USER.rawRole||'').toLowerCase();
-  if(!CURRENT_USER || CURRENT_USER.role==='owner' || role==='owner' || role==='mis' || role==='pc'){
+  if(!CURRENT_USER || CURRENT_USER.role==='owner' || role==='owner' || role==='mis' || role==='pc' || role==='executive assistant' || role==='ea'){
     banner.style.display='none';
     return;
   }
@@ -6474,7 +6474,9 @@ function tPopulateFilters(){
     CURRENT_USER.role === 'owner' ||
     CURRENT_USER.rawRole === 'owner' ||
     CURRENT_USER.rawRole === 'mis' ||
-    CURRENT_USER.rawRole === 'pc'
+    CURRENT_USER.rawRole === 'pc' ||
+    CURRENT_USER.rawRole === 'executive assistant' ||
+    CURRENT_USER.rawRole === 'ea'
   );
   document.querySelectorAll('.tDateFilterEl').forEach(el=>{
     el.style.display = _isPrivilegedDate ? '' : 'none';
@@ -6520,7 +6522,9 @@ function tClearAll(){
     CURRENT_USER.role === 'owner' ||
     CURRENT_USER.rawRole === 'owner' ||
     CURRENT_USER.rawRole === 'mis' ||
-    CURRENT_USER.rawRole === 'pc'
+    CURRENT_USER.rawRole === 'pc' ||
+    CURRENT_USER.rawRole === 'executive assistant' ||
+    CURRENT_USER.rawRole === 'ea'
   );
   if(_isPrivilegedDate2){
     document.getElementById('tFDateFrom').value='';
@@ -7158,11 +7162,11 @@ async function doLogin(){
 
     if(user){
       const _rawR=String(user['Role']||user['role']||'employee').trim().toLowerCase();
-      const _fullAccessRoles=['managing director','mis','pc'];
+      const _fullAccessRoles=['managing director','mis','pc','executive assistant','ea'];
       CURRENT_USER={
         email:email,
         role:_fullAccessRoles.includes(_rawR)?'owner':'employee',
-        rawRole:_rawR==='managing director'?'owner':_rawR,
+        rawRole:_rawR==='managing director'?'owner':_rawR==='ea'?'executive assistant':_rawR,
         name:String(user['Name']||user['name']||email.split('@')[0]),
         location:String(user['Location']||user['location']||user['Branch']||user['branch']||'').trim()
       };
@@ -7256,7 +7260,7 @@ function showPortal(){
         <div style="background:${CURRENT_USER.role==='owner'?'rgba(240,165,0,0.2)':'rgba(0,212,170,0.2)'};color:${CURRENT_USER.role==='owner'?'#f0a500':'#00d4aa'};width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.91rem;font-weight:700;flex-shrink:0">${(CURRENT_USER.name||CURRENT_USER.email)[0].toUpperCase()}</div>
         <div style="overflow:hidden">
           <div class="user-name-text" style="font-size:0.82rem;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${CURRENT_USER.name||CURRENT_USER.email.split('@')[0]}</div>
-          <div style="font-size:0.71rem;color:var(--text2)">${CURRENT_USER.rawRole==='owner'?'👑 Managing Director':CURRENT_USER.rawRole==='mis'?'📊 MIS':CURRENT_USER.rawRole==='pc'?'💼 PC':CURRENT_USER.role==='owner'?'👑 Managing Director':'👤 '+( (CURRENT_USER.rawRole&&CURRENT_USER.rawRole!=='employee')?CURRENT_USER.rawRole.charAt(0).toUpperCase()+CURRENT_USER.rawRole.slice(1):'Employee')}</div>
+          <div style="font-size:0.71rem;color:var(--text2)">${CURRENT_USER.rawRole==='owner'?'👑 Managing Director':CURRENT_USER.rawRole==='mis'?'📊 MIS':CURRENT_USER.rawRole==='pc'?'💼 PC':CURRENT_USER.rawRole==='executive assistant'?'🤝 Executive Assistant':CURRENT_USER.role==='owner'?'👑 Managing Director':'👤 '+( (CURRENT_USER.rawRole&&CURRENT_USER.rawRole!=='employee')?CURRENT_USER.rawRole.charAt(0).toUpperCase()+CURRENT_USER.rawRole.slice(1):'Employee')}</div>
         </div>
       </div>
       <button onclick="doLogout()" style="width:100%;background:rgba(255,92,124,0.1);border:1px solid rgba(255,92,124,0.25);color:#ff5c7c;border-radius:8px;padding:8px;font-size:0.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s" onmouseover="this.style.background='rgba(255,92,124,0.25)'" onmouseout="this.style.background='rgba(255,92,124,0.1)'">
@@ -10778,7 +10782,7 @@ function _holNormLoc(loc) {
 
 function renderHolidayCard(branchFilter) {
   const isOwner = CURRENT_USER && (CURRENT_USER.role === 'owner' ||
-    ['managing director','mis','pc'].includes((CURRENT_USER.rawRole||'').toLowerCase()));
+    ['managing director','mis','pc','executive assistant','ea'].includes((CURRENT_USER.rawRole||'').toLowerCase()));
 
   // Show branch tabs for Managing Director/mis/pc
   const tabsEl = document.getElementById('holidayBranchTabs');
@@ -12129,7 +12133,7 @@ function _imsGetAPI() {
 function _canAccessIMS() {
   if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
   const r = String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim();
-  return r === 'mis' || r === 'owner' || r === 'pc' || r === 'managing director';
+  return r === 'mis' || r === 'owner' || r === 'pc' || r === 'managing director' || r === 'executive assistant' || r === 'ea';
 }
 function _applyIMSNavVisibility() {
   const el = document.getElementById('nav-ims');
@@ -12168,6 +12172,9 @@ function imsSetLocation(loc) {
   if (_imsLocation === loc) return;
   _imsLocation = loc;
   _imsLoaded   = false;
+  _imsDateIdx  = -1;  // Reset date index so today is auto-selected for new location
+  _imsDateHdrs = [];  // Clear old date headers
+  _imsAllRows  = [];  // Clear old rows
   // Sync dropdown value
   const dd = document.querySelector('#imsControls select');
   if (dd) dd.value = loc;
@@ -12268,6 +12275,51 @@ function _imsFmtDate(raw) {
   return s;
 }
 
+// ── Parse any date string (handles dd/MM/yyyy AND ISO formats) ────
+function _imsParseDate(raw) {
+  if (!raw) return null;
+  const s = String(raw).trim();
+
+  // dd/MM/yyyy or d/M/yyyy (06/05/2026 or 6/5/2026) — Indian format used by branch sheets
+  const ddmm = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmm) {
+    const d = parseInt(ddmm[1]), m = parseInt(ddmm[2]), y = parseInt(ddmm[3]);
+    // Validate: day 1-31, month 1-12
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      const dt = new Date(y, m - 1, d);
+      if (!isNaN(dt.getTime())) return dt;
+    }
+  }
+
+  // yyyy-MM-dd (ISO date: 2026-05-06)
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const dt = new Date(parseInt(iso[1]), parseInt(iso[2]) - 1, parseInt(iso[3]));
+    if (!isNaN(dt.getTime())) return dt;
+  }
+
+  // dd-MM-yyyy (06-05-2026)
+  const ddmmDash = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (ddmmDash) {
+    const d = parseInt(ddmmDash[1]), m = parseInt(ddmmDash[2]), y = parseInt(ddmmDash[3]);
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      const dt = new Date(y, m - 1, d);
+      if (!isNaN(dt.getTime())) return dt;
+    }
+  }
+
+  // Excel serial number (e.g. 46747)
+  if (/^\d{5}$/.test(s)) {
+    const serial = parseInt(s);
+    const dt = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+    if (!isNaN(dt.getTime())) return dt;
+  }
+
+  // Fallback: JS native parse (handles "May 6, 2026", RFC2822, etc.)
+  const dt = new Date(s);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
 // ── Find index of today's date (or closest past date, else latest) ─
 function _imsFindTodayIdx() {
   if (!_imsDateHdrs.length) return -1;
@@ -12275,10 +12327,11 @@ function _imsFindTodayIdx() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Parse all header dates
+  // Parse all header dates — supports dd/MM/yyyy + ISO (all locations)
   const parsed = _imsDateHdrs.map((h, i) => {
-    const dt = new Date(h);
-    return { i, dt: isNaN(dt.getTime()) ? null : dt };
+    const dt = _imsParseDate(h);
+    if (dt) dt.setHours(0, 0, 0, 0);
+    return { i, dt };
   });
 
   // Exact match for today
@@ -12303,23 +12356,28 @@ function _imsBuildDateFilter() {
   const wrap = document.getElementById('imsDateFilterWrap');
   if (!wrap || !_imsDateHdrs.length) return;
 
-  const latestLabel = _imsDateHdrs[_imsDateHdrs.length - 1];
+  // Ensure today is auto-selected for all locations (HQ, Goa, Gujarat, Bangalore)
+  if (_imsDateIdx < 0) _imsDateIdx = _imsFindTodayIdx();
+  const todayIdx = _imsFindTodayIdx();
 
-  wrap.innerHTML = `
-    <select id="imsDateSelect" onchange="imsOnDateChange(this.value)"
-      style="padding:7px 12px;background:var(--surface2);border:1px solid var(--border);
-             border-radius:8px;color:var(--text);font-size:0.82rem;font-family:'DM Sans',sans-serif;
-             outline:none;cursor:pointer;min-width:140px;transition:border-color 0.18s;"
-      onfocus="this.style.borderColor='rgba(240,165,0,0.5)'"
-      onblur="this.style.borderColor='var(--border)'">
-      ${_imsDateHdrs.map((d, i) => {
-        const isSelected = (i === _imsDateIdx || (i === _imsDateHdrs.length - 1 && _imsDateIdx < 0));
-        const isToday    = (i === _imsFindTodayIdx());
-        const label      = _imsFmtDate(d) + (isToday ? ' ★' : '');
-        return `<option value="${i}" ${isSelected ? 'selected' : ''}>${label}</option>`;
-      }).join('')}
-    </select>
-    <span style="font-size:0.73rem;color:var(--muted);">Date</span>`;
+  let opts = '';
+  _imsDateHdrs.forEach((d, i) => {
+    const isSelected = (i === _imsDateIdx) ? 'selected' : '';
+    const isToday    = (i === todayIdx);
+    const label      = _imsFmtDate(d) + (isToday ? ' ★' : '');
+    opts += '<option value="' + i + '" ' + isSelected + '>' + label + '</option>';
+  });
+
+  wrap.innerHTML =
+    '<select id="imsDateSelect" onchange="imsOnDateChange(this.value)"' +
+    ' style="padding:7px 12px;background:var(--surface2);border:1px solid var(--border);' +
+    'border-radius:8px;color:var(--text);font-size:0.82rem;font-family:\'DM Sans\',sans-serif;' +
+    'outline:none;cursor:pointer;min-width:140px;transition:border-color 0.18s;"' +
+    ' onfocus="this.style.borderColor=\'rgba(240,165,0,0.5)\'"' +
+    ' onblur="this.style.borderColor=\'var(--border)\'">' +
+    opts +
+    '</select>' +
+    '<span style="font-size:0.73rem;color:var(--muted);">Date</span>';
 }
 
 // ── On date change ────────────────────────────────────────────────
