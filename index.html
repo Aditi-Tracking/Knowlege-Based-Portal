@@ -511,7 +511,6 @@
   }
   .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
   .refresh-btn.spinning span{display:inline-block;animation:spin 1s linear infinite;}
-  @keyframes spin2{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   .last-sync{font-size:0.78rem;color:var(--muted);}
   /* ── LOADER & ERRORS ── */
   .db-loading{
@@ -1424,7 +1423,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 @keyframes shimmer2{0%{background-position:0%}100%{background-position:200%}}
 
 
-@keyframes fvspin { to { transform: rotate(360deg); } }
+
 
   /* ── Holiday Card ── */
   .hol-tab{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:0.78rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all 0.15s;}
@@ -1781,12 +1780,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     <div class="bnp-avatar" id="bnpAvatar">U</div>
     <span class="bnp-name" id="bnpName">User</span>
     <!-- legacy JS refs - keep hidden always -->
-    <div id="bnUserPopup" style="display:none!important;visibility:hidden!important;">
-      <div id="bupAvatar" style="display:none!important;"></div>
-      <div id="bupName" style="display:none!important;"></div>
-      <div id="bupRole" style="display:none!important;"></div>
-      <div id="bupAvContent" style="display:none!important;"></div>
-    </div>
+
   </div>
 </div>
 
@@ -2048,26 +2042,6 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 <!-- HOME -->
 <div class="dashboard-panel active" id="panel-home">
 
-  <!-- HOME TOP HEADER with Bell -->
-  <div class="db-header">
-    <div>
-      <div class="db-title"><span>aditi</span> Portal</div>
-      <div class="db-breadcrumb">Home</div>
-    </div>
-    <div class="header-right" style="gap:10px;">
-      <!-- BELL BUTTON -->
-      <button id="annBellBtn" onclick="openAnnOverlay()" title="Announcements"
-        style="position:relative;display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1.5px solid rgba(240,165,0,0.4);background:rgba(240,165,0,0.08);color:#f0a500;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s;"
-        onmouseover="this.style.background='rgba(240,165,0,0.18)'" onmouseout="this.style.background='rgba(240,165,0,0.08)'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
-        </svg>
-        Announcements
-        <span id="annBellDot" style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:#ff3b30;box-shadow:0 0 6px rgba(255,59,48,0.8);animation:annDotPulse 1.5s ease-in-out infinite;flex-shrink:0;font-size:0.68rem;font-weight:800;color:#fff;font-family:'DM Sans',sans-serif;line-height:1;">1</span>
-      </button>
-    </div>
-  </div>
-
   <div class="home-panel">
 
     <!-- ══ WELCOME HEADER ══ -->
@@ -2090,6 +2064,19 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
         <div class="emp-profile-meta" id="empProfileMeta">Aditi Tracking Support Pvt. Ltd.</div>
         <div class="emp-no-photo-hint" id="empNoPhotoHint" style="display:none">📷 Profile photo not available. Please contact MIS to upload your photo.</div>
       </div>
+      <!-- Announcements button — right side of profile card, fills the space -->
+      <button id="annBellBtn" onclick="openAnnOverlay()" title="Announcements"
+        style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:0 28px;min-width:220px;height:100%;min-height:90px;border-radius:14px;border:1.5px solid rgba(251,146,60,0.45);background:rgba(251,100,20,0.09);color:#fb923c;font-size:1rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;flex-shrink:0;align-self:stretch;box-shadow:0 2px 14px rgba(251,100,20,0.1);"
+        onmouseover="this.style.background='rgba(251,100,20,0.17)';this.style.borderColor='rgba(251,146,60,0.75)';this.style.boxShadow='0 4px 22px rgba(251,100,20,0.22)'"
+        onmouseout="this.style.background='rgba(251,100,20,0.09)';this.style.borderColor='rgba(251,146,60,0.45)';this.style.boxShadow='0 2px 14px rgba(251,100,20,0.1)'">
+        <div style="position:relative;display:inline-flex;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
+          </svg>
+          <span id="annBellDot" style="display:none;position:absolute;top:-6px;right:-8px;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:#e53e3e;border:2px solid var(--surface);box-shadow:0 1px 8px rgba(229,62,62,0.6);animation:annDotPulse 1.5s ease-in-out infinite;font-size:0.68rem;font-weight:800;color:#fff;line-height:1;">1</span>
+        </div>
+        <span style="font-size:0.95rem;font-weight:700;letter-spacing:0.01em;">Announcements</span>
+      </button>
     </div>
 
     <!-- ══ CEO MESSAGE ══ -->
@@ -2492,11 +2479,11 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1100;backdrop-filter:blur(3px);transition:opacity 0.25s;"></div>
 
 <div id="annOverlayDrawer"
-  style="display:none;position:fixed;top:0;right:0;width:420px;max-width:95vw;height:100vh;
+  style="display:none;position:fixed;top:0;right:0;width:420px;max-width:100vw;height:100vh;
          background:var(--surface);border-left:1px solid var(--border);z-index:1101;
          flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,0.5);
-         transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.22,1,0.36,1);">
-
+         transform:translateX(100%);transition:transform 0.32s cubic-bezier(0.22,1,0.36,1);
+         overflow-x:hidden;">
   <!-- Drawer Header -->
   <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface);">
     <div style="display:flex;align-items:center;gap:10px;">
@@ -2517,29 +2504,86 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 
   <!-- Filter Tabs -->
   <div style="display:flex;gap:0;padding:12px 20px 0;border-bottom:1px solid var(--border);flex-shrink:0;">
-    <button class="ann-drw-tab active" id="ann-drw-tab-all" onclick="annDrwFilter('all')"
-      style="padding:7px 16px;border:none;border-bottom:2.5px solid #f0a500;margin-bottom:-1px;background:rgba(240,165,0,0.06);border-radius:8px 8px 0 0;color:#f0a500;font-weight:700;font-size:0.83rem;cursor:pointer;font-family:inherit;">🔔 All</button>
-    <button class="ann-drw-tab" id="ann-drw-tab-update" onclick="annDrwFilter('update')"
-      style="padding:7px 16px;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;background:transparent;border-radius:8px 8px 0 0;color:var(--muted);font-weight:600;font-size:0.83rem;cursor:pointer;font-family:inherit;transition:all 0.18s;">✨ Updates</button>
+    <button class="ann-drw-tab active" id="ann-drw-tab-update" onclick="annDrwFilter('update')"
+      style="padding:7px 16px;border:none;border-bottom:2.5px solid #4e9af1;margin-bottom:-1px;background:rgba(78,154,241,0.06);border-radius:8px 8px 0 0;color:#4e9af1;font-weight:700;font-size:0.83rem;cursor:pointer;font-family:inherit;">✨ Updates</button>
     <button class="ann-drw-tab" id="ann-drw-tab-celeb" onclick="annDrwFilter('celeb')"
       style="padding:7px 16px;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;background:transparent;border-radius:8px 8px 0 0;color:var(--muted);font-weight:600;font-size:0.83rem;cursor:pointer;font-family:inherit;transition:all 0.18s;">🎉 Celebrations</button>
   </div>
 
   <!-- Scrollable Feed -->
-  <div id="annDrwFeed" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;">
+  <div id="annDrwFeed" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 20px;display:flex;flex-direction:column;gap:12px;">
     <div style="text-align:center;padding:40px 0;color:var(--muted);">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
       <div style="font-size:0.85rem;">Loading announcements…</div>
     </div>
   </div>
 
-  <!-- Footer -->
-  <div style="padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface);display:flex;align-items:center;justify-content:flex-end;gap:10px;">
+  <!-- Footer: Updates tab → Post Update button | Celebrations tab → Chat input -->
+  <div id="annFooterUpdates" style="display:flex;padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface);align-items:center;justify-content:flex-end;gap:10px;">
     <button id="annPostUpdateBtn" onclick="openPostUpdateModal()"
-      style="display:none;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:none;background:rgba(78,154,241,0.15);color:#4e9af1;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid rgba(78,154,241,0.3);transition:all 0.18s;"
-      onmouseover="this.style.background='rgba(78,154,241,0.25)'" onmouseout="this.style.background='rgba(78,154,241,0.15)'">
+      style="display:none;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid rgba(78,154,241,0.3);background:rgba(78,154,241,0.12);color:#4e9af1;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;"
+      onmouseover="this.style.background='rgba(78,154,241,0.25)'" onmouseout="this.style.background='rgba(78,154,241,0.12)'">
       ✏️ Post Update
     </button>
+  </div>
+
+  <!-- Chat input bar (Celebrations tab only) -->
+  <div id="annFooterChat" style="display:none;flex-direction:column;border-top:2px solid rgba(240,165,0,0.25);flex-shrink:0;background:linear-gradient(135deg,rgba(255,220,100,0.06),rgba(255,100,150,0.05));overflow:hidden;width:100%;box-sizing:border-box;">
+    <!-- Emoji picker popup -->
+    <div id="annEmojiPicker" style="display:none;padding:10px 12px 6px;border-bottom:1px solid rgba(240,165,0,0.15);background:rgba(255,250,240,0.05);overflow:hidden;">
+      <div style="display:flex;flex-wrap:wrap;gap:3px;max-height:110px;overflow-y:auto;overflow-x:hidden;">
+        <!-- Row 1: Celebration -->
+        <span onclick="annInsertEmoji('🎉')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🎉</span>
+        <span onclick="annInsertEmoji('🎂')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🎂</span>
+        <span onclick="annInsertEmoji('🥳')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🥳</span>
+        <span onclick="annInsertEmoji('🎊')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🎊</span>
+        <span onclick="annInsertEmoji('🎁')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🎁</span>
+        <span onclick="annInsertEmoji('🌟')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🌟</span>
+        <span onclick="annInsertEmoji('✨')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">✨</span>
+        <span onclick="annInsertEmoji('💫')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">💫</span>
+        <span onclick="annInsertEmoji('🎈')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🎈</span>
+        <span onclick="annInsertEmoji('🥂')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🥂</span>
+        <!-- Row 2: Hearts & Love -->
+        <span onclick="annInsertEmoji('❤️')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">❤️</span>
+        <span onclick="annInsertEmoji('💛')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">💛</span>
+        <span onclick="annInsertEmoji('💙')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">💙</span>
+        <span onclick="annInsertEmoji('💜')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">💜</span>
+        <span onclick="annInsertEmoji('🤍')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🤍</span>
+        <span onclick="annInsertEmoji('🙌')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🙌</span>
+        <span onclick="annInsertEmoji('👏')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">👏</span>
+        <span onclick="annInsertEmoji('🤗')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🤗</span>
+        <span onclick="annInsertEmoji('😊')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">😊</span>
+        <span onclick="annInsertEmoji('😍')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">😍</span>
+        <!-- Row 3: More faces & misc -->
+        <span onclick="annInsertEmoji('🔥')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🔥</span>
+        <span onclick="annInsertEmoji('🚀')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🚀</span>
+        <span onclick="annInsertEmoji('💪')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">💪</span>
+        <span onclick="annInsertEmoji('👑')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">👑</span>
+        <span onclick="annInsertEmoji('🌺')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🌺</span>
+        <span onclick="annInsertEmoji('🌸')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🌸</span>
+        <span onclick="annInsertEmoji('🍰')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🍰</span>
+        <span onclick="annInsertEmoji('🎶')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🎶</span>
+        <span onclick="annInsertEmoji('⭐')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">⭐</span>
+        <span onclick="annInsertEmoji('🌈')" style="cursor:pointer;font-size:1.3rem;padding:3px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''">🌈</span>
+      </div>
+    </div>
+    <!-- Input row -->
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;width:100%;box-sizing:border-box;overflow:hidden;">
+      <!-- Current user mini avatar -->
+      <div id="annChatSelfAvatar" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f0a500,#f97316);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:900;flex-shrink:0;overflow:hidden;border:2px solid rgba(240,165,0,0.4);box-shadow:0 2px 8px rgba(240,165,0,0.3);"></div>
+      <button onclick="annToggleEmojiPicker()" title="Emojis"
+        style="width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(240,165,0,0.35);background:rgba(240,165,0,0.1);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.18s;"
+        onmouseover="this.style.background='rgba(240,165,0,0.22)'" onmouseout="this.style.background='rgba(240,165,0,0.1)'">😊</button>
+      <div style="flex:1;display:flex;align-items:center;background:var(--surface2);border:2px solid rgba(240,165,0,0.35);border-radius:24px;padding:8px 16px;transition:border-color 0.18s;"
+        onfocusin="this.style.borderColor='#f0a500';this.style.boxShadow='0 0 0 3px rgba(240,165,0,0.12)'" onfocusout="this.style.borderColor='rgba(240,165,0,0.35)';this.style.boxShadow=''">
+        <input id="annChatInput" type="text" placeholder="Send a wish… 🎉" maxlength="300"
+          style="flex:1;border:none;background:transparent;color:var(--text);font-size:0.9rem;font-weight:600;font-family:inherit;outline:none;"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();annSendChatWish();}">
+      </div>
+      <button onclick="annSendChatWish()"
+        style="width:42px;height:42px;border-radius:50%;border:none;background:linear-gradient(135deg,#f0a500,#f97316);color:#fff;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform 0.18s,box-shadow 0.18s;box-shadow:0 3px 12px rgba(240,165,0,0.45);"
+        onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 4px 16px rgba(240,165,0,0.6)'" onmouseout="this.style.transform='';this.style.boxShadow='0 3px 12px rgba(240,165,0,0.45)'">➤</button>
+    </div>
   </div>
 </div>
 
@@ -2573,6 +2617,39 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       style="padding:9px 18px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
     <button id="postUpdateSubmitBtn" onclick="submitPortalUpdate()"
       style="padding:9px 20px;border-radius:10px;border:none;background:#4e9af1;color:#fff;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.18s;">🚀 Publish Update</button>
+  </div>
+</div>
+
+<!-- ══ SEND WISH MODAL ══ -->
+<div id="annWishBackdrop" onclick="closeAnnWishModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1200;backdrop-filter:blur(4px);"></div>
+<div id="annWishModal"
+  style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(460px,94vw);background:var(--surface);border-radius:18px;border:1px solid rgba(240,165,0,0.3);z-index:1201;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+    <div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:800;color:var(--text);">💌 Send a Wish</div>
+      <div id="annWishModalSub" style="font-size:0.76rem;color:var(--muted);margin-top:2px;">Wish your teammate on their special day!</div>
+    </div>
+    <button onclick="closeAnnWishModal()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+  </div>
+  <!-- Who to wish -->
+  <div style="margin-bottom:14px;">
+    <label style="font-size:0.8rem;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;">Wish to *</label>
+    <select id="annWishTarget" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.9rem;font-family:inherit;outline:none;">
+      <option value="">— Select Person —</option>
+    </select>
+  </div>
+  <div style="margin-bottom:20px;">
+    <label style="font-size:0.8rem;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;">Your Message *</label>
+    <textarea id="annWishMessage" placeholder="Write your heartfelt wish here... 🎉" rows="4"
+      style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.87rem;font-family:inherit;outline:none;resize:vertical;min-height:100px;transition:border-color 0.18s;"
+      onfocus="this.style.borderColor='#f0a500'" onblur="this.style.borderColor='var(--border)'"></textarea>
+  </div>
+  <div id="annWishError" style="display:none;color:#ff3b30;font-size:0.8rem;margin-bottom:12px;padding:8px 12px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid rgba(255,59,48,0.2);"></div>
+  <div style="display:flex;gap:10px;justify-content:flex-end;">
+    <button onclick="closeAnnWishModal()" style="padding:9px 18px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
+    <button id="annWishSubmitBtn" onclick="submitAnnWish()"
+      style="padding:9px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,#f0a500,#f97316);color:#fff;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.18s;">💌 Send Wish</button>
   </div>
 </div>
 
@@ -3324,66 +3401,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 </div>
 
 <!-- DIRECTORY PANEL -->
-<div class="dashboard-panel" id="panel-directory">
-  <div class="db-header">
-    <div>
-      <div class="db-title"><span>aditi</span> Directory</div>
-      <div class="db-breadcrumb">Home › Directory</div>
-    </div>
-    <div class="header-right">
-      
-    </div>
-  </div>
-  <div class="db-content">
-    <div class="section-title">Directory</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
-
-      <!-- Employee Directory -->
-      <a href="https://drive.google.com/drive/folders/1uG_sns25lQ5BRiIaXql7imEtsw77DPPG?usp=drive_link" onclick="var t=this.querySelector('.hc-name');openFileViewer(this.getAttribute('href'),t?t.textContent.trim():'Documents');return false;" style="text-decoration:none;">
-        <div class="home-card" style="--card-top:#06b6d4;padding:1.5rem;cursor:pointer;">
-          <div class="hc-icon" style="background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          </div>
-          <div class="hc-name" style="font-size:1.12rem;">Employee Directory</div>
-          <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">Browse all Aditi Tracking employees — departments, roles, contact details and reporting structure.</div>
-          <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
-            <span style="font-size:0.82rem;font-weight:600;color:#06b6d4;background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
-          </div>
-        </div>
-      </a>
-
-      <!-- Support Directory -->
-      <a href="https://drive.google.com/drive/folders/1k1KHDx27NSM1MB31P_L8x8L4kZ4WPoVr?usp=drive_link" onclick="var t=this.querySelector('.hc-name');openFileViewer(this.getAttribute('href'),t?t.textContent.trim():'Documents');return false;" style="text-decoration:none;">
-        <div class="home-card" style="--card-top:#0ea5e9;padding:1.5rem;cursor:pointer;">
-          <div class="hc-icon" style="background:rgba(14,165,233,0.12);border-color:rgba(14,165,233,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/><circle cx="18" cy="7" r="3"/><circle cx="12" cy="4" r="3" style="display:none"/><path d="M21 3a9 9 0 00-9 9"/><path d="M3 21a9 9 0 019-9"/></svg>
-          </div>
-          <div class="hc-name" style="font-size:1.12rem;">Support Directory</div>
-          <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">Support team contacts, escalation paths and helpdesk resources for internal assistance.</div>
-          <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
-            <span style="font-size:0.82rem;font-weight:600;color:#0ea5e9;background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
-          </div>
-        </div>
-      </a>
-
-      <!-- Vendor Directory -->
-      <a href="https://drive.google.com/drive/folders/1dUifG8p-GWsobsDv5hSnJpGnJcs0bdl_?usp=drive_link" onclick="var t=this.querySelector('.hc-name');openFileViewer(this.getAttribute('href'),t?t.textContent.trim():'Documents');return false;" style="text-decoration:none;">
-        <div class="home-card" style="--card-top:#8b5cf6;padding:1.5rem;cursor:pointer;">
-          <div class="hc-icon" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
-          </div>
-          <div class="hc-name" style="font-size:1.12rem;">Vendor Directory</div>
-          <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">Complete list of approved vendors, suppliers &amp; service partners with contact info and categories.</div>
-          <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
-            <span style="font-size:0.82rem;font-weight:600;color:#8b5cf6;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
-          </div>
-        </div>
-      </a>
-
-    </div>
-  </div>
-</div>
-
 <!-- RESOURCES PANEL -->
 <div class="dashboard-panel" id="panel-resources">
 
@@ -3570,6 +3587,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <div class="db-breadcrumb">Home › Training Videos</div>
     </div>
     <div class="header-right">
+      <button id="training-results-btn" onclick="openMyQuizResults()" style="display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;"
+        onmouseover="this.style.background='rgba(0,212,170,0.18)'" onmouseout="this.style.background='rgba(0,212,170,0.08)'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Results
+      </button>
       <button id="training-grade-btn" onclick="openGradeOverlay()" style="display:none;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1.5px solid rgba(240,165,0,0.4);background:rgba(240,165,0,0.08);color:#f0a500;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;"
         onmouseover="this.style.background='rgba(240,165,0,0.18)'" onmouseout="this.style.background='rgba(240,165,0,0.08)'">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -3580,8 +3602,8 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Create Quiz
       </button>
-      <button onclick="openUploadModal('Training')"
-        style="display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;"
+      <button id="training-upload-btn" onclick="openUploadModal('Training')"
+        style="display:none;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;"
         onmouseover="this.style.background='rgba(0,212,170,0.18)'" onmouseout="this.style.background='rgba(0,212,170,0.08)'">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Upload
@@ -4112,7 +4134,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <button onclick="closeMarketingOverlay()" style="background:var(--surface2);border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
     </div>
 
-    <!-- ── Tab bar (matches screenshot style) ── -->
+    <!-- ── Tab bar ── -->
     <div style="display:flex;gap:0;padding:14px 22px 0;border-bottom:2px solid var(--border);">
       <button id="mkt-tab-btn-videos" onclick="switchMktTab('videos')"
         style="display:flex;align-items:center;gap:7px;padding:9px 20px;border:none;border-bottom:2.5px solid #00d4ff;margin-bottom:-2px;background:rgba(0,212,255,0.08);border-radius:10px 10px 0 0;color:#00d4ff;font-weight:800;font-size:0.9rem;cursor:pointer;font-family:inherit;transition:all 0.18s;">
@@ -4139,12 +4161,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
     <!-- ── ASSESSMENT TAB CONTENT ── -->
     <div id="mkt-tab-assessment" style="display:none;padding:18px 22px;min-height:400px;">
-      <!-- Action row -->
-      <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:16px;">
-        <div onclick="openMyResultsFromOverlay(_currentMktNodeId)" style="cursor:pointer;padding:6px 13px;border-radius:8px;border:1.5px solid rgba(0,212,170,0.35);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.78rem;font-weight:700;"
-          onmouseover="this.style.background='rgba(0,212,170,0.18)'" onmouseout="this.style.background='rgba(0,212,170,0.08)'">📊 My Results</div>
-      </div>
-      <!-- Quiz list -->
       <div id="mkt-quiz-loading" style="text-align:center;padding:40px 0;color:var(--muted);">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
         <div style="font-size:0.83rem;">Loading quizzes…</div>
@@ -4728,7 +4744,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     <!-- Iframe body -->
     <div id="file-viewer-body" style="flex:1;background:#323639;position:relative;overflow:hidden;overscroll-behavior:contain;">
       <div id="file-viewer-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.92rem;gap:10px;flex-direction:column;z-index:4;">
-        <div style="width:36px;height:36px;border:3px solid var(--border);border-top-color:#14b8a6;border-radius:50%;animation:fvspin 0.9s linear infinite;"></div>
+        <div style="width:36px;height:36px;border:3px solid var(--border);border-top-color:#14b8a6;border-radius:50%;animation:spin 0.9s linear infinite;"></div>
         <div>Loading…</div>
       </div>
       <!-- Iframe is absolutely positioned so we can shift it UP to clip the toolbar off the top.
@@ -4940,6 +4956,9 @@ function _fillProfileModal(row,name,rawRole,grid,errMsg,loadMsg){
     CURRENT_USER.avatar_url = row['avatar_url'];
     localStorage.setItem('aditiUser', JSON.stringify(CURRENT_USER));
     _syncProfileUI();
+    // Update sidebar avatar with actual photo
+    const sbAv = document.getElementById('sidebarUserAvatar');
+    if (sbAv) sbAv.innerHTML = `<img src="${row['avatar_url']}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='${(CURRENT_USER.name||'?')[0].toUpperCase()}'">`;
   }
   const dbName=row['Employee_name']||name;
   const dbDept=row['Employee_Dept']||row['Emp_Dept']||rawRole||'—';
@@ -5112,8 +5131,6 @@ function toggleDashboardAccordion(){
   }
 }
 
-function itadminShowDocs(){ /* removed — IT Admin now uses CN-based single view */ }
-function itadminShowMain(){ /* removed — IT Admin now uses CN-based single view */ }
 function resourcesShowDocs(){
   document.getElementById('resources-main').style.display='none';
   document.getElementById('resources-docs').style.display='block';
@@ -7613,15 +7630,18 @@ function showPortal(){
   // Add user info + logout to sidebar
   const sb=document.getElementById('sidebarBottom');
   if(sb){
+    const roleLabel = CURRENT_USER.rawRole==='owner'?'👑 Managing Director':CURRENT_USER.rawRole==='mis'?'📊 MIS':CURRENT_USER.rawRole==='pc'?'💼 PC':CURRENT_USER.rawRole==='executive assistant'?'🤝 Executive Assistant':CURRENT_USER.role==='owner'?'👑 Managing Director':'👤 '+((CURRENT_USER.rawRole&&CURRENT_USER.rawRole!=='employee')?CURRENT_USER.rawRole.charAt(0).toUpperCase()+CURRENT_USER.rawRole.slice(1):'Employee');
+    const avColor = CURRENT_USER.role==='owner'?'#f0a500':'#00d4aa';
+    const avBg    = CURRENT_USER.role==='owner'?'rgba(240,165,0,0.2)':'rgba(0,212,170,0.2)';
     sb.innerHTML=`
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="background:${CURRENT_USER.role==='owner'?'rgba(240,165,0,0.2)':'rgba(0,212,170,0.2)'};color:${CURRENT_USER.role==='owner'?'#f0a500':'#00d4aa'};width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.91rem;font-weight:700;flex-shrink:0">${(CURRENT_USER.name||CURRENT_USER.email)[0].toUpperCase()}</div>
-        <div style="overflow:hidden">
-          <div class="user-name-text" style="font-size:0.82rem;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${CURRENT_USER.name||CURRENT_USER.email.split('@')[0]}</div>
-          <div style="font-size:0.71rem;color:var(--text2)">${CURRENT_USER.rawRole==='owner'?'👑 Managing Director':CURRENT_USER.rawRole==='mis'?'📊 MIS':CURRENT_USER.rawRole==='pc'?'💼 PC':CURRENT_USER.rawRole==='executive assistant'?'🤝 Executive Assistant':CURRENT_USER.role==='owner'?'👑 Managing Director':'👤 '+( (CURRENT_USER.rawRole&&CURRENT_USER.rawRole!=='employee')?CURRENT_USER.rawRole.charAt(0).toUpperCase()+CURRENT_USER.rawRole.slice(1):'Employee')}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div id="sidebarUserAvatar" style="background:${avBg};color:${avColor};width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.91rem;font-weight:700;flex-shrink:0;overflow:hidden;">${(CURRENT_USER.name||CURRENT_USER.email)[0].toUpperCase()}</div>
+        <div style="overflow:hidden;flex:1;">
+          <div class="user-name-text" style="font-size:0.82rem;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${CURRENT_USER.name||CURRENT_USER.email.split('@')[0]}</div>
+          <div style="font-size:0.71rem;color:var(--text2);">${roleLabel}</div>
         </div>
       </div>
-      <button onclick="doLogout()" style="width:100%;background:rgba(255,92,124,0.1);border:1px solid rgba(255,92,124,0.25);color:#ff5c7c;border-radius:8px;padding:8px;font-size:0.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s" onmouseover="this.style.background='rgba(255,92,124,0.25)'" onmouseout="this.style.background='rgba(255,92,124,0.1)'">
+      <button onclick="doLogout()" style="width:100%;background:rgba(255,92,124,0.1);border:1px solid rgba(255,92,124,0.25);color:#ff5c7c;border-radius:8px;padding:8px;font-size:0.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,92,124,0.25)'" onmouseout="this.style.background='rgba(255,92,124,0.1)'">
         🚪 Logout
       </button>`;
   }
@@ -8747,7 +8767,7 @@ async function loadMISDBQuizzes() {
 
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/quizzes?select=*,content_nodes(name)&is_active=eq.true&order=id.desc`,
+      `${SUPABASE_URL}/rest/v1/quizzes?select=*,content_nodes(name),questions(marks)&is_active=eq.true&order=id.desc`,
       { headers: _hdrs }
     );
     let quizzes = await res.json();
@@ -8764,10 +8784,13 @@ async function loadMISDBQuizzes() {
 
     const colors = ['#a855f7','#f0a500','#00d4aa','#4e9af1','#f97316','#e879f9','#22c55e'];
     listEl.innerHTML = quizzes.map((q, i) => {
-      const col  = colors[i % colors.length];
-      const mod  = q.content_nodes?.name || 'General';
-      const tl   = q.time_limit   ? `⏱ ${q.time_limit} min`   : '';
-      const pass = q.passing_score ? `🎯 Pass: ${q.passing_score}%` : '🎯 Pass: 60%';
+      const col        = colors[i % colors.length];
+      const mod        = q.content_nodes?.name || 'General';
+      const tl         = q.time_limit ? `⏱ ${q.time_limit} min` : '';
+      const totalMarks = (q.questions || []).reduce((s, qq) => s + (qq.marks || 1), 0);
+      const passingPct = q.passing_score || 60;
+      const passingMks = totalMarks > 0 ? Math.ceil((passingPct / 100) * totalMarks) : null;
+      const pass       = passingMks ? `🎯 Pass: ${passingMks}/${totalMarks} marks` : `🎯 Pass: ${passingPct}%`;
       return `
         <button onclick="startDBQuiz(${q.id})"
           style="text-align:left;padding:15px 16px;border-radius:13px;border:1.5px solid ${col}33;border-top:2.5px solid ${col};background:${col}0d;cursor:pointer;font-family:inherit;width:100%;transition:all 0.18s;"
@@ -10302,6 +10325,8 @@ async function loadMarketingCounts() {
 }
 
 function cnOpenMktDynOverlay(nodeId, catName) {
+  _hideAssessmentTab(); // Marketing — Assessment tab nahi dikhana
+  switchMktTab('videos');
   cnOpenOverlay(nodeId, catName, 'marketingOverlay', 'mktOverlayTitle', 'mktOverlaySub',
                 'mktOverlayGrid', 'mktOverlayLoader', 'mktOverlayEmpty');
 }
@@ -10321,6 +10346,8 @@ async function openMarketingOverlay(category) {
   document.getElementById('mktOverlayEmpty').style.display   = 'none';
   document.getElementById('marketingOverlay').style.display  = 'block';
   document.body.style.overflow = 'hidden';
+  _hideAssessmentTab(); // Marketing — Assessment tab nahi dikhana
+  switchMktTab('videos');
 
   try {
     await CN.load();
@@ -10420,7 +10447,7 @@ async function loadSimpleCNPanel(panelKey, sectionName) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
         </button>` : ''}
         <div class="home-card" style="--card-top:${th.color};cursor:pointer;"
-          onclick="cnOpenOverlay(${cat.id},'${safe}','marketingOverlay','mktOverlayTitle','mktOverlaySub','mktOverlayGrid','mktOverlayLoader','mktOverlayEmpty')"
+          onclick="_hideAssessmentTab();switchMktTab('videos');cnOpenOverlay(${cat.id},'${safe}','marketingOverlay','mktOverlayTitle','mktOverlaySub','mktOverlayGrid','mktOverlayLoader','mktOverlayEmpty')"
           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.3)';this.style.borderColor='${th.color}'"
           onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
           <div class="hc-icon" style="background:${th.bg};border-color:${th.border};color:${th.color};">
@@ -12487,7 +12514,6 @@ const TRAINING_QUIZ_MAP = {
 };
 
 async function loadTrainingSection() {
-  injectTrainingDeleteBtns();
   if (trainingDynLoaded) return;
   trainingDynLoaded = true;
 
@@ -12547,29 +12573,39 @@ async function loadTrainingSection() {
   }
 }
 
-// ── Overlay tab switch (Training Videos | Assessment) ───────────────────
-let _currentMktNodeId = null; // tracks which card's overlay is open
+// ── Overlay tab switch ───────────────────────────────────────────────────
+let _currentMktNodeId = null;
 function switchMktTab(tab) {
-  const vTab   = document.getElementById('mkt-tab-videos');
-  const aTab   = document.getElementById('mkt-tab-assessment');
-  const btnV   = document.getElementById('mkt-tab-btn-videos');
-  const btnA   = document.getElementById('mkt-tab-btn-assessment');
+  const vTab = document.getElementById('mkt-tab-videos');
+  const aTab = document.getElementById('mkt-tab-assessment');
+  const btnV = document.getElementById('mkt-tab-btn-videos');
+  const btnA = document.getElementById('mkt-tab-btn-assessment');
   if (!vTab) return;
   if (tab === 'videos') {
-    vTab.style.display = 'block'; aTab.style.display = 'none';
+    vTab.style.display = 'block'; if(aTab) aTab.style.display = 'none';
     btnV.style.borderBottomColor = '#00d4ff'; btnV.style.color = '#00d4ff';
     btnV.style.background = 'rgba(0,212,255,0.08)'; btnV.style.fontWeight = '800';
-    btnA.style.borderBottomColor = 'transparent'; btnA.style.color = 'var(--muted)';
-    btnA.style.background = 'transparent'; btnA.style.fontWeight = '700';
+    if(btnA){ btnA.style.borderBottomColor = 'transparent'; btnA.style.color = 'var(--muted)'; btnA.style.background = 'transparent'; btnA.style.fontWeight = '700'; }
   } else {
-    vTab.style.display = 'none'; aTab.style.display = 'block';
-    btnA.style.borderBottomColor = '#a855f7'; btnA.style.color = '#a855f7';
-    btnA.style.background = 'rgba(168,85,247,0.08)'; btnA.style.fontWeight = '800';
-    btnV.style.borderBottomColor = 'transparent'; btnV.style.color = 'var(--muted)';
-    btnV.style.background = 'transparent'; btnV.style.fontWeight = '700';
+    vTab.style.display = 'none'; if(aTab) aTab.style.display = 'block';
+    if(btnA){ btnA.style.borderBottomColor = '#a855f7'; btnA.style.color = '#a855f7'; btnA.style.background = 'rgba(168,85,247,0.08)'; btnA.style.fontWeight = '800'; }
+    btnV.style.borderBottomColor = 'transparent'; btnV.style.color = 'var(--muted)'; btnV.style.background = 'transparent'; btnV.style.fontWeight = '700';
   }
 }
 
+// Hide Assessment tab — used when overlay is opened from IT Admin or Marketing
+function _hideAssessmentTab() {
+  const btn = document.getElementById('mkt-tab-btn-assessment');
+  if (btn) btn.style.display = 'none';
+}
+
+// Show Assessment tab — used when overlay is opened from Training
+function _showAssessmentTab() {
+  const btn = document.getElementById('mkt-tab-btn-assessment');
+  if (btn) btn.style.display = 'flex';
+}
+
+// Training cards → show Assessment tab + load quizzes
 function cnOpenTrainingOverlay(nodeId, catName) {
   _currentMktNodeId = nodeId;
   logActivity({event_type:'training_module_open', event_detail:'Opened training card: '+catName, page_name:'training', card_name:catName});
@@ -12585,45 +12621,39 @@ function cnOpenTrainingOverlay(nodeId, catName) {
   document.getElementById('mkt-quiz-list').innerHTML        = '';
   document.getElementById('mkt-quiz-empty').style.display   = 'none';
 
+  _showAssessmentTab(); // Training mein Assessment tab dikhao
   document.getElementById('marketingOverlay').style.display = 'block';
   document.body.style.overflow = 'hidden';
-
-  // Always open on Videos tab by default
   switchMktTab('videos');
-
-  // Load videos (left panel)
   _cnRenderOverlayContent(nodeId, catName, th, 'mktOverlayGrid', 'mktOverlaySub', 'mktOverlayEmpty', null);
-
-  // Load quizzes (right panel) — filtered to this card's nodeId
   _loadMktQuizPanel(catName, nodeId);
 }
 
-// Load DB quizzes into the right Assessment panel — filtered by nodeId
+// Load DB quizzes into Assessment panel
 async function _loadMktQuizPanel(catName, nodeId) {
   const loadEl  = document.getElementById('mkt-quiz-loading');
   const listEl  = document.getElementById('mkt-quiz-list');
   const emptyEl = document.getElementById('mkt-quiz-empty');
-  // Use inline headers — QZ_HDRS may not be defined yet at this point in the file
   const _hdrs = SB_HDRS_JSON;
   try {
-    // Filter by node_id if provided so only this card's quizzes appear
     const nodeFilter = nodeId ? `&node_id=eq.${nodeId}` : '';
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/quizzes?select=*,content_nodes(name)&is_active=eq.true${nodeFilter}&order=id.desc`,
+      `${SUPABASE_URL}/rest/v1/quizzes?select=*,content_nodes(name),questions(marks)&is_active=eq.true${nodeFilter}&order=id.desc`,
       { headers: _hdrs() }
     );
     const quizzes = await res.json();
-    loadEl.style.display = 'none';
-
-    if (!Array.isArray(quizzes) || !quizzes.length) { emptyEl.style.display = 'block'; return; }
-
+    if(loadEl) loadEl.style.display = 'none';
+    if (!Array.isArray(quizzes) || !quizzes.length) { if(emptyEl) emptyEl.style.display = 'block'; return; }
     const colors = ['#a855f7','#f0a500','#00d4aa','#4e9af1','#f97316','#e879f9','#22c55e'];
-    listEl.innerHTML = quizzes.map((q, i) => {
-      const col  = colors[i % colors.length];
-      const mod  = q.content_nodes?.name || 'General';
-      const tl   = q.time_limit   ? `⏱ ${q.time_limit} min`   : '';
-      const pass = q.passing_score ? `🎯 Pass: ${q.passing_score}%` : '🎯 Pass: 60%';
-      const qCount = q.question_count ? `📋 ${q.question_count} Qs` : '';
+    if(listEl) listEl.innerHTML = quizzes.map((q, i) => {
+      const col        = colors[i % colors.length];
+      const mod        = q.content_nodes?.name || 'General';
+      const tl         = q.time_limit ? `⏱ ${q.time_limit} min` : '';
+      const totalMarks = (q.questions || []).reduce((s, qq) => s + (qq.marks || 1), 0);
+      const passingPct = q.passing_score || 60;
+      const passingMks = totalMarks > 0 ? Math.ceil((passingPct / 100) * totalMarks) : null;
+      const pass       = passingMks ? `🎯 Pass: ${passingMks}/${totalMarks} marks` : `🎯 Pass: ${passingPct}%`;
+      const qCount     = q.question_count ? `📋 ${q.question_count} Qs` : '';
       return `
         <button onclick="startDBQuizFromOverlay(${q.id})"
           style="text-align:left;padding:14px 15px;border-radius:13px;border:1.5px solid ${col}33;border-left:3px solid ${col};background:${col}0a;cursor:pointer;font-family:inherit;width:100%;transition:all 0.18s;"
@@ -12633,15 +12663,15 @@ async function _loadMktQuizPanel(catName, nodeId) {
             <div style="width:36px;height:36px;border-radius:9px;background:${col}20;border:1px solid ${col}40;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">📝</div>
             <div style="flex:1;min-width:0;">
               <div style="font-weight:700;color:var(--text);font-size:0.9rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${q.title}</div>
-              <div style="font-size:0.72rem;color:var(--muted);">${[mod, tl, pass, qCount].filter(Boolean).join(' · ')}</div>
+              <div style="font-size:0.72rem;color:var(--muted);">${[mod,tl,pass,qCount].filter(Boolean).join(' · ')}</div>
             </div>
             <span style="color:${col};font-size:1rem;flex-shrink:0;">→</span>
           </div>
         </button>`;
     }).join('');
   } catch(e) {
-    if (loadEl) loadEl.style.display = 'none';
-    if (listEl) listEl.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:16px;">⚠️ ${e.message}</div>`;
+    if(loadEl) loadEl.style.display = 'none';
+    if(listEl) listEl.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:16px;">⚠️ ${e.message}</div>`;
   }
 }
 
@@ -12689,7 +12719,7 @@ window.closeMISQuiz = function() {
 // ── Training module card delete is handled by CN.confirmDeleteCard()
 // injected directly inside loadTrainingSection() cards — no separate
 // Training_Videos table needed.
-function injectTrainingDeleteBtns() { /* no-op — handled by loadTrainingSection */ }
+
 
 // Delete a single video from files table
 async function confirmDeleteTrainingVideo(videoId, videoTitle, subKey) {
@@ -15198,7 +15228,7 @@ function annFilter(btn, filter) {
 let _annDrwLoaded   = false;
 let _annDrwUpdates  = [];   // from Supabase announcements table
 let _annDrwCelebs   = [];   // birthdays / anniversaries
-let _annDrwFilter   = 'all';
+let _annDrwFilter   = 'update'; // default to Updates tab
 
 /* ── Badge count helpers ─────────────────────────────────── */
 function _annGetSeenIds() {
@@ -15228,6 +15258,55 @@ function _annUpdateBadge() {
 }
 
 /* ── Open / Close overlay ────────────────────────────────── */
+let _annChatPollInterval = null;
+let _annLastMsgId = 0; // track last seen message id for incremental fetch
+
+function _annStartChatPoll() {
+  _annStopChatPoll();
+  // Update _annLastMsgId from current data
+  if (_annDrwWishes.length) _annLastMsgId = Math.max(..._annDrwWishes.map(w => w.id || 0));
+
+  _annChatPollInterval = setInterval(async () => {
+    if (_annDrwFilter !== 'celeb') { _annStopChatPoll(); return; }
+    try {
+      const today = new Date().toISOString().slice(0,10);
+      // Only fetch messages newer than last known id
+      const idFilter = _annLastMsgId > 0 ? `&id=gt.${_annLastMsgId}` : '';
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/birthday_wishes?select=id,wish_text,from_email,from_name,type,to_email,to_name,created_at&wish_date=eq.${today}${idFilter}&order=created_at.asc&limit=50`,
+        { headers: SB_HDRS() }
+      );
+      if (!res.ok) return;
+      const newMsgs = await res.json();
+      if (!newMsgs.length) return;
+
+      // Append only truly new messages
+      const existingIds = new Set(_annDrwWishes.map(w => w.id));
+      const toAdd = newMsgs.filter(w => !existingIds.has(w.id)).map(w => ({
+        ...w,
+        _senderName:   w.from_name || (w.from_email ? w.from_email.split('@')[0] : 'Someone'),
+        _senderAvatar: _annAvatarCache[( w.from_email||'').toLowerCase()] || null
+      }));
+      if (!toAdd.length) return;
+
+      _annDrwWishes.push(...toAdd);
+      _annLastMsgId = Math.max(..._annDrwWishes.map(w => w.id || 0));
+      _annDrwRender();
+      // Load any missing avatars for new senders
+      _annLoadMissingAvatars();
+      // Scroll to bottom if user is near bottom
+      const feed = document.getElementById('annDrwFeed');
+      if (feed && (feed.scrollHeight - feed.scrollTop - feed.clientHeight) < 140) {
+        setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 60);
+      }
+    } catch(e) {}
+  }, 5000); // poll every 5 seconds
+}
+
+function _annStopChatPoll() {
+  if (_annChatPollInterval) { clearInterval(_annChatPollInterval); _annChatPollInterval = null; }
+}
+
 function openAnnOverlay() {
   const backdrop = document.getElementById('annOverlayBackdrop');
   const drawer   = document.getElementById('annOverlayDrawer');
@@ -15246,19 +15325,14 @@ function openAnnOverlay() {
     _annDrwLoad();
   }
   localStorage.setItem('annSeen_' + _annTodayKey(), '1');
-  // MIS team ko Post Update button dikhao
-  const postBtn = document.getElementById('annPostUpdateBtn');
-  if (postBtn && CURRENT_USER && (CURRENT_USER.rawRole === 'mis')) {
-    postBtn.style.display = 'flex';
-  } else if (postBtn) {
-    postBtn.style.display = 'none';
-  }
+  annDrwFilter(_annDrwFilter || 'update');
 }
 
 function closeAnnOverlay() {
   const backdrop = document.getElementById('annOverlayBackdrop');
   const drawer   = document.getElementById('annOverlayDrawer');
   if (!backdrop || !drawer) return;
+  _annStopChatPoll(); // stop polling when drawer closes
   drawer.style.transform = 'translateX(100%)';
   backdrop.style.opacity = '0';
   setTimeout(() => {
@@ -15273,12 +15347,40 @@ function annDrwFilter(f) {
   _annDrwFilter = f;
   document.querySelectorAll('.ann-drw-tab').forEach(b => {
     const isActive = b.id === 'ann-drw-tab-' + f;
-    b.style.borderBottomColor = isActive ? '#f0a500' : 'transparent';
-    b.style.color   = isActive ? '#f0a500' : 'var(--muted)';
+    const col = f === 'celeb' ? '#f0a500' : '#4e9af1';
+    b.style.borderBottomColor = isActive ? col : 'transparent';
+    b.style.color   = isActive ? col : 'var(--muted)';
     b.style.fontWeight = isActive ? '700' : '600';
-    b.style.background = isActive ? 'rgba(240,165,0,0.06)' : 'transparent';
+    b.style.background = isActive ? (f==='celeb'?'rgba(240,165,0,0.06)':'rgba(78,154,241,0.06)') : 'transparent';
     if (isActive) b.classList.add('active'); else b.classList.remove('active');
   });
+
+  // Footer: Updates → Post Update btn | Celebrations → chat input
+  const updFooter  = document.getElementById('annFooterUpdates');
+  const chatFooter = document.getElementById('annFooterChat');
+  const postBtn    = document.getElementById('annPostUpdateBtn');
+  const isMIS      = CURRENT_USER && CURRENT_USER.rawRole === 'mis';
+
+  const feed = document.getElementById('annDrwFeed');
+
+  if (f === 'celeb') {
+    if (updFooter)  updFooter.style.display  = 'none';
+    if (chatFooter) chatFooter.style.display = 'flex';
+    _annSetSelfAvatar();
+    // Fun celebration background
+    if (feed) {
+      feed.style.background = 'linear-gradient(135deg,rgba(255,220,100,0.08) 0%,rgba(255,100,150,0.06) 33%,rgba(150,100,255,0.06) 66%,rgba(100,200,255,0.07) 100%)';
+      feed.style.padding    = '14px 14px';
+    }
+    _annStartChatPoll(); // start real-time polling
+  } else {
+    if (updFooter)  updFooter.style.display  = 'flex';
+    if (chatFooter) chatFooter.style.display = 'none';
+    if (postBtn) postBtn.style.display = isMIS ? 'flex' : 'none';
+    if (feed) { feed.style.background = ''; feed.style.padding = '16px 20px'; }
+    _annStopChatPoll(); // stop polling when not on celeb tab
+  }
+
   _annDrwRender();
 }
 
@@ -15291,6 +15393,8 @@ async function _annDrwLoad() {
     _annDrwFetchUpdates(),
     _annDrwFetchCelebrations()
   ]);
+  // After celebs loaded, fetch today's wishes
+  await _annDrwFetchWishes();
 
   _annDrwLoaded = true;
   _annDrwRender();
@@ -15374,7 +15478,7 @@ function _annDrwRender() {
           ? `<span style="font-size:0.68rem;padding:2px 8px;border-radius:20px;background:rgba(240,165,0,0.15);color:#f0a500;font-weight:700;border:1px solid rgba(240,165,0,0.3);">📌 Pinned</span>` : '';
         const _isMIS = CURRENT_USER && CURRENT_USER.rawRole === 'mis';
         const _delBtn = _isMIS
-          ? `<button onclick="deletePortalUpdate(${ann.id})" style="background:rgba(255,59,48,0.1);border:1px solid rgba(255,59,48,0.25);color:#ff3b30;border-radius:7px;padding:3px 9px;font-size:0.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.background='rgba(255,59,48,0.22)'" onmouseout="this.style.background='rgba(255,59,48,0.1)'">Delete</button>`
+          ? `<button onclick="deletePortalUpdate(${ann.id})" style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.22);color:#ff3b30;border-radius:7px;padding:2px 9px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.background='rgba(255,59,48,0.2)'" onmouseout="this.style.background='rgba(255,59,48,0.08)'">🗑 Delete</button>`
           : '';
         html += `
         <div id="ann-card-${ann.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;overflow:hidden;border-left:3px solid ${typeClr};animation:annCardIn 0.35s cubic-bezier(0.22,1,0.36,1) both;animation-delay:${i*0.06}s;">
@@ -15397,11 +15501,15 @@ function _annDrwRender() {
     }
   }
 
-  // ─ Celebrations ─
-  if ((f === 'all' || f === 'celeb') && _annDrwCelebs.length > 0) {
+  // ─ Celebrations tab — always show (chat works even without celebrations) ─
+  if (f === 'all' || f === 'celeb') {
     const bdays = _annDrwCelebs.filter(c => c.celebType === 'birthday');
     const annis = _annDrwCelebs.filter(c => c.celebType === 'anniversary');
-    let celebHTML = `
+    let celebHTML = '';
+
+    // ── Celebration banner (only when someone has birthday/anniversary) ──
+    if (_annDrwCelebs.length > 0) {
+      celebHTML += `
     <div style="background:var(--surface2);border:1px solid rgba(240,165,0,0.3);border-radius:14px;overflow:hidden;border-left:3px solid #f0a500;">
       <div style="padding:14px 16px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
@@ -15415,8 +15523,8 @@ function _annDrwRender() {
             (annis.length === 1 ? `Happy Anniversary, ${annis[0].name.split(' ')[0]}! 🥳` : `${annis.length} Work Anniversaries!`)}
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">`;
-    bdays.forEach(p => {
-      const ini = (p.name||'?')[0].toUpperCase();
+      bdays.forEach(p => {
+        const ini = (p.name||'?')[0].toUpperCase();
       celebHTML += `<div style="display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:10px;background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.2);">
         ${p.avatar ? `<img src="${p.avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" onerror="this.outerHTML='<span style=width:28px;height:28px;border-radius:50%;background:rgba(240,165,0,0.2);color:#f0a500;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;>${ini}</span>'">`
           : `<span style="width:28px;height:28px;border-radius:50%;background:rgba(240,165,0,0.2);color:#f0a500;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;">${ini}</span>`}
@@ -15434,23 +15542,97 @@ function _annDrwRender() {
     celebHTML += `</div>
         <div style="font-size:0.80rem;color:var(--muted);">Spread some love and wish your teammates on their special day! 💛</div>
       </div>
-    </div>`;
+    </div>`; // end celebration banner
+    } // end if (_annDrwCelebs.length > 0)
+
+    // WhatsApp-style group chat — always visible in celeb tab
+    // Colorful palette for other senders (cycles through fun colors)
+    const _chatPalette = [
+      {bg:'rgba(168,85,247,0.13)',border:'rgba(168,85,247,0.3)',name:'#a855f7',bubble:'rgba(168,85,247,0.1)'},
+      {bg:'rgba(236,72,153,0.12)',border:'rgba(236,72,153,0.3)',name:'#ec4899',bubble:'rgba(236,72,153,0.09)'},
+      {bg:'rgba(59,130,246,0.13)',border:'rgba(59,130,246,0.3)',name:'#3b82f6',bubble:'rgba(59,130,246,0.1)'},
+      {bg:'rgba(20,184,166,0.13)',border:'rgba(20,184,166,0.3)',name:'#14b8a6',bubble:'rgba(20,184,166,0.1)'},
+      {bg:'rgba(234,179,8,0.13)', border:'rgba(234,179,8,0.3)', name:'#ca8a04',bubble:'rgba(234,179,8,0.08)'},
+    ];
+    // Build sender→color map so each person always gets same color
+    const _senderColorMap = {};
+    let _colorIdx = 0;
+
+    celebHTML += `<div id="annCelebChat" style="display:flex;flex-direction:column;gap:8px;">
+      <div style="text-align:center;margin-bottom:4px;">
+        <span style="font-size:0.68rem;font-weight:700;color:var(--muted);background:rgba(240,165,0,0.1);padding:4px 14px;border-radius:20px;border:1px solid rgba(240,165,0,0.2);letter-spacing:0.05em;">✨ GROUP WISHES ✨ <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle;animation:pulse 2s infinite;" title="Live"></span></span>
+      </div>`;
+
+    if (_annDrwWishes.length > 0) {
+      _annDrwWishes.forEach(w => {
+        const me       = CURRENT_USER?.email && w.from_email && w.from_email.toLowerCase() === CURRENT_USER.email.toLowerCase();
+        const sender   = w._senderName || w.from_name || (w.from_email ? w.from_email.split('@')[0] : 'Someone');
+        const initials = sender[0]?.toUpperCase() || '?';
+        const avatar   = w._senderAvatar || null;
+        const timeStr  = w.created_at ? new Date(w.created_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+        const target   = _annDrwCelebs.find(c => c.email === w.to_email);
+        const toName   = target ? target.name.split(' ')[0] : (w.to_name && w.to_name !== 'Team' ? w.to_name.split(' ')[0] : '');
+        const typeEmoji= (w.type === 'birthday') ? '🎂' : (w.type === 'anniversary') ? '🥳' : '🎉';
+
+        // Assign stable color per sender
+        if (!_senderColorMap[sender]) { _senderColorMap[sender] = _chatPalette[_colorIdx++ % _chatPalette.length]; }
+        const pal = _senderColorMap[sender];
+
+        // Avatar
+        const avatarDiv = avatar
+          ? `<img src="${avatar}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:2px;border:2px solid ${pal.border};" onerror="this.style.display='none'">`
+          : `<div style="width:32px;height:32px;border-radius:50%;background:${pal.bg};color:${pal.name};display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:900;flex-shrink:0;margin-top:2px;border:2px solid ${pal.border};">${initials}</div>`;
+
+        if (me) {
+          // My message — right side, golden gradient bubble
+          celebHTML += `
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+              <div style="max-width:85%;background:linear-gradient(135deg,#f0a500,#f97316);border-radius:18px 3px 18px 18px;padding:10px 14px;box-shadow:0 2px 10px rgba(240,165,0,0.35);">
+                ${toName?`<div style="font-size:0.67rem;color:rgba(255,255,255,0.85);font-weight:800;margin-bottom:4px;letter-spacing:0.02em;">${typeEmoji} To ${toName}</div>`:''}
+                <div style="font-size:0.92rem;font-weight:700;color:#fff;line-height:1.5;letter-spacing:0.01em;">${w.wish_text}</div>
+                <div style="font-size:0.62rem;color:rgba(255,255,255,0.75);text-align:right;margin-top:5px;">${timeStr} ✓✓</div>
+              </div>
+            </div>`;
+        } else {
+          // Others — left side, colorful per-sender bubble
+          celebHTML += `
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              ${avatarDiv}
+              <div style="max-width:82%;">
+                <div style="font-size:0.7rem;font-weight:800;color:${pal.name};margin-bottom:3px;letter-spacing:0.01em;">${sender}</div>
+                <div style="background:${pal.bubble};border:1.5px solid ${pal.border};border-radius:3px 18px 18px 18px;padding:10px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.08);">
+                  ${toName?`<div style="font-size:0.67rem;color:${pal.name};font-weight:800;margin-bottom:4px;">${typeEmoji} To ${toName}</div>`:''}
+                  <div style="font-size:0.92rem;font-weight:700;color:var(--text);line-height:1.5;letter-spacing:0.01em;">${w.wish_text}</div>
+                  <div style="font-size:0.62rem;color:var(--muted);margin-top:5px;">${timeStr}</div>
+                </div>
+              </div>
+            </div>`;
+        }
+      });
+      celebHTML += `</div>`; // close wishes list
+    } else {
+      celebHTML += `<div style="text-align:center;padding:30px 16px;">
+        <div style="font-size:3rem;margin-bottom:10px;animation:livePulse 2s ease-in-out infinite;">🎊</div>
+        <div style="font-size:0.92rem;font-weight:800;color:var(--text);margin-bottom:6px;">No messages yet!</div>
+        <div style="font-size:0.8rem;color:var(--muted);">Be the first to spread some joy 🌟</div>
+      </div>`;
+    }
+    celebHTML += `</div>`; // close annCelebChat
     html += celebHTML;
   }
 
-  // ─ Empty state ─
+  // ─ Empty state (only for updates tab when no updates) ─
   if (!html) {
-    if (f === 'all' && !_annDrwLoaded) {
-      html = `<div style="text-align:center;padding:40px 0;color:var(--muted);">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-        <div style="font-size:0.85rem;">Loading…</div>
-      </div>`;
-    } else {
-      html = _annDrwEmpty('🔕', 'No announcements yet.', 'Check back later for updates from MIS Team.');
+    if (f === 'update') {
+      html = _annDrwEmpty('✨', 'No updates yet.', 'MIS Team will post updates here soon.');
     }
   }
 
   feed.innerHTML = html;
+  // Scroll chat to bottom when celeb tab is active
+  if (_annDrwFilter === 'celeb') {
+    setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 50);
+  }
 }
 
 function _annDrwEmpty(icon, title, sub) {
@@ -15459,6 +15641,253 @@ function _annDrwEmpty(icon, title, sub) {
     <div style="font-size:0.88rem;font-weight:600;color:var(--text2);margin-bottom:4px;">${title}</div>
     <div style="font-size:0.80rem;">${sub}</div>
   </div>`;
+}
+
+/* ── Wish Modal ─────────────────────────────────────────────── */
+function openAnnWishModal() {
+  if (!_annDrwCelebs.length) { alert('No celebrations today to wish!'); return; }
+  // Populate target dropdown
+  const sel = document.getElementById('annWishTarget');
+  if (sel) {
+    sel.innerHTML = '<option value="">— Select Person —</option>' +
+      _annDrwCelebs.map(c =>
+        `<option value="${c.email}|${c.celebType}">${c.name} — ${c.celebType === 'birthday' ? '🎂 Birthday' : '🥳 Work Anniversary'}</option>`
+      ).join('');
+  }
+  document.getElementById('annWishMessage').value = '';
+  document.getElementById('annWishError').style.display = 'none';
+  document.getElementById('annWishBackdrop').style.display = 'block';
+  document.getElementById('annWishModal').style.display = 'block';
+}
+
+function closeAnnWishModal() {
+  document.getElementById('annWishBackdrop').style.display = 'none';
+  document.getElementById('annWishModal').style.display = 'none';
+}
+
+async function submitAnnWish() {
+  const sel  = document.getElementById('annWishTarget');
+  const msg  = document.getElementById('annWishMessage').value.trim();
+  const errEl= document.getElementById('annWishError');
+  const btn  = document.getElementById('annWishSubmitBtn');
+  errEl.style.display = 'none';
+
+  if (!sel.value) { errEl.textContent = 'Please select who you want to wish.'; errEl.style.display='block'; return; }
+  if (!msg)       { errEl.textContent = 'Please write a message.'; errEl.style.display='block'; return; }
+
+  const [toEmail, celebType] = sel.value.split('|');
+  const senderName = CURRENT_USER?.name || CURRENT_USER?.email || 'A teammate';
+  const today = new Date().toISOString().slice(0,10);
+
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const body = {
+      to_email:    toEmail,
+      wish_text:   msg,
+      type:        celebType,
+      wish_date:   today,
+      from_email:  CURRENT_USER?.email || null,
+    };
+    // Try to add from_emp_id if available
+    if (_qzEmpId) body.from_emp_id = _qzEmpId;
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/birthday_wishes`, {
+      method: 'POST',
+      headers: { ...SB_HDRS_JSON(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const e = await res.text();
+      throw new Error(e.substring(0,120));
+    }
+    closeAnnWishModal();
+    // Reload celeb wishes in drawer
+    await _annDrwFetchWishes();
+    _annDrwRender();
+    // Show success toast
+    _annToast('💌 Wish sent! Your message has been delivered.');
+  } catch(e) {
+    errEl.textContent = 'Could not send wish: ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = '💌 Send Wish';
+  }
+}
+
+/* ── Fetch today's wishes for celebrations in drawer ─────── */
+let _annDrwWishes = []; // wishes for today's celebrants
+// Avatar cache: email → avatar_url (populated lazily)
+const _annAvatarCache = {};
+
+async function _annDrwFetchWishes() {
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    // Simple fast query — no JOIN, uses from_name saved at send time
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/birthday_wishes?select=id,wish_text,from_email,from_name,type,to_email,to_name,created_at&wish_date=eq.${today}&order=created_at.asc&limit=100`,
+      { headers: SB_HDRS() }
+    );
+    const raw = res.ok ? (await res.json()) : [];
+    _annDrwWishes = raw.map(w => ({
+      ...w,
+      _senderName:   w.from_name || (w.from_email ? w.from_email.split('@')[0] : 'Someone'),
+      _senderAvatar: _annAvatarCache[w.from_email] || null
+    }));
+    // Lazy-load avatars for senders we haven't cached yet
+    _annLoadMissingAvatars();
+  } catch(e) { _annDrwWishes = []; }
+}
+
+async function _annLoadMissingAvatars() {
+  const uncached = [...new Set(
+    _annDrwWishes.map(w => w.from_email).filter(e => e && !_annAvatarCache[e])
+  )];
+  if (!uncached.length) return;
+  try {
+    const emailList = uncached.slice(0,20).map(e => `"${e}"`).join(',');
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Employee_details?select=Email_Id,avatar_url,Link&Email_Id=in.(${emailList})`,
+      { headers: SB_HDRS() }
+    );
+    if (!res.ok) return;
+    const rows = await res.json();
+    let changed = false;
+    rows.forEach(r => {
+      const url = r.avatar_url || r.Link || null;
+      const email = (r.Email_Id || '').toLowerCase();
+      if (email && url && !_annAvatarCache[email]) {
+        _annAvatarCache[email] = url;
+        // Update cached wishes with avatar
+        _annDrwWishes.forEach(w => {
+          if ((w.from_email || '').toLowerCase() === email) { w._senderAvatar = url; changed = true; }
+        });
+      }
+    });
+    // Re-render only if avatars changed
+    if (changed && _annDrwFilter === 'celeb') _annDrwRender();
+  } catch(e) {}
+}
+
+/* ── Emoji picker helpers ─────────────────────────────────── */
+function annToggleEmojiPicker() {
+  const picker = document.getElementById('annEmojiPicker');
+  if (!picker) return;
+  picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+function annInsertEmoji(emoji) {
+  const input = document.getElementById('annChatInput');
+  if (!input) return;
+  const pos = input.selectionStart ?? input.value.length;
+  input.value = input.value.slice(0, pos) + emoji + input.value.slice(pos);
+  input.focus();
+  input.setSelectionRange(pos + emoji.length, pos + emoji.length);
+}
+
+/* ── Populate self avatar in chat input ────────────────────── */
+function _annSetSelfAvatar() {
+  const el = document.getElementById('annChatSelfAvatar');
+  if (!el || !CURRENT_USER) return;
+  const name   = CURRENT_USER.name || CURRENT_USER.email || '';
+  const ini    = name[0]?.toUpperCase() || '?';
+  const avatar = CURRENT_USER.avatar_url || CURRENT_USER.avatar || null;
+  if (avatar) {
+    el.innerHTML = `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='${ini}'">`;
+    el.style.padding = '0';
+  } else {
+    // Try fetching from DB if not cached
+    if (CURRENT_USER.email && !CURRENT_USER._avatarFetched) {
+      CURRENT_USER._avatarFetched = true;
+      fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=Email_Id,avatar_url,Link&Email_Id=ilike.${encodeURIComponent(CURRENT_USER.email)}&limit=1`, { headers: SB_HDRS() })
+        .then(r => r.json()).then(arr => {
+          const url = arr[0]?.avatar_url || arr[0]?.Link || null;
+          if (url) {
+            CURRENT_USER.avatar_url = url;
+            // Pre-cache for group chat avatars
+            if (typeof _annAvatarCache !== 'undefined') _annAvatarCache[CURRENT_USER.email.toLowerCase()] = url;
+            _annSetSelfAvatar();
+          }
+        }).catch(() => {});
+    }
+    el.textContent = ini;
+  }
+}
+
+/* ── Inline chat send (Celebrations tab) ─────────────────── */
+async function annSendChatWish() {
+  const input = document.getElementById('annChatInput');
+  const msg   = input?.value?.trim();
+  if (!msg) return;
+
+  const picker = document.getElementById('annEmojiPicker');
+  if (picker) picker.style.display = 'none';
+
+  // If celebration today, target first celebrant; otherwise send as general team message
+  const target     = _annDrwCelebs[0] || null;
+  const toEmail    = target?.email || 'team@celebrations'; // placeholder — avoids NOT NULL constraint
+  const toName     = target?.name  || 'Team';
+  const celebType  = target?.celebType || 'general';
+  const today      = new Date().toISOString().slice(0,10);
+  const senderName = CURRENT_USER?.name || CURRENT_USER?.email?.split('@')[0] || 'Someone';
+  const senderAvatar = CURRENT_USER?.avatar_url || CURRENT_USER?.avatar || null;
+
+  const body = {
+    wish_text:  msg,
+    type:       celebType,
+    wish_date:  today,
+    from_email: CURRENT_USER?.email || null,
+    from_name:  senderName,
+    to_name:    toName,
+    to_email:   toEmail,  // always set — never null
+  };
+  if (_qzEmpId) body.from_emp_id = _qzEmpId;
+
+  input.value = '';
+  input.disabled = true;
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/birthday_wishes`, {
+      method: 'POST',
+      headers: { ...SB_HDRS_JSON(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const errTxt = await res.text().catch(() => res.status);
+      throw new Error(errTxt.substring(0,120));
+    }
+    // Optimistically add to local list
+    _annDrwWishes.push({
+      id: Date.now(), wish_text: msg,
+      from_email: CURRENT_USER?.email, from_name: senderName,
+      type: celebType, to_email: toEmail, to_name: toName,
+      created_at: new Date().toISOString(),
+      _senderName:   senderName,
+      _senderAvatar: senderAvatar
+    });
+    _annDrwRender();
+    const feed = document.getElementById('annDrwFeed');
+    if (feed) setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 80);
+  } catch(e) {
+    _annToast('⚠️ Could not send: ' + e.message);
+    input.value = msg; // restore message on failure
+  } finally {
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+function _annToast(msg) {
+  let t = document.getElementById('annToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'annToast';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:10px 20px;border-radius:10px;font-size:0.82rem;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.3);opacity:0;transition:opacity 0.3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 3000);
 }
 
 // ── Main function called when switching to announcements ──────
@@ -15724,10 +16153,17 @@ document.addEventListener('DOMContentLoaded', function() {
       <button onclick="closeGradeOverlay()" style="background:var(--surface2);border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
     </div>
 
-    <!-- Filter tab bar (All Modules + one per quiz) -->
-    <div id="go-filter-bar" style="display:flex;gap:6px;padding:12px 20px;border-bottom:1px solid var(--border);overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;">
-      <div style="font-size:0.75rem;color:var(--muted);font-weight:700;align-self:center;white-space:nowrap;margin-right:4px;">Filter:</div>
-      <!-- Tabs injected by JS -->
+    <!-- Filter dropdowns: Employee + Quiz -->
+    <div id="go-filter-bar" style="display:flex;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;">
+      <span style="font-size:0.75rem;color:var(--muted);font-weight:700;white-space:nowrap;">Filter:</span>
+      <select id="go-filter-name" onchange="goApplyFilters()"
+        style="flex:1;min-width:160px;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.83rem;font-family:inherit;outline:none;cursor:pointer;">
+        <option value="">👤 All Employees</option>
+      </select>
+      <select id="go-filter-quiz" onchange="goApplyFilters()"
+        style="flex:1;min-width:160px;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.83rem;font-family:inherit;outline:none;cursor:pointer;">
+        <option value="">📝 All Quizzes</option>
+      </select>
     </div>
 
     <!-- Attempts list (direct, no two-step) -->
@@ -15915,13 +16351,45 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- ── MY RESULTS OVERLAY ── -->
 <div id="my-quiz-results-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:10002;overflow-y:auto;padding:16px;">
-  <div style="max-width:680px;margin:40px auto;background:var(--surface);border-radius:20px;padding:28px;position:relative;">
-    <button onclick="document.getElementById('my-quiz-results-overlay').style.display='none'" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;">✕</button>
-    <div class="mqr-title" style="font-size:1.15rem;font-weight:800;color:var(--text);margin-bottom:6px;">📊 My Quiz Results</div>
-    <div style="font-size:0.8rem;color:var(--muted);margin-bottom:22px;">Your attempts for this module</div>
-    <div id="mqr-loading" style="text-align:center;padding:30px;color:var(--muted);">Loading…</div>
-    <div id="mqr-list" style="display:flex;flex-direction:column;gap:10px;"></div>
-    <div id="mqr-empty" style="display:none;text-align:center;padding:30px;color:var(--muted);font-size:0.85rem;">You haven't taken any quizzes yet.</div>
+  <div style="max-width:780px;margin:30px auto;background:var(--surface);border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;padding:20px 24px 16px;border-bottom:1px solid var(--border);">
+      <div style="width:42px;height:42px;border-radius:12px;background:rgba(0,212,170,0.15);border:1px solid rgba(0,212,170,0.3);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">📊</div>
+      <div style="flex:1;">
+        <div class="mqr-title" style="font-size:1.1rem;font-weight:800;color:var(--text);">My Quiz Results</div>
+        <div class="mqr-sub" style="font-size:0.76rem;color:var(--muted);margin-top:2px;">Your quiz attempts and performance</div>
+      </div>
+      <button onclick="document.getElementById('my-quiz-results-overlay').style.display='none';document.body.style.overflow='';"
+        style="background:var(--surface2);border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+    </div>
+
+    <!-- Stats cards row -->
+    <div id="mqr-stats" style="display:none;grid-template-columns:repeat(4,1fr);gap:12px;padding:18px 24px;border-bottom:1px solid var(--border);"></div>
+
+    <!-- Quiz filter dropdown -->
+    <div style="padding:12px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <span style="font-size:0.75rem;font-weight:700;color:var(--muted);white-space:nowrap;">Filter:</span>
+      <select id="mqr-quiz-filter" onchange="mqrApplyFilter()"
+        style="flex:1;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.83rem;font-family:inherit;outline:none;cursor:pointer;">
+        <option value="">📝 All Quizzes</option>
+      </select>
+    </div>
+
+    <!-- Attempts list -->
+    <div style="padding:18px 24px;min-height:300px;">
+      <div id="mqr-loading" style="text-align:center;padding:40px 0;color:var(--muted);">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <div style="font-size:0.84rem;">Loading results…</div>
+      </div>
+      <div id="mqr-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <div id="mqr-empty" style="display:none;text-align:center;padding:48px;color:var(--muted);">
+        <div style="font-size:2.5rem;margin-bottom:10px;">📭</div>
+        <div style="font-size:0.9rem;font-weight:600;color:var(--text);margin-bottom:6px;">No quiz attempts yet</div>
+        <div style="font-size:0.82rem;">Complete a quiz from the Assessment tab to see your results here.</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -16061,12 +16529,14 @@ function switchTrainingTab(tab) {
 const _origLoadTraining = window.loadTrainingSection;
 window.loadTrainingSection = async function() {
   if (_origLoadTraining) await _origLoadTraining.apply(this, arguments);
-  // Show Create Quiz + Grade Attempts buttons in header only to Hemant & Krishna
+  // Show Create Quiz + Grade Attempts + Upload buttons in header only to Hemant & Krishna
   if (_canUploadQuiz()) {
     const hdrBtn = document.getElementById('training-create-quiz-btn');
     if (hdrBtn) hdrBtn.style.display = 'flex';
     const gradeBtn = document.getElementById('training-grade-btn');
     if (gradeBtn) gradeBtn.style.display = 'flex';
+    const uploadBtn = document.getElementById('training-upload-btn');
+    if (uploadBtn) uploadBtn.style.display = 'flex';
   }
 };
 
@@ -16165,10 +16635,14 @@ async function startDBQuiz(quizId) {
 
 
     // ── 6. Setup UI ─────────────────────────────────────────────────
-    const attemptLabel = attemptNumber > 1 ? ` · Attempt #${attemptNumber}` : '';
+    const attemptLabel  = attemptNumber > 1 ? ` · Attempt #${attemptNumber}` : '';
+    const _qzTotalMarks = _qzQuestions.reduce((s, q) => s + (q.marks || 1), 0);
+    const _qzPassPct    = _qzCurrentQuiz.passing_score || 60;
+    const _qzPassMarks  = _qzTotalMarks > 0 ? Math.ceil((_qzPassPct / 100) * _qzTotalMarks) : null;
+    const _qzPassLabel  = _qzPassMarks ? `Pass: ${_qzPassMarks}/${_qzTotalMarks} marks` : `Pass: ${_qzPassPct}%`;
     document.getElementById('qt-quiz-title').textContent = _qzCurrentQuiz.title;
     document.getElementById('qt-quiz-sub').textContent   =
-      `${_qzQuestions.length} questions · Pass: ${_qzCurrentQuiz.passing_score || 60}%${attemptLabel}`;
+      `${_qzQuestions.length} questions · ${_qzPassLabel}${attemptLabel}`;
 
     // ── 7. Start timer + render first question ──────────────────────
     _qzSecondsLeft = (_qzCurrentQuiz.time_limit || 15) * 60;
@@ -16497,10 +16971,11 @@ function showQuizResult(earned, total, correct, totalQ) {
   // Use total quiz marks (all questions) as denominator so score is out of full quiz
   // `total` comes from the patched total_marks on the attempt (sum of all question marks)
   // `earned` = MCQ marks earned (descriptive = 0 until MIS grades)
-  const fullTotal = total > 0 ? total : _qzQuestions.reduce((s,q) => s+(q.marks||1), 0);
-  const pct       = fullTotal > 0 ? Math.round((earned / fullTotal) * 100) : 0;
-  const passing   = _qzCurrentQuiz?.passing_score || 60;
-  const passed    = pct >= passing;
+  const fullTotal    = total > 0 ? total : _qzQuestions.reduce((s,q) => s+(q.marks||1), 0);
+  const pct          = fullTotal > 0 ? Math.round((earned / fullTotal) * 100) : 0;
+  const passing      = _qzCurrentQuiz?.passing_score || 60;
+  const passingMarks = fullTotal > 0 ? Math.ceil((passing / 100) * fullTotal) : null;
+  const passed       = pct >= passing;
 
   // Count correct MCQ/TF from local state (for display only)
   let correctCount = 0;
@@ -16527,7 +17002,7 @@ function showQuizResult(earned, total, correct, totalQ) {
   const subEl = document.getElementById('qt-quiz-sub');
   const attMatch = subEl ? (subEl.textContent.match(/Attempt #(\d+)/) || []) : [];
   const attNumStr = attMatch[1] ? ` · Attempt #${attMatch[1]}` : '';
-  document.getElementById('qr-subtitle').textContent = `${_qzCurrentQuiz?.title || 'Quiz'}${attNumStr} · ${passed ? '🎉 You cleared the passing score!' : `Passing score: ${passing}%`}`;
+  document.getElementById('qr-subtitle').textContent = `${_qzCurrentQuiz?.title || 'Quiz'}${attNumStr} · ${passed ? '🎉 You cleared the passing score!' : `Need ${passingMarks ?? passing+'%'} marks to pass`}`;
   document.getElementById('qr-score-pct').textContent = pct + '%';
   document.getElementById('qr-score-pct').style.color = passed ? '#22c55e' : (descQs.length > 0 ? '#f0a500' : '#ef4444');
   const ptsEl = document.getElementById('qr-score-pts');
@@ -16643,110 +17118,228 @@ function confirmQuitQuiz() {
 // ══════════════════════════════════════════════════════════════
 // MY RESULTS
 // ══════════════════════════════════════════════════════════════
+let _mqrAllRows = [];
+
 async function openMyQuizResults(nodeId) {
-  document.getElementById('my-quiz-results-overlay').style.display = 'block';
+  const overlay = document.getElementById('my-quiz-results-overlay');
+  overlay.style.display = 'block';
+  document.body.style.overflow = 'hidden';
   const loadEl  = document.getElementById('mqr-loading');
   const listEl  = document.getElementById('mqr-list');
   const emptyEl = document.getElementById('mqr-empty');
+  const statsEl = document.getElementById('mqr-stats');
+  const filterEl= document.getElementById('mqr-quiz-filter');
   loadEl.style.display = 'block'; listEl.innerHTML = ''; emptyEl.style.display = 'none';
+  if (statsEl) statsEl.style.display = 'none';
 
-  // Update title to show context
+  const isMIS = _canUploadQuiz();
   const titleEl = document.querySelector('#my-quiz-results-overlay .mqr-title');
-  if (titleEl) titleEl.textContent = nodeId ? 'My Results — This Module' : 'My Quiz Results';
+  const subEl   = document.querySelector('#my-quiz-results-overlay .mqr-sub');
+  if (titleEl) titleEl.textContent = isMIS ? 'All Quiz Results' : 'My Quiz Results';
+  if (subEl)   subEl.textContent   = isMIS ? 'All employees quiz attempts and performance' : 'Your quiz attempts and performance';
 
   try {
     let empFilter = '';
-    if (_qzEmpId) {
-      empFilter = `&employee_id=eq.${_qzEmpId}`;
-    } else if (CURRENT_USER?.email) {
-      const eRes = await fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id&Email_Id=ilike.${encodeURIComponent(CURRENT_USER.email)}&limit=1`, { headers: QZ_HDRS() });
-      const eArr = await eRes.json();
-      if (eArr.length) { _qzEmpId = eArr[0].Emp_id; empFilter = `&employee_id=eq.${_qzEmpId}`; }
-    }
-
-    // If nodeId provided, first get quiz IDs for that node, then filter attempts
-    let quizIdFilter = '';
-    if (nodeId) {
-      const qRes  = await fetch(`${SUPABASE_URL}/rest/v1/quizzes?select=id&node_id=eq.${nodeId}&is_active=eq.true`, { headers: QZ_HDRS() });
-      const qRows = await qRes.json();
-      if (!qRows.length) {
-        loadEl.style.display = 'none';
-        emptyEl.style.display = 'block';
-        return;
+    if (!isMIS) {
+      if (_qzEmpId) {
+        empFilter = `&employee_id=eq.${_qzEmpId}`;
+      } else if (CURRENT_USER?.email) {
+        const eRes = await fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id&Email_Id=ilike.${encodeURIComponent(CURRENT_USER.email)}&limit=1`, { headers: QZ_HDRS() });
+        const eArr = await eRes.json();
+        if (eArr.length) { _qzEmpId = eArr[0].Emp_id; empFilter = `&employee_id=eq.${_qzEmpId}`; }
       }
-      const ids = qRows.map(q => q.id).join(',');
-      quizIdFilter = `&quiz_id=in.(${ids})`;
     }
-
-    const url = `${SUPABASE_URL}/rest/v1/quiz_attempts?select=id,quiz_id,employee_id,attempt_number,score,total_marks,started_at,submitted_at,quizzes(title,passing_score)${empFilter}${quizIdFilter}&order=id.desc&limit=50`;
+    const empSelect = isMIS ? ',Employee_details(Employee_name,Employee_Dept)' : '';
+    const url = `${SUPABASE_URL}/rest/v1/quiz_attempts?select=id,quiz_id,employee_id,attempt_number,score,total_marks,started_at,submitted_at,quizzes(id,title,passing_score)${empSelect}${empFilter}&order=id.desc&limit=200`;
     const res  = await fetch(url, { headers: QZ_HDRS() });
-    const rows = await res.json();
-
+    _mqrAllRows = await res.json();
     loadEl.style.display = 'none';
-    if (!rows.length) { emptyEl.style.display = 'block'; return; }
+    if (!_mqrAllRows.length) { emptyEl.style.display = 'block'; return; }
 
-    listEl.innerHTML = rows.map(r => {
-      const pct       = r.total_marks > 0 ? Math.round((r.score / r.total_marks) * 100) : 0;
-      const pass      = r.quizzes?.passing_score || 60;
-      const inProgress = !r.submitted_at;
-      const passed    = inProgress ? null : (pct >= pass);
-
-      // If no submitted_at and started > 25 min ago → treat as "Connection Lost"
-      const startedMs  = r.started_at ? new Date(r.started_at).getTime() : Date.now();
-      const minsAgo    = (Date.now() - startedMs) / 60000;
-      const isLost     = inProgress && minsAgo > 25;   // quiz time limit is 15 min; 10 min grace
-
-      const date = r.submitted_at
-        ? new Date(r.submitted_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
-        : (r.started_at
-            ? new Date(r.started_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
-            : 'Unknown');
-
-      const attNum    = r.attempt_number || 1;
-      const borderCol = isLost ? '#6b7280'
-                      : inProgress ? '#f0a500'
-                      : passed ? '#22c55e' : '#ef4444';
-
-      // Check if descriptive marks might still be pending (submitted but score < total_marks)
-      // We detect this heuristically: submitted + score < total_marks
-      const descPending = !inProgress && !isLost && (r.score ?? 0) < (r.total_marks ?? 0) && r.total_marks > 0;
-
-      const scoreHtml = isLost
-        ? `<div style="font-size:1.1rem;">⚡</div><div style="font-size:0.68rem;color:#6b7280;font-weight:700;">Lost</div>`
-        : inProgress
-          ? `<div style="font-size:1.1rem;">⏳</div><div style="font-size:0.68rem;color:#f0a500;font-weight:700;">Active</div>`
-          : `<div style="font-size:1.3rem;font-weight:900;color:${descPending?'#f0a500':passed?'#22c55e':'#ef4444'};">${pct}%</div>
-             <div style="font-size:0.68rem;color:var(--muted);font-weight:700;">${r.score ?? 0}/${r.total_marks ?? 0} pts</div>
-             ${descPending ? '<div style="font-size:0.65rem;color:#f0a500;font-weight:700;">📝 Grading pending</div>' : ''}`;
-
-      const badgeHtml = isLost
-        ? `<div style="padding:5px 14px;border-radius:20px;font-size:0.78rem;font-weight:800;background:rgba(107,114,128,0.12);color:#6b7280;">⚡ Connection Lost</div>`
-        : inProgress
-          ? `<div style="padding:5px 14px;border-radius:20px;font-size:0.78rem;font-weight:800;background:rgba(240,165,0,0.1);color:#f0a500;">🔄 Ongoing</div>`
-          : descPending
-            ? `<div style="padding:5px 14px;border-radius:20px;font-size:0.78rem;font-weight:800;background:rgba(240,165,0,0.1);color:#f0a500;">⏳ Grading Pending</div>`
-            : `<div style="padding:5px 14px;border-radius:20px;font-size:0.78rem;font-weight:800;background:${passed?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.1)'};color:${passed?'#22c55e':'#ef4444'};">${passed ? '✅ PASS' : '❌ FAIL'}</div>`;
-
-      return `
-        <div style="padding:14px 16px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid ${borderCol};display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:160px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-              <div style="font-size:0.88rem;font-weight:700;color:var(--text);">${r.quizzes?.title||'Quiz'}</div>
-              <span style="font-size:0.69rem;padding:1px 7px;border-radius:20px;background:rgba(168,85,247,0.12);color:#a855f7;font-weight:700;border:1px solid rgba(168,85,247,0.2);white-space:nowrap;">Attempt #${attNum}</span>
-            </div>
-            <div style="font-size:0.75rem;color:var(--muted);">📅 ${date}</div>
-          </div>
-          <div style="text-align:center;min-width:60px;">${scoreHtml}</div>
-          ${badgeHtml}
-        </div>`;
-    }).join('');
-
-
+    if (filterEl) {
+      const quizMap = {};
+      _mqrAllRows.forEach(r => { if (r.quizzes?.id) quizMap[r.quizzes.id] = r.quizzes.title; });
+      filterEl.innerHTML = '<option value="">📝 All Quizzes</option>' +
+        Object.entries(quizMap).map(([id, title]) => `<option value="${id}">${title}</option>`).join('');
+    }
+    mqrRenderStats(_mqrAllRows);
+    mqrRenderList(_mqrAllRows);
   } catch(e) {
     loadEl.style.display = 'none';
     listEl.innerHTML = `<div style="color:#ef4444;text-align:center;padding:20px;">Error: ${e.message}</div>`;
   }
 }
+
+function mqrApplyFilter() {
+  const val = document.getElementById('mqr-quiz-filter')?.value || '';
+  const filtered = val ? _mqrAllRows.filter(r => String(r.quizzes?.id) === val) : _mqrAllRows;
+  mqrRenderStats(filtered);
+  mqrRenderList(filtered);
+}
+
+function mqrRenderStats(rows) {
+  const statsEl = document.getElementById('mqr-stats');
+  if (!statsEl) return;
+  const sub     = rows.filter(r => r.submitted_at);
+  const pending = sub.filter(r => (r.score??0) < (r.total_marks??0) && r.total_marks > 0);
+  const passed  = sub.filter(r => {
+    if ((r.score??0) < (r.total_marks??0) && r.total_marks > 0) return false;
+    return r.total_marks>0 ? Math.round((r.score/r.total_marks)*100) >= (r.quizzes?.passing_score||60) : false;
+  });
+  const failed  = sub.filter(r => {
+    if ((r.score??0) < (r.total_marks??0) && r.total_marks > 0) return false;
+    return r.total_marks>0 ? Math.round((r.score/r.total_marks)*100) < (r.quizzes?.passing_score||60) : false;
+  });
+  const cards = [
+    { label:'Total Attempts', value:rows.length,   icon:'📋', color:'#4e9af1', bg:'rgba(78,154,241,0.1)',  border:'rgba(78,154,241,0.25)' },
+    { label:'Passed',         value:passed.length,  icon:'✅', color:'#22c55e', bg:'rgba(34,197,94,0.1)',   border:'rgba(34,197,94,0.25)'  },
+    { label:'Failed',         value:failed.length,  icon:'❌', color:'#ef4444', bg:'rgba(239,68,68,0.08)',  border:'rgba(239,68,68,0.2)'   },
+    { label:'Pending',        value:pending.length, icon:'⏳', color:'#f97316', bg:'rgba(249,115,22,0.08)', border:'rgba(249,115,22,0.2)'  },
+  ];
+  statsEl.innerHTML = cards.map(c =>
+    `<div style="background:${c.bg};border:1px solid ${c.border};border-radius:12px;padding:14px 16px;text-align:center;">
+      <div style="font-size:1.3rem;margin-bottom:4px;">${c.icon}</div>
+      <div style="font-size:1.7rem;font-weight:900;color:${c.color};line-height:1;">${c.value}</div>
+      <div style="font-size:0.69rem;color:var(--muted);font-weight:600;margin-top:5px;text-transform:uppercase;letter-spacing:0.05em;">${c.label}</div>
+    </div>`).join('');
+  statsEl.style.display = 'grid';
+}
+
+function mqrRenderList(rows) {
+  const listEl  = document.getElementById('mqr-list');
+  const emptyEl = document.getElementById('mqr-empty');
+  listEl.innerHTML = '';
+  if (!rows.length) { emptyEl.style.display = 'block'; return; }
+  emptyEl.style.display = 'none';
+  const isMIS = _canUploadQuiz();
+  listEl.innerHTML = rows.map(r => {
+    const pct       = r.total_marks>0 ? Math.round((r.score/r.total_marks)*100) : 0;
+    const passScore = r.quizzes?.passing_score || 60;
+    const inProg    = !r.submitted_at;
+    const isPending = !inProg && (r.score??0) < (r.total_marks??0) && r.total_marks > 0;
+    const passed    = !inProg && !isPending && pct >= passScore;
+    const borderCol = inProg?'#f0a500':isPending?'#f97316':passed?'#22c55e':'#ef4444';
+    const statusBg  = inProg?'rgba(240,165,0,0.1)':isPending?'rgba(249,115,22,0.1)':passed?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.08)';
+    const statusTxt = inProg?'🔄 In Progress':isPending?'⏳ Pending':passed?'✅ Pass':'❌ Fail';
+    const date = r.submitted_at
+      ? new Date(r.submitted_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+      : r.started_at ? new Date(r.started_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    const empRow = isMIS && r.Employee_details?.Employee_name
+      ? `<div style="font-size:0.7rem;color:#a855f7;font-weight:700;margin-bottom:3px;">👤 ${r.Employee_details.Employee_name}${r.Employee_details?.Employee_Dept?' · '+r.Employee_details.Employee_Dept:''}</div>`
+      : '';
+    return `
+      <div style="border-radius:12px;border:1px solid var(--border);border-left:3px solid ${borderCol};background:var(--surface2);overflow:hidden;">
+        <div onclick="mqrToggleDetail(${r.id})" style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;transition:background 0.15s;flex-wrap:wrap;"
+          onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background=''">
+          <div style="flex:1;min-width:150px;">
+            ${empRow}
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:2px;">
+              <span style="font-size:0.87rem;font-weight:700;color:var(--text);">${r.quizzes?.title||'Quiz'}</span>
+              <span style="font-size:0.67rem;padding:1px 7px;border-radius:10px;background:rgba(168,85,247,0.12);color:#a855f7;font-weight:700;border:1px solid rgba(168,85,247,0.2);white-space:nowrap;">Attempt #${r.attempt_number||1}</span>
+            </div>
+            <div style="font-size:0.71rem;color:var(--muted);">📅 ${date}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1.1rem;font-weight:900;color:${borderCol};">${inProg?'—':pct+'%'}</div>
+            <div style="font-size:0.67rem;color:var(--muted);">${r.score??0}/${r.total_marks??0} pts</div>
+          </div>
+          <div style="font-size:0.74rem;font-weight:800;padding:4px 12px;border-radius:20px;background:${statusBg};color:${borderCol};">${statusTxt}</div>
+          <span id="mqr-chevron-${r.id}" style="font-size:0.72rem;color:var(--muted);transition:transform 0.2s;">▼</span>
+        </div>
+        <div id="mqr-detail-${r.id}" style="display:none;border-top:1px solid var(--border);padding:14px 16px;background:var(--surface);">
+          <div id="mqr-detail-content-${r.id}">
+            <div style="text-align:center;padding:14px;color:var(--muted);font-size:0.82rem;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 6px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Loading…
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function mqrToggleDetail(attemptId) {
+  const panel = document.getElementById(`mqr-detail-${attemptId}`);
+  const chev  = document.getElementById(`mqr-chevron-${attemptId}`);
+  if (!panel) return;
+  const open = panel.style.display === 'block';
+  panel.style.display = open ? 'none' : 'block';
+  if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
+  if (!open) await mqrLoadAnswers(attemptId);
+}
+
+async function mqrLoadAnswers(attemptId) {
+  const container = document.getElementById(`mqr-detail-content-${attemptId}`);
+  if (!container) return;
+  try {
+    const ansRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/answers?select=id,answer_text,marks_awarded,selected_option_id,questions(id,question_text,question_type,marks,correct_answer_text),options!answers_selected_option_id_fkey(option_text,is_correct)&attempt_id=eq.${attemptId}&order=id.asc`,
+      { headers: QZ_HDRS() }
+    );
+    const answers = await ansRes.json();
+    if (!answers.length) { container.innerHTML = '<div style="text-align:center;padding:14px;color:var(--muted);font-size:0.82rem;">No answers recorded.</div>'; return; }
+
+    const qIds = [...new Set(answers.map(a => a.questions?.id).filter(Boolean))];
+    let allOpts = [];
+    if (qIds.length) {
+      const or = await fetch(`${SUPABASE_URL}/rest/v1/options?select=id,question_id,option_text,is_correct&question_id=in.(${qIds.join(',')})`, { headers: QZ_HDRS() });
+      allOpts = await or.json();
+    }
+
+    let html = `<div style="font-size:0.73rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">Your Answers</div>`;
+    answers.forEach((ans, idx) => {
+      const qType  = (ans.questions?.question_type || 'mcq').toLowerCase();
+      const qText  = ans.questions?.question_text || `Q${idx+1}`;
+      const qMarks = ans.questions?.marks || 1;
+      const qId    = ans.questions?.id;
+      const selOptId = ans.selected_option_id;
+      const selOpt   = ans.options;
+      const isRight  = selOpt?.is_correct === true;
+      const opts     = allOpts.filter(o => o.question_id === qId);
+      const modelAns = ans.questions?.correct_answer_text || '';
+
+      const badge = qType==='descriptive'
+        ? `<span style="font-size:0.63rem;padding:1px 6px;border-radius:6px;background:rgba(240,165,0,0.12);color:#f0a500;font-weight:700;">✏️ Descriptive</span>`
+        : qType==='true_false'
+        ? `<span style="font-size:0.63rem;padding:1px 6px;border-radius:6px;background:rgba(34,197,94,0.12);color:#22c55e;font-weight:700;">🔘 T/F</span>`
+        : `<span style="font-size:0.63rem;padding:1px 6px;border-radius:6px;background:rgba(168,85,247,0.12);color:#a855f7;font-weight:700;">☑ MCQ</span>`;
+
+      if (qType === 'descriptive') {
+        const awarded = ans.marks_awarded != null ? `${ans.marks_awarded}/${qMarks}` : `Pending/${qMarks}`;
+        const aColor  = ans.marks_awarded != null ? '#22c55e' : '#f97316';
+        html += `<div style="margin-bottom:9px;padding:11px 13px;border-radius:10px;background:var(--surface2);border:1px solid rgba(240,165,0,0.18);">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="font-size:0.74rem;color:var(--muted);font-weight:700;">Q${idx+1}</span>${badge}<span style="margin-left:auto;font-size:0.7rem;color:${aColor};font-weight:700;">${awarded} marks</span></div>
+          <div style="font-size:0.81rem;font-weight:700;color:var(--text);margin-bottom:5px;">${qText}</div>
+          <div style="font-size:0.78rem;color:var(--text2);background:var(--surface);padding:7px 10px;border-radius:7px;border:1px solid var(--border);line-height:1.55;">
+            <span style="font-weight:700;color:#00d4aa;">Your answer: </span>${ans.answer_text || '<em style="color:var(--muted)">Not answered</em>'}
+          </div>
+          ${modelAns?`<div style="font-size:0.73rem;color:var(--muted);margin-top:5px;"><span style="font-weight:700;color:#a855f7;">Model: </span>${modelAns}</div>`:''}
+        </div>`;
+      } else {
+        const earnedMks = isRight ? qMarks : 0;
+        const sCol = !selOptId?'var(--muted)':isRight?'#22c55e':'#ef4444';
+        html += `<div style="margin-bottom:9px;padding:11px 13px;border-radius:10px;background:var(--surface2);border:1px solid ${isRight?'rgba(34,197,94,0.2)':selOptId?'rgba(239,68,68,0.15)':'var(--border)'};">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="font-size:0.74rem;color:var(--muted);font-weight:700;">Q${idx+1}</span>${badge}<span style="margin-left:auto;font-size:0.7rem;color:${sCol};font-weight:700;">${isRight?'✅':'❌'} ${earnedMks}/${qMarks}</span></div>
+          <div style="font-size:0.81rem;font-weight:700;color:var(--text);margin-bottom:7px;">${qText}</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            ${opts.map(o => {
+              const isSel=o.id===selOptId,isCorr=o.is_correct;
+              let bg='var(--surface)',bdr='var(--border)',tc='var(--text2)';
+              if(isSel&&isCorr){bg='rgba(34,197,94,0.1)';bdr='rgba(34,197,94,0.4)';tc='#22c55e';}
+              if(isSel&&!isCorr){bg='rgba(239,68,68,0.07)';bdr='rgba(239,68,68,0.35)';tc='#ef4444';}
+              if(!isSel&&isCorr){bg='rgba(34,197,94,0.05)';bdr='rgba(34,197,94,0.2)';tc='#22c55e';}
+              return `<div style="padding:5px 10px;border-radius:7px;border:1px solid ${bdr};background:${bg};font-size:0.77rem;color:${tc};display:flex;align-items:center;gap:7px;"><span>${isSel?'●':'○'}</span><span style="flex:1;">${o.option_text}</span>${isSel&&isCorr?'<span style="font-weight:700;font-size:0.7rem;">✓</span>':''}${isSel&&!isCorr?'<span style="font-weight:700;font-size:0.7rem;">✗</span>':''}${!isSel&&isCorr?'<span style="font-size:0.67rem;">← Correct</span>':''}</div>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }
+    });
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = `<div style="color:#ef4444;padding:12px;font-size:0.8rem;">⚠️ ${e.message}</div>`;
+  }
+}
+
+
 
 // ══════════════════════════════════════════════════════════════
 // ADMIN: QUIZ MANAGEMENT
@@ -16835,8 +17428,9 @@ function addQuizQuestion() {
 
 function changeQuestionType(idx, newType) {
   _qaQuestions[idx].type = newType;
+  // NOTE: marks are intentionally NOT reset here — they stay as whatever the creator set.
+  // Type change should never override the user's marks.
   if (newType === 'true_false') {
-    // Pre-fill True/False options
     _qaQuestions[idx].options = [
       { text: 'True',  is_correct: _qaQuestions[idx].tf_correct === 'true' },
       { text: 'False', is_correct: _qaQuestions[idx].tf_correct === 'false' }
@@ -16878,7 +17472,10 @@ function renderAdminQuestions() {
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         <div style="width:24px;height:24px;border-radius:7px;background:${qType==='mcq'?'#a855f722':qType==='true_false'?'#22c55e22':'#f0a50022'};color:${qType==='mcq'?'#a855f7':qType==='true_false'?'#22c55e':'#f0a500'};font-size:0.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;">${idx+1}</div>
         <input oninput="_qaQuestions[${idx}].text=this.value" value="${q.text.replace(/"/g,'&quot;')}" placeholder="Question text *" style="flex:1;padding:7px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:0.86rem;font-family:inherit;outline:none;">
-        <input oninput="_qaQuestions[${idx}].marks=parseFloat(this.value)||1" type="number" value="${q.marks}" min="1" max="10" title="Marks" style="width:65px;padding:7px 9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:0.86rem;font-family:inherit;outline:none;text-align:center;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
+          <span style="font-size:0.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Marks</span>
+          <input oninput="_qaQuestions[${idx}].marks=Math.max(1,parseFloat(this.value)||1)" type="number" value="${q.marks}" min="1" step="1" title="Marks for this question (no upper limit)" style="width:65px;padding:6px 9px;border-radius:8px;border:1.5px solid rgba(240,165,0,0.4);background:var(--surface);color:#f0a500;font-size:0.9rem;font-weight:700;font-family:inherit;outline:none;text-align:center;">
+        </div>
         <button onclick="removeQuizQuestion(${idx})" style="width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#ef4444;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;">✕</button>
       </div>
       <!-- Row 2: Question type selector -->
@@ -17080,6 +17677,7 @@ let _goAllQuizzes   = [];   // all quiz rows
 let _goAllAttempts  = [];   // all attempt rows
 let _goAllQuestions = {};   // quizId → questions[]
 let _goActiveFilter = null; // null = all, quizId = filtered
+let _goActiveNameFilter = null; // null = all, name string = filtered
 
 function openGradeOverlay() {
   if (!_canUploadQuiz()) { alert('⛔ Only authorised MIS members can access grading.'); return; }
@@ -17095,6 +17693,11 @@ function closeGradeOverlay() {
 
 function goGradeRefresh() {
   _goAllQuizzes = []; _goAllAttempts = []; _goAllQuestions = {};
+  _goActiveFilter = null; _goActiveNameFilter = null;
+  const ns = document.getElementById('go-filter-name');
+  const qs = document.getElementById('go-filter-quiz');
+  if (ns) ns.value = '';
+  if (qs) qs.value = '';
   goLoadAll();
 }
 
@@ -17124,35 +17727,24 @@ async function goLoadAll() {
       _goAllQuizzes.forEach(q => { _goAllQuestions[q.id] = allQs.filter(qq => qq.quiz_id === q.id); });
     }
 
-    // Build filter tab bar
-    const colors = ['#a855f7','#f0a500','#00d4aa','#4e9af1','#f97316','#e879f9','#22c55e'];
-    // keep "Filter:" label (first child), replace the rest
-    const existingLabel = barEl.querySelector('div');
-    barEl.innerHTML = '';
-    if (existingLabel) barEl.appendChild(existingLabel);
+    // Populate Employee dropdown
+    const nameSelect = document.getElementById('go-filter-name');
+    const quizSelect = document.getElementById('go-filter-quiz');
+    if (nameSelect) {
+      const names = [...new Set(
+        _goAllAttempts.map(a => a.Employee_details?.Employee_name).filter(Boolean)
+      )].sort();
+      nameSelect.innerHTML = '<option value="">👤 All Employees</option>' +
+        names.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
+    }
 
-    // "All Modules" tab
-    const allTab = document.createElement('button');
-    allTab.id = 'go-tab-all';
-    allTab.textContent = '📊 All Modules';
-    allTab.onclick = () => goSetFilter(null);
-    allTab.style.cssText = 'padding:6px 14px;border-radius:20px;border:1.5px solid #f0a500;background:rgba(240,165,0,0.14);color:#f0a500;font-size:0.8rem;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all 0.15s;flex-shrink:0;';
-    barEl.appendChild(allTab);
+    // Populate Quiz dropdown
+    if (quizSelect) {
+      quizSelect.innerHTML = '<option value="">📝 All Quizzes</option>' +
+        _goAllQuizzes.map(q => `<option value="${q.id}">${q.title}</option>`).join('');
+    }
 
-    // One tab per quiz
-    _goAllQuizzes.forEach((q, i) => {
-      const col = colors[i % colors.length];
-      const tab = document.createElement('button');
-      tab.id = `go-tab-${q.id}`;
-      tab.textContent = q.title;
-      tab.onclick = () => goSetFilter(q.id);
-      tab.style.cssText = `padding:6px 14px;border-radius:20px;border:1.5px solid ${col}44;background:transparent;color:var(--muted);font-size:0.8rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all 0.15s;flex-shrink:0;`;
-      tab.dataset.color = col;
-      barEl.appendChild(tab);
-    });
-
-    _goActiveFilter = null;
-    goRenderList();
+    goApplyFilters();
 
   } catch(e) {
     loadEl.style.display = 'none';
@@ -17160,27 +17752,11 @@ async function goLoadAll() {
   }
 }
 
-function goSetFilter(quizId) {
-  _goActiveFilter = quizId;
-  // Update tab styles
-  const allTabEl = document.getElementById('go-tab-all');
-  if (allTabEl) {
-    if (quizId === null) {
-      allTabEl.style.background = 'rgba(240,165,0,0.14)'; allTabEl.style.borderColor = '#f0a500'; allTabEl.style.color = '#f0a500'; allTabEl.style.fontWeight = '800';
-    } else {
-      allTabEl.style.background = 'transparent'; allTabEl.style.borderColor = 'rgba(240,165,0,0.25)'; allTabEl.style.color = 'var(--muted)'; allTabEl.style.fontWeight = '600';
-    }
-  }
-  _goAllQuizzes.forEach(q => {
-    const tab = document.getElementById(`go-tab-${q.id}`);
-    if (!tab) return;
-    const col = tab.dataset.color || '#a855f7';
-    if (q.id === quizId) {
-      tab.style.background = col + '18'; tab.style.borderColor = col; tab.style.color = col; tab.style.fontWeight = '800';
-    } else {
-      tab.style.background = 'transparent'; tab.style.borderColor = col + '44'; tab.style.color = 'var(--muted)'; tab.style.fontWeight = '600';
-    }
-  });
+function goApplyFilters() {
+  const nameVal = document.getElementById('go-filter-name')?.value || '';
+  const quizVal = document.getElementById('go-filter-quiz')?.value || '';
+  _goActiveFilter   = quizVal ? parseInt(quizVal) : null;
+  _goActiveNameFilter = nameVal || null;
   goRenderList();
 }
 
@@ -17190,9 +17766,11 @@ async function goRenderList() {
   const emptyEl= document.getElementById('go-list-empty');
   loadEl.style.display = 'none'; listEl.innerHTML = ''; emptyEl.style.display = 'none';
 
-  const filtered = _goActiveFilter
-    ? _goAllAttempts.filter(a => a.quiz_id === _goActiveFilter)
-    : _goAllAttempts;
+  let filtered = _goAllAttempts;
+  if (_goActiveFilter)     filtered = filtered.filter(a => a.quiz_id === _goActiveFilter);
+  if (_goActiveNameFilter) filtered = filtered.filter(a =>
+    (a.Employee_details?.Employee_name || '') === _goActiveNameFilter
+  );
 
   if (!filtered.length) { emptyEl.style.display = 'block'; return; }
 
@@ -17219,16 +17797,27 @@ async function goRenderList() {
       : a.started_at
         ? new Date(a.started_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
         : '—';
-    const borderCol = !sub ? '#f0a500' : ok ? '#22c55e' : '#ef4444';
-    const hasDesc = (_goAllQuestions[a.quiz_id] || []).some(q => (q.question_type||'').toLowerCase() === 'descriptive');
+    const hasDesc   = (_goAllQuestions[a.quiz_id] || []).some(q => (q.question_type||'').toLowerCase() === 'descriptive');
+    const borderCol = !sub ? '#f0a500'
+                    : hasDesc && !ok && (score === 0 || score < total) ? '#f97316'  // pending grading
+                    : ok ? '#22c55e' : '#ef4444';
 
-    // Show quiz name only if All Modules view
-    const quizLabel = _goActiveFilter ? '' :
-      `<span style="font-size:0.7rem;padding:2px 8px;border-radius:10px;background:${col}18;color:${col};font-weight:700;border:1px solid ${col}33;white-space:nowrap;">${quiz.title||'Quiz'}</span>`;
+    const statusBg  = !sub               ? 'rgba(240,165,0,0.1)'
+                    : hasDesc && !ok && (score === 0 || score < total) ? 'rgba(249,115,22,0.1)'
+                    : ok                  ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
+
+    const statusTxt = !sub               ? '🔄 In Progress'
+                    : hasDesc && !ok && (score === 0 || score < total) ? '⏳ Pending'
+                    : ok                  ? '✅ Pass' : '❌ Fail';
+
+    // Always show quiz label (no tabs anymore)
+    const quizLabel = `<span style="font-size:0.7rem;padding:2px 8px;border-radius:10px;background:${col}18;color:${col};font-weight:700;border:1px solid ${col}33;white-space:nowrap;">${quiz.title||'Quiz'}</span>`;
 
     return `
       <div style="border-radius:12px;border:1px solid var(--border);border-left:3px solid ${borderCol};background:var(--surface2);overflow:hidden;" id="go-row-${a.id}">
-        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;flex-wrap:wrap;">
+        <!-- Clickable header row -->
+        <div onclick="goToggleDetail(${a.id})" style="display:flex;align-items:center;gap:10px;padding:12px 16px;flex-wrap:wrap;cursor:pointer;transition:background 0.15s;"
+          onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background=''">
           <div style="flex:1;min-width:150px;">
             <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px;">
               <span style="font-size:0.9rem;font-weight:700;color:var(--text);">${emp}</span>
@@ -17241,87 +17830,167 @@ async function goRenderList() {
             <div style="font-size:0.68rem;color:var(--muted);">${score}/${total} pts</div>
           </div>
           <div style="font-size:0.75rem;font-weight:800;padding:4px 13px;border-radius:20px;
-            background:${!sub?'rgba(240,165,0,0.1)':ok?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)'};
-            color:${borderCol};">
-            ${!sub ? '🔄 In Progress' : ok ? '✅ Pass' : '❌ Fail'}
+            background:${statusBg};color:${borderCol};">
+            ${statusTxt}
           </div>
-          ${hasDesc ? `
-          <button onclick="goToggleDescGrading(${a.id})"
-            style="display:flex;align-items:center;gap:5px;padding:5px 13px;border-radius:8px;border:1.5px solid rgba(240,165,0,0.4);background:rgba(240,165,0,0.08);color:#f0a500;font-size:0.76rem;font-weight:700;cursor:pointer;font-family:inherit;">
-            📝 Grade
-          </button>` : ''}
+          <span id="go-chevron-${a.id}" style="font-size:0.75rem;color:var(--muted);transition:transform 0.2s;display:inline-block;">▼</span>
         </div>
-        ${hasDesc ? `
-        <div id="go-desc-panel-${a.id}" style="display:none;border-top:1px dashed rgba(240,165,0,0.25);padding:12px 16px;background:rgba(240,165,0,0.03);">
-          <div id="go-desc-content-${a.id}" style="font-size:0.8rem;color:var(--muted);">Loading…</div>
-        </div>` : ''}
+        <!-- Expandable detail panel (all answers) -->
+        <div id="go-detail-${a.id}" style="display:none;border-top:1px solid var(--border);padding:14px 16px;background:var(--surface);">
+          <div id="go-detail-content-${a.id}" style="font-size:0.82rem;color:var(--muted);">
+            <div style="text-align:center;padding:20px 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 8px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              Loading answers…
+            </div>
+          </div>
+        </div>
       </div>`;
   }).join('');
 }
 
-async function goToggleDescGrading(attemptId) {
-  const panel = document.getElementById(`go-desc-panel-${attemptId}`);
+// Toggle detail panel on card click
+async function goToggleDetail(attemptId) {
+  const panel   = document.getElementById(`go-detail-${attemptId}`);
+  const chevron = document.getElementById(`go-chevron-${attemptId}`);
   if (!panel) return;
   const isOpen = panel.style.display === 'block';
   panel.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen) await goLoadDescAnswers(attemptId);
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+  if (!isOpen) await goLoadAllAnswers(attemptId);
 }
 
-async function goLoadDescAnswers(attemptId) {
-  const container = document.getElementById(`go-desc-content-${attemptId}`);
+// Load ALL answers for an attempt (MCQ + TF + Descriptive)
+async function goLoadAllAnswers(attemptId) {
+  const container = document.getElementById(`go-detail-content-${attemptId}`);
   if (!container) return;
-  container.innerHTML = '<span style="color:var(--muted);font-size:0.79rem;">Loading answers…</span>';
+
+  // Find attempt's quiz to get question order
+  const attempt = _goAllAttempts.find(a => a.id === attemptId);
+  const quizQs  = attempt ? (_goAllQuestions[attempt.quiz_id] || []) : [];
+
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/answers?select=id,answer_text,marks_awarded,questions(question_text,question_type,marks,correct_answer_text)&attempt_id=eq.${attemptId}`,
+      `${SUPABASE_URL}/rest/v1/answers?select=id,answer_text,marks_awarded,selected_option_id,` +
+      `questions(id,question_text,question_type,marks,correct_answer_text),` +
+      `options!answers_selected_option_id_fkey(option_text,is_correct)` +
+      `&attempt_id=eq.${attemptId}&order=id.asc`,
       { headers: QZ_HDRS() }
     );
-    const answers     = await res.json();
-    const descAnswers = answers.filter(a => (a.questions?.question_type||'').toLowerCase() === 'descriptive');
-
-    if (!descAnswers.length) {
-      container.innerHTML = '<span style="color:var(--muted);font-size:0.79rem;">No descriptive answers found.</span>';
+    const answers = await res.json();
+    if (!answers.length) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:0.83rem;">No answers recorded yet.</div>';
       return;
     }
 
-    container.innerHTML = descAnswers.map(a => {
-      const maxMark  = a.questions?.marks || 1;
-      const current  = a.marks_awarded ?? '';
-      const modelAns = a.questions?.correct_answer_text || '';
-      return `
-        <div style="margin-bottom:10px;padding:10px 12px;border-radius:9px;background:var(--surface);border:1px solid rgba(240,165,0,0.2);">
-          <div style="font-size:0.8rem;font-weight:700;color:var(--text);margin-bottom:5px;">Q: ${a.questions?.question_text||'Question'}</div>
-          <div style="font-size:0.78rem;line-height:1.55;margin-bottom:4px;">
-            <span style="font-weight:700;color:#00d4aa;">Employee's Answer: </span>
-            <span style="color:var(--text);">${a.answer_text || '<em style="color:var(--muted)">Not answered</em>'}</span>
-          </div>
-          ${modelAns?`<div style="font-size:0.76rem;line-height:1.5;margin-bottom:8px;">
-            <span style="font-weight:700;color:#a855f7;">Model Answer: </span>
-            <span style="color:var(--muted);">${modelAns}</span>
-          </div>`:''}
-          <div style="display:flex;align-items:center;gap:8px;background:rgba(240,165,0,0.06);border-radius:7px;padding:7px 10px;flex-wrap:wrap;">
-            <span style="font-size:0.76rem;font-weight:700;color:#f0a500;">Award Marks <span style="color:var(--muted);font-weight:400;">(max ${maxMark})</span>:</span>
-            <input type="number" id="go-marks-${a.id}" min="0" max="${maxMark}" value="${current}" placeholder="0"
-              style="width:65px;padding:4px 8px;border-radius:6px;border:1.5px solid rgba(240,165,0,0.4);background:var(--surface2);color:var(--text);font-size:0.85rem;font-family:inherit;outline:none;text-align:center;">
-            <button onclick="goSaveMark(${a.id},${attemptId})"
-              style="padding:5px 14px;border-radius:7px;border:none;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;">
-              💾 Save
-            </button>
-            <span id="go-saved-${a.id}" style="font-size:0.74rem;color:#22c55e;font-weight:700;display:none;">✓ Saved!</span>
-          </div>
-        </div>`;
-    }).join('');
+    // Also fetch all options for MCQ/TF questions to show all choices
+    const qIds = [...new Set(answers.map(a => a.questions?.id).filter(Boolean))];
+    let allOptions = [];
+    if (qIds.length) {
+      const optRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/options?select=id,question_id,option_text,is_correct&question_id=in.(${qIds.join(',')})`,
+        { headers: QZ_HDRS() }
+      );
+      allOptions = await optRes.json();
+    }
+
+    let html = '';
+    answers.forEach((ans, idx) => {
+      const qType    = (ans.questions?.question_type || 'mcq').toLowerCase();
+      const qText    = ans.questions?.question_text || `Question ${idx + 1}`;
+      const qMarks   = ans.questions?.marks || 1;
+      const qId      = ans.questions?.id;
+      const modelAns = ans.questions?.correct_answer_text || '';
+
+      // Type badge
+      const typeBadge = qType === 'descriptive'
+        ? `<span style="font-size:0.65rem;padding:1px 7px;border-radius:8px;background:rgba(240,165,0,0.12);color:#f0a500;font-weight:700;">✏️ Descriptive</span>`
+        : qType === 'true_false'
+        ? `<span style="font-size:0.65rem;padding:1px 7px;border-radius:8px;background:rgba(34,197,94,0.12);color:#22c55e;font-weight:700;">🔘 True/False</span>`
+        : `<span style="font-size:0.65rem;padding:1px 7px;border-radius:8px;background:rgba(168,85,247,0.12);color:#a855f7;font-weight:700;">☑ MCQ</span>`;
+
+      if (qType === 'descriptive') {
+        // ── Descriptive ──
+        const current = ans.marks_awarded ?? '';
+        html += `
+          <div style="margin-bottom:10px;padding:12px 14px;border-radius:10px;background:var(--surface2);border:1px solid rgba(240,165,0,0.2);">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;">
+              <span style="font-size:0.78rem;font-weight:700;color:var(--muted);">Q${idx+1}</span>
+              ${typeBadge}
+              <span style="font-size:0.7rem;color:var(--muted);margin-left:auto;">${qMarks} marks</span>
+            </div>
+            <div style="font-size:0.83rem;font-weight:700;color:var(--text);margin-bottom:6px;">${qText}</div>
+            <div style="font-size:0.79rem;color:var(--text2);background:var(--surface);padding:8px 10px;border-radius:8px;border:1px solid var(--border);line-height:1.6;margin-bottom:6px;">
+              <span style="font-weight:700;color:#00d4aa;">Answer: </span>${ans.answer_text || '<em style="color:var(--muted)">Not answered</em>'}
+            </div>
+            ${modelAns ? `<div style="font-size:0.75rem;color:var(--muted);margin-bottom:8px;"><span style="font-weight:700;color:#a855f7;">Model: </span>${modelAns}</div>` : ''}
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(240,165,0,0.06);border-radius:7px;padding:7px 10px;flex-wrap:wrap;">
+              <span style="font-size:0.75rem;font-weight:700;color:#f0a500;">Award Marks:</span>
+              <input type="number" id="go-marks-${ans.id}" min="0" max="${qMarks}" step="1" value="${current}" placeholder="0"
+                oninput="if(parseFloat(this.value)>${qMarks})this.value=${qMarks};"
+                style="width:60px;padding:4px 8px;border-radius:6px;border:1.5px solid rgba(240,165,0,0.4);background:var(--surface2);color:var(--text);font-size:0.85rem;font-family:inherit;outline:none;text-align:center;">
+              <span style="font-size:0.72rem;color:var(--muted);">/ ${qMarks}</span>
+              <button onclick="goSaveMark(${ans.id},${attemptId},${qMarks})"
+                style="padding:4px 13px;border-radius:7px;border:none;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;font-size:0.76rem;font-weight:700;cursor:pointer;font-family:inherit;">
+                💾 Save
+              </button>
+              <span id="go-saved-${ans.id}" style="font-size:0.72rem;color:#22c55e;font-weight:700;display:none;">✓ Saved!</span>
+            </div>
+          </div>`;
+
+      } else {
+        // ── MCQ / True/False ──
+        const selectedOptId = ans.selected_option_id;
+        const selOpt  = ans.options;  // joined via FK
+        const isRight = selOpt?.is_correct === true;
+        const selText = selOpt?.option_text || '(Not answered)';
+        const opts    = allOptions.filter(o => o.question_id === qId);
+        const correctOpt = opts.find(o => o.is_correct);
+        const statusCol  = !selectedOptId ? 'var(--muted)' : isRight ? '#22c55e' : '#ef4444';
+        const statusIcon = !selectedOptId ? '—' : isRight ? '✅' : '❌';
+        const earnedMks  = isRight ? qMarks : 0;
+
+        html += `
+          <div style="margin-bottom:10px;padding:12px 14px;border-radius:10px;background:var(--surface2);border:1px solid ${isRight?'rgba(34,197,94,0.2)':selectedOptId?'rgba(239,68,68,0.2)':'var(--border)'};">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;">
+              <span style="font-size:0.78rem;font-weight:700;color:var(--muted);">Q${idx+1}</span>
+              ${typeBadge}
+              <span style="font-size:0.7rem;font-weight:700;color:${statusCol};margin-left:auto;">${statusIcon} ${earnedMks}/${qMarks} marks</span>
+            </div>
+            <div style="font-size:0.83rem;font-weight:700;color:var(--text);margin-bottom:8px;">${qText}</div>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              ${opts.map(o => {
+                const isSel   = o.id === selectedOptId;
+                const isCorr  = o.is_correct;
+                let bg = 'var(--surface)'; let border = 'var(--border)'; let textCol = 'var(--text)';
+                if (isSel && isCorr)  { bg='rgba(34,197,94,0.1)';  border='rgba(34,197,94,0.4)';  textCol='#22c55e'; }
+                if (isSel && !isCorr) { bg='rgba(239,68,68,0.08)'; border='rgba(239,68,68,0.35)'; textCol='#ef4444'; }
+                if (!isSel && isCorr) { bg='rgba(34,197,94,0.05)'; border='rgba(34,197,94,0.25)'; textCol='#22c55e'; }
+                return `<div style="padding:6px 10px;border-radius:7px;border:1px solid ${border};background:${bg};font-size:0.78rem;color:${textCol};display:flex;align-items:center;gap:7px;">
+                  <span>${isSel?'●':'○'}</span>
+                  <span style="flex:1;">${o.option_text}</span>
+                  ${isSel&&isCorr?'<span style="font-weight:700;">✓ Correct</span>':''}
+                  ${isSel&&!isCorr?'<span style="font-weight:700;">✗ Wrong</span>':''}
+                  ${!isSel&&isCorr?'<span style="font-weight:600;font-size:0.72rem;">← Correct answer</span>':''}
+                </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+      }
+    });
+
+    container.innerHTML = html;
   } catch(e) {
-    container.innerHTML = `<span style="color:#ef4444;font-size:0.79rem;">Error: ${e.message}</span>`;
+    container.innerHTML = `<div style="color:#ef4444;padding:12px;font-size:0.8rem;">⚠️ Error: ${e.message}</div>`;
   }
 }
 
-async function goSaveMark(answerId, attemptId) {
+async function goSaveMark(answerId, attemptId, maxMark) {
   if (!_canUploadQuiz()) { alert('⛔ Only MIS members can grade.'); return; }
   const input   = document.getElementById(`go-marks-${answerId}`);
   const savedEl = document.getElementById(`go-saved-${answerId}`);
   const marks   = parseFloat(input?.value);
   if (isNaN(marks) || marks < 0) { alert('Please enter a valid mark.'); return; }
+  if (maxMark > 0 && marks > maxMark) { alert(`⚠️ Marks cannot exceed ${maxMark} for this question.`); input.value = maxMark; return; }
 
   try {
     // 1. Save descriptive marks_awarded
@@ -17389,7 +18058,7 @@ async function loadAdminQuizList() {
         <div style="padding:13px 15px;border-radius:11px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <div style="flex:1;min-width:150px;">
             <div style="font-size:0.88rem;font-weight:700;color:var(--text);">${q.title}</div>
-            <div style="font-size:0.75rem;color:var(--muted);">📚 ${mod} · ⏱ ${q.time_limit||'—'}min · 🎯 ${q.passing_score||60}%</div>
+            <div style="font-size:0.75rem;color:var(--muted);">📚 ${mod} · ⏱ ${q.time_limit||'—'}min</div>
           </div>
           <div style="font-size:0.76rem;font-weight:600;color:var(--muted);">${stat}</div>
           <button onclick="toggleQuizActive(${q.id},${!q.is_active})" style="padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--muted);font-size:0.76rem;cursor:pointer;font-family:inherit;">${q.is_active?'Deactivate':'Activate'}</button>
