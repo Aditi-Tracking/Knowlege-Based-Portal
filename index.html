@@ -2187,7 +2187,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
             <div class="hp-contact-info">
               <div class="hp-contact-name">HR Team</div>
               <div class="hp-contact-detail"><a href="tel:+910000000002">+91 7304530851</a></div>
-              <div class="hp-contact-detail"><a href="/cdn-cgi/l/email-protection#14797d67255475707d607d606675777f7d7a733a777b79"><span class="__cf_email__" data-cfemail="b0d8c2f0d1d4d9c4d9c4c2d1d3dbd9ded79ed3dfdd"><span class="__cf_email__" data-cfemail="d5bda795b4b1bca1bca1a7b4b6bebcbbb2fbb6bab8"><span class="__cf_email__" data-cfemail="2f475d6f4e4b465b465b5d4e4c44464148014c4042"><span class="__cf_email__" data-cfemail="325a407253565b465b46405351595b5c551c515d5f">pranali@adititracking.com</span></span></span></span></a></div>
+              <div class="hp-contact-detail"><a href="/cdn-cgi/l/email-protection#14797d67255475707d607d606675777f7d7a733a777b79"><span class="__cf_email__" data-cfemail="b0d8c2f0d1d4d9c4d9c4c2d1d3dbd9ded79ed3dfdd"><span class="__cf_email__" data-cfemail="d5bda795b4b1bca1bca1a7b4b6bebcbbb2fbb6bab8"><span class="__cf_email__" data-cfemail="2f475d6f4e4b465b465b5d4e4c44464148014c4042"><span class="__cf_email__" data-cfemail="325a407253565b465b46405351595b5c551c515d5f">hr@adititracking.com</span></span></span></span></a></div>
             </div>
             <div class="hp-contact-avail">Mon–Sat 10am–7pm</div>
           </div>
@@ -2676,8 +2676,8 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <div style="display:flex;align-items:flex-start;gap:12px;">
         <div style="font-size:1.5rem;flex-shrink:0;">⚠️</div>
         <div style="flex:1;">
-          <div style="font-weight:700;color:var(--text);margin-bottom:6px;">Supabase mein nayi columns add karni hain!</div>
-          <div style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;">Activity log full data save karne ke liye Supabase SQL Editor mein yeh run karo:</div>
+          <div style="font-weight:700;color:var(--text);margin-bottom:6px;">New columns need to be added in Supabase!</div>
+          <div style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;">Run the following in Supabase SQL Editor to enable full activity log data:</div>
           <pre style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:0.78rem;color:#00d4aa;overflow-x:auto;line-height:1.7;margin:0;">ALTER TABLE activity_logs
   ADD COLUMN IF NOT EXISTS page_name text,
   ADD COLUMN IF NOT EXISTS card_name text,
@@ -2690,10 +2690,10 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   ADD COLUMN IF NOT EXISTS session_duration_seconds integer,
   ADD COLUMN IF NOT EXISTS metadata jsonb;
 
--- RLS policy add karo (agar RLS on hai)
+-- Add RLS policies (if RLS is enabled on this table)
 CREATE POLICY "Allow insert for all" ON activity_logs FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</pre>
-          <div style="margin-top:10px;font-size:0.80rem;color:var(--muted);">✅ Yeh SQL run karne ke baad data aana shuru ho jayega. Tab tak basic data (event_type, emp_id) save ho raha hai.</div>
+          <div style="margin-top:10px;font-size:0.80rem;color:var(--muted);">✅ After running this SQL, full data will be saved. Until then, only basic data (event_type, emp_id) is being stored.</div>
         </div>
         <button onclick="document.getElementById('actlog-sql-banner').style.display='none'"
           style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;flex-shrink:0;padding:0;">✕</button>
@@ -7549,8 +7549,11 @@ async function doLogin(){
       localStorage.removeItem('annSeenIds'); // Reset announcement count on each login
       showPortal();
       _actLoginTime = Date.now();
-      logActivity({ event_type:'login', event_detail:`User logged in: ${CURRENT_USER.name||CURRENT_USER.email}`,
-                    page_name:'home', metadata:{ role: CURRENT_USER.rawRole, location: CURRENT_USER.location } });
+      // Fetch numeric Emp_id first, then log the login event
+      _fetchAndCacheEmpId().then(() => {
+        logActivity({ event_type:'login', event_detail:`User logged in: ${CURRENT_USER.name||CURRENT_USER.email}`,
+                      page_name:'home', metadata:{ role: CURRENT_USER.rawRole, location: CURRENT_USER.location } });
+      });
       setTimeout(maybeLoadHolidayCard,800);
     } else {
       // Check if email exists (to give better error)
@@ -7867,7 +7870,7 @@ function doLogout(){
   try {
     const totalSecs = Math.round((Date.now() - _actLoginTime) / 1000);
     const pageSecs  = Math.round((Date.now() - _actPageStart) / 1000);
-    if (pageSecs > 2) logActivity({ event_type:'page_view', event_detail:'Last page: '+_actPageName, page_name:_actPageName, duration_seconds:pageSecs });
+    if (pageSecs > 30) logActivity({ event_type:'page_view', event_detail:'Last page: '+_actPageName, page_name:_actPageName, duration_seconds:pageSecs }); // 30s threshold — matches _actOnPageSwitch
     _actStopVideoTracking();
     logActivity({ event_type:'logout', event_detail:'User logged out: '+(CURRENT_USER?(CURRENT_USER.name||CURRENT_USER.email):''),
                   session_duration_seconds:totalSecs, logout_at: new Date().toISOString() });
@@ -8021,7 +8024,7 @@ function openOdooModuleSelect() {
 function openOdooSubModuleVideos(subKey) {
   const sub = ODOO_SUB_MODULES.find(m => m.key === subKey);
   if (!sub) return;
-  logActivity({event_type:'training_submodule_open',event_detail:'Opened Odoo sub-module: '+sub.label,page_name:'training',card_name:'Odoo › '+sub.label});
+  // training_submodule_open removed — module_open is sufficient
   const screen = document.getElementById('module-quiz-screen');
   screen.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
@@ -8836,6 +8839,78 @@ const SB_HDRS_MIN  = () => ({ ...SB_HDRS_JSON(), 'Prefer': 'return=minimal' });
 ═══════════════════════════════════════════════════════════════════════════ */
 
 const _ACT_SESSION_ID = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+let _actEmpId    = null; // numeric Emp_id (FK) — fetched after login
+let _actNameMap      = {};  // email (lowercase) → Employee_name cache
+let _actEmpIdNameMap = {};  // numeric Emp_id → Employee_name cache
+
+// Fetch Employee names from Employee_details using email list (for table display)
+// Fetch Employee names using emp_id (numeric FK) — reliable since Email_Id
+// in Employee_details may differ from the login email stored in activity_logs
+async function _fetchEmpNames(rows) {
+  // Collect unique numeric emp_ids not yet in cache
+  const empIds = [...new Set(rows.map(r => r.emp_id).filter(id => id && typeof id === 'number'))];
+  const needIds  = empIds.filter(id => !_actEmpIdNameMap[id]);
+
+  // Also try Email_Id lookup for any rows that have employee_email
+  const emails  = [...new Set(rows.map(r => (r.employee_email||'').toLowerCase()).filter(Boolean))];
+  const needEmails = emails.filter(e => !_actNameMap[e]);
+
+  const fetches = [];
+
+  if (needIds.length) {
+    const idFilter = needIds.join(',');
+    fetches.push(
+      fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id,Employee_name,Email_Id&Emp_id=in.(${idFilter})`, { headers: SB_HDRS() })
+        .then(r => r.ok ? r.json() : [])
+        .then(arr => arr.forEach(r => {
+          if (r.Emp_id) _actEmpIdNameMap[r.Emp_id] = r.Employee_name || '';
+          // Also cache by email if available
+          const em = (r.Email_Id || '').toLowerCase().trim();
+          if (em && r.Employee_name) _actNameMap[em] = r.Employee_name;
+        }))
+        .catch(() => {})
+    );
+  }
+
+  if (needEmails.length) {
+    const orFilter = needEmails.map(e => `Email_Id.ilike.${encodeURIComponent(e)}`).join(',');
+    fetches.push(
+      fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=Email_Id,Employee_name&or=(${orFilter})`, { headers: SB_HDRS() })
+        .then(r => r.ok ? r.json() : [])
+        .then(arr => arr.forEach(r => {
+          const key = (r.Email_Id || '').toLowerCase().trim();
+          if (key && r.Employee_name) _actNameMap[key] = r.Employee_name;
+        }))
+        .catch(() => {})
+    );
+  }
+
+  await Promise.all(fetches);
+}
+
+// Helper: get display name for a row (tries emp_id FK first, then email lookup)
+function _getEmpDisplayName(row) {
+  if (row.emp_id && _actEmpIdNameMap[row.emp_id]) return _actEmpIdNameMap[row.emp_id];
+  const email = (row.employee_email || '').toLowerCase();
+  if (email && _actNameMap[email]) return _actNameMap[email];
+  if (row.employee?.Employee_name) return row.employee.Employee_name;
+  return email ? email.split('@')[0] : '—';
+}
+
+// Fetch numeric Emp_id after login (emp_id column is now int FK)
+async function _fetchAndCacheEmpId() {
+  if (_actEmpId || !CURRENT_USER?.email) return;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id&Email_Id=ilike.${encodeURIComponent(CURRENT_USER.email)}&limit=1`,
+      { headers: SB_HDRS() }
+    );
+    if (res.ok) {
+      const arr = await res.json();
+      if (arr.length) _actEmpId = arr[0].Emp_id; // numeric value store karo
+    }
+  } catch(e) {}
+}
 let _actLoginTime     = Date.now();
 let _actPageName      = 'home';
 let _actPageStart     = Date.now();
@@ -8845,13 +8920,14 @@ let _actVideoTitle    = null;
 let _actVideoStart    = null;
 let _actVideoEl       = null; // currently tracked <video> element
 
-// Core logger — fire-and-forget, never breaks UI
+// Core logger — fire-and-forget, never disrupts UI
 async function logActivity(data) {
   try {
     if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return;
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
     const fullPayload = {
-      emp_id:                  CURRENT_USER.email || CURRENT_USER.name || 'unknown',
+      emp_id:                  _actEmpId || undefined,               // numeric FK (int)
+      employee_email:          CURRENT_USER.email || null,           // new email column
       event_type:              data.event_type              || 'unknown',
       event_detail:            data.event_detail            || '',
       session_id:              _ACT_SESSION_ID,
@@ -8867,8 +8943,8 @@ async function logActivity(data) {
       session_duration_seconds:data.session_duration_seconds ?? null,
       metadata:                data.metadata || null
     };
-    // Remove null values to avoid column-not-found errors
-    Object.keys(fullPayload).forEach(k => { if (fullPayload[k] === null) delete fullPayload[k]; });
+    // Remove null/undefined values to avoid column errors
+    Object.keys(fullPayload).forEach(k => { if (fullPayload[k] === null || fullPayload[k] === undefined) delete fullPayload[k]; });
 
     const hdrs = {
       'apikey': SUPABASE_ANON,
@@ -8882,10 +8958,11 @@ async function logActivity(data) {
       method: 'POST', headers: hdrs, body: JSON.stringify(fullPayload)
     });
 
-    // If columns missing (400/42703), fallback to only original columns
+    // Fallback to basic columns if new columns don't exist yet
     if (!res.ok) {
       const basicPayload = {
-        emp_id:       fullPayload.emp_id,
+        emp_id:       fullPayload.emp_id || undefined,   // numeric FK
+        employee_email: fullPayload.employee_email || undefined,
         event_type:   fullPayload.event_type,
         event_detail: [
           fullPayload.event_detail,
@@ -8904,10 +8981,10 @@ async function logActivity(data) {
   } catch(e) { /* silent fail — never break UI */ }
 }
 
-// Called on every panel switch — logs previous page's time, starts new page timer
+// Called on every panel switch — logs previous page time, starts new page timer
 function _actOnPageSwitch(newPage) {
   const secs = Math.round((Date.now() - _actPageStart) / 1000);
-  if (_actPageName && secs > 2) {
+  if (_actPageName && secs > 30) { // Skip page_view under 30s — reduces noise
     logActivity({ event_type:'page_view', event_detail:`Visited: ${_actPageName}`, page_name:_actPageName, duration_seconds:secs });
   }
   _actPageName  = newPage;
@@ -8915,17 +8992,17 @@ function _actOnPageSwitch(newPage) {
   _actStopVideoTracking(); // stop video tracking on page leave
 }
 
-// Called when a card/overlay opens
+// Called when a card or overlay opens
 function _actOnCardOpen(cardName) {
-  _actOnCardClose(); // close any existing tracked card first
+  _actOnCardClose();
   _actCardName  = cardName;
   _actCardStart = Date.now();
-  logActivity({ event_type:'card_open', event_detail:`Opened: ${cardName}`, card_name:cardName });
+  // card_open not logged — generated too many rows
 }
 
-// Called when a card/overlay closes
+// Called when a card or overlay closes
 function _actOnCardClose() {
-  // card_close events log nahi karne (sirf state reset karo)
+  // card_close not logged — just reset state
   _actCardName  = null;
   _actCardStart = null;
 }
@@ -8943,11 +9020,7 @@ function _actTrackVideo(videoEl, title) {
     logActivity({ event_type:'video_play', event_detail:`Playing: ${_actVideoTitle}`, video_title:_actVideoTitle });
   };
   const onPause = () => {
-    if (!_actVideoStart) return;
-    const secs = Math.round((Date.now() - _actVideoStart) / 1000);
-    const pct  = videoEl.duration ? Math.round((videoEl.currentTime / videoEl.duration) * 100) : null;
-    logActivity({ event_type:'video_pause', event_detail:`Paused: ${_actVideoTitle}`, video_title:_actVideoTitle,
-                  video_watch_seconds:secs, video_watch_percent:pct });
+    // video_pause not logged — only track play and complete
     _actVideoStart = null;
   };
   const onEnded = () => {
@@ -8972,14 +9045,8 @@ function _actStopVideoTracking() {
     _actVideoEl.removeEventListener('ended', _actVideoEl._actHandlers.onEnded);
     delete _actVideoEl._actHandlers;
   }
-  // Log any remaining watch time
-  if (_actVideoStart) {
-    const secs = Math.round((Date.now() - _actVideoStart) / 1000);
-    const pct  = (_actVideoEl.duration && _actVideoEl.duration > 0)
-      ? Math.round((_actVideoEl.currentTime / _actVideoEl.duration) * 100) : null;
-    logActivity({ event_type:'video_pause', event_detail:`Left video: ${_actVideoTitle}`,
-                  video_title:_actVideoTitle, video_watch_seconds:secs, video_watch_percent:pct });
-  }
+  // Left-video pause not logged — reduces noise
+  _actVideoStart = null;
   _actVideoEl    = null;
   _actVideoTitle = null;
   _actVideoStart = null;
@@ -9346,7 +9413,7 @@ function _cnRenderOverlayContent(nodeId, catName, th, gridId, subId, emptyId, pa
 
   // Attach drill-down and back functions dynamically
   window[`_cnDrillDown_${gridId}`] = function(scId, scName, parentId, parentName) {
-    logActivity({event_type:'training_submodule_open', event_detail:'Opened sub-card: '+scName+' (in '+parentName+')', page_name:'training', card_name:parentName+' › '+scName});
+    // training_submodule_open removed — module_open is sufficient
     const scTh = cnTheme(subCards.findIndex(s => s.id === scId) % 8);
     _cnRenderOverlayContent(scId, scName, scTh, gridId, subId, emptyId, {id: parentId, name: parentName});
   };
@@ -12861,6 +12928,11 @@ async function actLogSendTestEvent() {
   }
 }
 
+// If user is already logged in (page reload), fetch Emp_id
+if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER?.email) {
+  _fetchAndCacheEmpId();
+}
+
 function _canAccessActLog() {
   if (!CURRENT_USER) return false;
   const r = (CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim();
@@ -12882,84 +12954,91 @@ async function loadActivityLog(forceRefresh) {
   if (table)   table.style.display   = 'none';
   if (empty)   empty.style.display   = 'none';
 
+  // Hide SQL migration banner — columns already exist
+  const sqlBanner = document.getElementById('actlog-sql-banner');
+  if (sqlBanner) sqlBanner.style.display = 'none';
+
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/activity_logs?select=*&order=created_at.desc&limit=2000`,
-      { headers: SB_HDRS() }
-    );
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    _actLogAllRows = await res.json();
-    _actLogPage = 1;
-    await _actLogPopulateEmpDropdown(_actLogAllRows); // names fetch hone tak wait karo
-    applyActLogFilters(); // ab names cache mein hain, table mein naam dikhenge
-    renderActLogStats(_actLogAllRows);
-    if (_actLogAllRows.length === 0) {
-      const banner = document.getElementById('actlog-sql-banner');
-      if (banner) banner.style.display = 'block';
+    // Try with FK JOIN first (explicit hint to avoid PostgREST ambiguity)
+    let rows = null;
+    try {
+      const res1 = await fetch(
+        `${SUPABASE_URL}/rest/v1/activity_logs?select=*,employee:Employee_details!emp_id(Employee_name)&order=created_at.desc&limit=2000`,
+        { headers: SB_HDRS() }
+      );
+      if (res1.ok) {
+        const data = await res1.json();
+        if (Array.isArray(data)) rows = data;
+      }
+    } catch(e1) {}
+
+    // Fallback: simple select without JOIN if FK hint fails
+    if (!rows) {
+      const res2 = await fetch(
+        `${SUPABASE_URL}/rest/v1/activity_logs?select=*&order=created_at.desc&limit=2000`,
+        { headers: SB_HDRS() }
+      );
+      if (!res2.ok) throw new Error('HTTP ' + res2.status);
+      const data2 = await res2.json();
+      rows = Array.isArray(data2) ? data2 : [];
     }
+
+    _actLogAllRows = rows;
+    _actLogPage = 1;
+    await _actLogPopulateEmpDropdown(_actLogAllRows); // async — fetches real names by emp_id
+
+    // Default: set today's date if no filter is already set
+    const dtFrom = document.getElementById('actlog-filter-date-from');
+    const dtTo   = document.getElementById('actlog-filter-date-to');
+    if (dtFrom && !dtFrom.value) {
+      const today = new Date().toISOString().split('T')[0];
+      dtFrom.value = today;
+      dtTo.value   = today;
+    }
+
+    applyActLogFilters(); // show filtered data (today by default, KPI also updates)
   } catch(e) {
     if (loading) loading.style.display = 'none';
     if (empty) { empty.style.display = 'block'; empty.innerHTML = '<div style="text-align:center;padding:48px;color:#ff5c7c;">⚠️ Error loading logs: ' + e.message + '</div>'; }
   }
 }
 
-// MIS aur Managing Director ke emails — filter mein nahi dikhenge
-const _ACT_EXCLUDE_ROLES = ['mis', 'mis1', 'owner'];
-let _actEmpNameMap = {}; // email → Employee_name cache
+// MIS and Managing Director emails — excluded from employee filter dropdown
+const _ACT_EXCLUDE_ROLES = []; // No exclusions — all employees shown in filter
+// emp_id is now a numeric FK; employee_email holds the email directly
+// Employee names fetched via JOIN or _actNameMap cache — no separate fetch needed
 
 function _actLogIsExcluded(email) {
   const e = (email||'').toLowerCase();
   return _ACT_EXCLUDE_ROLES.some(r => e.startsWith(r+'@'));
 }
 
-// Employee_details se names fetch karo, phir dropdown populate karo
+// Populate dropdown — async so we can fetch real names from Employee_details
 async function _actLogPopulateEmpDropdown(rows) {
   const sel = document.getElementById('actlog-filter-emp-select');
   if (!sel) return;
 
-  // Unique emails from logs (excluding MIS/owner)
-  const emails = [...new Set(rows.map(r => r.emp_id).filter(e => e && !_actLogIsExcluded(e)))];
-  if (!emails.length) return;
+  // Fetch all names first (by emp_id FK — most reliable)
+  await _fetchEmpNames(rows);
 
-  // Fetch names from Employee_details if not already cached
-  const missing = emails.filter(e => !_actEmpNameMap[e]);
-  if (missing.length) {
-    try {
-      const orFilter = missing.map(e => `Email_Id.ilike.${encodeURIComponent(e)}`).join(',');
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/Employee_details?select=Email_Id,Employee_name&or=(${orFilter})`,
-        { headers: SB_HDRS() }
-      );
-      if (res.ok) {
-        const empRows = await res.json();
-        empRows.forEach(r => {
-          const key = (r.Email_Id||'').toLowerCase().trim();
-          if (key) _actEmpNameMap[key] = r.Employee_name || key;
-        });
-      }
-    } catch(e) {}
-  }
-
-  const current = sel.value;
-  // Sort by name
-  const sorted = emails.sort((a, b) => {
-    const na = _actEmpNameMap[a] || a;
-    const nb = _actEmpNameMap[b] || b;
-    return na.localeCompare(nb);
+  // Build unique email → name map
+  const seen = new Map();
+  rows.forEach(r => {
+    const email = (r.employee_email || '').toLowerCase().trim();
+    if (!email || seen.has(email)) return;
+    const name = _getEmpDisplayName(r); // uses emp_id FK lookup
+    seen.set(email, name);
   });
 
-  sel.innerHTML = '<option value="">All Employees</option>' +
-    sorted.map(e => {
-      const name = _actEmpNameMap[e] || e.split('@')[0];
-      return `<option value="${e}" ${e===current?'selected':''}}>${name}</option>`;
-    }).join('');
-}
+  if (!seen.size) return;
 
-// Email ko naam mein convert karo (table display ke liye)
-function _actLogEmpDisplay(email) {
-  if (!email) return '—';
-  const name = _actEmpNameMap[(email||'').toLowerCase().trim()];
-  return name || email.split('@')[0];
+  const current = sel.value;
+  const sorted = [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+
+  sel.innerHTML = '<option value="">All Employees</option>' +
+    sorted.map(([email, name]) =>
+      `<option value="${email}" ${email===current?'selected':''}>${name}</option>`
+    ).join('');
 }
 
 function applyActLogFilters() {
@@ -12970,7 +13049,7 @@ function applyActLogFilters() {
 
   _actLogFiltered = _actLogAllRows.filter(row => {
     const matchEvent = !eventF || (row.event_type||'').toLowerCase() === eventF;
-    const matchEmp   = !empF   || (row.emp_id||'').toLowerCase() === empF;
+    const matchEmp   = !empF   || (row.employee_email||'').toLowerCase() === empF;
     let   matchDate  = true;
     if (dateFrom || dateTo) {
       const rowDate = row.created_at ? row.created_at.substring(0, 10) : '';
@@ -12981,6 +13060,7 @@ function applyActLogFilters() {
   });
   _actLogPage = 1;
   renderActLogTable();
+  renderActLogStats(_actLogFiltered); // KPI cards update with filtered data
 
   // Update filter summary
   const parts = [];
@@ -13025,7 +13105,15 @@ function renderActLogTable() {
 
   if (!_actLogFiltered.length) {
     if (table) table.style.display = 'none';
-    if (empty) { empty.style.display = 'block'; empty.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted);"><div style="font-size:2.5rem;margin-bottom:10px;">🗒️</div><div>No records match your filter.</div></div>'; }
+    if (empty) {
+      empty.style.display = 'block';
+      const dtFrom = document.getElementById('actlog-filter-date-from')?.value || '';
+      const dtTo   = document.getElementById('actlog-filter-date-to')?.value   || '';
+      const dateMsg = (dtFrom || dtTo)
+        ? `<div style="font-size:0.85rem;color:var(--muted);margin-top:6px;">Selected date: <b>${dtFrom}${dtTo && dtTo!==dtFrom?' → '+dtTo:''}</b> ke liye koi activity nahi mili.</div><div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">Date filter change karein past data dekhne ke liye.</div>`
+        : '';
+      empty.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted);"><div style="font-size:2.5rem;margin-bottom:10px;">🗒️</div><div>Koi records nahi mile.</div>' + dateMsg + '</div>';
+    }
     if (pgEl)  pgEl.style.display = 'none';
     return;
   }
@@ -13051,13 +13139,36 @@ function renderActLogTable() {
 
   };
 
-  tbody.innerHTML = rows.map(row => {
-    const s = EVENT_STYLE[row.event_type] || { bg:'rgba(255,255,255,0.05)', color:'var(--muted)', icon:'📌' };
+  // Fetch missing employee names by emp_id FK, then render
+  _fetchEmpNames(rows).then(() => {
+    tbody.innerHTML = _renderActLogRows(rows);
+    if (table) table.style.display = 'table';
+    if (pgInfo) pgInfo.textContent = `Showing ${start+1}–${Math.min(start+_ACT_LOG_PER_PAGE,total)} of ${total} records`;
+    if (pgEl)  pgEl.style.display = 'flex';
+    if (prev)  prev.disabled = _actLogPage <= 1;
+    if (next)  next.disabled = _actLogPage >= totalPages;
+  });
+}
+
+function _renderActLogRows(rows) {
+  const EVENT_STYLE2 = {
+    login:{ bg:'rgba(0,212,170,0.12)', color:'#00d4aa', icon:'🔐' },
+    logout:{ bg:'rgba(255,92,124,0.12)', color:'#ff5c7c', icon:'🚪' },
+    page_view:{ bg:'rgba(78,154,241,0.12)', color:'#4e9af1', icon:'👁️' },
+    card_open:{ bg:'rgba(240,165,0,0.12)', color:'#f0a500', icon:'📋' },
+    file_open:{ bg:'rgba(0,212,170,0.10)', color:'#00c49a', icon:'📄' },
+    training_module_open:{ bg:'rgba(99,102,241,0.12)', color:'#818cf8', icon:'🎓' },
+    training_submodule_open:{ bg:'rgba(99,102,241,0.08)', color:'#818cf8', icon:'📖' },
+    video_play:{ bg:'rgba(168,85,247,0.12)', color:'#a855f7', icon:'▶️' },
+    video_pause:{ bg:'rgba(168,85,247,0.08)', color:'#8b40e8', icon:'⏸️' },
+    video_complete:{ bg:'rgba(0,212,170,0.15)', color:'#00d4aa', icon:'✅' },
+  };
+  return rows.map(row => {
+    const s = EVENT_STYLE2[row.event_type] || { bg:'rgba(255,255,255,0.05)', color:'var(--muted)', icon:'📌' };
     const dt = row.created_at ? new Date(row.created_at) : null;
     const dateStr = dt ? dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) + '<br><span style="color:var(--muted);font-size:0.75rem;">' + dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) + '</span>' : '—';
-    const emp = row.emp_id || '—';
-    const empName = _actLogEmpDisplay(emp);
-    const empShort = empName;
+    const emp     = row.employee_email || '—';
+    const empName = _getEmpDisplayName(row);  // uses emp_id FK → Employee_name
     const dur = row.duration_seconds != null ? (row.duration_seconds >= 60 ? Math.floor(row.duration_seconds/60)+'m '+( row.duration_seconds%60)+'s' : row.duration_seconds+'s') : '—';
     const vid = row.video_title ? `<span title="${row.video_title}" style="display:block;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${row.video_title}</span>${row.video_watch_percent != null ? '<span style=\'color:var(--muted);font-size:0.75rem;\'>' + row.video_watch_percent + '% watched</span>' : ''}` : '—';
     const cardDetail = row.card_name || row.event_detail || '—';
@@ -13067,7 +13178,7 @@ function renderActLogTable() {
       <td style="padding:10px 14px;white-space:nowrap;color:var(--text2);font-size:0.79rem;">${dateStr}</td>
       <td style="padding:10px 14px;">
         <div style="font-weight:700;color:var(--text);font-size:0.84rem;">${empName}</div>
-        <div style="color:var(--muted);font-size:0.73rem;">${emp !== empName ? emp : ''}</div>
+        <div style="color:var(--muted);font-size:0.73rem;">${emp !== '—' ? emp : ''}</div>
       </td>
       <td style="padding:10px 14px;">
         <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:0.75rem;font-weight:600;background:${s.bg};color:${s.color};">
@@ -13082,12 +13193,6 @@ function renderActLogTable() {
       <td style="padding:10px 14px;text-align:center;font-size:1rem;" title="${row.device||''}">${devIcon}</td>
     </tr>`;
   }).join('');
-
-  if (table) table.style.display = 'table';
-  if (pgInfo) pgInfo.textContent = `Showing ${start+1}–${Math.min(start+_ACT_LOG_PER_PAGE,total)} of ${total} records`;
-  if (pgEl)  pgEl.style.display = 'flex';
-  if (prev)  prev.disabled = _actLogPage <= 1;
-  if (next)  next.disabled = _actLogPage >= totalPages;
 }
 
 function actLogPrevPage() { if (_actLogPage > 1) { _actLogPage--; renderActLogTable(); } }
@@ -13106,7 +13211,7 @@ function renderActLogStats(rows) {
   const videoPlay    = rows.filter(r => r.event_type === 'video_play').length;
 
   const trainingOpen = rows.filter(r => r.event_type === 'training_module_open' || r.event_type === 'training_submodule_open').length;
-  const uniqueEmps   = new Set(rows.map(r=>r.emp_id).filter(Boolean)).size;
+  const uniqueEmps   = new Set(rows.map(r=>r.employee_email || String(r.emp_id||'')).filter(Boolean)).size;
 
   const cards = [
     { icon:'🔐', label:'Total Logins',     value: logins,       color:'#00d4aa' },
@@ -14335,15 +14440,33 @@ function _renderCelebBanner(birthdays, anniversaries) {
   });
   chipsHTML += '</div>';
 
-  // Action button: "See Your Wishes" for celebrant, "Wish Them!" for others
-  const actionBtnHTML = iAmCelebrant
-    ? `<button class="celeb-wish-all-btn" onclick="_openMyWishesModal()" style="background:linear-gradient(135deg,#4e9af1,#00d4aa);display:flex;align-items:center;gap:8px;">
+  // Action button: "See Your Wishes" for celebrant, "Wished ✓" if already wished, else "Wish Them!"
+  let actionBtnHTML;
+  if (iAmCelebrant) {
+    actionBtnHTML = `<button class="celeb-wish-all-btn" onclick="_openMyWishesModal()" style="background:linear-gradient(135deg,#4e9af1,#00d4aa);display:flex;align-items:center;gap:8px;">
          🎁 See Your Wishes
          <span id="bannerSeeWishesBadge" style="background:rgba(255,255,255,0.3);color:#fff;border-radius:20px;padding:1px 8px;font-size:0.78rem;font-weight:800;min-width:20px;text-align:center;">...</span>
-       </button>`
-    : `<button class="celeb-wish-all-btn" onclick="_openWishAllPopup()">
-         🎉 Wish Them!
        </button>`;
+  } else {
+    // Check if user has already wished ALL celebrants today
+    const allCelebs = [
+      ...birthdays.map(p => ({ ...p, celebType: 'birthday' })),
+      ...anniversaries.map(p => ({ ...p, celebType: 'anniversary' }))
+    ];
+    const alreadyWishedAll = allCelebs.length > 0 && allCelebs.every(p =>
+      localStorage.getItem(_wishKey(p.email || p.name, p.celebType))
+    );
+    if (alreadyWishedAll) {
+      actionBtnHTML = `<button class="celeb-wish-all-btn" disabled
+        style="background:linear-gradient(135deg,#00d4aa,#22c55e);cursor:default;opacity:0.9;display:flex;align-items:center;gap:8px;">
+        ✅ Wished!
+      </button>`;
+    } else {
+      actionBtnHTML = `<button class="celeb-wish-all-btn" onclick="_openWishAllPopup()">
+        🎉 Wish Them!
+      </button>`;
+    }
+  }
 
   banner.innerHTML = `
     <div class="celeb-banner-card ${cardClass}">
@@ -15071,6 +15194,24 @@ async function sendWish() {
       // Prevent duplicate wish today
       const wKey = _wishKey(toEmail || toName, finalType);
       localStorage.setItem(wKey, '1');
+      // Update banner button to "Wished ✅" without page reload
+      const wishBannerBtn = document.querySelector('.celeb-wish-all-btn');
+      if (wishBannerBtn && !wishBannerBtn.disabled) {
+        // Check if all celebrants are now wished
+        const allC = [
+          ...(window._celebBannerBdays||[]).map(p=>({...p,celebType:'birthday'})),
+          ...(window._celebBannerAnnis||[]).map(p=>({...p,celebType:'anniversary'}))
+        ];
+        const allDone = allC.every(p => localStorage.getItem(_wishKey(p.email||p.name, p.celebType)));
+        if (allDone) {
+          wishBannerBtn.innerHTML = '✅ Wished!';
+          wishBannerBtn.disabled = true;
+          wishBannerBtn.style.background = 'linear-gradient(135deg,#00d4aa,#22c55e)';
+          wishBannerBtn.style.cursor = 'default';
+          wishBannerBtn.style.opacity = '0.9';
+          wishBannerBtn.onclick = null;
+        }
+      }
 
       // Show success
       if (wishBox) wishBox.style.display = 'none';
@@ -15234,20 +15375,31 @@ let _annDrwFilter   = 'update'; // default to Updates tab
 function _annGetSeenIds() {
   try { return JSON.parse(localStorage.getItem('annSeenIds') || '[]'); } catch(e) { return []; }
 }
+// Stable key for celebrations: use name+celebType+today (no .id on employee rows)
+function _annCelebKey(c) {
+  return 'c_' + (c.name || '').replace(/\s+/g,'_') + '_' + (c.celebType || 'bday');
+}
 function _annMarkAllSeen() {
   const allIds = [
     ..._annDrwUpdates.map(a => 'u_' + a.id),
-    ..._annDrwCelebs.map(a => 'c_' + a.id)
+    ..._annDrwCelebs.map(c => _annCelebKey(c))
   ];
   localStorage.setItem('annSeenIds', JSON.stringify(allIds));
+  // Also set day-level seen flag so dot stays gone all day
+  localStorage.setItem('annSeen_' + _annTodayKey(), '1');
   _annUpdateBadge();
 }
 function _annUpdateBadge() {
   const badge = document.getElementById('annBellDot');
   if (!badge) return;
+  // If user has opened the overlay today, hide dot immediately
+  if (localStorage.getItem('annSeen_' + _annTodayKey()) === '1') {
+    badge.style.display = 'none';
+    return;
+  }
   const seenIds = _annGetSeenIds();
   const unseenUpdates = _annDrwUpdates.filter(a => !seenIds.includes('u_' + a.id));
-  const unseenCelebs  = _annDrwCelebs.filter(a => !seenIds.includes('c_' + a.id));
+  const unseenCelebs  = _annDrwCelebs.filter(c => !seenIds.includes(_annCelebKey(c)));
   const count = unseenUpdates.length + unseenCelebs.length;
   if (count <= 0) {
     badge.style.display = 'none';
@@ -15325,6 +15477,7 @@ function openAnnOverlay() {
     _annDrwLoad();
   }
   localStorage.setItem('annSeen_' + _annTodayKey(), '1');
+  if (_annDrwLoaded) _annMarkAllSeen(); // ensure badge stays off after viewing
   annDrwFilter(_annDrwFilter || 'update');
 }
 
@@ -15389,12 +15542,15 @@ async function _annDrwLoad() {
   const feed = document.getElementById('annDrwFeed');
   if (!feed) return;
 
+  // Show loading skeleton immediately — don't make user wait
+  feed.innerHTML = '<div style="padding:32px;text-align:center;color:var(--muted);font-size:0.87rem;">⏳ Loading...</div>';
+
+  // Fetch all data in parallel (not sequential)
   await Promise.allSettled([
     _annDrwFetchUpdates(),
-    _annDrwFetchCelebrations()
+    _annDrwFetchCelebrations(),
+    _annDrwFetchWishes()
   ]);
-  // After celebs loaded, fetch today's wishes
-  await _annDrwFetchWishes();
 
   _annDrwLoaded = true;
   _annDrwRender();
