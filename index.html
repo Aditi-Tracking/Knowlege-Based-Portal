@@ -4051,7 +4051,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
   <div class="db-content">
     <div class="section-title">Marketing Resources</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
+    <div id="mkt-main-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
 
       <!-- Marketing Brochure (Supabase) -->
       <div data-cn-name="Marketing Brochure" style="position:relative;">
@@ -4107,12 +4107,8 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
       </div>
 
-    </div>
+      <!-- Dynamic cards inject ho jaayenge yahan -->
 
-    <!-- Dynamic cards (new cards added via Upload modal) -->
-    <div id="mkt-dynamic-section" style="display:none;">
-      <div class="section-title" style="margin-top:1.5rem;">More Categories</div>
-      <div id="mkt-dynamic-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;"></div>
     </div>
 
   </div>
@@ -4135,7 +4131,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     </div>
 
     <!-- ── Tab bar ── -->
-    <div style="display:flex;gap:0;padding:14px 22px 0;border-bottom:2px solid var(--border);">
+    <div id="mkt-tab-bar" style="display:flex;gap:0;padding:14px 22px 0;border-bottom:2px solid var(--border);">
       <button id="mkt-tab-btn-videos" onclick="switchMktTab('videos')"
         style="display:flex;align-items:center;gap:7px;padding:9px 20px;border:none;border-bottom:2.5px solid #00d4ff;margin-bottom:-2px;background:rgba(0,212,255,0.08);border-radius:10px 10px 0 0;color:#00d4ff;font-weight:800;font-size:0.9rem;cursor:pointer;font-family:inherit;transition:all 0.18s;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
@@ -10383,11 +10379,9 @@ async function loadMarketingCounts() {
     // ── Render NEW dynamic cards (not in hardcoded set) ──────────────────
     const hardcoded = new Set(Object.keys(badgeMap));
     const newCats = cats.filter(c => !hardcoded.has((c.name||'').toLowerCase().trim()));
-    const dynSection = document.getElementById('mkt-dynamic-section');
-    const dynGrid    = document.getElementById('mkt-dynamic-grid');
+    const mainGrid = document.getElementById('mkt-main-grid');
 
-    if (newCats.length && dynGrid) {
-      dynGrid.innerHTML = '';
+    if (newCats.length && mainGrid) {
       newCats.forEach((cat, i) => {
         const th    = cnTheme(i);
         const name  = cat.name || 'Category';
@@ -10415,9 +10409,8 @@ async function loadMarketingCounts() {
               <span style="font-size:0.78rem;font-weight:600;color:${th.color};">View →</span>
             </div>
           </div>`;
-        dynGrid.appendChild(wrapper);
+        mainGrid.appendChild(wrapper);
       });
-      if (dynSection) dynSection.style.display = 'block';
     }
 
     // Inject delete buttons on hardcoded marketing cards
@@ -12697,12 +12690,16 @@ function switchMktTab(tab) {
 
 // Hide Assessment tab — used when overlay is opened from IT Admin or Marketing
 function _hideAssessmentTab() {
+  const bar = document.getElementById('mkt-tab-bar');
+  if (bar) bar.style.display = 'none';
   const btn = document.getElementById('mkt-tab-btn-assessment');
   if (btn) btn.style.display = 'none';
 }
 
 // Show Assessment tab — used when overlay is opened from Training
 function _showAssessmentTab() {
+  const bar = document.getElementById('mkt-tab-bar');
+  if (bar) bar.style.display = 'flex';
   const btn = document.getElementById('mkt-tab-btn-assessment');
   if (btn) btn.style.display = 'flex';
 }
