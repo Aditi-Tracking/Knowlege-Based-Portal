@@ -2920,9 +2920,9 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <div class="hp-card loc-card" style="border-top:3px solid #a855f7;">
           <div class="hp-card-header"><span class="hp-card-icon">🏙️</span><span class="hp-card-title">Ahmedabad</span><span class="loc-badge" style="background:rgba(168,85,247,0.12);color:#a855f7;">Branch</span></div>
           <div class="loc-address">
-            <div class="loc-line">11th Floor, 1106</div>
-            <div class="loc-line">Shivalik Shilp, Iscon Cross Road</div>
-            <div class="loc-line">S.G. Highway, Ahmedabad, Gujarat 380015</div>
+            <div class="loc-line">B/h, Divya Bhaskar Press,</div>
+            <div class="loc-line">608, 31 five building, Corporate Rd, Makarba</div>
+            <div class="loc-line"> Ahmedabad, Gujarat 380051</div>
           </div>
           <div class="loc-contacts">
           </div>
@@ -4051,7 +4051,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
   <div class="db-content">
     <div class="section-title">Marketing Resources</div>
-    <div id="mkt-main-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
 
       <!-- Marketing Brochure (Supabase) -->
       <div data-cn-name="Marketing Brochure" style="position:relative;">
@@ -4107,8 +4107,12 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
       </div>
 
-      <!-- Dynamic cards inject ho jaayenge yahan -->
+    </div>
 
+    <!-- Dynamic cards (new cards added via Upload modal) -->
+    <div id="mkt-dynamic-section" style="display:none;">
+      <div class="section-title" style="margin-top:1.5rem;">More Categories</div>
+      <div id="mkt-dynamic-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;"></div>
     </div>
 
   </div>
@@ -5727,16 +5731,6 @@ const FMS_COLS=['#f0a500','#00d4ff','#00d4aa','#a855f7','#ff5c7c','#06b6d4','#f9
 const fmsIsDelayed   = r => (r.forPC||'').toLowerCase()==='yes';
 const fmsIsRemaining = r => (r.forPC||'').toLowerCase()!=='yes';
 
-// Date comparison helper — ISO format (2026-05-13T...) aur DD/MM/YYYY dono handle karo
-function fmsIsToday(planned){
-  if(!planned)return false;
-  const now=new Date();
-  const todayIso=now.toISOString().slice(0,10);
-  const dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');
-  if(planned.includes('T')||/^\d{4}-/.test(planned)) return planned.slice(0,10)===todayIso;
-  return planned.includes(dd+'/'+mm);
-}
-
 const _origSwitchDB = switchDB;
 switchDB = function(id){
   _origSwitchDB(id);
@@ -5759,33 +5753,20 @@ async function fmsLoadData(){
       document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--muted);"><div style="font-size:2rem;margin-bottom:0.5rem;">📭</div>No data found in sheet<br><small>Check [FMS] logs in Browser Console (F12)</small></div>`;
       return;
     }
-    // ── COLUMN MAPPING ─────────────────────────────────────────────────────
-    const firstRow=raw[0], keys=Object.keys(firstRow);
-    // SO Number column: pehla column (Unique Key)
-    const soCol = keys[0] || '';
-
-    function gv(r,...cols){
-      for(const c of cols){
-        if(r[c]!==undefined&&String(r[c]).trim()!='') return String(r[c]);
-        const norm=c.toLowerCase().replace(/[^a-z0-9]/g,'');
-        const f=keys.find(k=>k.toLowerCase().replace(/[^a-z0-9]/g,'')==norm);
-        if(f&&r[f]!==undefined&&String(r[f]).trim()!='') return String(r[f]);
-      }
-      return '';
-    }
-
+    const firstRow=raw[0],keys=Object.keys(firstRow);
+    function gv(r,...cols){for(const c of cols){if(r[c]!==undefined&&String(r[c]).trim()!='')return String(r[c]);const f=keys.find(k=>k.toLowerCase().replace(/[^a-z0-9]/g,'')==c.toLowerCase().replace(/[^a-z0-9]/g,''));if(f&&r[f]!==undefined&&String(r[f]).trim()!='')return String(r[f]);}return '';}
     fmsAllData=raw.map(r=>({
-      uniqueKey:    gv(r,'Unique Key','UniqueKey','SO Number','SO No','uniqueKey') || (soCol?String(r[soCol]||''):''),
-      planned:      gv(r,'Planned','planned','Planned Date','Date','Schedule Date'),
-      plannedStep:  gv(r,'Step','step','Planned Step','How','Task','Activity','Description'),
+      uniqueKey:    gv(r,'Unique Key','UniqueKey','uniqueKey'),
+      planned:      gv(r,'Planned Step','PlannedStep','Planned','planned'),
+      plannedStep:  gv(r,'Planned Step','PlannedStep','How','how'),
       how:          gv(r,'How','how'),
-      doerName:     gv(r,'Final Doer Name','FinalDoerName','Doer Name','DoerName','Engineer','Technician','Assigned To'),
-      link:         gv(r,'Link','link','Form Link','URL'),
-      forPC:        gv(r,'For PC','ForPC','forPC','PC','For Pc'),
-      doerEmail:    gv(r,'Final Doer Email','FinalDoerEmail','Doer Email','DoerEmail','Email'),
-      customerName: gv(r,'Customer Name','CustomerName','Customer','Client','Name'),
-      product:      gv(r,'Product','product','Item','Model','Device'),
-    })).filter(r=>r.uniqueKey&&!String(r.uniqueKey).includes('#N/A'));
+      doerName:     gv(r,'Final Doer Name','FinalDoerName','Doer Name','DoerName','doerName'),
+      link:         gv(r,'Link','link'),
+      forPC:        gv(r,'For PC','ForPC','forPC'),
+      doerEmail:    gv(r,'Final Doer Email','FinalDoerEmail','Doer Email','DoerEmail','doerEmail'),
+      customerName: gv(r,'Customer Name','CustomerName','customerName'),
+      product:      gv(r,'Product','product'),
+    })).filter(r=>r.uniqueKey&&!r.uniqueKey.includes('#N/A'));
     const el=document.getElementById('fmsLastRefresh');
     if(el) el.textContent='Updated '+new Date().toLocaleTimeString();
     fmsProcessData();
@@ -5815,19 +5796,8 @@ function fmsUpdateKPIs(){
   const delayed  = fmsFiltered.filter(fmsIsDelayed).length;
   const remaining= fmsFiltered.filter(fmsIsRemaining).length;
   const now=new Date();
-  const todayStr=now.toISOString().slice(0,10); // '2026-05-13'
   const dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');
-  // ISO format (2026-05-13T...) aur DD/MM/YYYY dono handle karo
-  const todayCount=fmsFiltered.filter(r=>{
-    if(!r.planned)return false;
-    const p=r.planned;
-    if(p.includes('T')||p.includes('-')){
-      // ISO date: '2026-05-13T...' → slice first 10 chars
-      return p.slice(0,10)===todayStr;
-    }
-    // DD/MM/YYYY format
-    return p.includes(dd+'/'+mm);
-  }).length;
+  const todayCount=fmsFiltered.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm)).length;
   const prods=new Set(fmsFiltered.map(r=>r.product).filter(v=>v&&v.trim())).size;
 
   document.getElementById('fkpiRemaining').textContent=remaining||'0';
@@ -5895,14 +5865,8 @@ function fmsRenderCharts(data){
   for(let i=6;i>=0;i--){
     const d=new Date();d.setDate(d.getDate()-i);
     days.push(d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}));
-    const dayIso=d.toISOString().slice(0,10); // '2026-05-13'
     const dd2=String(d.getDate()).padStart(2,'0'),mm2=String(d.getMonth()+1).padStart(2,'0');
-    counts.push(data.filter(r=>{
-      if(!r.planned)return false;
-      const p=r.planned;
-      if(p.includes('T')||p.includes('-')) return p.slice(0,10)===dayIso;
-      return p.includes(dd2+'/'+mm2);
-    }).length);
+    counts.push(data.filter(r=>r.planned&&r.planned.includes(dd2+'/'+mm2)).length);
   }
   const c4=document.getElementById('fChartDaily');
   if(c4){
@@ -5958,7 +5922,7 @@ function fmsKpiFilter(type, value){
   if(type==='all')           fmsFiltered=[...fmsAllData];
   else if(type==='remaining')fmsFiltered=fmsAllData.filter(fmsIsRemaining);
   else if(type==='delayed')  fmsFiltered=fmsAllData.filter(fmsIsDelayed);
-  else if(type==='today')    fmsFiltered=fmsAllData.filter(r=>fmsIsToday(r.planned));
+  else if(type==='today')    fmsFiltered=fmsAllData.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm));
   else if(type==='product')  fmsFiltered=fmsAllData.filter(r=>r.product===value);
   else if(type==='doer')     fmsFiltered=fmsAllData.filter(r=>r.doerName===value);
   fmsMainPage=1;
@@ -6029,7 +5993,7 @@ function fmsApplySearch(){
   let base=fmsAllData;
   if(fmsCurrentFilter==='remaining') base=fmsAllData.filter(fmsIsRemaining);
   else if(fmsCurrentFilter==='delayed') base=fmsAllData.filter(fmsIsDelayed);
-  else if(fmsCurrentFilter==='today'){const now=new Date(),dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');base=fmsAllData.filter(r=>fmsIsToday(r.planned));}
+  else if(fmsCurrentFilter==='today'){const now=new Date(),dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');base=fmsAllData.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm));}
   fmsFiltered=base.filter(r=>{
     const mq=!q||[r.uniqueKey,r.plannedStep,r.doerName,r.customerName,r.product].some(v=>(v||'').toLowerCase().includes(q));
     const mp=!prod||r.product===prod;
@@ -6221,64 +6185,60 @@ const FORM_SUBMIT_CONFIG = {
   main: {
     url: 'https://docs.google.com/forms/d/e/1FAIpQLScAhyCfOdHfqJHJry36UuNZ-tn4B5bzsH8ONjWrIsdCq7LRGg/formResponse',
     entries: {
-      taskId: 'entry.254147949',
-      // name:       'entry.XXXXXXXXX',  // ← uncomment & apna entry ID dalein
-      // email:      'entry.XXXXXXXXX',
-      // department: 'entry.XXXXXXXXX',
-      // actual:     'entry.XXXXXXXXX',
-      // status:     'entry.XXXXXXXXX',
-      // remarks:    'entry.XXXXXXXXX',
+      taskId:  'entry.254147949',
+      remarks: 'entry.88393278',
     }
   },
-  // Support form — NEW (17-Apr-2026): "Support Checklist HO"
-  // Form link: https://docs.google.com/forms/d/e/1FAIpQLSe7l-3ReXeVnSZoMZXcfSxfa7Af5Iuggzvj382eDUxucQp74A/viewform
-  // Fields: Task Id (entry.1669745459), Remarks (optional), Timestamp (auto)
+  // Support form
   support: {
     url: 'https://docs.google.com/forms/d/e/1FAIpQLSe7l-3ReXeVnSZoMZXcfSxfa7Af5Iuggzvj382eDUxucQp74A/formResponse',
     entries: {
-      taskId: 'entry.1669745459',
-      // remarks: 'entry.XXXXXXXXX', // ← agar Remarks field ka entry ID bhi chahiye toh add karein
+      taskId:  'entry.1669745459',
+      remarks: 'entry.1790795990',
     }
   },
-  // Sales form
+  // Sales form — GAS API use hota hai, ye form URL sirf fallback ke liye hai
   sales: {
     url: 'https://docs.google.com/forms/d/e/1FAIpQLSePSFFo6QH5tf3-yqEhQ1Vuv97IFxNbXt4v5ipXUahpSKkoVA/formResponse',
     entries: {
-      taskId: 'entry.1645674088',
+      taskId:  'entry.1645674088',
     }
   },
   // Gujarat branch form
   gujarat: {
     url: 'https://docs.google.com/forms/d/e/1FAIpQLSf0MlQDDEuk68PTGYxF1ANGxvOztUwKmnZ7LeI_wjV5s3sLVQ/formResponse',
     entries: {
-      taskId: 'entry.2120774614',
+      taskId:  'entry.2120774614',
+      remarks: 'entry.655483811',
     }
   },
   // Goa branch form
   goa: {
     url: 'https://docs.google.com/forms/d/e/1FAIpQLSfywYH_ybTqvUA-jKOnJEWJuRGpmNEbgqKciykCsh3owZuJsQ/formResponse',
     entries: {
-      taskId: 'entry.1673935384',
+      taskId:  'entry.1673935384',
+      remarks: 'entry.538727561',
     }
   },
   // Bangalore branch form
   bangalore: {
     url: 'https://docs.google.com/forms/d/e/1FAIpQLScMhISoTemOFcVyBNuIjPBCCRIITRvEYVb9vZIaHu5FwMFQUw/formResponse',
     entries: {
-      taskId: 'entry.1371260066',
+      taskId:  'entry.1371260066',
+      remarks: 'entry.488165299',
     }
   }
 };
 
 function tPickFormConfig(dept, source, location){
   const loc = String(location||'').toLowerCase().trim();
+  const s   = String(source||'').toLowerCase().trim();
   // Location-based routing — branch employees ko sahi form milega
-  if(loc==='gujarat')   return FORM_SUBMIT_CONFIG.gujarat;
-  if(loc==='goa')       return FORM_SUBMIT_CONFIG.goa;
-  if(loc==='bangalore') return FORM_SUBMIT_CONFIG.bangalore;
+  if(loc==='gujarat'   || s==='gujarat')   return FORM_SUBMIT_CONFIG.gujarat;
+  if(loc==='goa'       || s==='goa')       return FORM_SUBMIT_CONFIG.goa;
+  if(loc==='bangalore' || s==='bangalore') return FORM_SUBMIT_CONFIG.bangalore;
   // HO dept-based routing
   const d = String(dept||'').toLowerCase();
-  const s = String(source||'').toLowerCase();
   if(d==='support' || s==='support') return FORM_SUBMIT_CONFIG.support;
   if(d==='sales'   || s==='sales')   return FORM_SUBMIT_CONFIG.sales;
   return FORM_SUBMIT_CONFIG.main;
@@ -7070,7 +7030,6 @@ function tRenderTable(){
     const statusBadge=done
       ?'<span class="badge" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.25)">✅ Done</span>'
       :'<span class="badge" style="background:rgba(240,165,0,0.1);color:#f0a500;border:1px solid rgba(240,165,0,0.2)">⏳ Pending</span>';
-    const fUrl = buildPrefillUrl(r);
     const actionCell=done
       ?`<span style="color:#00d4aa;font-size:0.85rem;font-weight:600">✅ Done</span>`
       :`<button data-dept-tid="${r['Task ID']||''}" onclick="deptShowRemarksInput('${r['Task ID']||''}','${_src}')"
@@ -7197,7 +7156,7 @@ function tMarkDoneMySQL(taskId, dept, source){
 }
 
 // ── All Departments: Inline Remarks Input ───────────────────────────
-// Source → API mapping
+// Source → correct API mapping
 function _deptApiForSource(src){
   const s = String(src||'').toLowerCase();
   if(s==='sales')     return SALES_API;
@@ -7210,12 +7169,11 @@ function _deptApiForSource(src){
 
 function deptShowRemarksInput(taskId, src){
   const tid = String(taskId);
-  // Find the button's TD — try both data-tid and onclick match
+  // Find the button's TD — try data-dept-tid attribute first, then onclick match
   let td = null;
   const allBtns = document.querySelectorAll('[data-dept-tid="'+tid+'"]');
   if(allBtns.length) td = allBtns[0].closest('td');
   if(!td){
-    // fallback: find by onclick content
     const all = document.querySelectorAll('button');
     for(const b of all){
       if((b.getAttribute('onclick')||'').includes("deptShowRemarksInput('"+tid+"'")){
@@ -7275,26 +7233,47 @@ function deptSubmitDone(taskId, src){
   setTimeout(()=>{ tRenderKPIs(); tRenderCharts(); tRenderTable(); updateHomeTaskBanner&&updateHomeTaskBanner(); }, 200);
   tSaveDoneTask(tid, actualForDisplay);
 
-  // Sahi department ka API call karo
-  const api = _deptApiForSource(src);
-  fetch(api
-    + '?action=write'
-    + '&taskId='   + encodeURIComponent(tid)
-    + '&remarks='  + encodeURIComponent(remarks)
-    + '&t='        + Date.now()
-  )
-  .then(r=>r.json())
-  .then(data=>{
-    if(data.ok){
-      setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 3000);
+  const s = String(src||'').toLowerCase();
+
+  if(s === 'sales'){
+    // ── Sales: GAS API write (taskId + remarks dono jaate hain) ──
+    fetch(SALES_API
+      + '?action=write'
+      + '&taskId='  + encodeURIComponent(tid)
+      + '&remarks=' + encodeURIComponent(remarks)
+      + '&t='       + Date.now()
+    )
+    .then(r=>r.json())
+    .then(data=>{ if(data.ok){ setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 3000); } })
+    .catch(()=>{});
+
+  } else {
+    // ── Sab baaki sources: Google Form formResponse pe silent POST ──
+    // FORM_SUBMIT_CONFIG se sahi form URL aur entry IDs milte hain
+    const cfg = (typeof tPickFormConfig==='function')
+      ? tPickFormConfig('', s, s==='gujarat'||s==='goa'||s==='bangalore' ? s : '')
+      : null;
+
+    if(cfg && cfg.url){
+      const body = new URLSearchParams();
+      // Task ID — har form mein ye field hai
+      if(cfg.entries.taskId && tid) body.append(cfg.entries.taskId, tid);
+      // Remarks — FORM_SUBMIT_CONFIG mein entry ID add karo to yahan automatically jayega
+      if(cfg.entries.remarks && remarks) body.append(cfg.entries.remarks, remarks);
+      // Google Form submit — no-cors: response nahi milta par data sheet tak zarur jaata hai
+      fetch(cfg.url, {
+        method: 'POST',
+        mode:   'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:   body.toString()
+      })
+      .then(()=>{ setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 4000); })
+      .catch(()=>{});
     }
-  })
-  .catch(()=>{
-    // API error pe bhi UI done hi rahega (tSaveDoneTask se)
-  });
+  }
 }
 
-// Legacy alias — purane sales calls break na ho
+// Legacy aliases — purane calls break na ho
 function salesShowRemarksInput(taskId){ deptShowRemarksInput(taskId,'sales'); }
 function salesSubmitDone(taskId){ deptSubmitDone(taskId,'sales'); }
 
@@ -9578,8 +9557,28 @@ function _showPhotoPlaceholder(el, name) {
 // Supabase Employee_details se photos + dept fetch
 // ═══════════════════════════════════════════════════════════
 
-// 👇 Performer of the Month — Employee ID se fetch hoga
-const POTM_EMP_ID = 3; // Krishnakumar Yadav
+// 👇 Yahan names update karo har mahine
+const POTM_NAMES = [
+  'Hemant',
+  'Sakshi Tupe',
+  'Komal',
+  'Surya',
+  'Akshay More',
+  'Kush Kotharkar',
+  'Ankush Bidari'
+];
+
+// 👇 Location override — Supabase ki Location column ko ignore karke ye use hoga
+// Key case-insensitive match hoga
+const POTM_LOCATIONS = {
+  'hemant':      'Mumbai',
+  'sakshi tupe': 'Mumbai',
+  'komal':       'Mumbai',
+  'surya':       'Mumbai',
+  'akshay more': 'Mumbai',
+  'kush':        'Goa',
+  'ankush':      'Bangalore'
+};
 
 // Dept ke hisaab se color
 const DEPT_COLORS = {
@@ -9601,86 +9600,92 @@ async function loadPerformers() {
   if (!grid) return;
 
   try {
-    // Sirf ek employee — Emp_id = 3 (Krishnakumar Yadav)
-    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Employee_Dept,Link,Location&Emp_id=eq.${POTM_EMP_ID}&limit=1`;
+    // Saare performers ek hi API call mein fetch karo
+    const names = POTM_NAMES.map(n => `Employee_name.ilike.${encodeURIComponent(n)}`).join(',');
+    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Employee_Dept,Link,Location&or=(${names})`;
     const res = await fetch(url, {
       headers: SB_HDRS()
     });
     const rows = await res.json();
 
-    const row  = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
-    const name = row ? (row['Employee_name'] || 'Krishnakumar Yadav') : 'Krishnakumar Yadav';
-    const dept = row ? (row['Employee_Dept'] || '—') : '—';
-    const loc  = row ? (row['Location'] || '') : '';
-    const link = row ? (row['Link'] || null) : null;
-    const clr  = _getDeptColor(dept);
-
-    let deptText = '—';
-    if (dept !== '—') {
-      deptText = '🏢 ' + dept;
-      if (loc) {
-        deptText += ' <span style="color:var(--muted);font-weight:400;">(' + loc + ')</span>';
-      }
+    // Name → row map banao (case-insensitive)
+    const rowMap = {};
+    if (Array.isArray(rows)) {
+      rows.forEach(r => {
+        rowMap[(r['Employee_name'] || '').toLowerCase().trim()] = r;
+      });
     }
 
-    // Grid ko center mein ek bada card dikhao
-    grid.style.gridTemplateColumns = '1fr';
-    grid.style.maxWidth = '260px';
-    grid.style.margin = '8px auto 0';
+    // Cards banao
     grid.innerHTML = '';
+    POTM_NAMES.forEach((name, idx) => {
+      const row = rowMap[name.toLowerCase().trim()];
+      const dept  = row ? (row['Employee_Dept'] || '—') : '—';
+      // Location: pehle hard-coded override dekho, fir Supabase se
+      const loc   = POTM_LOCATIONS[name.toLowerCase().trim()] || (row ? (row['Location'] || '')  : '');
+      const link  = row ? (row['Link'] || null) : null;
+      const clr   = _getDeptColor(dept);
+      const trophies = ['🥇','🥇','🥇','🥇','🥇','🥇','🥇'];
+      // Plain string concatenation — nested template literals kabhi kabhi flaky hote hain
+      let deptText = '—';
+      if (dept !== '—') {
+        deptText = '🏢 ' + dept;
+        if (loc) {
+          deptText += ' <span style="color:var(--muted);font-weight:400;">(' + loc + ')</span>';
+        }
+      }
 
-    const card = document.createElement('div');
-    card.className = 'potm-card';
-    card.innerHTML = `
-      <div class="potm-card-bar" style="background:${clr.bar};opacity:0.8;"></div>
-      <div class="potm-trophy">🥇</div>
-      <div class="potm-shimmer" id="potm-img-0"></div>
-      <div class="potm-name">${name}</div>
-      <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">
-        ${deptText}
-      </div>
-    `;
-    grid.appendChild(card);
+      const card = document.createElement('div');
+      card.className = 'potm-card';
+      card.innerHTML = `
+        <div class="potm-card-bar" style="background:${clr.bar};opacity:0.8;"></div>
+        <div class="potm-trophy">${trophies[idx] || '🏅'}</div>
+        <div class="potm-shimmer" id="potm-img-${idx}"></div>
+        <div class="potm-name">${name}</div>
+        <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">
+          ${deptText}
+        </div>
+      `;
+      grid.appendChild(card);
 
-    // Photo load karo
-    const imgSlot = card.querySelector('#potm-img-0');
-    if (link) {
-      const img = document.createElement('img');
-      img.className = 'potm-photo';
-      img.alt = name;
-      img.src = link;
-      img.onerror = function() {
+      // Photo async load karo
+      const imgSlot = card.querySelector(`#potm-img-${idx}`);
+      if (link) {
+        const img = document.createElement('img');
+        img.className = 'potm-photo';
+        img.alt = name;
+        img.src = link;
+        img.onerror = function() {
+          const av = document.createElement('div');
+          av.className = 'potm-avatar';
+          av.textContent = name[0].toUpperCase();
+          img.replaceWith(av);
+        };
+        imgSlot.replaceWith(img);
+      } else {
         const av = document.createElement('div');
         av.className = 'potm-avatar';
         av.textContent = name[0].toUpperCase();
-        img.replaceWith(av);
-      };
-      imgSlot.replaceWith(img);
-    } else {
-      const av = document.createElement('div');
-      av.className = 'potm-avatar';
-      av.textContent = name[0].toUpperCase();
-      imgSlot.replaceWith(av);
-    }
+        imgSlot.replaceWith(av);
+      }
+    });
 
   } catch (err) {
-    // Fallback
+    // Fallback — sirf avatars dikhao
     grid.innerHTML = '';
-    grid.style.gridTemplateColumns = '1fr';
-    grid.style.maxWidth = '260px';
-    grid.style.margin = '8px auto 0';
-    const fallbackName = 'Krishnakumar Yadav';
-    const card = document.createElement('div');
-    card.className = 'potm-card';
-    const clr = DEPT_COLORS['default'];
-    card.innerHTML = `
-      <div class="potm-card-bar" style="background:${clr.bar};opacity:0.7;"></div>
-      <div class="potm-trophy">🥇</div>
-      <div class="potm-avatar">${fallbackName[0].toUpperCase()}</div>
-      <div class="potm-name">${fallbackName}</div>
-      <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">—</div>
-    `;
-    grid.appendChild(card);
+    POTM_NAMES.forEach(name => {
+      const card = document.createElement('div');
+      card.className = 'potm-card';
+      const clr = DEPT_COLORS['default'];
+      card.innerHTML = `
+        <div class="potm-card-bar" style="background:${clr.bar};opacity:0.7;"></div>
+        <div class="potm-trophy">🥇</div>
+        <div class="potm-avatar">${name[0].toUpperCase()}</div>
+        <div class="potm-name">${name}</div>
+        <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">—</div>
+      `;
+      grid.appendChild(card);
+    });
   }
 }
 
@@ -10379,9 +10384,11 @@ async function loadMarketingCounts() {
     // ── Render NEW dynamic cards (not in hardcoded set) ──────────────────
     const hardcoded = new Set(Object.keys(badgeMap));
     const newCats = cats.filter(c => !hardcoded.has((c.name||'').toLowerCase().trim()));
-    const mainGrid = document.getElementById('mkt-main-grid');
+    const dynSection = document.getElementById('mkt-dynamic-section');
+    const dynGrid    = document.getElementById('mkt-dynamic-grid');
 
-    if (newCats.length && mainGrid) {
+    if (newCats.length && dynGrid) {
+      dynGrid.innerHTML = '';
       newCats.forEach((cat, i) => {
         const th    = cnTheme(i);
         const name  = cat.name || 'Category';
@@ -10409,8 +10416,9 @@ async function loadMarketingCounts() {
               <span style="font-size:0.78rem;font-weight:600;color:${th.color};">View →</span>
             </div>
           </div>`;
-        mainGrid.appendChild(wrapper);
+        dynGrid.appendChild(wrapper);
       });
+      if (dynSection) dynSection.style.display = 'block';
     }
 
     // Inject delete buttons on hardcoded marketing cards
@@ -15643,19 +15651,6 @@ async function _annDrwFetchCelebrations() {
 }
 
 /* ── Render all cards in drawer ─────────────────────────── */
-// Formats announcement body: converts \n to <br>, makes plain URLs clickable & blue
-function _annFormatBody(text) {
-  if (!text) return '';
-  // Convert plain newlines to <br> (for new posts typed in textarea)
-  const withBreaks = text.replace(/\n/g, '<br>');
-  // Convert bare URLs (not already inside an <a> tag) to clickable blue links
-  const withLinks = withBreaks.replace(
-    /(?<!href="|href=')(https?:\/\/[^\s<>"']+)/g,
-    '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#4e9af1;text-decoration:underline;word-break:break-all;">$1</a>'
-  );
-  return withLinks;
-}
-
 function _annDrwRender() {
   const feed = document.getElementById('annDrwFeed');
   if (!feed) return;
@@ -15682,7 +15677,7 @@ function _annDrwRender() {
           ? `<button onclick="deletePortalUpdate(${ann.id})" style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.22);color:#ff3b30;border-radius:7px;padding:2px 9px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.background='rgba(255,59,48,0.2)'" onmouseout="this.style.background='rgba(255,59,48,0.08)'">🗑 Delete</button>`
           : '';
         html += `
-        <div id="ann-card-${ann.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;border-left:3px solid ${typeClr};animation:annCardIn 0.35s cubic-bezier(0.22,1,0.36,1) both;animation-delay:${i*0.06}s;">
+        <div id="ann-card-${ann.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;overflow:hidden;border-left:3px solid ${typeClr};animation:annCardIn 0.35s cubic-bezier(0.22,1,0.36,1) both;animation-delay:${i*0.06}s;">
           <div style="padding:14px 16px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
               <span style="font-size:1.1rem;">${typeIcon}</span>
@@ -15692,7 +15687,7 @@ function _annDrwRender() {
               ${_delBtn}
             </div>
             <div style="font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.35;">${ann.title || 'Update'}</div>
-            <div style="font-size:0.83rem;color:var(--text2);line-height:1.65;word-break:break-word;">${_annFormatBody(ann.body)}</div>
+            <div style="font-size:0.83rem;color:var(--text2);line-height:1.65;">${ann.body || ''}</div>
             ${ann.posted_by ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:0.75rem;color:var(--muted);display:flex;align-items:center;gap:6px;"><span style="width:22px;height:22px;border-radius:6px;background:rgba(78,154,241,0.15);color:#4e9af1;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;">${(ann.posted_by||'M')[0].toUpperCase()}</span><span>Posted by <strong style="color:var(--text2);">${ann.posted_by}</strong></span></div>` : ''}
           </div>
         </div>`;
