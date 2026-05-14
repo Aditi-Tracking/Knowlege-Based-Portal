@@ -15530,7 +15530,7 @@ async function _annDrwFetchUpdates() {
       .map(r => ({
         id:         r.id,
         title:      r.title || 'Portal Update',
-        body:       (r.body || '').replace(/\n/g, '<br>'),
+        body:       r.body || '',
         posted_by:  r.posted_by || 'MIS Team',
         pinned:     false,
         type:       'update',
@@ -15566,6 +15566,24 @@ async function _annDrwFetchCelebrations() {
   } catch(e) {}
 }
 
+/* ── Safe body renderer: escape HTML → newlines → clickable links ── */
+function _safeBody(text) {
+  if (!text) return '';
+  // 1. HTML entities escape karo — agar user ne </div> ya < > type kiya ho toh layout nahi tootega
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+  // 2. Newlines ko <br> mein convert karo
+  const withBreaks = escaped.replace(/\n/g, '<br>');
+  // 3. URLs ko clickable <a> links mein convert karo
+  return withBreaks.replace(
+    /(https?:\/\/[^\s<>"'\]]+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#4e9af1;text-decoration:underline;word-break:break-all;display:inline;">$1</a>'
+  );
+}
+
 /* ── Render all cards in drawer ─────────────────────────── */
 function _annDrwRender() {
   const feed = document.getElementById('annDrwFeed');
@@ -15593,7 +15611,7 @@ function _annDrwRender() {
           ? `<button onclick="deletePortalUpdate(${ann.id})" style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.22);color:#ff3b30;border-radius:7px;padding:2px 9px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.background='rgba(255,59,48,0.2)'" onmouseout="this.style.background='rgba(255,59,48,0.08)'">🗑 Delete</button>`
           : '';
         html += `
-        <div id="ann-card-${ann.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;overflow:hidden;border-left:3px solid ${typeClr};animation:annCardIn 0.35s cubic-bezier(0.22,1,0.36,1) both;animation-delay:${i*0.06}s;">
+        <div id="ann-card-${ann.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;border-left:3px solid ${typeClr};flex-shrink:0;animation:annCardIn 0.35s cubic-bezier(0.22,1,0.36,1) both;animation-delay:${i*0.06}s;">
           <div style="padding:14px 16px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
               <span style="font-size:1.1rem;">${typeIcon}</span>
@@ -15603,7 +15621,7 @@ function _annDrwRender() {
               ${_delBtn}
             </div>
             <div style="font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.35;">${ann.title || 'Update'}</div>
-            <div style="font-size:0.83rem;color:var(--text2);line-height:1.65;">${ann.body || ''}</div>
+            <div style="font-size:0.83rem;color:var(--text2);line-height:1.7;word-break:break-word;overflow-wrap:break-word;width:100%;">${_safeBody(ann.body)}</div>
             ${ann.posted_by ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:0.75rem;color:var(--muted);display:flex;align-items:center;gap:6px;"><span style="width:22px;height:22px;border-radius:6px;background:rgba(78,154,241,0.15);color:#4e9af1;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;">${(ann.posted_by||'M')[0].toUpperCase()}</span><span>Posted by <strong style="color:var(--text2);">${ann.posted_by}</strong></span></div>` : ''}
           </div>
         </div>`;
