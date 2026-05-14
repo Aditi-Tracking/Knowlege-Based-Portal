@@ -4051,7 +4051,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
   <div class="db-content">
     <div class="section-title">Marketing Resources</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
+    <div id="mkt-main-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
 
       <!-- Marketing Brochure (Supabase) -->
       <div data-cn-name="Marketing Brochure" style="position:relative;">
@@ -4107,12 +4107,8 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
       </div>
 
-    </div>
+      <!-- Dynamic cards yahan inject honge -->
 
-    <!-- Dynamic cards (new cards added via Upload modal) -->
-    <div id="mkt-dynamic-section" style="display:none;">
-      <div class="section-title" style="margin-top:1.5rem;">More Categories</div>
-      <div id="mkt-dynamic-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;"></div>
     </div>
 
   </div>
@@ -7494,6 +7490,8 @@ window.addEventListener('load',function(){
       // Hardcoded branch map se location override karo (cached user ke liye bhi)
       const _savedMapLoc = BRANCH_EMPLOYEE_MAP[(CURRENT_USER.name||'').toLowerCase().trim()];
       if(_savedMapLoc) CURRENT_USER.location = _savedMapLoc;
+      // Cached empId restore karo (_canUploadQuiz ke liye)
+      if (CURRENT_USER.empId) _actEmpId = CURRENT_USER.empId;
       showPortal();
     }
   }
@@ -8831,7 +8829,7 @@ async function loadMISDBQuizzes() {
       const passingMks = totalMarks > 0 ? Math.ceil((passingPct / 100) * totalMarks) : null;
       const pass       = passingMks ? `🎯 Pass: ${passingMks}/${totalMarks} marks` : `🎯 Pass: ${passingPct}%`;
       return `
-        <button onclick="startDBQuiz(${q.id})"
+        <button onclick="openQuizPreview(${q.id})"
           style="text-align:left;padding:15px 16px;border-radius:13px;border:1.5px solid ${col}33;border-top:2.5px solid ${col};background:${col}0d;cursor:pointer;font-family:inherit;width:100%;transition:all 0.18s;"
           onmouseover="this.style.background='${col}1a';this.style.transform='translateY(-2px)'"
           onmouseout="this.style.background='${col}0d';this.style.transform=''">
@@ -8943,7 +8941,12 @@ async function _fetchAndCacheEmpId() {
     );
     if (res.ok) {
       const arr = await res.json();
-      if (arr.length) _actEmpId = arr[0].Emp_id; // numeric value store karo
+      if (arr.length) {
+        _actEmpId = arr[0].Emp_id;
+        // CURRENT_USER mein bhi store karo taaki _canUploadQuiz use kar sake
+        if (CURRENT_USER) CURRENT_USER.empId = _actEmpId;
+        localStorage.setItem('aditiUser', JSON.stringify(CURRENT_USER));
+      }
     }
   } catch(e) {}
 }
@@ -9236,15 +9239,22 @@ function _isMIS() {
   return r === 'mis';
 }
 
-// Only Hemant and Krishna (the two MIS members) may upload / create quizzes
+// Quiz admin access — email (Hemant & Krishna) + Emp_id (Pranali & Saajan Jain)
 const _QUIZ_UPLOAD_EMAILS = [
   'mis@adititracking.com',   // Hemant
   'mis1@adititracking.com',  // Krishna
 ];
+// Emp_id se access — Pranali (15), Saajan Jain (19)
+const _QUIZ_UPLOAD_EMP_IDS = [15, 19];
+
 function _canUploadQuiz() {
   if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
   const email = String(CURRENT_USER.email || CURRENT_USER.rawEmail || '').toLowerCase().trim();
-  return _QUIZ_UPLOAD_EMAILS.includes(email);
+  if (_QUIZ_UPLOAD_EMAILS.includes(email)) return true;
+  // Emp_id check — CURRENT_USER.empId ya cached _actEmpId/_qzEmpId
+  const empId = Number(CURRENT_USER.empId || _actEmpId || _qzEmpId || 0);
+  if (empId && _QUIZ_UPLOAD_EMP_IDS.includes(empId)) return true;
+  return false;
 }
 
 // ── Card descriptions — naam se description milta hai ────────────────────
@@ -10384,11 +10394,9 @@ async function loadMarketingCounts() {
     // ── Render NEW dynamic cards (not in hardcoded set) ──────────────────
     const hardcoded = new Set(Object.keys(badgeMap));
     const newCats = cats.filter(c => !hardcoded.has((c.name||'').toLowerCase().trim()));
-    const dynSection = document.getElementById('mkt-dynamic-section');
-    const dynGrid    = document.getElementById('mkt-dynamic-grid');
+    const mainGrid = document.getElementById('mkt-main-grid');
 
-    if (newCats.length && dynGrid) {
-      dynGrid.innerHTML = '';
+    if (newCats.length && mainGrid) {
       newCats.forEach((cat, i) => {
         const th    = cnTheme(i);
         const name  = cat.name || 'Category';
@@ -10416,9 +10424,8 @@ async function loadMarketingCounts() {
               <span style="font-size:0.78rem;font-weight:600;color:${th.color};">View →</span>
             </div>
           </div>`;
-        dynGrid.appendChild(wrapper);
+        mainGrid.appendChild(wrapper);
       });
-      if (dynSection) dynSection.style.display = 'block';
     }
 
     // Inject delete buttons on hardcoded marketing cards
@@ -12762,7 +12769,7 @@ async function _loadMktQuizPanel(catName, nodeId) {
       const pass       = passingMks ? `🎯 Pass: ${passingMks}/${totalMarks} marks` : `🎯 Pass: ${passingPct}%`;
       const qCount     = q.question_count ? `📋 ${q.question_count} Qs` : '';
       return `
-        <button onclick="startDBQuizFromOverlay(${q.id})"
+        <button onclick="openQuizPreviewFromOverlay(${q.id})"
           style="text-align:left;padding:14px 15px;border-radius:13px;border:1.5px solid ${col}33;border-left:3px solid ${col};background:${col}0a;cursor:pointer;font-family:inherit;width:100%;transition:all 0.18s;"
           onmouseover="this.style.background='${col}18';this.style.transform='translateX(3px)'"
           onmouseout="this.style.background='${col}0a';this.style.transform=''">
@@ -16452,6 +16459,58 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
+<!-- ── QUIZ INFO PREVIEW POPUP ── -->
+<div id="quiz-preview-backdrop" onclick="closeQuizPreview()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10001;"></div>
+<div id="quiz-preview-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10002;width:90%;max-width:480px;background:var(--surface);border-radius:20px;box-shadow:0 24px 72px rgba(0,0,0,0.5);overflow:hidden;">
+  <!-- Color top bar -->
+  <div id="qp-top-bar" style="height:4px;background:linear-gradient(90deg,#a855f7,#7c3aed);"></div>
+  <div style="padding:24px 24px 22px;">
+    <!-- Header -->
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;">
+      <div id="qp-icon" style="width:50px;height:50px;border-radius:14px;background:rgba(168,85,247,0.15);border:1.5px solid rgba(168,85,247,0.3);display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;">📝</div>
+      <div style="flex:1;min-width:0;">
+        <div id="qp-title" style="font-size:1.1rem;font-weight:800;color:var(--text);line-height:1.3;"></div>
+        <div id="qp-module" style="font-size:0.76rem;color:var(--muted);margin-top:4px;"></div>
+      </div>
+      <button onclick="closeQuizPreview()" style="background:var(--surface2);border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.9rem;color:var(--text);flex-shrink:0;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+
+    <!-- Description -->
+    <div id="qp-desc-wrap" style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:16px;border:1px solid var(--border);">
+      <div style="font-size:0.73rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">📋 About this Quiz</div>
+      <div id="qp-desc" style="font-size:0.86rem;color:var(--text);line-height:1.65;white-space:pre-wrap;"></div>
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+      <div id="qp-stat-qs" style="flex:1;min-width:80px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);border-radius:10px;padding:10px 12px;text-align:center;">
+        <div style="font-size:1.1rem;font-weight:800;color:#a855f7;" id="qp-qs-count">—</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:2px;">Questions</div>
+      </div>
+      <div id="qp-stat-time" style="flex:1;min-width:80px;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.25);border-radius:10px;padding:10px 12px;text-align:center;">
+        <div style="font-size:1.1rem;font-weight:800;color:#f0a500;" id="qp-time-val">—</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:2px;">Minutes</div>
+      </div>
+      <div id="qp-stat-pass" style="flex:1;min-width:80px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:10px;padding:10px 12px;text-align:center;">
+        <div style="font-size:1.1rem;font-weight:800;color:#22c55e;" id="qp-pass-val">—</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:2px;">Passing %</div>
+      </div>
+    </div>
+
+    <!-- Question types (shown after load) -->
+    <div id="qp-types-wrap" style="display:none;margin-bottom:18px;">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Question Types</div>
+      <div id="qp-types" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+
+    <!-- Buttons -->
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeQuizPreview()" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--muted);font-size:0.88rem;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
+      <button id="qp-start-btn" onclick="proceedFromPreview()" style="flex:2;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;font-size:0.9rem;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(168,85,247,0.4);">🚀 Start Quiz</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── QUIZ TAKING OVERLAY ── -->
 <div id="quiz-take-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:10002;overflow-y:auto;">
   <div style="max-width:680px;margin:0 auto;padding:24px 20px 60px;">
@@ -16563,13 +16622,17 @@ document.addEventListener('DOMContentLoaded', function() {
     <!-- Stats cards row -->
     <div id="mqr-stats" style="display:none;grid-template-columns:repeat(4,1fr);gap:12px;padding:18px 24px;border-bottom:1px solid var(--border);"></div>
 
-    <!-- Quiz filter dropdown -->
-    <div style="padding:12px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+    <!-- Quiz filter + Name filter -->
+    <div id="mqr-filter-bar" style="padding:12px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <span style="font-size:0.75rem;font-weight:700;color:var(--muted);white-space:nowrap;">Filter:</span>
+      <select id="mqr-name-filter" onchange="mqrApplyFilter()" style="display:none;flex:1;min-width:140px;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.83rem;font-family:inherit;outline:none;cursor:pointer;">
+        <option value="">👤 All Employees</option>
+      </select>
       <select id="mqr-quiz-filter" onchange="mqrApplyFilter()"
-        style="flex:1;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.83rem;font-family:inherit;outline:none;cursor:pointer;">
+        style="flex:1;min-width:140px;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.83rem;font-family:inherit;outline:none;cursor:pointer;">
         <option value="">📝 All Quizzes</option>
       </select>
+      <button onclick="mqrClearFilters()" style="padding:7px 13px;border-radius:9px;border:1px solid var(--border);background:none;color:var(--muted);font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">↺ Reset</button>
     </div>
 
     <!-- Attempts list -->
@@ -16661,7 +16724,7 @@ async function loadTrainingQuizzes() {
       const tl    = q.time_limit ? `${q.time_limit} min` : '—';
       const pass  = q.passing_score ? `${q.passing_score}%` : '60%';
       return `
-        <div onclick="startDBQuiz(${q.id})" style="cursor:pointer;background:var(--surface);border:1.5px solid ${col}33;border-top:3px solid ${col};border-radius:14px;padding:20px;transition:all 0.2s;position:relative;"
+        <div onclick="openQuizPreview(${q.id})" style="cursor:pointer;background:var(--surface);border:1.5px solid ${col}33;border-top:3px solid ${col};border-radius:14px;padding:20px;transition:all 0.2s;position:relative;"
           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.25)';this.style.borderColor='${col}88'"
           onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='${col}33'">
           ${_canUploadQuiz()?`<button onclick="event.stopPropagation();toggleQuizActive(${q.id},false)" title="Deactivate quiz" style="position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:7px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;cursor:pointer;font-size:0.75rem;display:flex;align-items:center;justify-content:center;">🗑</button>`:''}
@@ -16735,6 +16798,106 @@ window.loadTrainingSection = async function() {
     if (uploadBtn) uploadBtn.style.display = 'flex';
   }
 };
+
+// ══════════════════════════════════════════════════════════════
+// QUIZ INFO PREVIEW POPUP
+// ══════════════════════════════════════════════════════════════
+let _previewQuizId       = null;
+let _previewFromOverlay  = false;
+
+async function openQuizPreview(quizId) {
+  _previewQuizId      = quizId;
+  _previewFromOverlay = false;
+
+  // Show popup with loading state
+  document.getElementById('quiz-preview-backdrop').style.display = 'block';
+  document.getElementById('quiz-preview-modal').style.display    = 'block';
+  document.body.style.overflow = 'hidden';
+
+  document.getElementById('qp-title').textContent    = 'Loading…';
+  document.getElementById('qp-module').textContent   = '';
+  document.getElementById('qp-desc').textContent     = '';
+  document.getElementById('qp-qs-count').textContent = '…';
+  document.getElementById('qp-time-val').textContent = '…';
+  document.getElementById('qp-pass-val').textContent = '…';
+  document.getElementById('qp-types-wrap').style.display = 'none';
+  document.getElementById('qp-start-btn').disabled   = true;
+
+  try {
+    // Fetch quiz meta
+    const qRes  = await fetch(`${SUPABASE_URL}/rest/v1/quizzes?id=eq.${quizId}&select=*,content_nodes(name)`, { headers: QZ_HDRS() });
+    const qArr  = await qRes.json();
+    const quiz  = qArr[0];
+    if (!quiz) throw new Error('Quiz not found');
+
+    // Fetch question types + count
+    const qqRes = await fetch(`${SUPABASE_URL}/rest/v1/questions?quiz_id=eq.${quizId}&select=id,question_type`, { headers: QZ_HDRS() });
+    const qqArr = await qqRes.json();
+
+    const mod   = quiz.content_nodes?.name || 'General';
+    const col   = '#a855f7';
+
+    // Populate popup
+    document.getElementById('qp-top-bar').style.background   = `linear-gradient(90deg,${col},#7c3aed)`;
+    document.getElementById('qp-icon').style.background       = `${col}22`;
+    document.getElementById('qp-icon').style.borderColor      = `${col}55`;
+    document.getElementById('qp-title').textContent           = quiz.title;
+    document.getElementById('qp-module').textContent          = `📚 ${mod}`;
+    document.getElementById('qp-desc').textContent            = quiz.description || 'No description provided.';
+    document.getElementById('qp-qs-count').textContent        = qqArr.length || '—';
+    document.getElementById('qp-time-val').textContent        = quiz.time_limit || '—';
+    document.getElementById('qp-pass-val').textContent        = (quiz.passing_score || 60) + '%';
+
+    // Question types badges
+    if (qqArr.length) {
+      const typeCounts = {};
+      qqArr.forEach(q => {
+        const t = q.question_type || 'mcq';
+        typeCounts[t] = (typeCounts[t] || 0) + 1;
+      });
+      const typeLabels = { mcq:'MCQ', true_false:'True/False', descriptive:'Descriptive' };
+      const typeColors = { mcq:'#a855f7', true_false:'#22c55e', descriptive:'#f0a500' };
+      document.getElementById('qp-types').innerHTML = Object.entries(typeCounts).map(([t, cnt]) =>
+        `<span style="font-size:0.75rem;padding:4px 11px;border-radius:20px;background:${typeColors[t]||'#4e9af1'}18;color:${typeColors[t]||'#4e9af1'};font-weight:700;border:1px solid ${typeColors[t]||'#4e9af1'}44;">${typeLabels[t]||t} ✕${cnt}</span>`
+      ).join('');
+      document.getElementById('qp-types-wrap').style.display = 'block';
+    }
+
+    document.getElementById('qp-start-btn').disabled = false;
+
+  } catch(e) {
+    document.getElementById('qp-desc').textContent     = '⚠️ ' + e.message;
+    document.getElementById('qp-qs-count').textContent = '—';
+    document.getElementById('qp-start-btn').disabled   = false;
+  }
+}
+
+function openQuizPreviewFromOverlay(quizId) {
+  _previewFromOverlay = true;
+  closeMarketingOverlay();
+  setTimeout(() => openQuizPreview(quizId), 80);
+}
+
+function closeQuizPreview() {
+  document.getElementById('quiz-preview-backdrop').style.display = 'none';
+  document.getElementById('quiz-preview-modal').style.display    = 'none';
+  if (!document.getElementById('quiz-take-overlay') ||
+      document.getElementById('quiz-take-overlay').style.display === 'none') {
+    document.body.style.overflow = '';
+  }
+  _previewQuizId      = null;
+  _previewFromOverlay = false;
+}
+
+function proceedFromPreview() {
+  const qid = _previewQuizId;
+  // Close preview popup (keep body scroll locked — quiz overlay will handle it)
+  document.getElementById('quiz-preview-backdrop').style.display = 'none';
+  document.getElementById('quiz-preview-modal').style.display    = 'none';
+  _previewQuizId      = null;
+  _previewFromOverlay = false;
+  if (qid) startDBQuiz(qid);
+}
 
 // ══════════════════════════════════════════════════════════════
 // START QUIZ
@@ -17320,11 +17483,13 @@ async function openMyQuizResults(nodeId) {
   const overlay = document.getElementById('my-quiz-results-overlay');
   overlay.style.display = 'block';
   document.body.style.overflow = 'hidden';
-  const loadEl  = document.getElementById('mqr-loading');
-  const listEl  = document.getElementById('mqr-list');
-  const emptyEl = document.getElementById('mqr-empty');
-  const statsEl = document.getElementById('mqr-stats');
-  const filterEl= document.getElementById('mqr-quiz-filter');
+  const loadEl      = document.getElementById('mqr-loading');
+  const listEl      = document.getElementById('mqr-list');
+  const emptyEl     = document.getElementById('mqr-empty');
+  const statsEl     = document.getElementById('mqr-stats');
+  const filterEl    = document.getElementById('mqr-quiz-filter');
+  const nameFilterEl= document.getElementById('mqr-name-filter');
+
   loadEl.style.display = 'block'; listEl.innerHTML = ''; emptyEl.style.display = 'none';
   if (statsEl) statsEl.style.display = 'none';
 
@@ -17333,6 +17498,17 @@ async function openMyQuizResults(nodeId) {
   const subEl   = document.querySelector('#my-quiz-results-overlay .mqr-sub');
   if (titleEl) titleEl.textContent = isMIS ? 'All Quiz Results' : 'My Quiz Results';
   if (subEl)   subEl.textContent   = isMIS ? 'All employees quiz attempts and performance' : 'Your quiz attempts and performance';
+
+  // ── Name filter: MIS ke liye turant dikhao (data aane se pehle bhi) ──
+  if (nameFilterEl) {
+    nameFilterEl.style.display = isMIS ? 'block' : 'none';
+    nameFilterEl.innerHTML = '<option value="">👤 All Employees</option>';
+    nameFilterEl.value = '';
+  }
+  if (filterEl) {
+    filterEl.innerHTML = '<option value="">📝 All Quizzes</option>';
+    filterEl.value = '';
+  }
 
   try {
     let empFilter = '';
@@ -17350,14 +17526,29 @@ async function openMyQuizResults(nodeId) {
     const res  = await fetch(url, { headers: QZ_HDRS() });
     _mqrAllRows = await res.json();
     loadEl.style.display = 'none';
-    if (!_mqrAllRows.length) { emptyEl.style.display = 'block'; return; }
 
+    // ── Quiz filter populate ──
     if (filterEl) {
       const quizMap = {};
       _mqrAllRows.forEach(r => { if (r.quizzes?.id) quizMap[r.quizzes.id] = r.quizzes.title; });
       filterEl.innerHTML = '<option value="">📝 All Quizzes</option>' +
         Object.entries(quizMap).map(([id, title]) => `<option value="${id}">${title}</option>`).join('');
     }
+
+    // ── Name filter populate (MIS only) — data aane ke baad names fill karo ──
+    if (isMIS && nameFilterEl && _mqrAllRows.length) {
+      const nameSet = new Set();
+      _mqrAllRows.forEach(r => {
+        const n = r.Employee_details?.Employee_name;
+        if (n) nameSet.add(n);
+      });
+      const sortedNames = [...nameSet].sort((a, b) => a.localeCompare(b));
+      nameFilterEl.innerHTML = '<option value="">👤 All Employees</option>' +
+        sortedNames.map(n => `<option value="${n}">${n}</option>`).join('');
+    }
+
+    if (!_mqrAllRows.length) { emptyEl.style.display = 'block'; return; }
+
     mqrRenderStats(_mqrAllRows);
     mqrRenderList(_mqrAllRows);
   } catch(e) {
@@ -17367,10 +17558,22 @@ async function openMyQuizResults(nodeId) {
 }
 
 function mqrApplyFilter() {
-  const val = document.getElementById('mqr-quiz-filter')?.value || '';
-  const filtered = val ? _mqrAllRows.filter(r => String(r.quizzes?.id) === val) : _mqrAllRows;
+  const quizVal = document.getElementById('mqr-quiz-filter')?.value || '';
+  const nameVal = document.getElementById('mqr-name-filter')?.value || '';
+  let filtered = _mqrAllRows;
+  if (quizVal) filtered = filtered.filter(r => String(r.quizzes?.id) === quizVal);
+  if (nameVal) filtered = filtered.filter(r => (r.Employee_details?.Employee_name || '') === nameVal);
   mqrRenderStats(filtered);
   mqrRenderList(filtered);
+}
+
+function mqrClearFilters() {
+  const qf = document.getElementById('mqr-quiz-filter');
+  const nf = document.getElementById('mqr-name-filter');
+  if (qf) qf.value = '';
+  if (nf) nf.value = '';
+  mqrRenderStats(_mqrAllRows);
+  mqrRenderList(_mqrAllRows);
 }
 
 function mqrRenderStats(rows) {
@@ -17542,15 +17745,17 @@ async function mqrLoadAnswers(attemptId) {
 // ══════════════════════════════════════════════════════════════
 async function openQuizAdmin() {
   if (!_canUploadQuiz()) {
-    alert('⛔ Only authorised MIS members (Hemant & Krishna) can create or manage quizzes.');
+    alert('⛔ ⛔ Access denied. Quiz management is restricted.');
     return;
   }
-  _qaQuestions = [];
+  _qaQuestions   = [];
+  _editingQuizId = null;
   document.getElementById('quiz-admin-overlay').style.display = 'block';
   document.body.style.overflow = 'hidden';
   document.getElementById('qa-questions-list').innerHTML = '';
   document.getElementById('qa-no-questions').style.display = 'block';
   document.getElementById('qa-save-status').style.display = 'none';
+  document.getElementById('qa-save-btn').textContent = '💾 Save Quiz';
   document.getElementById('qa-title').value = '';
   document.getElementById('qa-desc').value  = '';
   switchQuizAdminTab('create');
@@ -17726,7 +17931,7 @@ function setCorrectOption(qIdx, optIdx) {
 
 async function saveQuizToDB() {
   if (!_canUploadQuiz()) {
-    alert('⛔ Only authorised MIS members (Hemant & Krishna) can save quizzes.');
+    alert('⛔ ⛔ Access denied. Only authorised members can save quizzes.');
     return;
   }
   const title    = document.getElementById('qa-title').value.trim();
@@ -17774,27 +17979,46 @@ async function saveQuizToDB() {
       } catch(e) { }
     }
 
-    // 1. Create quiz
+    // ── Edit mode: PATCH existing quiz | Create mode: POST new quiz ──
+    let quizId;
     const quizBody = {
       title, description: desc,
       node_id: parseInt(nodeId),
-      is_active: true,
       passing_score: passing,
       time_limit: timeLimit
     };
-    // Only add created_by if we have a numeric Emp_id
-    if (adminEmpId) quizBody.created_by = adminEmpId;
 
-    const qRes = await fetch(`${SUPABASE_URL}/rest/v1/quizzes`, {
-      method: 'POST',
-      headers: QZ_HDRS_REPR(),
-      body: JSON.stringify(quizBody)
-    });
-    const qArr = await qRes.json();
-    const quizId = Array.isArray(qArr) ? qArr[0]?.id : qArr?.id;
-    if (!quizId) throw new Error('Quiz save failed: ' + JSON.stringify(qArr));
+    if (_editingQuizId) {
+      // UPDATE existing quiz
+      await fetch(`${SUPABASE_URL}/rest/v1/quizzes?id=eq.${_editingQuizId}`, {
+        method: 'PATCH',
+        headers: { ...QZ_HDRS(), 'Prefer': 'return=minimal' },
+        body: JSON.stringify(quizBody)
+      });
+      quizId = _editingQuizId;
 
-    // 2. Create questions + options
+      // Purane questions + options delete karo (fresh insert)
+      await fetch(`${SUPABASE_URL}/rest/v1/options?question_id=in.(select id from questions where quiz_id=eq.${quizId})`,
+        { method: 'DELETE', headers: QZ_HDRS() }).catch(()=>{});
+      await fetch(`${SUPABASE_URL}/rest/v1/questions?quiz_id=eq.${quizId}`,
+        { method: 'DELETE', headers: QZ_HDRS() });
+
+    } else {
+      // CREATE new quiz
+      quizBody.is_active = true;
+      if (adminEmpId) quizBody.created_by = adminEmpId;
+
+      const qRes = await fetch(`${SUPABASE_URL}/rest/v1/quizzes`, {
+        method: 'POST',
+        headers: QZ_HDRS_REPR(),
+        body: JSON.stringify(quizBody)
+      });
+      const qArr = await qRes.json();
+      quizId = Array.isArray(qArr) ? qArr[0]?.id : qArr?.id;
+      if (!quizId) throw new Error('Quiz save failed: ' + JSON.stringify(qArr));
+    }
+
+    // 2. Questions + options save karo (same for create & edit)
     for (const q of _qaQuestions) {
       const qType = q.type || 'mcq';
       const qqBody = {
@@ -17804,7 +18028,7 @@ async function saveQuizToDB() {
         marks: q.marks || 1,
         correct_answer_text: qType === 'descriptive' ? (q.correct_answer_text || null) : null
       };
-      if (adminEmpId) qqBody.created_by = adminEmpId;
+      if (adminEmpId && !_editingQuizId) qqBody.created_by = adminEmpId;
 
       const qqRes = await fetch(`${SUPABASE_URL}/rest/v1/questions`, {
         method: 'POST',
@@ -17844,9 +18068,12 @@ async function saveQuizToDB() {
 
     statusEl.style.display = 'block';
     statusEl.style.color   = '#22c55e';
-    statusEl.textContent   = `✅ Quiz "${title}" saved with ${_qaQuestions.length} questions!`;
+    statusEl.textContent   = _editingQuizId
+      ? `✅ Quiz "${title}" updated with ${_qaQuestions.length} questions!`
+      : `✅ Quiz "${title}" saved with ${_qaQuestions.length} questions!`;
 
-    // Reset form
+    // Reset form + edit state
+    _editingQuizId = null;
     _qaQuestions = [];
     document.getElementById('qa-title').value = '';
     document.getElementById('qa-desc').value  = '';
@@ -17862,7 +18089,8 @@ async function saveQuizToDB() {
     statusEl.style.color   = '#ef4444';
     statusEl.textContent   = '❌ Error: ' + e.message;
   } finally {
-    saveBtn.disabled = false; saveBtn.textContent = '💾 Save Quiz';
+    saveBtn.disabled = false;
+    saveBtn.textContent = _editingQuizId ? '✏️ Update Quiz' : '💾 Save Quiz';
   }
 }
 
@@ -18257,6 +18485,7 @@ async function loadAdminQuizList() {
             <div style="font-size:0.75rem;color:var(--muted);">📚 ${mod} · ⏱ ${q.time_limit||'—'}min</div>
           </div>
           <div style="font-size:0.76rem;font-weight:600;color:var(--muted);">${stat}</div>
+          <button onclick="editQuizFromDB(${q.id})" style="padding:5px 12px;border-radius:7px;border:1px solid rgba(78,154,241,0.35);background:rgba(78,154,241,0.1);color:#4e9af1;font-size:0.76rem;cursor:pointer;font-family:inherit;">✏️ Edit</button>
           <button onclick="toggleQuizActive(${q.id},${!q.is_active})" style="padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--muted);font-size:0.76rem;cursor:pointer;font-family:inherit;">${q.is_active?'Deactivate':'Activate'}</button>
           <button onclick="deleteQuizFromDB(${q.id},'${q.title.replace(/'/g,"\\'")}')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#ef4444;font-size:0.76rem;cursor:pointer;font-family:inherit;">Delete</button>
         </div>`;
@@ -18293,6 +18522,97 @@ async function deleteQuizFromDB(quizId, title) {
     loadAdminQuizList();
     loadTrainingQuizzes();
   } catch(e) { alert('Delete error: ' + e.message); }
+}
+
+// ── Track which quiz is being edited (null = creating new) ──
+let _editingQuizId = null;
+
+async function editQuizFromDB(quizId) {
+  if (!_canUploadQuiz()) { alert('⛔ Only authorised MIS members can edit quizzes.'); return; }
+
+  const saveBtn  = document.getElementById('qa-save-btn');
+  const statusEl = document.getElementById('qa-save-status');
+  saveBtn.textContent = 'Loading…'; saveBtn.disabled = true;
+
+  // Switch to Create tab (form dikhao)
+  switchQuizAdminTab('create');
+
+  try {
+    // 1. Quiz details fetch karo
+    const qRes  = await fetch(`${SUPABASE_URL}/rest/v1/quizzes?id=eq.${quizId}&select=*`, { headers: QZ_HDRS() });
+    const qArr  = await qRes.json();
+    const quiz  = qArr[0];
+    if (!quiz) throw new Error('Quiz not found');
+
+    // 2. Questions fetch karo
+    const qqRes = await fetch(`${SUPABASE_URL}/rest/v1/questions?quiz_id=eq.${quizId}&select=*&order=id.asc`, { headers: QZ_HDRS() });
+    const qqArr = await qqRes.json();
+
+    // 3. Options fetch karo (agar questions hain)
+    let optMap = {};
+    if (qqArr.length) {
+      const qIds  = qqArr.map(q => q.id).join(',');
+      const opRes = await fetch(`${SUPABASE_URL}/rest/v1/options?question_id=in.(${qIds})&select=*&order=id.asc`, { headers: QZ_HDRS() });
+      const opArr = await opRes.json();
+      opArr.forEach(o => {
+        if (!optMap[o.question_id]) optMap[o.question_id] = [];
+        optMap[o.question_id].push(o);
+      });
+    }
+
+    // 4. Form fields bharo
+    await populateNodeSelect();
+    document.getElementById('qa-title').value     = quiz.title        || '';
+    document.getElementById('qa-desc').value      = quiz.description  || '';
+    document.getElementById('qa-passing').value   = quiz.passing_score|| 60;
+    document.getElementById('qa-timelimit').value = quiz.time_limit   || 15;
+    if (quiz.node_id) document.getElementById('qa-node').value = String(quiz.node_id);
+
+    // 5. _qaQuestions array rebuild karo
+    _qaQuestions = qqArr.map(q => {
+      const qType   = q.question_type || 'mcq';
+      const opts    = optMap[q.id] || [];
+      const tfCorr  = qType === 'true_false'
+        ? (opts.find(o => o.is_correct)?.option_text?.toLowerCase() || 'true')
+        : 'true';
+      return {
+        text:                q.question_text || '',
+        marks:               q.marks || 1,
+        type:                qType,
+        correct_answer_text: q.correct_answer_text || '',
+        tf_correct:          tfCorr,
+        options: qType === 'mcq'
+          ? (opts.length ? opts.map(o => ({ text: o.option_text, is_correct: o.is_correct }))
+                         : [{ text:'',is_correct:false },{ text:'',is_correct:false },{ text:'',is_correct:false },{ text:'',is_correct:false }])
+          : (qType === 'true_false'
+              ? [{ text:'True', is_correct: tfCorr==='true' },{ text:'False', is_correct: tfCorr==='false' }]
+              : [])
+      };
+    });
+
+    // 6. Questions render karo
+    document.getElementById('qa-questions-list').innerHTML = '';
+    if (_qaQuestions.length) {
+      document.getElementById('qa-no-questions').style.display = 'none';
+      renderAdminQuestions();
+    } else {
+      document.getElementById('qa-no-questions').style.display = 'block';
+    }
+
+    // 7. Editing mode set karo
+    _editingQuizId = quizId;
+    saveBtn.textContent = '✏️ Update Quiz';
+    saveBtn.disabled    = false;
+    statusEl.style.display = 'none';
+
+    // Form top tak scroll karo
+    document.getElementById('qa-title').scrollIntoView({ behavior:'smooth', block:'center' });
+
+  } catch(e) {
+    saveBtn.textContent = '💾 Save Quiz';
+    saveBtn.disabled    = false;
+    alert('Edit load error: ' + e.message);
+  }
 }
 
 /* ══ PORTAL UPDATE MODAL FUNCTIONS ══ */
