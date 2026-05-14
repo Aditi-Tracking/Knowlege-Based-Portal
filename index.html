@@ -2107,10 +2107,15 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
         <span class="hp-card-title">Performer of the Month</span>
         <span style="font-size:0.73rem;color:var(--accent);margin-left:auto;font-weight:600;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.25);padding:3px 10px;border-radius:20px;">April 2026</span>
       </div>
-      <!-- Performers Grid — photos Supabase se load honge -->
-      <div id="potmGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-top:4px;">
-        <!-- JS se fill hoga -->
-        <div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1;font-size:0.88rem;">⏳ Loading…</div>
+      <!-- Single Performer — Krishna -->
+      <div id="potmGrid" style="display:flex;justify-content:center;margin-top:8px;">
+        <div class="potm-card" id="krishnaCard" style="width:200px;">
+          <div class="potm-card-bar" style="background:#4e9af1;opacity:0.8;"></div>
+          <div class="potm-trophy">🥇</div>
+          <div class="potm-shimmer" id="krishna-img-slot"></div>
+          <div class="potm-name">Krishna</div>
+          <div class="potm-dept" style="background:rgba(78,154,241,0.12);color:#4e9af1;border:1px solid rgba(78,154,241,0.3);">🏢 MIS</div>
+        </div>
       </div>
     </div>
 
@@ -9563,139 +9568,43 @@ function _showPhotoPlaceholder(el, name) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// PERFORMER OF THE MONTH — April 2026
-// Supabase Employee_details se photos + dept fetch
+// PERFORMER OF THE MONTH — Krishna (MIS)
 // ═══════════════════════════════════════════════════════════
+const POTM_NAMES = ['Krishna']; // kept for any reference, not used below
 
-// 👇 Yahan names update karo har mahine
-const POTM_NAMES = [
-  'Hemant',
-  'Sakshi Tupe',
-  'Komal',
-  'Surya',
-  'Akshay More',
-  'Kush Kotharkar',
-  'Ankush Bidari'
-];
 
-// 👇 Location override — Supabase ki Location column ko ignore karke ye use hoga
-// Key case-insensitive match hoga
-const POTM_LOCATIONS = {
-  'hemant':      'Mumbai',
-  'sakshi tupe': 'Mumbai',
-  'komal':       'Mumbai',
-  'surya':       'Mumbai',
-  'akshay more': 'Mumbai',
-  'kush':        'Goa',
-  'ankush':      'Bangalore'
-};
-
-// Dept ke hisaab se color
-const DEPT_COLORS = {
-  'mis':       { bar:'#4e9af1', badge:'rgba(78,154,241,0.12)', text:'#4e9af1' },
-  'support':   { bar:'#a855f7', badge:'rgba(168,85,247,0.12)', text:'#a855f7' },
-  'accounts':  { bar:'#00d4aa', badge:'rgba(0,212,170,0.12)',  text:'#00d4aa' },
-  'sales':     { bar:'#f0a500', badge:'rgba(240,165,0,0.12)',  text:'#f0a500' },
-  'ceo':       { bar:'#ff5c7c', badge:'rgba(255,92,124,0.12)', text:'#ff5c7c' },
-  'default':   { bar:'#f0a500', badge:'rgba(240,165,0,0.12)',  text:'#f0a500' }
-};
-
-function _getDeptColor(dept) {
-  const key = (dept || '').toLowerCase().trim();
-  return DEPT_COLORS[key] || DEPT_COLORS['default'];
-}
 
 async function loadPerformers() {
-  const grid = document.getElementById('potmGrid');
-  if (!grid) return;
-
+  const slot = document.getElementById('krishna-img-slot');
+  if (!slot) return;
   try {
-    // Saare performers ek hi API call mein fetch karo
-    const names = POTM_NAMES.map(n => `Employee_name.ilike.${encodeURIComponent(n)}`).join(',');
-    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Employee_Dept,Link,Location&or=(${names})`;
-    const res = await fetch(url, {
-      headers: SB_HDRS()
-    });
+    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Link&Employee_name=ilike.Krishna&limit=1`;
+    const res = await fetch(url, { headers: SB_HDRS() });
     const rows = await res.json();
-
-    // Name → row map banao (case-insensitive)
-    const rowMap = {};
-    if (Array.isArray(rows)) {
-      rows.forEach(r => {
-        rowMap[(r['Employee_name'] || '').toLowerCase().trim()] = r;
-      });
-    }
-
-    // Cards banao
-    grid.innerHTML = '';
-    POTM_NAMES.forEach((name, idx) => {
-      const row = rowMap[name.toLowerCase().trim()];
-      const dept  = row ? (row['Employee_Dept'] || '—') : '—';
-      // Location: pehle hard-coded override dekho, fir Supabase se
-      const loc   = POTM_LOCATIONS[name.toLowerCase().trim()] || (row ? (row['Location'] || '')  : '');
-      const link  = row ? (row['Link'] || null) : null;
-      const clr   = _getDeptColor(dept);
-      const trophies = ['🥇','🥇','🥇','🥇','🥇','🥇','🥇'];
-      // Plain string concatenation — nested template literals kabhi kabhi flaky hote hain
-      let deptText = '—';
-      if (dept !== '—') {
-        deptText = '🏢 ' + dept;
-        if (loc) {
-          deptText += ' <span style="color:var(--muted);font-weight:400;">(' + loc + ')</span>';
-        }
-      }
-
-      const card = document.createElement('div');
-      card.className = 'potm-card';
-      card.innerHTML = `
-        <div class="potm-card-bar" style="background:${clr.bar};opacity:0.8;"></div>
-        <div class="potm-trophy">${trophies[idx] || '🏅'}</div>
-        <div class="potm-shimmer" id="potm-img-${idx}"></div>
-        <div class="potm-name">${name}</div>
-        <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">
-          ${deptText}
-        </div>
-      `;
-      grid.appendChild(card);
-
-      // Photo async load karo
-      const imgSlot = card.querySelector(`#potm-img-${idx}`);
-      if (link) {
-        const img = document.createElement('img');
-        img.className = 'potm-photo';
-        img.alt = name;
-        img.src = link;
-        img.onerror = function() {
-          const av = document.createElement('div');
-          av.className = 'potm-avatar';
-          av.textContent = name[0].toUpperCase();
-          img.replaceWith(av);
-        };
-        imgSlot.replaceWith(img);
-      } else {
+    const link = Array.isArray(rows) && rows[0] ? rows[0]['Link'] : null;
+    if (link) {
+      const img = document.createElement('img');
+      img.className = 'potm-photo';
+      img.alt = 'Krishna';
+      img.src = link;
+      img.onerror = function() {
         const av = document.createElement('div');
         av.className = 'potm-avatar';
-        av.textContent = name[0].toUpperCase();
-        imgSlot.replaceWith(av);
-      }
-    });
-
-  } catch (err) {
-    // Fallback — sirf avatars dikhao
-    grid.innerHTML = '';
-    POTM_NAMES.forEach(name => {
-      const card = document.createElement('div');
-      card.className = 'potm-card';
-      const clr = DEPT_COLORS['default'];
-      card.innerHTML = `
-        <div class="potm-card-bar" style="background:${clr.bar};opacity:0.7;"></div>
-        <div class="potm-trophy">🥇</div>
-        <div class="potm-avatar">${name[0].toUpperCase()}</div>
-        <div class="potm-name">${name}</div>
-        <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">—</div>
-      `;
-      grid.appendChild(card);
-    });
+        av.textContent = 'K';
+        img.replaceWith(av);
+      };
+      slot.replaceWith(img);
+    } else {
+      const av = document.createElement('div');
+      av.className = 'potm-avatar';
+      av.textContent = 'K';
+      slot.replaceWith(av);
+    }
+  } catch(e) {
+    const av = document.createElement('div');
+    av.className = 'potm-avatar';
+    av.textContent = 'K';
+    if (slot) slot.replaceWith(av);
   }
 }
 
