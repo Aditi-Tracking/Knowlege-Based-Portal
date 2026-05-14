@@ -2920,9 +2920,9 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <div class="hp-card loc-card" style="border-top:3px solid #a855f7;">
           <div class="hp-card-header"><span class="hp-card-icon">🏙️</span><span class="hp-card-title">Ahmedabad</span><span class="loc-badge" style="background:rgba(168,85,247,0.12);color:#a855f7;">Branch</span></div>
           <div class="loc-address">
-            <div class="loc-line">B/h, Divya Bhaskar Press,</div>
-            <div class="loc-line">608, 31 five building, Corporate Rd, Makarba</div>
-            <div class="loc-line"> Ahmedabad, Gujarat 380051</div>
+            <div class="loc-line">11th Floor, 1106</div>
+            <div class="loc-line">Shivalik Shilp, Iscon Cross Road</div>
+            <div class="loc-line">S.G. Highway, Ahmedabad, Gujarat 380015</div>
           </div>
           <div class="loc-contacts">
           </div>
@@ -5731,6 +5731,16 @@ const FMS_COLS=['#f0a500','#00d4ff','#00d4aa','#a855f7','#ff5c7c','#06b6d4','#f9
 const fmsIsDelayed   = r => (r.forPC||'').toLowerCase()==='yes';
 const fmsIsRemaining = r => (r.forPC||'').toLowerCase()!=='yes';
 
+// Date comparison helper — ISO format (2026-05-13T...) aur DD/MM/YYYY dono handle karo
+function fmsIsToday(planned){
+  if(!planned)return false;
+  const now=new Date();
+  const todayIso=now.toISOString().slice(0,10);
+  const dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');
+  if(planned.includes('T')||/^\d{4}-/.test(planned)) return planned.slice(0,10)===todayIso;
+  return planned.includes(dd+'/'+mm);
+}
+
 const _origSwitchDB = switchDB;
 switchDB = function(id){
   _origSwitchDB(id);
@@ -5753,20 +5763,33 @@ async function fmsLoadData(){
       document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--muted);"><div style="font-size:2rem;margin-bottom:0.5rem;">📭</div>No data found in sheet<br><small>Check [FMS] logs in Browser Console (F12)</small></div>`;
       return;
     }
-    const firstRow=raw[0],keys=Object.keys(firstRow);
-    function gv(r,...cols){for(const c of cols){if(r[c]!==undefined&&String(r[c]).trim()!='')return String(r[c]);const f=keys.find(k=>k.toLowerCase().replace(/[^a-z0-9]/g,'')==c.toLowerCase().replace(/[^a-z0-9]/g,''));if(f&&r[f]!==undefined&&String(r[f]).trim()!='')return String(r[f]);}return '';}
+    // ── COLUMN MAPPING ─────────────────────────────────────────────────────
+    const firstRow=raw[0], keys=Object.keys(firstRow);
+    // SO Number column: pehla column (Unique Key)
+    const soCol = keys[0] || '';
+
+    function gv(r,...cols){
+      for(const c of cols){
+        if(r[c]!==undefined&&String(r[c]).trim()!='') return String(r[c]);
+        const norm=c.toLowerCase().replace(/[^a-z0-9]/g,'');
+        const f=keys.find(k=>k.toLowerCase().replace(/[^a-z0-9]/g,'')==norm);
+        if(f&&r[f]!==undefined&&String(r[f]).trim()!='') return String(r[f]);
+      }
+      return '';
+    }
+
     fmsAllData=raw.map(r=>({
-      uniqueKey:    gv(r,'Unique Key','UniqueKey','uniqueKey'),
-      planned:      gv(r,'Planned Step','PlannedStep','Planned','planned'),
-      plannedStep:  gv(r,'Planned Step','PlannedStep','How','how'),
+      uniqueKey:    gv(r,'Unique Key','UniqueKey','SO Number','SO No','uniqueKey') || (soCol?String(r[soCol]||''):''),
+      planned:      gv(r,'Planned','planned','Planned Date','Date','Schedule Date'),
+      plannedStep:  gv(r,'Step','step','Planned Step','How','Task','Activity','Description'),
       how:          gv(r,'How','how'),
-      doerName:     gv(r,'Final Doer Name','FinalDoerName','Doer Name','DoerName','doerName'),
-      link:         gv(r,'Link','link'),
-      forPC:        gv(r,'For PC','ForPC','forPC'),
-      doerEmail:    gv(r,'Final Doer Email','FinalDoerEmail','Doer Email','DoerEmail','doerEmail'),
-      customerName: gv(r,'Customer Name','CustomerName','customerName'),
-      product:      gv(r,'Product','product'),
-    })).filter(r=>r.uniqueKey&&!r.uniqueKey.includes('#N/A'));
+      doerName:     gv(r,'Final Doer Name','FinalDoerName','Doer Name','DoerName','Engineer','Technician','Assigned To'),
+      link:         gv(r,'Link','link','Form Link','URL'),
+      forPC:        gv(r,'For PC','ForPC','forPC','PC','For Pc'),
+      doerEmail:    gv(r,'Final Doer Email','FinalDoerEmail','Doer Email','DoerEmail','Email'),
+      customerName: gv(r,'Customer Name','CustomerName','Customer','Client','Name'),
+      product:      gv(r,'Product','product','Item','Model','Device'),
+    })).filter(r=>r.uniqueKey&&!String(r.uniqueKey).includes('#N/A'));
     const el=document.getElementById('fmsLastRefresh');
     if(el) el.textContent='Updated '+new Date().toLocaleTimeString();
     fmsProcessData();
@@ -5796,8 +5819,19 @@ function fmsUpdateKPIs(){
   const delayed  = fmsFiltered.filter(fmsIsDelayed).length;
   const remaining= fmsFiltered.filter(fmsIsRemaining).length;
   const now=new Date();
+  const todayStr=now.toISOString().slice(0,10); // '2026-05-13'
   const dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');
-  const todayCount=fmsFiltered.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm)).length;
+  // ISO format (2026-05-13T...) aur DD/MM/YYYY dono handle karo
+  const todayCount=fmsFiltered.filter(r=>{
+    if(!r.planned)return false;
+    const p=r.planned;
+    if(p.includes('T')||p.includes('-')){
+      // ISO date: '2026-05-13T...' → slice first 10 chars
+      return p.slice(0,10)===todayStr;
+    }
+    // DD/MM/YYYY format
+    return p.includes(dd+'/'+mm);
+  }).length;
   const prods=new Set(fmsFiltered.map(r=>r.product).filter(v=>v&&v.trim())).size;
 
   document.getElementById('fkpiRemaining').textContent=remaining||'0';
@@ -5865,8 +5899,14 @@ function fmsRenderCharts(data){
   for(let i=6;i>=0;i--){
     const d=new Date();d.setDate(d.getDate()-i);
     days.push(d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}));
+    const dayIso=d.toISOString().slice(0,10); // '2026-05-13'
     const dd2=String(d.getDate()).padStart(2,'0'),mm2=String(d.getMonth()+1).padStart(2,'0');
-    counts.push(data.filter(r=>r.planned&&r.planned.includes(dd2+'/'+mm2)).length);
+    counts.push(data.filter(r=>{
+      if(!r.planned)return false;
+      const p=r.planned;
+      if(p.includes('T')||p.includes('-')) return p.slice(0,10)===dayIso;
+      return p.includes(dd2+'/'+mm2);
+    }).length);
   }
   const c4=document.getElementById('fChartDaily');
   if(c4){
@@ -5922,7 +5962,7 @@ function fmsKpiFilter(type, value){
   if(type==='all')           fmsFiltered=[...fmsAllData];
   else if(type==='remaining')fmsFiltered=fmsAllData.filter(fmsIsRemaining);
   else if(type==='delayed')  fmsFiltered=fmsAllData.filter(fmsIsDelayed);
-  else if(type==='today')    fmsFiltered=fmsAllData.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm));
+  else if(type==='today')    fmsFiltered=fmsAllData.filter(r=>fmsIsToday(r.planned));
   else if(type==='product')  fmsFiltered=fmsAllData.filter(r=>r.product===value);
   else if(type==='doer')     fmsFiltered=fmsAllData.filter(r=>r.doerName===value);
   fmsMainPage=1;
@@ -5993,7 +6033,7 @@ function fmsApplySearch(){
   let base=fmsAllData;
   if(fmsCurrentFilter==='remaining') base=fmsAllData.filter(fmsIsRemaining);
   else if(fmsCurrentFilter==='delayed') base=fmsAllData.filter(fmsIsDelayed);
-  else if(fmsCurrentFilter==='today'){const now=new Date(),dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');base=fmsAllData.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm));}
+  else if(fmsCurrentFilter==='today'){const now=new Date(),dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');base=fmsAllData.filter(r=>fmsIsToday(r.planned));}
   fmsFiltered=base.filter(r=>{
     const mq=!q||[r.uniqueKey,r.plannedStep,r.doerName,r.customerName,r.product].some(v=>(v||'').toLowerCase().includes(q));
     const mp=!prod||r.product===prod;
@@ -7037,16 +7077,10 @@ function tRenderTable(){
     const fUrl = buildPrefillUrl(r);
     const actionCell=done
       ?`<span style="color:#00d4aa;font-size:0.85rem;font-weight:600">✅ Done</span>`
-      : isSales
-        ?`<button onclick="salesShowRemarksInput('${r['Task ID']||''}')"
+      :`<button data-dept-tid="${r['Task ID']||''}" onclick="deptShowRemarksInput('${r['Task ID']||''}','${_src}')"
             style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:7px 10px;font-size:0.82rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 8px rgba(168,85,247,0.4)">
             ✅ Mark Done
-          </button>`
-        :`<a href="${fUrl}" target="_blank" rel="noopener"
-            onclick="tMarkDoneMySQL('${r['Task ID']||''}','${(r['Department']||'').toLowerCase()}','${r['_source']||''}')"
-            style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:7px 10px;font-size:0.82rem;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 8px rgba(168,85,247,0.4)">
-            ✅ Mark Done
-          </a>`;
+          </button>`;
     const remarks = r['Remarks']||'';
     const remarkCell = remarks
       ? `<span style="font-size:0.82rem;color:var(--text);background:var(--surface2);padding:3px 7px;border-radius:5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${remarks.replace(/"/g,'')}">${remarks}</span>`
@@ -7166,25 +7200,46 @@ function tMarkDoneMySQL(taskId, dept, source){
   // Isliye yahan sales ke liye API call nahi karte
 }
 
-// ── Sales: Inline Remarks Input (Support jaisa flow) ────────────────
-function salesShowRemarksInput(taskId){
-  const btn = document.querySelector('[onclick*="salesShowRemarksInput(\'' + taskId + '\')"]');
-  if(!btn) return;
-  const td = btn.closest('td');
+// ── All Departments: Inline Remarks Input ───────────────────────────
+// Source → API mapping
+function _deptApiForSource(src){
+  const s = String(src||'').toLowerCase();
+  if(s==='sales')     return SALES_API;
+  if(s==='support')   return SUPPORT_API;
+  if(s==='goa')       return GOA_API;
+  if(s==='gujarat')   return GUJARAT_API;
+  if(s==='bangalore') return BANGALORE_API;
+  return TASK_API; // main / hr / accounts / collection / finance
+}
+
+function deptShowRemarksInput(taskId, src){
+  const tid = String(taskId);
+  // Find the button's TD — try both data-tid and onclick match
+  let td = null;
+  const allBtns = document.querySelectorAll('[data-dept-tid="'+tid+'"]');
+  if(allBtns.length) td = allBtns[0].closest('td');
+  if(!td){
+    // fallback: find by onclick content
+    const all = document.querySelectorAll('button');
+    for(const b of all){
+      if((b.getAttribute('onclick')||'').includes("deptShowRemarksInput('"+tid+"'")){
+        td = b.closest('td'); break;
+      }
+    }
+  }
   if(!td) return;
-  // TD ka white-space override karo taaki content wrap ho sake
   td.style.whiteSpace = 'normal';
   td.style.minWidth   = '0';
   td.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:4px;width:100%;box-sizing:border-box;">
-      <input type="text" id="sale_rem_${taskId}"
-             placeholder="Remarks..."
+      <input type="text" id="dept_rem_${tid}"
+             placeholder="Remarks (optional)..."
              style="padding:5px 7px;border-radius:6px;border:1.5px solid var(--border);
                     background:var(--surface2);color:var(--text);font-size:0.80rem;
                     width:100%;box-sizing:border-box;outline:none;font-family:inherit;"
-             onkeydown="if(event.key==='Enter') salesSubmitDone('${taskId}')">
+             onkeydown="if(event.key==='Enter') deptSubmitDone('${tid}','${src}')">
       <div style="display:flex;gap:4px;width:100%;">
-        <button onclick="salesSubmitDone('${taskId}')"
+        <button onclick="deptSubmitDone('${tid}','${src}')"
                 style="flex:1;background:#00d4aa;color:#000;border:none;border-radius:6px;
                        padding:4px 6px;font-size:0.78rem;font-weight:700;cursor:pointer;
                        white-space:nowrap;">✅ Submit</button>
@@ -7194,12 +7249,12 @@ function salesShowRemarksInput(taskId){
                        padding:4px 8px;font-size:0.78rem;cursor:pointer;">✕</button>
       </div>
     </div>`;
-  try{ document.getElementById('sale_rem_'+taskId).focus(); }catch(e){}
+  try{ document.getElementById('dept_rem_'+tid).focus(); }catch(e){}
 }
 
-function salesSubmitDone(taskId){
+function deptSubmitDone(taskId, src){
   const tid = String(taskId);
-  const inp = document.getElementById('sale_rem_'+tid);
+  const inp = document.getElementById('dept_rem_'+tid);
   const remarks = (inp ? inp.value : '').trim();
 
   const now = new Date();
@@ -7211,7 +7266,7 @@ function salesSubmitDone(taskId){
   const sc=String(now.getSeconds()).padStart(2,'0');
   const actualForDisplay = day+'/'+mon+'/'+yr+' '+hr+':'+mn+':'+sc;
 
-  // Turant UI update
+  // Turant UI update — sab arrays mein done mark karo
   [tAllData, tFiltered].forEach(arr=>{
     arr.forEach(r=>{
       if(String(r['Task ID'])===tid){
@@ -7221,25 +7276,31 @@ function salesSubmitDone(taskId){
       }
     });
   });
-  setTimeout(()=>{ tRenderKPIs(); tRenderCharts(); tRenderTable(); }, 200);
+  setTimeout(()=>{ tRenderKPIs(); tRenderCharts(); tRenderTable(); updateHomeTaskBanner&&updateHomeTaskBanner(); }, 200);
   tSaveDoneTask(tid, actualForDisplay);
 
-  // SALES_API ko taskId + remarks bhejo
-  fetch(SALES_API
+  // Sahi department ka API call karo
+  const api = _deptApiForSource(src);
+  fetch(api
     + '?action=write'
     + '&taskId='   + encodeURIComponent(tid)
     + '&remarks='  + encodeURIComponent(remarks)
     + '&t='        + Date.now()
   )
-    .then(r=>r.json())
-    .then(data=>{
-      if(data.ok){
-        setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 3000);
-      } else {
-      }
-    })
-    ;
+  .then(r=>r.json())
+  .then(data=>{
+    if(data.ok){
+      setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 3000);
+    }
+  })
+  .catch(()=>{
+    // API error pe bhi UI done hi rahega (tSaveDoneTask se)
+  });
 }
+
+// Legacy alias — purane sales calls break na ho
+function salesShowRemarksInput(taskId){ deptShowRemarksInput(taskId,'sales'); }
+function salesSubmitDone(taskId){ deptSubmitDone(taskId,'sales'); }
 
 // ═══════════════════════════════════════════════════════════════════════
 // LIVE SYNC — portal aur sheet real-time sync mein rahein
@@ -9521,28 +9582,8 @@ function _showPhotoPlaceholder(el, name) {
 // Supabase Employee_details se photos + dept fetch
 // ═══════════════════════════════════════════════════════════
 
-// 👇 Yahan names update karo har mahine
-const POTM_NAMES = [
-  'Hemant',
-  'Sakshi Tupe',
-  'Komal',
-  'Surya',
-  'Akshay More',
-  'Kush Kotharkar',
-  'Ankush Bidari'
-];
-
-// 👇 Location override — Supabase ki Location column ko ignore karke ye use hoga
-// Key case-insensitive match hoga
-const POTM_LOCATIONS = {
-  'hemant':      'Mumbai',
-  'sakshi tupe': 'Mumbai',
-  'komal':       'Mumbai',
-  'surya':       'Mumbai',
-  'akshay more': 'Mumbai',
-  'kush':        'Goa',
-  'ankush':      'Bangalore'
-};
+// 👇 Performer of the Month — Employee ID se fetch hoga
+const POTM_EMP_ID = 3; // Krishnakumar Yadav
 
 // Dept ke hisaab se color
 const DEPT_COLORS = {
@@ -9564,92 +9605,86 @@ async function loadPerformers() {
   if (!grid) return;
 
   try {
-    // Saare performers ek hi API call mein fetch karo
-    const names = POTM_NAMES.map(n => `Employee_name.ilike.${encodeURIComponent(n)}`).join(',');
-    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Employee_Dept,Link,Location&or=(${names})`;
+    // Sirf ek employee — Emp_id = 3 (Krishnakumar Yadav)
+    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Employee_Dept,Link,Location&Emp_id=eq.${POTM_EMP_ID}&limit=1`;
     const res = await fetch(url, {
       headers: SB_HDRS()
     });
     const rows = await res.json();
 
-    // Name → row map banao (case-insensitive)
-    const rowMap = {};
-    if (Array.isArray(rows)) {
-      rows.forEach(r => {
-        rowMap[(r['Employee_name'] || '').toLowerCase().trim()] = r;
-      });
+    const row  = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    const name = row ? (row['Employee_name'] || 'Krishnakumar Yadav') : 'Krishnakumar Yadav';
+    const dept = row ? (row['Employee_Dept'] || '—') : '—';
+    const loc  = row ? (row['Location'] || '') : '';
+    const link = row ? (row['Link'] || null) : null;
+    const clr  = _getDeptColor(dept);
+
+    let deptText = '—';
+    if (dept !== '—') {
+      deptText = '🏢 ' + dept;
+      if (loc) {
+        deptText += ' <span style="color:var(--muted);font-weight:400;">(' + loc + ')</span>';
+      }
     }
 
-    // Cards banao
+    // Grid ko center mein ek bada card dikhao
+    grid.style.gridTemplateColumns = '1fr';
+    grid.style.maxWidth = '260px';
+    grid.style.margin = '8px auto 0';
     grid.innerHTML = '';
-    POTM_NAMES.forEach((name, idx) => {
-      const row = rowMap[name.toLowerCase().trim()];
-      const dept  = row ? (row['Employee_Dept'] || '—') : '—';
-      // Location: pehle hard-coded override dekho, fir Supabase se
-      const loc   = POTM_LOCATIONS[name.toLowerCase().trim()] || (row ? (row['Location'] || '')  : '');
-      const link  = row ? (row['Link'] || null) : null;
-      const clr   = _getDeptColor(dept);
-      const trophies = ['🥇','🥇','🥇','🥇','🥇','🥇','🥇'];
-      // Plain string concatenation — nested template literals kabhi kabhi flaky hote hain
-      let deptText = '—';
-      if (dept !== '—') {
-        deptText = '🏢 ' + dept;
-        if (loc) {
-          deptText += ' <span style="color:var(--muted);font-weight:400;">(' + loc + ')</span>';
-        }
-      }
 
-      const card = document.createElement('div');
-      card.className = 'potm-card';
-      card.innerHTML = `
-        <div class="potm-card-bar" style="background:${clr.bar};opacity:0.8;"></div>
-        <div class="potm-trophy">${trophies[idx] || '🏅'}</div>
-        <div class="potm-shimmer" id="potm-img-${idx}"></div>
-        <div class="potm-name">${name}</div>
-        <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">
-          ${deptText}
-        </div>
-      `;
-      grid.appendChild(card);
+    const card = document.createElement('div');
+    card.className = 'potm-card';
+    card.innerHTML = `
+      <div class="potm-card-bar" style="background:${clr.bar};opacity:0.8;"></div>
+      <div class="potm-trophy">🥇</div>
+      <div class="potm-shimmer" id="potm-img-0"></div>
+      <div class="potm-name">${name}</div>
+      <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">
+        ${deptText}
+      </div>
+    `;
+    grid.appendChild(card);
 
-      // Photo async load karo
-      const imgSlot = card.querySelector(`#potm-img-${idx}`);
-      if (link) {
-        const img = document.createElement('img');
-        img.className = 'potm-photo';
-        img.alt = name;
-        img.src = link;
-        img.onerror = function() {
-          const av = document.createElement('div');
-          av.className = 'potm-avatar';
-          av.textContent = name[0].toUpperCase();
-          img.replaceWith(av);
-        };
-        imgSlot.replaceWith(img);
-      } else {
+    // Photo load karo
+    const imgSlot = card.querySelector('#potm-img-0');
+    if (link) {
+      const img = document.createElement('img');
+      img.className = 'potm-photo';
+      img.alt = name;
+      img.src = link;
+      img.onerror = function() {
         const av = document.createElement('div');
         av.className = 'potm-avatar';
         av.textContent = name[0].toUpperCase();
-        imgSlot.replaceWith(av);
-      }
-    });
+        img.replaceWith(av);
+      };
+      imgSlot.replaceWith(img);
+    } else {
+      const av = document.createElement('div');
+      av.className = 'potm-avatar';
+      av.textContent = name[0].toUpperCase();
+      imgSlot.replaceWith(av);
+    }
 
   } catch (err) {
-    // Fallback — sirf avatars dikhao
+    // Fallback
     grid.innerHTML = '';
-    POTM_NAMES.forEach(name => {
-      const card = document.createElement('div');
-      card.className = 'potm-card';
-      const clr = DEPT_COLORS['default'];
-      card.innerHTML = `
-        <div class="potm-card-bar" style="background:${clr.bar};opacity:0.7;"></div>
-        <div class="potm-trophy">🥇</div>
-        <div class="potm-avatar">${name[0].toUpperCase()}</div>
-        <div class="potm-name">${name}</div>
-        <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">—</div>
-      `;
-      grid.appendChild(card);
-    });
+    grid.style.gridTemplateColumns = '1fr';
+    grid.style.maxWidth = '260px';
+    grid.style.margin = '8px auto 0';
+    const fallbackName = 'Krishnakumar Yadav';
+    const card = document.createElement('div');
+    card.className = 'potm-card';
+    const clr = DEPT_COLORS['default'];
+    card.innerHTML = `
+      <div class="potm-card-bar" style="background:${clr.bar};opacity:0.7;"></div>
+      <div class="potm-trophy">🥇</div>
+      <div class="potm-avatar">${fallbackName[0].toUpperCase()}</div>
+      <div class="potm-name">${fallbackName}</div>
+      <div class="potm-dept" style="background:${clr.badge};color:${clr.text};border:1px solid ${clr.text}33;">—</div>
+    `;
+    grid.appendChild(card);
   }
 }
 
@@ -15611,6 +15646,19 @@ async function _annDrwFetchCelebrations() {
 }
 
 /* ── Render all cards in drawer ─────────────────────────── */
+// Formats announcement body: converts \n to <br>, makes plain URLs clickable & blue
+function _annFormatBody(text) {
+  if (!text) return '';
+  // Convert plain newlines to <br> (for new posts typed in textarea)
+  const withBreaks = text.replace(/\n/g, '<br>');
+  // Convert bare URLs (not already inside an <a> tag) to clickable blue links
+  const withLinks = withBreaks.replace(
+    /(?<!href="|href=')(https?:\/\/[^\s<>"']+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#4e9af1;text-decoration:underline;word-break:break-all;">$1</a>'
+  );
+  return withLinks;
+}
+
 function _annDrwRender() {
   const feed = document.getElementById('annDrwFeed');
   if (!feed) return;
@@ -15637,7 +15685,7 @@ function _annDrwRender() {
           ? `<button onclick="deletePortalUpdate(${ann.id})" style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.22);color:#ff3b30;border-radius:7px;padding:2px 9px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.background='rgba(255,59,48,0.2)'" onmouseout="this.style.background='rgba(255,59,48,0.08)'">🗑 Delete</button>`
           : '';
         html += `
-        <div id="ann-card-${ann.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;overflow:hidden;border-left:3px solid ${typeClr};animation:annCardIn 0.35s cubic-bezier(0.22,1,0.36,1) both;animation-delay:${i*0.06}s;">
+        <div id="ann-card-${ann.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;border-left:3px solid ${typeClr};animation:annCardIn 0.35s cubic-bezier(0.22,1,0.36,1) both;animation-delay:${i*0.06}s;">
           <div style="padding:14px 16px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
               <span style="font-size:1.1rem;">${typeIcon}</span>
@@ -15647,7 +15695,7 @@ function _annDrwRender() {
               ${_delBtn}
             </div>
             <div style="font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.35;">${ann.title || 'Update'}</div>
-            <div style="font-size:0.83rem;color:var(--text2);line-height:1.65;">${ann.body || ''}</div>
+            <div style="font-size:0.83rem;color:var(--text2);line-height:1.65;word-break:break-word;">${_annFormatBody(ann.body)}</div>
             ${ann.posted_by ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:0.75rem;color:var(--muted);display:flex;align-items:center;gap:6px;"><span style="width:22px;height:22px;border-radius:6px;background:rgba(78,154,241,0.15);color:#4e9af1;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;">${(ann.posted_by||'M')[0].toUpperCase()}</span><span>Posted by <strong style="color:var(--text2);">${ann.posted_by}</strong></span></div>` : ''}
           </div>
         </div>`;
