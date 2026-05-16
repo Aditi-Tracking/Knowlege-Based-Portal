@@ -19,8 +19,8 @@
 <!-- ══ OneSignal Web Push ══ -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
-  const OS_APP_ID   = '5b1d05e6-49bb-4b53-b3de-c57e83b4e229';
-  const PUSH_URL    = 'https://rramdtpabwjsndgkohbi.supabase.co/functions/v1/send-push';
+  const OS_APP_ID = '5b1d05e6-49bb-4b53-b3de-c57e83b4e229';
+  const PUSH_URL  = 'https://rramdtpabwjsndgkohbi.supabase.co/functions/v1/send-push';
   let _osReady = false;
 
   window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -73,14 +73,16 @@
     }
   }
 
-  // Supabase Edge Function ke through push bhejo — CORS problem nahi hogi!
+  // Supabase Edge Function ke through — CORS problem nahi!
   async function osSendPush(title, message) {
     try {
-      await fetch(PUSH_URL, {
+      const r = await fetch(PUSH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, message })
       });
+      const d = await r.json();
+      console.log('Push sent:', d);
     } catch(e) { console.warn('osSendPush error:', e); }
   }
 
@@ -18702,8 +18704,8 @@ async function submitPortalUpdate() {
     await _annDrwLoad();
     annDrwFilter('update'); // switch to Updates tab to show new post
 
-    // ── Push notification via Supabase Edge Function ──
-    osSendPush('New Announcement', title + '\nPortal kholein aur dekhein.');
+    // ── Push via Supabase Edge Function (no CORS!) ──
+    osSendPush('New Announcement', title + '\nPortal kholein aur dekhein — learn.adititracking.com');
   } catch(e) {
     errEl.textContent = '❌ Error publishing: ' + (e.message || 'Please try again.');
     errEl.style.display = 'block';
