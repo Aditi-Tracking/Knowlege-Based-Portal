@@ -16,6 +16,94 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
+<!-- ══ OneSignal Web Push ══ -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  const OS_APP_ID = '5b1d05e6-49bb-4b53-b3de-c57e83b4e229';
+  const OS_REST   = 'os_v2_app_lmoqlzsjxnfvhm66yv7ihnhcfgdyq7pkh7mehzmlpt64tcn2dt72kq6m3rsmvid7gaarqklhy5idjtlycosoda3umwpigdx42hnc3pi';
+  let _osReady = false;
+
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    try {
+      await OneSignal.init({
+        appId: OS_APP_ID,
+        notifyButton: { enable: false },
+        welcomeNotification: { disable: true },
+        serviceWorkerPath: 'OneSignalSDKWorker.js'
+      });
+      _osReady = true;
+      _osSyncBtn();
+    } catch(e) { console.warn('OneSignal init error:', e); }
+  });
+
+  function osIsSubscribed() {
+    try { return _osReady && !!window.OneSignal?.User?.PushSubscription?.optedIn; } catch(e) { return false; }
+  }
+
+  function _osSyncBtn() {
+    const btn   = document.getElementById('osNotifBtn');
+    const pill  = document.getElementById('osNotifPill');
+    const label = document.getElementById('osNotifLabel');
+    const icon  = document.getElementById('osNotifIcon');
+    if (!btn) return;
+    const subscribed = osIsSubscribed();
+    if (subscribed) {
+      if (icon)  icon.textContent  = '🔔';
+      if (label) label.textContent = 'Notifications ON';
+      if (pill)  { pill.textContent = 'ON'; pill.style.background = 'rgba(0,212,170,0.2)'; pill.style.color = '#00d4aa'; }
+      btn.style.borderColor = 'rgba(0,212,170,0.5)';
+    } else {
+      if (icon)  icon.textContent  = '🔕';
+      if (label) label.textContent = 'Enable Notifications';
+      if (pill)  { pill.textContent = 'OFF'; pill.style.background = 'rgba(120,120,120,0.12)'; pill.style.color = 'var(--muted)'; }
+      btn.style.borderColor = 'rgba(0,212,170,0.22)';
+    }
+  }
+
+  async function osToggle() {
+    if (!_osReady) { _osToast('⏳ Wait'); return; }
+    if (osIsSubscribed()) {
+      await window.OneSignal.User.PushSubscription.optOut();
+      setTimeout(_osSyncBtn, 500);
+      _osToast('🔕 Notifications band kar di gayi');
+    } else {
+      await window.OneSignal.User.PushSubscription.optIn();
+      setTimeout(_osSyncBtn, 1000);
+      _osToast('🔔 Notifications enable! Jab bhi kuch add hoga alert milega.');
+    }
+  }
+
+  async function osSendPush({ title, message, url }) {
+    try {
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + OS_REST },
+        body: JSON.stringify({
+          app_id: OS_APP_ID,
+          included_segments: ['All'],
+          headings: { en: title },
+          contents: { en: message },
+          url: url || window.location.href
+        })
+      });
+    } catch(e) {}
+  }
+
+  function _osToast(msg) {
+    const t = document.createElement('div');
+    t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      background:#1e1e2e;border:1px solid rgba(255,255,255,0.12);color:#fff;
+      border-radius:12px;padding:11px 22px;font-size:0.84rem;font-weight:600;
+      box-shadow:0 8px 28px rgba(0,0,0,0.4);z-index:99999;white-space:nowrap;
+      opacity:0;transition:opacity 0.25s;`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => { t.style.opacity = '1'; });
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 3000);
+  }
+</script>
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap');
   :root {
@@ -1735,6 +1823,20 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
         <div id="sbpRole" style="font-size:0.70rem;color:var(--text2);margin-top:1px;">👤 View my profile</div>
       </div>
     </div>
+
+    <button id="osNotifBtn" onclick="osToggle()" style="
+      display:flex;align-items:center;gap:8px;
+      width:100%;margin-top:8px;padding:8px 12px;
+      background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.22);
+      color:var(--text);border-radius:10px;
+      font-size:0.82rem;font-weight:600;cursor:pointer;
+      font-family:'DM Sans',sans-serif;
+      transition:background 0.18s, border-color 0.18s;
+    " onmouseover="this.style.background='rgba(0,212,170,0.18)'" onmouseout="this.style.background='rgba(0,212,170,0.07)'">
+      <span id="osNotifIcon" style="font-size:0.95rem;">🔕</span>
+      <span id="osNotifLabel" style="flex:1;text-align:left;">Enable Notifications</span>
+      <span id="osNotifPill" style="font-size:0.68rem;padding:2px 8px;border-radius:20px;background:rgba(120,120,120,0.12);color:var(--muted);">OFF</span>
+    </button>
 
     <button id="sidebarLogout" onclick="doLogout()" style="
       display:flex;align-items:center;justify-content:center;gap:8px;
@@ -18606,6 +18708,13 @@ async function submitPortalUpdate() {
     document.getElementById('annDrwFeed').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:0.85rem;">Refreshing…</div>';
     await _annDrwLoad();
     annDrwFilter('update'); // switch to Updates tab to show new post
+
+    // ── OneSignal: saare subscribers ko push bhejo ──
+    osSendPush({
+      title:   '📢 New Announcement — Aditi Portal',
+      message: (document.getElementById('annTitleInput')?.value || 'New Update') + '\nPortal kholein aur dekhein.',
+      url:     window.location.href
+    });
   } catch(e) {
     errEl.textContent = '❌ Error publishing: ' + (e.message || 'Please try again.');
     errEl.style.display = 'block';
