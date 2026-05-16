@@ -34,7 +34,7 @@
       });
       _osReady = true;
       _osSyncBtn();
-    } catch(e) { console.warn('OneSignal init error:', e); }
+    } catch(e) { console.warn('OneSignal init:', e); }
   });
 
   function osIsSubscribed() {
@@ -47,8 +47,7 @@
     const label = document.getElementById('osNotifLabel');
     const icon  = document.getElementById('osNotifIcon');
     if (!btn) return;
-    const subscribed = osIsSubscribed();
-    if (subscribed) {
+    if (osIsSubscribed()) {
       if (icon)  icon.textContent  = '🔔';
       if (label) label.textContent = 'Notifications ON';
       if (pill)  { pill.textContent = 'ON'; pill.style.background = 'rgba(0,212,170,0.2)'; pill.style.color = '#00d4aa'; }
@@ -62,19 +61,19 @@
   }
 
   async function osToggle() {
-    if (!_osReady) { _osToast('⏳ Wait'); return; }
+    if (!_osReady) { _osToast('⏳ Ek second ruko...'); return; }
     if (osIsSubscribed()) {
       await window.OneSignal.User.PushSubscription.optOut();
       setTimeout(_osSyncBtn, 500);
-      _osToast('🔕 Notifications band kar di gayi');
+      _osToast('🔕 Notifications band');
     } else {
       await window.OneSignal.User.PushSubscription.optIn();
       setTimeout(_osSyncBtn, 1000);
-      _osToast('🔔 Notifications enable! Jab bhi kuch add hoga alert milega.');
+      _osToast('🔔 Notifications ON! Alert milega jab kuch add ho.');
     }
   }
 
-  async function osSendPush({ title, message, url }) {
+  async function osSendPush(title, message) {
     try {
       await fetch('https://onesignal.com/api/v1/notifications', {
         method: 'POST',
@@ -82,12 +81,12 @@
         body: JSON.stringify({
           app_id: OS_APP_ID,
           included_segments: ['All'],
-          headings: { en: title },
+          headings: { en: '📢 Aditi Portal — ' + title },
           contents: { en: message },
-          url: url || window.location.href
+          url: window.location.href
         })
       });
-    } catch(e) {}
+    } catch(e) { console.warn('osSendPush error:', e); }
   }
 
   function _osToast(msg) {
@@ -100,7 +99,7 @@
     t.textContent = msg;
     document.body.appendChild(t);
     requestAnimationFrame(() => { t.style.opacity = '1'; });
-    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 3000);
+    setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),400); }, 3000);
   }
 </script>
 
@@ -1830,10 +1829,9 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.22);
       color:var(--text);border-radius:10px;
       font-size:0.82rem;font-weight:600;cursor:pointer;
-      font-family:'DM Sans',sans-serif;
-      transition:background 0.18s, border-color 0.18s;
+      font-family:'DM Sans',sans-serif;transition:background 0.18s;
     " onmouseover="this.style.background='rgba(0,212,170,0.18)'" onmouseout="this.style.background='rgba(0,212,170,0.07)'">
-      <span id="osNotifIcon" style="font-size:0.95rem;">🔕</span>
+      <span id="osNotifIcon">🔕</span>
       <span id="osNotifLabel" style="flex:1;text-align:left;">Enable Notifications</span>
       <span id="osNotifPill" style="font-size:0.68rem;padding:2px 8px;border-radius:20px;background:rgba(120,120,120,0.12);color:var(--muted);">OFF</span>
     </button>
@@ -18709,12 +18707,8 @@ async function submitPortalUpdate() {
     await _annDrwLoad();
     annDrwFilter('update'); // switch to Updates tab to show new post
 
-    // ── OneSignal: saare subscribers ko push bhejo ──
-    osSendPush({
-      title:   '📢 New Announcement — Aditi Portal',
-      message: (document.getElementById('annTitleInput')?.value || 'New Update') + '\nPortal kholein aur dekhein.',
-      url:     window.location.href
-    });
+    // ── OneSignal push notification ──
+    osSendPush('New Announcement', title + '\nPortal kholein — ' + window.location.hostname);
   } catch(e) {
     errEl.textContent = '❌ Error publishing: ' + (e.message || 'Please try again.');
     errEl.style.display = 'block';
