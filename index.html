@@ -9249,8 +9249,8 @@ const _QUIZ_UPLOAD_EMAILS = [
   'mis@adititracking.com',   // Hemant
   'mis1@adititracking.com',  // Krishna
 ];
-// Emp_id se access — Pranali (15), Saajan Jain (19)
-const _QUIZ_UPLOAD_EMP_IDS = [15, 19];
+// Emp_id se access — Chirag (1), Hemant (2), Krishna (3), Pranali (15), Saajan Jain (19), Hetal (34), Savita (35)
+const _QUIZ_UPLOAD_EMP_IDS = [1, 2, 3, 15, 19, 34, 35];
 
 function _canUploadQuiz() {
   if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
@@ -17446,6 +17446,14 @@ async function openMyQuizResults(nodeId) {
         const eRes = await fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id&Email_Id=ilike.${encodeURIComponent(CURRENT_USER.email)}&limit=1`, { headers: QZ_HDRS() });
         const eArr = await eRes.json();
         if (eArr.length) { _qzEmpId = eArr[0].Emp_id; empFilter = `&employee_id=eq.${_qzEmpId}`; }
+      }
+      // SAFETY GUARD: agar non-MIS user ka emp_id nahi mila toh
+      // kisi aur ka data dikhne se rokne ke liye empty result return karo
+      if (!empFilter) {
+        loadEl.style.display = 'none';
+        emptyEl.style.display = 'block';
+        _mqrAllRows = [];
+        return;
       }
     }
     const empSelect = isMIS ? ',Employee_details(Employee_name,Employee_Dept)' : '';
