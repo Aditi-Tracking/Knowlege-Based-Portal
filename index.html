@@ -2922,16 +2922,31 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
   <div class="db-content" style="display:block;">
 
+    <!-- ══ COMPANY IDENTITY BANNER ══ -->
+    <div style="background:linear-gradient(135deg,rgba(240,165,0,0.12) 0%,rgba(240,165,0,0.04) 50%,rgba(0,212,170,0.06) 100%);border:1px solid rgba(240,165,0,0.25);border-radius:14px;padding:20px 24px;margin-bottom:18px;">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:1.55rem;font-weight:800;color:var(--text);line-height:1.2;margin-bottom:5px;">
+          Aditi Tracking Support Pvt. Ltd.
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:0.88rem;font-weight:600;color:var(--accent);letter-spacing:0.04em;">🏆 India's Leading Telematics Company</span>
+          <span style="width:5px;height:5px;border-radius:50%;background:var(--muted);display:inline-block;"></span>
+          <span style="font-size:0.82rem;color:var(--muted);">Est. 2011 · Mumbai, India</span>
+        </div>
+      </div>
+    </div>
+
     <!-- ══ SECTION TABS ══ -->
     <div class="about-tabs" id="aboutTabs">
       <button class="about-tab active" onclick="switchAbout('overview')">🏢 About Aditi</button>
       <button class="about-tab" onclick="switchAbout('locations')">📍 Locations</button>
       <button class="about-tab" onclick="switchAbout('milestones')">🏆 Milestones</button>
+      <button class="about-tab" onclick="switchAbout('certifications')">🏅 Certifications</button>
     </div>
 
     <!-- ══ OVERVIEW ══ -->
     <div class="about-section active" id="about-overview">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:20px;">
         <div class="hp-card" style="text-align:center;padding:20px 16px;">
           <div style="font-size:2rem;font-weight:800;color:var(--accent);">2011</div>
           <div style="font-size:0.80rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.07em;">Founded</div>
@@ -2943,6 +2958,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <div class="hp-card" style="text-align:center;padding:20px 16px;">
           <div style="font-size:2rem;font-weight:800;color:#a855f7;">4</div>
           <div style="font-size:0.80rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.07em;">Office Locations</div>
+        </div>
+        <div class="hp-card" style="text-align:center;padding:20px 16px;cursor:pointer;border-color:rgba(240,165,0,0.25);transition:all 0.18s;" onclick="switchAbout('certifications')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='rgba(240,165,0,0.25)'">
+          <div style="font-size:2rem;font-weight:800;color:var(--accent);">8+</div>
+          <div style="font-size:0.80rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.07em;">Certifications</div>
+          <div style="font-size:0.68rem;color:var(--accent);margin-top:5px;font-weight:600;">View All →</div>
         </div>
       </div>
 
@@ -3075,6 +3095,335 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         </div>
       </div>
     </div>
+
+    <!-- ══ CERTIFICATIONS ══ -->
+    <div class="about-section" id="about-certifications" style="display:none;">
+
+      <!-- Intro Banner -->
+      <div style="background:linear-gradient(135deg,rgba(240,165,0,0.08),rgba(0,212,170,0.05));border:1px solid rgba(240,165,0,0.2);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;">
+        <span style="font-size:2rem;">🏅</span>
+        <div>
+          <div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:3px;">Certifications &amp; Accreditations</div>
+          <div style="font-size:0.83rem;color:var(--muted);line-height:1.5;">Aditi Tracking Support Pvt. Ltd. holds multiple prestigious certifications demonstrating our commitment to quality, security and industry excellence.</div>
+        </div>
+      </div>
+
+      <!-- Certificates Grid -->
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+
+        <!-- 1. ISO 9001:2015 — PQC -->
+        <div class="hp-card" style="border-left:4px solid #c0392b;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:rgba(192,57,43,0.06);border-radius:0 14px 0 50%;"></div>
+          <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:12px;">
+            <div style="width:44px;height:44px;border-radius:11px;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">📋</div>
+            <div>
+              <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);font-weight:600;margin-bottom:3px;">Quality Management System</div>
+              <div style="font-size:1.05rem;font-weight:800;color:var(--text);">ISO 9001:2015</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:0.81rem;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Certifying Body</span>
+              <span style="color:var(--text);font-weight:600;">Paramount Quality Certifications</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Certificate No.</span>
+              <span style="color:var(--text);font-weight:600;">QM-50293/0125</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Issue Date</span>
+              <span style="color:var(--text);font-weight:600;">14.01.2025</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Valid Upto</span>
+              <span style="color:#00d4aa;font-weight:700;">13.01.2028</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--muted);">Scope</span>
+              <span style="color:var(--text2);font-weight:500;text-align:right;max-width:60%;">Manufacture, Supply &amp; Service of GPS Devices for Vehicle Tracking</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;padding:6px 11px;border-radius:7px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.18);display:inline-flex;align-items:center;gap:6px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:#00d4aa;"></span>
+            <span style="font-size:0.75rem;font-weight:700;color:#00d4aa;">Active &amp; Valid</span>
+          </div>
+        </div>
+
+        <!-- 2. ISO 27001:2022 -->
+        <div class="hp-card" style="border-left:4px solid #6c3483;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:rgba(108,52,131,0.06);border-radius:0 14px 0 50%;"></div>
+          <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:12px;">
+            <div style="width:44px;height:44px;border-radius:11px;background:rgba(108,52,131,0.1);border:1px solid rgba(108,52,131,0.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🔒</div>
+            <div>
+              <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);font-weight:600;margin-bottom:3px;">Information Security Management System</div>
+              <div style="font-size:1.05rem;font-weight:800;color:var(--text);">ISO 27001:2022</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:0.81rem;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Certifying Body</span>
+              <span style="color:var(--text);font-weight:600;">Paramount Quality Certifications</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Certificate No.</span>
+              <span style="color:var(--text);font-weight:600;">IM-50294/0125</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Issue Date</span>
+              <span style="color:var(--text);font-weight:600;">14.01.2025</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Valid Upto</span>
+              <span style="color:#00d4aa;font-weight:700;">13.01.2028</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--muted);">Scope</span>
+              <span style="color:var(--text2);font-weight:500;text-align:right;max-width:60%;">Manufacture, Supply &amp; Service of GPS Devices for Vehicle Tracking</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;padding:6px 11px;border-radius:7px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.18);display:inline-flex;align-items:center;gap:6px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:#00d4aa;"></span>
+            <span style="font-size:0.75rem;font-weight:700;color:#00d4aa;">Active &amp; Valid</span>
+          </div>
+        </div>
+
+        <!-- 3. CMMI Level 5 -->
+        <div class="hp-card" style="border-left:4px solid #c0392b;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:rgba(192,57,43,0.06);border-radius:0 14px 0 50%;"></div>
+          <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:12px;">
+            <div style="width:44px;height:44px;border-radius:11px;background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">⭐</div>
+            <div>
+              <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);font-weight:600;margin-bottom:3px;">Certificate of Compliance</div>
+              <div style="font-size:1.05rem;font-weight:800;color:var(--text);">CMMI Maturity Level — 5</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:0.81rem;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Certifying Body</span>
+              <span style="color:var(--text);font-weight:600;">Paramount Quality Certifications</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Certificate No.</span>
+              <span style="color:var(--text);font-weight:600;">CM-50295/0125</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Issue Date</span>
+              <span style="color:var(--text);font-weight:600;">14.01.2025</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Valid Upto</span>
+              <span style="color:#00d4aa;font-weight:700;">13.01.2028</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--muted);">Scope</span>
+              <span style="color:var(--text2);font-weight:500;text-align:right;max-width:60%;">Manufacture, Supply &amp; Service of GPS Devices for Vehicle Tracking</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;padding:6px 11px;border-radius:7px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.18);display:inline-flex;align-items:center;gap:6px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:#00d4aa;"></span>
+            <span style="font-size:0.75rem;font-weight:700;color:#00d4aa;">Active &amp; Valid</span>
+          </div>
+        </div>
+
+        <!-- 4. ISO 9001:2015 — TUV Nord -->
+        <div class="hp-card" style="border-left:4px solid #1a5276;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:rgba(26,82,118,0.06);border-radius:0 14px 0 50%;"></div>
+          <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:12px;">
+            <div style="width:44px;height:44px;border-radius:11px;background:rgba(26,82,118,0.1);border:1px solid rgba(26,82,118,0.3);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🔵</div>
+            <div>
+              <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);font-weight:600;margin-bottom:3px;">Quality Management System</div>
+              <div style="font-size:1.05rem;font-weight:800;color:var(--text);">ISO 9001:2015 — TÜV Nord</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:0.81rem;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Certifying Body</span>
+              <span style="color:var(--text);font-weight:600;">TÜV INDIA PVT. LTD.</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Certificate No.</span>
+              <span style="color:var(--text);font-weight:600;">QM 01 00898</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Issue Date</span>
+              <span style="color:var(--text);font-weight:600;">07.07.2019</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Valid Until</span>
+              <span style="color:var(--muted);font-weight:600;">06.07.2022 (Upgraded)</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--muted);">Scope</span>
+              <span style="color:var(--text2);font-weight:500;text-align:right;max-width:60%;">Manufacture, Supply and Service of GPS Devices for Vehicle Tracking</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;padding:6px 11px;border-radius:7px;background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.18);display:inline-flex;align-items:center;gap:6px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);"></span>
+            <span style="font-size:0.75rem;font-weight:700;color:var(--accent);">Upgraded to PQC Certification</span>
+          </div>
+        </div>
+
+        <!-- 5. Smart Mobility Association -->
+        <div class="hp-card" style="border-left:4px solid #d35400;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:rgba(211,84,0,0.06);border-radius:0 14px 0 50%;"></div>
+          <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:12px;">
+            <div style="width:44px;height:44px;border-radius:11px;background:rgba(211,84,0,0.1);border:1px solid rgba(211,84,0,0.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🚗</div>
+            <div>
+              <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);font-weight:600;margin-bottom:3px;">Certificate of Membership</div>
+              <div style="font-size:1.05rem;font-weight:800;color:var(--text);">Smart Mobility Association</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:0.81rem;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Issuing Body</span>
+              <span style="color:var(--text);font-weight:600;">Smart Mobility Association</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Membership No.</span>
+              <span style="color:var(--text);font-weight:600;">201940-DM</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Company</span>
+              <span style="color:var(--text);font-weight:600;">Aditi Tracking Support Pvt. Ltd.</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--muted);">Date of Joining</span>
+              <span style="color:var(--text);font-weight:600;">29.04.2019</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;padding:6px 11px;border-radius:7px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.18);display:inline-flex;align-items:center;gap:6px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:#00d4aa;"></span>
+            <span style="font-size:0.75rem;font-weight:700;color:#00d4aa;">Industry Member</span>
+          </div>
+        </div>
+
+        <!-- 6. Startup India -->
+        <div class="hp-card" style="border-left:4px solid #0b6623;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:rgba(11,102,35,0.06);border-radius:0 14px 0 50%;"></div>
+          <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:12px;">
+            <div style="width:44px;height:44px;border-radius:11px;background:rgba(11,102,35,0.1);border:1px solid rgba(11,102,35,0.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🇮🇳</div>
+            <div>
+              <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);font-weight:600;margin-bottom:3px;">Govt. of India — #StartupIndia</div>
+              <div style="font-size:1.05rem;font-weight:800;color:var(--text);">Certificate of Recognition</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:0.81rem;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Issuing Authority</span>
+              <span style="color:var(--text);font-weight:600;">Dept. for Promotion of Industry &amp; Internal Trade</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Certificate No.</span>
+              <span style="color:var(--text);font-weight:600;">DIPP113215</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Date of Issue</span>
+              <span style="color:var(--text);font-weight:600;">02-11-2022</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Valid Upto</span>
+              <span style="color:#00d4aa;font-weight:700;">29-11-2031</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--muted);">Sector</span>
+              <span style="color:var(--text2);font-weight:500;text-align:right;max-width:60%;">Telecommunication &amp; Networking Industry</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;padding:6px 11px;border-radius:7px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.18);display:inline-flex;align-items:center;gap:6px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:#00d4aa;"></span>
+            <span style="font-size:0.75rem;font-weight:700;color:#00d4aa;">Active &amp; Valid</span>
+          </div>
+        </div>
+
+        <!-- 7. Trade Mark Registration -->
+        <div class="hp-card" style="border-left:4px solid #1a5276;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:rgba(26,82,118,0.06);border-radius:0 14px 0 50%;"></div>
+          <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:12px;">
+            <div style="width:44px;height:44px;border-radius:11px;background:rgba(26,82,118,0.1);border:1px solid rgba(26,82,118,0.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">™</div>
+            <div>
+              <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);font-weight:600;margin-bottom:3px;">Trade Marks Registry, Govt. of India</div>
+              <div style="font-size:1.05rem;font-weight:800;color:var(--text);">Registered Trade Mark</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:0.81rem;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Issuing Authority</span>
+              <span style="color:var(--text);font-weight:600;">Trade Marks Registry Mumbai</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Trade Mark No.</span>
+              <span style="color:var(--text);font-weight:600;">5682943</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Date</span>
+              <span style="color:var(--text);font-weight:600;">15-11-2022</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Class</span>
+              <span style="color:var(--text);font-weight:600;">Class 9 — Software</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--muted);">Sealed On</span>
+              <span style="color:var(--text);font-weight:600;">17th November, 2023</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;padding:6px 11px;border-radius:7px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.18);display:inline-flex;align-items:center;gap:6px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:#00d4aa;"></span>
+            <span style="font-size:0.75rem;font-weight:700;color:#00d4aa;">Registered &amp; Protected</span>
+          </div>
+        </div>
+
+        <!-- 8. DOT OSP Registration -->
+        <div class="hp-card" style="border-left:4px solid #17a589;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:rgba(23,165,137,0.06);border-radius:0 14px 0 50%;"></div>
+          <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:12px;">
+            <div style="width:44px;height:44px;border-radius:11px;background:rgba(23,165,137,0.1);border:1px solid rgba(23,165,137,0.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">📡</div>
+            <div>
+              <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--muted);font-weight:600;margin-bottom:3px;">Govt. of India — Ministry of Communication &amp; IT</div>
+              <div style="font-size:1.05rem;font-weight:800;color:var(--text);">DOT — OSP Registration</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:0.81rem;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Issuing Authority</span>
+              <span style="color:var(--text);font-weight:600;text-align:right;max-width:60%;">Dept. of Telecom, Telecom Enforcement, Mumbai</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Registration No.</span>
+              <span style="color:var(--text);font-weight:600;">MUM/D/11557/1216</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:5px;">
+              <span style="color:var(--muted);">Date</span>
+              <span style="color:var(--text);font-weight:600;">20-12-2016</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--muted);">Type</span>
+              <span style="color:var(--text2);font-weight:500;text-align:right;max-width:65%;">Domestic OSP Center at 511 Agarwal B2B Centre, Malad W, Mumbai</span>
+            </div>
+          </div>
+          <div style="margin-top:10px;padding:6px 11px;border-radius:7px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.18);display:inline-flex;align-items:center;gap:6px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:#00d4aa;"></span>
+            <span style="font-size:0.75rem;font-weight:700;color:#00d4aa;">Govt. Registered</span>
+          </div>
+        </div>
+
+      </div><!-- end certificates grid -->
+
+      <!-- Summary Footer -->
+      <div style="margin-top:18px;background:linear-gradient(135deg,rgba(240,165,0,0.06),rgba(0,212,170,0.04));border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:0.88rem;font-weight:700;color:var(--text);margin-bottom:4px;">🏆 Certified Excellence Since 2019</div>
+          <div style="font-size:0.79rem;color:var(--muted);">All certifications are maintained through regular audits and surveillance reviews.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span style="padding:5px 12px;border-radius:20px;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.2);font-size:0.76rem;font-weight:700;color:#00d4aa;">ISO Certified</span>
+          <span style="padding:5px 12px;border-radius:20px;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.2);font-size:0.76rem;font-weight:700;color:var(--accent);">CMMI Level 5</span>
+          <span style="padding:5px 12px;border-radius:20px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.2);font-size:0.76rem;font-weight:700;color:#a855f7;">#StartupIndia</span>
+          <span style="padding:5px 12px;border-radius:20px;background:rgba(78,154,241,0.1);border:1px solid rgba(78,154,241,0.2);font-size:0.76rem;font-weight:700;color:#4e9af1;">Trademark Registered</span>
+        </div>
+      </div>
+
+    </div><!-- end certifications section -->
 
     <!-- ══ BRAND GUIDELINES ══ -->
     <div class="about-section" id="about-brand" style="display:none;">
@@ -7960,11 +8309,12 @@ function toggleTheme(){
 /* ══ ABOUT ORGANISATION — tab switcher ══ */
 function switchAbout(tab){
   document.querySelectorAll('.about-section').forEach(s=>s.style.display='none');
-  document.querySelectorAll('.about-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#aboutTabs .about-tab').forEach(t=>t.classList.remove('active'));
   var el=document.getElementById('about-'+tab);
   if(el)el.style.display='block';
-  var tabs=document.querySelectorAll('.about-tab');
-  var idx={'overview':0,'orgchart':1,'leadership':2,'locations':3,'milestones':4,'brand':5}[tab]||0;
+  var idx={'overview':0,'locations':1,'milestones':2,'certifications':3}[tab];
+  if(idx===undefined)idx=0;
+  var tabs=document.querySelectorAll('#aboutTabs .about-tab');
   if(tabs[idx])tabs[idx].classList.add('active');
 }
 
