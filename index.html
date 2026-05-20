@@ -5228,8 +5228,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 let lLoaded=false,cLoaded=false;
 // Pre-fetch data caches
 let _leadsCache=null, _collCache=null, _tasksCache=null, _fmsCache=null;
-let _tasksSuppCache=null, _tasksSalesCache=null;
-let _tasksAllReady=false; // true only when ALL 3 task APIs are fetched
 
 function prefetchAllData(){
   const _isOwner = CURRENT_USER && CURRENT_USER.role === 'owner';
@@ -5237,25 +5235,11 @@ function prefetchAllData(){
   const myName = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.name||'').trim().toLowerCase()) : '';
 
   if(!_tasksCache){
-    const _apisToFetch = getTaskAPIsForUser();
-    const _prefetchArr = [];
-    // HO APIs
-    if(_apisToFetch.main)  _prefetchArr.push(fetch(TASK_API).then(r=>r.json()).then(d=>{_tasksCache=d;}).catch(()=>{}));
-    if(_apisToFetch.supp)  _prefetchArr.push(fetch(SUPPORT_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){_tasksSuppCache=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{const sd=d;_tasksSuppCache=Array.isArray(sd)?sd:(sd&&Array.isArray(sd.data)?sd.data:[]);}}));
-    if(_apisToFetch.sales) _prefetchArr.push(fetch(SALES_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){_tasksSalesCache=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{_tasksSalesCache=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}}));
-    // Branch location APIs
-    if(_apisToFetch.guj)   _prefetchArr.push(fetch(GUJARAT_API).then(r=>r.json()).then(d=>{_tasksGujCache=d;}));
-    if(_apisToFetch.goa)   _prefetchArr.push(fetch(GOA_API).then(r=>r.json()).then(d=>{_tasksGoaCache=d;}));
-    if(_apisToFetch.bng)   _prefetchArr.push(fetch(BANGALORE_API).then(r=>r.json()).then(d=>{_tasksBngCache=d;}));
-    Promise.all(_prefetchArr).then(()=>{
+    // Supabase se prefetch — background mein loadTasks trigger karo
+    Promise.resolve().then(()=>{
       _tasksAllReady=true;
-      // ── AUTO-LOAD pending banner on home page ──
-      // Prefetch complete hote hi loadTasks() ko background mein call karo
-      // taaki tAllData populate ho jaye aur home page pe pending task banner
-      // turant dikh jaye — user ko Task Checklist khol-ne ka wait nahi karna padega
       if(!tLoaded){
         tLoaded=true;
-        // setTimeout 0 → microtask ke baad chalega, UI block nahi karega
         setTimeout(()=>{ try{ loadTasks(); }catch(e){ } }, 0);
       }
     });
@@ -6569,176 +6553,36 @@ function fmsExportCSV(){
 
 
 // ═══════════════════════════════════════
-// TASK CHECKLIST DASHBOARD
+// TASK CHECKLIST DASHBOARD — Supabase Version
 // ═══════════════════════════════════════
-// Decompress {h:[headers], r:[rows]} format from compressed APIs
-function decompressAPI(data){
-  if(!data) return [];
-  if(Array.isArray(data)) return data; // already normal format
-  if(data.h && data.r){
-    return data.r.map(row=>{
-      const obj={};
-      data.h.forEach((h,i)=>{ obj[h]=row[i]!==undefined&&row[i]!==null?row[i]:''; });
-      return obj;
-    });
+
+// NOTE: Google Form submissions removed — task status updates directly to Supabase DB.
+
+// ── Supabase REST API: Task done mark karo ──
+async function markTaskDone(rowId, remarks) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
+      {
+        method: 'PATCH',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({
+          actual_timestamp: new Date().toISOString(),
+          remarks: remarks || null
+        })
+      }
+    );
+    return res.ok;
+  } catch(e) {
+    alert('Update error: ' + e.message);
+    return false;
   }
-  return [];
 }
 
-const TASK_API = 'https://script.google.com/macros/s/AKfycbyo_iI8z_ySsww7vz47eum9dh9AzM6dDvSmMYqT68XXZVWC7bDMsSUbHAeF_0n_aDLStg/exec';
-const SUPPORT_API = 'https://script.google.com/macros/s/AKfycbykCc7Hdzy9gLcIXSusKnbg-6mfP7CnMFiuhvDYSr6lvm1XoRWg5ihErGDg7cVH9s1d/exec';
-const SALES_API = 'https://script.google.com/macros/s/AKfycbwSeXqD-8U4fL2TVEDxAYIoAypEO8qkpudWByXr52DBhukuPE_8LGMcAPQqyKhW-9xE/exec';
-
-// ── BRANCH LOCATION APIs (Task Checklist) ──
-const GUJARAT_API   = 'https://script.google.com/macros/s/AKfycbzGBHZr_g2ElCNDlyvuztHq-_RWip5IvBdOVkZCorU3H014NR2pu_CKFPkZYJoTrzQ/exec';
-const GOA_API       = 'https://script.google.com/macros/s/AKfycbzk9mCiwH1j9M_HOK_L65zEyD7XKFuO48ruFSUHPOATRtdTz47Zh4kiTettPv_h4Is/exec';
-const BANGALORE_API = 'https://script.google.com/macros/s/AKfycbyVAKkPppeqD-T_SFQ2RnK9xR1opE9E4X5l_mgSxBTWAnDYPoxej0iJx4whqc19vmBnNg/exec';
-
-// ── IMS BRANCH INVENTORY APIs (separate from Task APIs) ──
-const IMS_GUJARAT_API   = 'https://script.google.com/macros/s/AKfycbz3m_D7OETa5BIX1JBL8wj4rZ_kVELBOzhqRpZSeSQi-gEBnCoHKCp9p4ir3TNwfFiR/exec';
-const IMS_GOA_API       = 'https://script.google.com/macros/s/AKfycbyJdOUvUvSDgRkFtVUlFahtABXzR-H1nrcv-Syj--wf1ehNoQIteTLuoXTZIwWBPQtByg/exec';
-const IMS_BANGALORE_API = 'https://script.google.com/macros/s/AKfycbz6NrjwVJxfivZfTlbeolSXy3Azsq0kdrHbMDgDT9UioBOQ4Gl-0Ypd--QtpvJjM3Sf_w/exec';
-
-// ── HARDCODED BRANCH EMPLOYEE → LOCATION MAP ──
-// Name (lowercase) → Location. Sirf is map mein hain unhe direct usi API se fetch karo.
-const BRANCH_EMPLOYEE_MAP = {
-  // Bangalore
-  'ankush bidari':      'Bangalore',
-  // Gujarat
-  'kinchit parmar':     'Gujarat',
-  'atul':               'Gujarat',
-  'bhumit parmar':      'Gujarat',
-  // Goa
-  'viresh khanolkar':   'Goa',
-  'kush kotharkar':     'Goa',
-  'pranali tupe':       'Goa',
-  'priyanka kudnekar':  'Goa',
-  'disha degvekar':     'Goa',
-  'fazal sayyad':       'Goa',
-  'swapnil belvalkar':  'Goa',
-};
-
-// ═══════════════════════════════════════════════════════════════════════
-// GOOGLE FORM AUTO-SUBMIT CONFIG  (early — taaki tRenderTable mein use ho sake)
-// ═══════════════════════════════════════════════════════════════════════
-// Agar form mein Task ID ke alawa aur required fields hain, toh unke entry
-// IDs yahan add karein. Entry ID kaise find karein:
-//   1. Google Form "Get pre-filled link" use karein
-//   2. Har field mein dummy value (jaise "TEST") daalo, "Get link" → Copy
-//   3. Copied URL mein `entry.XXXXXXXXX=TEST` pattern dhundein
-// Agar sirf Task ID hi required hai toh current config se hi kaam chal jaayega.
-const FORM_SUBMIT_CONFIG = {
-  // Main form — Collection, HR, Finance, Accounts departments
-  main: {
-    url: 'https://docs.google.com/forms/d/e/1FAIpQLScAhyCfOdHfqJHJry36UuNZ-tn4B5bzsH8ONjWrIsdCq7LRGg/formResponse',
-    entries: {
-      taskId:  'entry.254147949',
-      remarks: 'entry.88393278',
-    }
-  },
-  // Support form
-  support: {
-    url: 'https://docs.google.com/forms/d/e/1FAIpQLSe7l-3ReXeVnSZoMZXcfSxfa7Af5Iuggzvj382eDUxucQp74A/formResponse',
-    entries: {
-      taskId:  'entry.1669745459',
-      remarks: 'entry.1790795990',
-    }
-  },
-  // Sales form — GAS API use hota hai, ye form URL sirf fallback ke liye hai
-  sales: {
-    url: 'https://docs.google.com/forms/d/e/1FAIpQLSePSFFo6QH5tf3-yqEhQ1Vuv97IFxNbXt4v5ipXUahpSKkoVA/formResponse',
-    entries: {
-      taskId:  'entry.1645674088',
-    }
-  },
-  // Gujarat branch form
-  gujarat: {
-    url: 'https://docs.google.com/forms/d/e/1FAIpQLSf0MlQDDEuk68PTGYxF1ANGxvOztUwKmnZ7LeI_wjV5s3sLVQ/formResponse',
-    entries: {
-      taskId:  'entry.2120774614',
-      remarks: 'entry.655483811',
-    }
-  },
-  // Goa branch form
-  goa: {
-    url: 'https://docs.google.com/forms/d/e/1FAIpQLSfywYH_ybTqvUA-jKOnJEWJuRGpmNEbgqKciykCsh3owZuJsQ/formResponse',
-    entries: {
-      taskId:  'entry.1673935384',
-      remarks: 'entry.538727561',
-    }
-  },
-  // Bangalore branch form
-  bangalore: {
-    url: 'https://docs.google.com/forms/d/e/1FAIpQLScMhISoTemOFcVyBNuIjPBCCRIITRvEYVb9vZIaHu5FwMFQUw/formResponse',
-    entries: {
-      taskId:  'entry.1371260066',
-      remarks: 'entry.488165299',
-    }
-  }
-};
-
-function tPickFormConfig(dept, source, location){
-  const loc = String(location||'').toLowerCase().trim();
-  const s   = String(source||'').toLowerCase().trim();
-  // Location-based routing — branch employees ko sahi form milega
-  if(loc==='gujarat'   || s==='gujarat')   return FORM_SUBMIT_CONFIG.gujarat;
-  if(loc==='goa'       || s==='goa')       return FORM_SUBMIT_CONFIG.goa;
-  if(loc==='bangalore' || s==='bangalore') return FORM_SUBMIT_CONFIG.bangalore;
-  // HO dept-based routing
-  const d = String(dept||'').toLowerCase();
-  if(d==='support' || s==='support') return FORM_SUBMIT_CONFIG.support;
-  if(d==='sales'   || s==='sales')   return FORM_SUBMIT_CONFIG.sales;
-  return FORM_SUBMIT_CONFIG.main;
-}
-
-// NOTE: `tSubmitFormBackground()` function REMOVED (17-Apr-2026).
-// Pehle ye chupke se Google Form ko POST karta tha fetch() se, par uski wajah
-// se DUPLICATE entries aati thi — ek background POST se, ek user ke manual
-// submit se. Ab user sirf manually form mein Submit dabayega, data seedha
-// sheet tak jaayega. Portal live sync (tSilentRefresh) se sheet ka latest
-// state ~45 sec mein portal pe reflect hota rahega.
-
-// Department → sheet mapping
-// TASK_API    = Collection, HR, Finance, Accounts (HO Sheet 3)
-// SUPPORT_API = Support (HO Sheet 2)
-// SALES_API   = Sales (HO Sheet 1)
-// GUJARAT_API / GOA_API / BANGALORE_API = Branch location APIs
-// Managing Director/MIS/PC = fetch all
-function getTaskAPIsForUser(){
-  if(!CURRENT_USER) return {main:true, supp:true, sales:true, guj:true, goa:true, bng:true};
-  // Full access roles always get all sheets
-  if(CURRENT_USER.role==='owner') return {main:true, supp:true, sales:true, guj:true, goa:true, bng:true};
-
-  // ── Step 1: Check hardcoded branch map (name se direct location milti hai) ──
-  const nameLower = (CURRENT_USER.name||'').toLowerCase().trim();
-  const mappedLoc = BRANCH_EMPLOYEE_MAP[nameLower];
-  const resolvedLoc = mappedLoc || (CURRENT_USER.location||'');
-
-  // ── Step 2: Location-based routing ──
-  const loc = resolvedLoc.toLowerCase().trim();
-  const isGuj = loc.includes('gujarat') || loc.includes('guj') || loc.includes('ahmedabad');
-  const isGoa = loc.includes('goa');
-  const isBng = loc.includes('bangalore') || loc.includes('bengaluru') || loc.includes('blr') || loc.includes('banglore');
-
-  if(isGuj) return {main:false, supp:false, sales:false, guj:true,  goa:false, bng:false};
-  if(isGoa) return {main:false, supp:false, sales:false, guj:false, goa:true,  bng:false};
-  if(isBng) return {main:false, supp:false, sales:false, guj:false, goa:false, bng:true};
-
-  // ── Step 3: HO employees — dept-based routing (only their own sheet) ──
-  const role=(CURRENT_USER.rawRole||'').toLowerCase().trim();
-  const salesRoles   = ['sales'];
-  const supportRoles = ['support'];
-  const mainRoles    = ['collection','hr','finance','accounts','collections'];
-  if(salesRoles.includes(role))   return {main:false, supp:false, sales:true,  guj:false, goa:false, bng:false};
-  if(supportRoles.includes(role)) return {main:false, supp:true,  sales:false, guj:false, goa:false, bng:false};
-  if(mainRoles.includes(role))    return {main:true,  supp:false, sales:false, guj:false, goa:false, bng:false};
-  // Unknown: fetch all to be safe
-  return {main:true, supp:true, sales:true, guj:true, goa:true, bng:true};
-}
+// Department → sheet mapping removed (Supabase se direct fetch hoga)
+// Managing Director/MIS/PC = fetch all (owner role check rahega)
 let tAllData=[], tFiltered=[], tPage=1, tLoaded=false;
 let tActiveKpi=null, tActivePerson=null, tActiveDept=null, tActiveStatus=null, tActiveFreq=null, tActiveDateFrom=null, tActiveDateTo=null, tActiveLocation=null;
-// Cache vars for location APIs
-let _tasksGujCache=null, _tasksGoaCache=null, _tasksBngCache=null;
 
 function tParseDate(v){
   if(!v) return '';
@@ -6754,169 +6598,160 @@ function tParseDate(v){
 const T_PER_PAGE=20;
 let tCharts={};
 
-async function loadTasks(){
+// ── Supabase paginated fetch — 1000 row limit bypass karo ──
+async function tFetchAllPages(baseUrl){
+  const BATCH = 1000;
+  let all = [];
+  let offset = 0;
+  while(true){
+    const url = `${baseUrl}&limit=${BATCH}&offset=${offset}`;
+    const res = await fetch(url, { headers: SB_HDRS() });
+    const batch = await res.json();
+    if(!Array.isArray(batch) || batch.length === 0) break;
+    all = all.concat(batch);
+    if(batch.length < BATCH) break; // last page
+    offset += BATCH;
+    if(offset > 100000) break; // safety cap at 100k
+  }
+  return all;
+}
+
+
+async function loadTasks(overrideDateFrom, overrideDateTo){
   document.getElementById('tasksLoad').style.display='flex';
   document.getElementById('tasksCont').style.display='none';
   try{
-    let mainRaw = [];
-    let suppRaw = [];
-    let salesRaw = [];
-    let gujRaw  = [];
-    let goaRaw  = [];
-    let bngRaw  = [];
+    const _rawRole = CURRENT_USER ? (CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim() : '';
+    const isOwner = CURRENT_USER && (
+      CURRENT_USER.role==='owner' || _rawRole==='owner' ||
+      _rawRole==='mis' || _rawRole==='pc' ||
+      _rawRole==='executive assistant' || _rawRole==='ea'
+    );
+    const myEmail = CURRENT_USER ? String(CURRENT_USER.email||'').trim().toLowerCase() : '';
 
-    // Show skeleton + render partial data as soon as first API responds
-    let firstDataShown = false;
+    // ── Date: dono ke liye today default, admin date change kar sakta hai ──
+    const todayStr = new Date().toISOString().slice(0,10);
+    const fetchFrom = overrideDateFrom || document.getElementById('tFDateFrom').value || todayStr;
+    const fetchTo   = overrideDateTo   || document.getElementById('tFDateTo').value   || todayStr;
 
-    function mergeAndRender(){
-      if(suppRaw.length>0){}else{}
-      const _sk=suppRaw.length>0?Object.keys(suppRaw[0]):[];const _sName=_sk.find(k=>/^name$/i.test(k))||_sk.find(k=>/name/i.test(k))||"Name";const _sEmail=_sk.find(k=>/^email$/i.test(k))||_sk.find(k=>/email/i.test(k))||"Email";const _sTaskId=_sk.find(k=>/task.?id/i.test(k))||"Task ID";const _sTask=_sk.find(k=>/^task$/i.test(k))||_sk.find(k=>/^task/i.test(k))||"Task";const _sFreq=_sk.find(k=>/freq/i.test(k))||"Freq";const _sDept=_sk.find(k=>/dept/i.test(k))||"Department";const _sPlanned=_sk.find(k=>/planned/i.test(k))||"Planned";const _sActual=_sk.find(k=>/actual/i.test(k))||"Actual";const _sStatus=_sk.find(k=>/status/i.test(k))||"Status";const _sRemark=_sk.find(k=>/remark/i.test(k))||"Remarks";const norm_supp = suppRaw.map(r=>({
-        'Name':String(r[_sName]||'').trim(),'Email':String(r[_sEmail]||'').trim(),
-        'Department':String(r[_sDept]||'Support').trim(),'Task ID':String(r[_sTaskId]||r['TaskID']||'').trim(),
-        'Freq':String(r[_sFreq]||'').trim(),'Task':String(r[_sTask]||'').trim(),
-        'Planned':String(r[_sPlanned]||'').trim(),'Actual':String(r[_sActual]||'').trim(),
-        'Status':String(r[_sStatus]||'').trim(),'Remarks':String(r[_sRemark]||'').trim(),'_source':'support','_location':'Mumbai'
-      }));
-      const norm_sales = salesRaw.map(r=>({
-        'Name':String(r['Name']||'').trim(),'Email':String(r['Email']||'').trim(),
-        'Department':String(r['Department']||'Sales').trim(),'Task ID':String(r['Task ID']||r['TaskID']||'').trim(),
-        'Freq':String(r['Freq']||'').trim(),'Task':String(r['Task']||'').trim(),
-        'Planned':r['Planned'] instanceof Date?r['Planned'].toISOString():String(r['Planned']||'').trim(),
-        'Actual':r['Actual'] instanceof Date?r['Actual'].toISOString():String(r['Actual']||'').trim(),
-        'Status':String(r['Status']||'').trim(),'Remarks':String(r['Remarks']||'').trim(),'_source':'sales','_location':'Mumbai'
-      }));
-      const norm_main = mainRaw.map(r=>{if(r['Freq'])r['Freq']=String(r['Freq']).trim();r['_location']='Mumbai';return r;});
+    // UI mein date set karo (dono ke liye)
+    document.getElementById('tFDateFrom').value = fetchFrom;
+    document.getElementById('tFDateTo').value   = fetchTo;
+    tActiveDateFrom = fetchFrom;
+    tActiveDateTo   = fetchTo;
 
-      // ── Normalize branch location APIs (Gujarat / Goa / Bangalore) ──
-      function normBranch(raw, locationLabel){
-        if(!raw||!raw.length) return [];
-        const keys=Object.keys(raw[0]);
-        const fk=(...names)=>{for(const n of names){const f=keys.find(k=>k.toLowerCase().replace(/\s/g,'')===n.toLowerCase().replace(/\s/g,''));if(f)return f;}return names[0];};
-        const kName=fk('Name','name'); const kEmail=fk('Email','email');
-        const kDept=fk('Department','dept','Dept'); const kTaskId=fk('Task ID','TaskID','taskid','Task Id');
-        const kTask=fk('Task','task'); const kFreq=fk('Freq','freq','Frequency');
-        const kPlanned=fk('Planned','planned'); const kActual=fk('Actual','actual','Actual Date','ActualDate');
-        const kStatus=fk('Status','status'); const kRemarks=fk('Remarks','remarks','Remark','Remark/Feedback');
-        // Goa fix: agar Remarks column mein date/timestamp aa raha hai to blank karo
-        const isDateVal = v => /^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(String(v||'').trim());
-        return raw.map(r=>({
-          'Name':     String(r[kName]||'').trim(),
-          'Email':    String(r[kEmail]||'').trim(),
-          'Department':String(r[kDept]||locationLabel).trim(),
-          'Task ID':  String(r[kTaskId]||'').trim(),
-          'Freq':     String(r[kFreq]||'').trim(),
-          'Task':     String(r[kTask]||'').trim(),
-          'Planned':  String(r[kPlanned]||'').trim(),
-          'Actual':   String(r[kActual]||'').trim(),
-          'Status':   String(r[kStatus]||'').trim(),
-          'Remarks':  isDateVal(r[kRemarks]) ? '' : String(r[kRemarks]||'').trim(),
-          '_source':  locationLabel.toLowerCase(),
-          '_location':locationLabel,
-        }));
+    // ── Step 1: Email se emp_id dhundho (employee ke liye) ──
+    let myEmpId = null;
+    if(!isOwner && myEmail){
+      const empRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id&Email_Id=ilike.${encodeURIComponent(myEmail)}&limit=1`,
+        { headers: SB_HDRS() }
+      );
+      const empRows = await empRes.json();
+      if(empRows && empRows[0]){
+        myEmpId = String(empRows[0].Emp_id || empRows[0].emp_id || '').trim();
       }
-      const norm_guj = normBranch(gujRaw, 'Gujarat');
-      const norm_goa = normBranch(goaRaw, 'Goa');
-      const norm_bng = normBranch(bngRaw, 'Bangalore');
-
-      const combined=[...norm_main,...norm_supp,...norm_sales,...norm_guj,...norm_goa,...norm_bng];
-      const allRaw=combined.filter(r=>r['Name']&&String(r['Name']).trim()!=='');
-      if(CURRENT_USER && CURRENT_USER.role!=='owner'){
-        const myEmail=String(CURRENT_USER.email||'').trim().toLowerCase();
-        const myName=String(CURRENT_USER.name||'').trim().toLowerCase();
-        // Debug: log all sheet names & emails
-        const allNames=[...new Set(allRaw.map(r=>String(r['Name']||'').trim()).filter(Boolean))];
-        const allEmails=[...new Set(allRaw.map(r=>String(r['Email']||'').trim().toLowerCase()).filter(Boolean))];
-
-        tAllData=allRaw.filter(r=>{
-          const rName=String(r['Name']||'').trim().toLowerCase();
-          const rEmail=String(r['Email']||'').trim().toLowerCase();
-          // Priority 1: exact email match
-          if(rEmail&&rEmail===myEmail)return true;
-          // Priority 2: exact full name match
-          if(rName&&myName&&rName===myName)return true;
-          // Priority 3: name without extra spaces / case variation
-          if(rName&&myName&&rName.replace(/\s+/g,' ')===myName.replace(/\s+/g,' '))return true;
-          // Priority 4: email local part exact match (before @)
-          const myEmailLocal=myEmail.split('@')[0].toLowerCase();
-          if(myEmailLocal&&rEmail&&rEmail.split('@')[0]===myEmailLocal)return true;
-          return false;
-        });
-
-        // If 0 found, show helpful warning on screen
-        if(tAllData.length===0){
-          const warn=document.getElementById('tNoTaskWarn');
-          if(warn){
-            warn.style.display='block';
-            warn.innerHTML=`<div style="background:rgba(255,92,124,0.08);border:1px solid rgba(255,92,124,0.3);border-radius:12px;padding:16px 20px;margin:16px 0">
-              <div style="color:#ff5c7c;font-weight:700;margin-bottom:8px">⚠️ No tasks found!</div>
-              <div style="font-size:0.88rem;margin-bottom:6px">Login email: <b style="color:#f0a500">${myEmail}</b> &nbsp;|&nbsp; Login name: <b style="color:#f0a500">${myName}</b></div>
-              <div style="font-size:0.82rem;color:var(--muted);margin-bottom:6px">Names in sheet:</div>
-              <div style="font-size:0.82rem;color:var(--text);margin-bottom:6px">${allNames.slice(0,20).join(' &nbsp;|&nbsp; ')}</div>
-              <div style="font-size:0.82rem;color:var(--muted);margin-bottom:6px">Emails in sheet:</div>
-              <div style="font-size:0.82rem;color:var(--text);margin-bottom:8px">${allEmails.slice(0,20).join(' &nbsp;|&nbsp; ')}</div>
-              <div style="font-size:0.82rem;color:#f0a500">👆 Login email/name must exactly match the name in the sheet (spelling, spaces — everything)!</div>
-            </div>`;
-          }
-          // 0 tasks hain to Dashboards accordion bhi sidebar se hata do
-          const navTasks=document.getElementById('nav-tasks');
-          if(navTasks)navTasks.style.display='none';
-          const navDash=document.getElementById('nav-dashboards-trigger');
-          if(navDash)navDash.style.display='none';
-          const dashGroup=document.getElementById('dashboardSubGroup');
-          if(dashGroup)dashGroup.style.display='none';
-          // Home page pe Task Checklist card bhi hide karo
-          document.querySelectorAll('#panel-home .home-card').forEach(card=>{
-            if(card.textContent.includes('Task Checklist'))card.style.display='none';
-          });
+      if(!myEmpId){
+        tAllData=[];
+        const warn=document.getElementById('tNoTaskWarn');
+        if(warn){
+          warn.style.display='block';
+          warn.innerHTML=`<div style="background:rgba(255,92,124,0.08);border:1px solid rgba(255,92,124,0.3);border-radius:12px;padding:16px 20px;margin:16px 0">
+            <div style="color:#ff5c7c;font-weight:700;margin-bottom:8px">⚠️ No tasks found!</div>
+            <div style="font-size:0.88rem;margin-bottom:6px">Login email: <b style="color:#f0a500">${myEmail}</b></div>
+            <div style="font-size:0.82rem;color:#f0a500">👆 Login email Employee_details table mein nahi mila!</div>
+          </div>`;
         }
-      } else {
-        tAllData=allRaw;
+        document.getElementById('tasksLoad').style.display='none';
+        document.getElementById('tasksCont').style.display='block';
+        return;
       }
-      tProcessData();
-      document.getElementById('tasksLoad').style.display='none';
-      document.getElementById('tasksCont').style.display='block';
-      document.getElementById('tasksSync').textContent='Updated '+new Date().toLocaleTimeString();
     }
 
-    // Use cache if prefetch already completed — instant render, no wait
-    const _cacheApis = getTaskAPIsForUser();
-    if(_tasksAllReady){
-      if(_tasksCache)      {mainRaw=decompressAPI(_tasksCache);_tasksCache=null;}
-      if(_tasksSuppCache)  {const d=_tasksSuppCache;if(d&&d.h&&d.r){suppRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}_tasksSuppCache=null;}
-      if(_tasksSalesCache){const d=_tasksSalesCache;if(d&&d.h&&d.r){salesRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{salesRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}_tasksSalesCache=null;}
-      if(_tasksGujCache)  {const d=_tasksGujCache; gujRaw=decompressAPI(d);_tasksGujCache=null;}
-      if(_tasksGoaCache)  {const d=_tasksGoaCache; goaRaw=decompressAPI(d);_tasksGoaCache=null;}
-      if(_tasksBngCache)  {const d=_tasksBngCache; bngRaw=decompressAPI(d);_tasksBngCache=null;}
-      _tasksAllReady=false;
-      mergeAndRender();
-      return; // instant — no fetch needed
+    // ── Step 2: Tasks fetch with pagination ──
+    let tasksBaseUrl;
+    if(isOwner){
+      tasksBaseUrl = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
+                   + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
+                   + `&order=planned_date.desc`;
+    } else {
+      tasksBaseUrl = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
+                   + `&emp_id=eq.${encodeURIComponent(myEmpId)}`
+                   + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
+                   + `&order=planned_date.desc`;
     }
 
-    // Partial cache: use whatever is ready, fetch only what's missing
-    if(_cacheApis.main   && _tasksCache)     {mainRaw=decompressAPI(_tasksCache);_tasksCache=null;}
-    if(_cacheApis.supp   && _tasksSuppCache) {const d=_tasksSuppCache;if(d&&d.h&&d.r){suppRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}_tasksSuppCache=null;}
-    if(_cacheApis.sales  && _tasksSalesCache){salesRaw=decompressAPI(_tasksSalesCache);_tasksSalesCache=null;}
-    if(_cacheApis.guj    && _tasksGujCache)  {gujRaw=decompressAPI(_tasksGujCache);_tasksGujCache=null;}
-    if(_cacheApis.goa    && _tasksGoaCache)  {goaRaw=decompressAPI(_tasksGoaCache);_tasksGoaCache=null;}
-    if(_cacheApis.bng    && _tasksBngCache)  {bngRaw=decompressAPI(_tasksBngCache);_tasksBngCache=null;}
+    const tasks = await tFetchAllPages(tasksBaseUrl);
+    if(!Array.isArray(tasks)) throw new Error('Tasks fetch failed');
 
-    const _isOwner2 = CURRENT_USER && CURRENT_USER.role === 'owner';
-    const _myEmail2 = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.email||'').trim().toLowerCase()) : '';
-    const _myName2 = CURRENT_USER ? encodeURIComponent(String(CURRENT_USER.name||'').trim().toLowerCase()) : '';
-    
-    const fetches=[];
-    // TASK_API = Google Sheet (no filter)
-    if(_cacheApis.main  && !mainRaw.length)  fetches.push(fetch(TASK_API).then(r=>r.json()).then(d=>{mainRaw=decompressAPI(d);}).catch(()=>{}));
-    // SUPPORT/SALES APIs
-    if(_cacheApis.supp  && !suppRaw.length)  fetches.push(fetch(SUPPORT_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){suppRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}}));
-    if(_cacheApis.sales && !salesRaw.length) fetches.push(fetch(SALES_API).then(r=>r.json()).then(d=>{if(d&&d.h&&d.r){salesRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}else{salesRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}}));
-    // Branch location APIs
-    if(_cacheApis.guj   && !gujRaw.length)  fetches.push(fetch(GUJARAT_API).then(r=>r.json()).then(d=>{gujRaw=decompressAPI(d);}));
-    if(_cacheApis.goa   && !goaRaw.length)  fetches.push(fetch(GOA_API).then(r=>r.json()).then(d=>{goaRaw=decompressAPI(d);}));
-    if(_cacheApis.bng   && !bngRaw.length)  fetches.push(fetch(BANGALORE_API).then(r=>r.json()).then(d=>{bngRaw=decompressAPI(d);}));
-    if(fetches.length>0) await Promise.allSettled(fetches);
-    mergeAndRender();
-    return;
+    // ── Step 3: Employee_details batch fetch ──
+    const empIdSet = [...new Set(tasks.map(r=>String(r.emp_id||'').trim()).filter(Boolean))];
+    let empMap = {};
+    if(empIdSet.length > 0){
+      const edRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id,Employee_name,Employee_Dept,Email_Id,Location&Emp_id=in.(${empIdSet.join(',')})`,
+        { headers: SB_HDRS() }
+      );
+      const edRows = await edRes.json();
+      if(Array.isArray(edRows)){
+        edRows.forEach(r=>{
+          const id = String(r.Emp_id || r.emp_id || '').trim();
+          if(id) empMap[id] = {
+            name:  String(r.Employee_name || '').trim(),
+            dept:  String(r.Employee_Dept || '').trim(),
+            email: String(r.Email_Id || '').trim(),
+            loc:   String(r.Location || '').trim(),
+          };
+        });
+      }
+    }
+
+    // ── Step 4: Merge ──
+    tAllData = tasks.map(r => {
+      const empId = String(r.emp_id || '').trim();
+      const ed = empMap[empId] || {};
+      return {
+        'Name':       ed.name  || empId || '',
+        'Email':      ed.email || '',
+        'Department': ed.dept  || '',
+        'Task ID':    String(r.sheet_task_id || '').trim(),
+        'Freq':       String(r.frequency || '').trim(),
+        'Task':       String(r.task_name || '').trim(),
+        'Planned':    String(r.planned_date || r.planned_data || '').trim(),
+        'Actual':     String(r.actual_timestamp || '').trim(),
+        'Status':     r.actual_timestamp ? 'Done' : 'Pending',
+        'Remarks':    String(r.remarks || '').trim(),
+        '_location':  ed.loc || String(r.branch_id || '').trim(),
+        '_id':        r.id,
+      };
+    });
+
+    if(tAllData.length===0 && !isOwner){
+      const warn=document.getElementById('tNoTaskWarn');
+      if(warn){
+        warn.style.display='block';
+        warn.innerHTML=`<div style="background:rgba(255,92,124,0.08);border:1px solid rgba(255,92,124,0.3);border-radius:12px;padding:16px 20px;margin:16px 0">
+          <div style="color:#ff5c7c;font-weight:700;margin-bottom:8px">⚠️ No tasks found!</div>
+          <div style="font-size:0.88rem;margin-bottom:6px">Login email: <b style="color:#f0a500">${myEmail}</b> | Emp ID: <b style="color:#f0a500">${myEmpId}</b></div>
+          <div style="font-size:0.82rem;color:#f0a500">👆 employee_checklists mein is emp_id ka koi record nahi mila.</div>
+        </div>`;
+      }
+      const navTasks=document.getElementById('nav-tasks');
+      if(navTasks)navTasks.style.display='none';
+      const navDash=document.getElementById('nav-dashboards-trigger');
+      if(navDash)navDash.style.display='none';
+      const dashGroup=document.getElementById('dashboardSubGroup');
+      if(dashGroup)dashGroup.style.display='none';
+      document.querySelectorAll('#panel-home .home-card').forEach(card=>{
+        if(card.textContent.includes('Task Checklist'))card.style.display='none';
+      });
+    }
+
+    tAllData.forEach(r=>{ r['_tDate']=tParseDate(r['Planned']); });
+    tProcessData();
+    document.getElementById('tasksLoad').style.display='none';
+    document.getElementById('tasksCont').style.display='block';
+    document.getElementById('tasksSync').textContent='Updated '+new Date().toLocaleTimeString();
 
   }catch(e){
     document.getElementById('tasksLoad').style.display='none';
@@ -6925,32 +6760,26 @@ async function loadTasks(){
   }
 }
 
+
+
 async function refreshTasks(){
   const btn=document.getElementById('tasksRefBtn');
   btn.classList.add('spinning');
   Object.values(tCharts).forEach(c=>c&&c.destroy&&c.destroy()); tCharts={};
   tActiveKpi=null; tActivePerson=null; tActiveDept=null; tActiveStatus=null;
-  // Clear ALL prefetch caches — fresh data from Google Sheet
-  _tasksCache=null; _tasksSuppCache=null; _tasksSalesCache=null; _tasksAllReady=false;
-  _tasksGujCache=null; _tasksGoaCache=null; _tasksBngCache=null;
-  // NOTE: localStorage ko refresh pe clear nahi karte — kyunki Google Sheet ko
-  // form submission reflect karne mein time lagta hai (kabhi-kabhi minutes).
-  // tApplyDoneTasks() age-based cleanup karega: sheet confirm kare ya 7 din baad.
+  _tasksCache=null;
   tLoaded=true;
-  await loadTasks();
+  // Refresh = aaj ke tasks dikhao (dono ke liye — employee aur admin)
+  const _ts = new Date().toISOString().slice(0,10);
+  await loadTasks(_ts, _ts);
   btn.classList.remove('spinning');
 }
 
 function tProcessData(){
-  // 1. Restore locally-saved done states (before any rendering)
+  // 1. Restore locally-saved done states
   tApplyDoneTasks();
 
-  // 2. Set today's date filter FIRST so KPIs/charts show today's data
-  const todayStr = new Date().toISOString().slice(0,10); // yyyy-mm-dd
-  document.getElementById('tFDateFrom').value = todayStr;
-  document.getElementById('tFDateTo').value   = todayStr;
-  tActiveDateFrom = todayStr;
-  tActiveDateTo   = todayStr;
+  // 2. Date filter is already set by loadTasks() — don't override here
 
   // 3. Populate dropdowns
   tPopulateFilters();
@@ -7310,6 +7139,13 @@ function tApply(){
   const dateTo=document.getElementById('tFDateTo').value;
   const locEl=document.getElementById('tFLocation');
   const loc=locEl?locEl.value:'';
+
+  // Date change hone pe DONO ke liye server se re-fetch karo
+  if(dateFrom !== tActiveDateFrom || dateTo !== tActiveDateTo){
+    loadTasks(dateFrom || undefined, dateTo || undefined);
+    return;
+  }
+
   tActiveDept=dept||null;
   tActivePerson=person||null;
   tActiveStatus=status||null;
@@ -7326,89 +7162,36 @@ function tApply(){
 }
 
 function tClearAll(){
-  tActiveKpi=null; tActivePerson=null; tActiveDept=null; tActiveStatus=null; tActiveFreq=null; tActiveDateFrom=null; tActiveDateTo=null; tActiveLocation=null;
+  tActiveKpi=null; tActivePerson=null; tActiveDept=null; tActiveStatus=null; tActiveFreq=null; tActiveLocation=null;
   document.getElementById('tSearch').value='';
   document.getElementById('tFDept').value='';
   document.getElementById('tFPerson').value='';
   document.getElementById('tFFreq').value='';
   document.getElementById('tFStatus').value='';
-  // ── Reset behaviour: privileged (Managing Director/MIS/PC) ka date filter clear ho jaata hai
-  // (poori range dikhe). Non-privileged employees ke liye today's date wapas restore
-  // ho jaati hai — kyunki unke liye date filter UI hidden hai aur default "today" ka
-  // hi rehna chahiye.
-  const _isPrivilegedDate2 = CURRENT_USER && (
-    CURRENT_USER.role === 'owner' ||
-    CURRENT_USER.rawRole === 'owner' ||
-    CURRENT_USER.rawRole === 'mis' ||
-    CURRENT_USER.rawRole === 'pc' ||
-    CURRENT_USER.rawRole === 'executive assistant' ||
-    CURRENT_USER.rawRole === 'ea'
-  );
-  if(_isPrivilegedDate2){
-    document.getElementById('tFDateFrom').value='';
-    document.getElementById('tFDateTo').value='';
-  } else {
-    const _t=new Date();
-    const _ts=_t.getFullYear()+'-'+String(_t.getMonth()+1).padStart(2,'0')+'-'+String(_t.getDate()).padStart(2,'0');
-    document.getElementById('tFDateFrom').value=_ts;
-    document.getElementById('tFDateTo').value=_ts;
-    tActiveDateFrom=_ts; tActiveDateTo=_ts;
-  }
   const locEl=document.getElementById('tFLocation'); if(locEl) locEl.value='';
-  tFiltered=_isPrivilegedDate2 ? [...tAllData] : tGetFiltered();
-  tPage=1;
-  tRenderKPIs();
-  tRenderCharts();
-  tRenderTable();
-  tUpdateBadge();
+
+  const _rawRoleClr = CURRENT_USER ? (CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim() : '';
+  const _isAdminClr = CURRENT_USER && (
+    CURRENT_USER.role==='owner' || _rawRoleClr==='owner' ||
+    _rawRoleClr==='mis' || _rawRoleClr==='pc' ||
+    _rawRoleClr==='executive assistant' || _rawRoleClr==='ea'
+  );
+
+  if(_isAdminClr){
+    // Admin: saara data dikhao — koi date filter nahi
+    tActiveDateFrom = null; tActiveDateTo = null;
+    document.getElementById('tFDateFrom').value = '';
+    document.getElementById('tFDateTo').value   = '';
+    loadTasks('1900-01-01', '2100-12-31'); // effectively all data
+  } else {
+    // Employee: today pe wapas
+    const _ts = new Date().toISOString().slice(0,10);
+    tActiveDateFrom = null; tActiveDateTo = null;
+    loadTasks(_ts, _ts);
+  }
 }
 
-function openTaskModal(idx){
-  const r=tFiltered[idx]; if(!r)return;
-  const FORM_BASE='https://docs.google.com/forms/d/e/1FAIpQLScAhyCfOdHfqJHJry36UuNZ-tn4B5bzsH8ONjWrIsdCq7LRGg/viewform';
-  // Entry IDs — update these with actual form entry IDs
-  // To find: open form > right-click field > Inspect > find entry.XXXXXXX
-  const E_TASKID   = 'entry.254147949';   // ← Task ID field entry ID
-  const E_NAME     = 'entry.NAME_ENTRY';       // ← Name field entry ID  
-  const E_EMAIL    = 'entry.EMAIL_ENTRY';      // ← Email field entry ID
-  const E_DEPT     = 'entry.DEPT_ENTRY';       // ← Department field entry ID
 
-  const taskId=encodeURIComponent(r['Task ID']||'');
-  const name=encodeURIComponent(r['Name']||'');
-  const email=encodeURIComponent(r['Email']||'');
-  const dept=encodeURIComponent(r['Department']||'');
-
-  const formUrl=`${FORM_BASE}?usp=pp_url&rm=minimal&${E_TASKID}=${taskId}&${E_NAME}=${name}&${E_EMAIL}=${email}&${E_DEPT}=${dept}`;
-
-  document.getElementById('taskModalContent').innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.91rem">
-      <div style="background:var(--surface2);border-radius:8px;padding:10px">
-        <div style="font-size:0.76rem;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Task ID</div>
-        <div style="color:#a855f7;font-weight:700">${r['Task ID']||'—'}</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:8px;padding:10px">
-        <div style="font-size:0.76rem;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Employee</div>
-        <div style="font-weight:600">${r['Name']||'—'}</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:8px;padding:10px">
-        <div style="font-size:0.76rem;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Department</div>
-        <div style="color:#00d4ff">${r['Department']||'—'}</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:8px;padding:10px">
-        <div style="font-size:0.76rem;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Frequency</div>
-        <div>${r['Freq']||'—'}</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:8px;padding:10px;grid-column:span 2">
-        <div style="font-size:0.76rem;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Task</div>
-        <div style="font-size:0.89rem">${r['Task']||'—'}</div>
-      </div>
-    </div>`;
-
-  document.getElementById('taskModalFormLink').href=formUrl;
-  document.getElementById('taskDoneModal').style.display='flex';
-}
-function closeTaskModal(){document.getElementById('taskDoneModal').style.display='none';}
-(function(){var __m=document.getElementById('taskDoneModal');if(__m)__m.addEventListener('click',function(e){if(e.target===this)closeTaskModal();});})();
 
 
 function fmtDate(val){
@@ -7416,18 +7199,20 @@ function fmtDate(val){
   const s=String(val).trim();
   // Already formatted DD/MM/YYYY
   if(/^\d{2}\/\d{2}\/\d{4}/.test(s)) return s;
-  // ISO format: 2026-02-23T18:30:00.000Z
+  // Pure date: YYYY-MM-DD → DD/MM/YYYY (no timezone, no time)
+  const dateOnly = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(dateOnly) return `${dateOnly[3]}/${dateOnly[2]}/${dateOnly[1]}`;
+  // ISO datetime with T: show only date part (ignore time/timezone)
+  const isoDate = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+  if(isoDate) return `${isoDate[3]}/${isoDate[2]}/${isoDate[1]}`;
+  // Fallback: try Date parse but only show date
   try{
     const d=new Date(s);
     if(isNaN(d.getTime())) return s;
     const day=String(d.getDate()).padStart(2,'0');
     const mon=String(d.getMonth()+1).padStart(2,'0');
     const yr=d.getFullYear();
-    const hr=String(d.getHours()).padStart(2,'0');
-    const mn=String(d.getMinutes()).padStart(2,'0');
-    // If time is midnight (00:00) just show date
-    if(hr==='00'&&mn==='00') return `${day}/${mon}/${yr}`;
-    return `${day}/${mon}/${yr} ${hr}:${mn}`;
+    return `${day}/${mon}/${yr}`;
   }catch(e){return s;}
 }
 
@@ -7435,35 +7220,8 @@ function tRenderTable(){
   const start=(tPage-1)*T_PER_PAGE;
   const pg=tFiltered.slice(start,start+T_PER_PAGE);
   document.getElementById('tTblCnt').textContent=tFiltered.length+' tasks';
-  // Pre-filled form URL build karne ka helper — FORM_SUBMIT_CONFIG ke entry IDs use karta hai
-  // Agar aap config mein aur entry IDs add karte ho, toh yahan bhi automatic pre-fill ho jayega.
-  const buildPrefillUrl = function(r){
-    const cfg = (typeof tPickFormConfig==='function')
-      ? tPickFormConfig(r['Department'], r['_source'], r['_location'])
-      : null;
-    if(!cfg){
-      // Fallback: location check first, then dept/source
-      const loc=(r['_location']||'').toLowerCase();
-      if(loc==='gujarat')   return 'https://docs.google.com/forms/d/e/1FAIpQLSf0MlQDDEuk68PTGYxF1ANGxvOztUwKmnZ7LeI_wjV5s3sLVQ/viewform?usp=pp_url&rm=minimal&entry.2120774614='+encodeURIComponent(r['Task ID']||'');
-      if(loc==='goa')       return 'https://docs.google.com/forms/d/e/1FAIpQLSfywYH_ybTqvUA-jKOnJEWJuRGpmNEbgqKciykCsh3owZuJsQ/viewform?usp=pp_url&rm=minimal&entry.1673935384='+encodeURIComponent(r['Task ID']||'');
-      if(loc==='bangalore') return 'https://docs.google.com/forms/d/e/1FAIpQLScMhISoTemOFcVyBNuIjPBCCRIITRvEYVb9vZIaHu5FwMFQUw/viewform?usp=pp_url&rm=minimal&entry.1371260066='+encodeURIComponent(r['Task ID']||'');
-      const isSup=(r['Department']||'').toLowerCase()==='support'||r['_source']==='support';
-      const isSal=(r['Department']||'').toLowerCase()==='sales'||r['_source']==='sales';
-      if(isSup) return 'https://docs.google.com/forms/d/e/1FAIpQLSe7l-3ReXeVnSZoMZXcfSxfa7Af5Iuggzvj382eDUxucQp74A/viewform?usp=pp_url&rm=minimal&entry.1669745459='+encodeURIComponent(r['Task ID']||'');
-      if(isSal) return 'https://docs.google.com/forms/d/e/1FAIpQLSePSFFo6QH5tf3-yqEhQ1Vuv97IFxNbXt4v5ipXUahpSKkoVA/viewform?usp=pp_url&rm=minimal&entry.1645674088='+encodeURIComponent(r['Task ID']||'');
-      return 'https://docs.google.com/forms/d/e/1FAIpQLScAhyCfOdHfqJHJry36UuNZ-tn4B5bzsH8ONjWrIsdCq7LRGg/viewform?usp=pp_url&rm=minimal&entry.254147949='+encodeURIComponent(r['Task ID']||'');
-    }
-    // formResponse → viewform convert kiya (user ke liye form page)
-    const viewUrl = cfg.url.replace('/formResponse','/viewform');
-    const params = ['usp=pp_url','rm=minimal'];
-    const e = cfg.entries;
-    if(e.taskId && r['Task ID'])        params.push(e.taskId+'='+encodeURIComponent(r['Task ID']));
-    if(e.name && r['Name'])             params.push(e.name+'='+encodeURIComponent(r['Name']));
-    if(e.email && r['Email'])           params.push(e.email+'='+encodeURIComponent(r['Email']));
-    if(e.department && r['Department']) params.push(e.department+'='+encodeURIComponent(r['Department']));
-    if(e.remarks && r['Remarks'])       params.push(e.remarks+'='+encodeURIComponent(r['Remarks']));
-    return viewUrl+'?'+params.join('&');
-  };
+  // Supabase version: Google Form URLs removed — inline remarks input se direct DB update
+  const buildPrefillUrl = function(r){ return null; };
   document.getElementById('tTblBody').innerHTML=pg.map((r,i)=>{
     const done=tIsDone(r);
     const isSupport=(r['Department']||'').toLowerCase()==='support'||r['_source']==='support';
@@ -7580,39 +7338,9 @@ function tGetDateFiltered(){
 }
 // ─────────────────────────────────────────────────────────────────────
 
-function tMarkDoneMySQL(taskId, dept, source){
-  const now = new Date();
-  const day=String(now.getDate()).padStart(2,'0');
-  const mon=String(now.getMonth()+1).padStart(2,'0');
-  const yr=now.getFullYear();
-  const hr=String(now.getHours()).padStart(2,'0');
-  const mn=String(now.getMinutes()).padStart(2,'0');
-  const sc=String(now.getSeconds()).padStart(2,'0');
-  const actualForDisplay = day+'/'+mon+'/'+yr+' '+hr+':'+mn+':'+sc;
-  const tid = String(taskId);
-  const d = String(dept||'').toLowerCase();
-  const s = String(source||'').toLowerCase();
 
-  // Turant UI mein Done dikhao
-  tAllData.forEach(r=>{ if(String(r['Task ID'])===tid){ r['Status']='done'; r['Actual']=actualForDisplay; }});
-  tFiltered.forEach(r=>{ if(String(r['Task ID'])===tid){ r['Status']='done'; r['Actual']=actualForDisplay; }});
-  setTimeout(()=>{ tRenderKPIs(); tRenderCharts(); tRenderTable(); updateHomeTaskBanner(); }, 300);
-
-  // Sales: ab inline modal se handle hota hai (salesShowRemarksInput)
-  // Isliye yahan sales ke liye API call nahi karte
-}
 
 // ── All Departments: Inline Remarks Input ───────────────────────────
-// Source → correct API mapping
-function _deptApiForSource(src){
-  const s = String(src||'').toLowerCase();
-  if(s==='sales')     return SALES_API;
-  if(s==='support')   return SUPPORT_API;
-  if(s==='goa')       return GOA_API;
-  if(s==='gujarat')   return GUJARAT_API;
-  if(s==='bangalore') return BANGALORE_API;
-  return TASK_API; // main / hr / accounts / collection / finance
-}
 
 function deptShowRemarksInput(taskId, src){
   const tid = String(taskId);
@@ -7671,7 +7399,7 @@ function deptSubmitDone(taskId, src){
   [tAllData, tFiltered].forEach(arr=>{
     arr.forEach(r=>{
       if(String(r['Task ID'])===tid){
-        r['Status']='done';
+        r['Status']='Done';
         r['Actual']=actualForDisplay;
         r['Remarks']=remarks;
       }
@@ -7680,43 +7408,22 @@ function deptSubmitDone(taskId, src){
   setTimeout(()=>{ tRenderKPIs(); tRenderCharts(); tRenderTable(); updateHomeTaskBanner&&updateHomeTaskBanner(); }, 200);
   tSaveDoneTask(tid, actualForDisplay);
 
-  const s = String(src||'').toLowerCase();
-
-  if(s === 'sales'){
-    // ── Sales: GAS API write (taskId + remarks dono jaate hain) ──
-    fetch(SALES_API
-      + '?action=write'
-      + '&taskId='  + encodeURIComponent(tid)
-      + '&remarks=' + encodeURIComponent(remarks)
-      + '&t='       + Date.now()
-    )
-    .then(r=>r.json())
-    .then(data=>{ if(data.ok){ setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 3000); } })
-    .catch(()=>{});
-
-  } else {
-    // ── Sab baaki sources: Google Form formResponse pe silent POST ──
-    // FORM_SUBMIT_CONFIG se sahi form URL aur entry IDs milte hain
-    const cfg = (typeof tPickFormConfig==='function')
-      ? tPickFormConfig('', s, s==='gujarat'||s==='goa'||s==='bangalore' ? s : '')
-      : null;
-
-    if(cfg && cfg.url){
-      const body = new URLSearchParams();
-      // Task ID — har form mein ye field hai
-      if(cfg.entries.taskId && tid) body.append(cfg.entries.taskId, tid);
-      // Remarks — FORM_SUBMIT_CONFIG mein entry ID add karo to yahan automatically jayega
-      if(cfg.entries.remarks && remarks) body.append(cfg.entries.remarks, remarks);
-      // Google Form submit — no-cors: response nahi milta par data sheet tak zarur jaata hai
-      fetch(cfg.url, {
-        method: 'POST',
-        mode:   'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body:   body.toString()
-      })
-      .then(()=>{ setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 4000); })
-      .catch(()=>{});
-    }
+  // ── Supabase REST API se update karo (id se match karke) ──
+  const rowId = (tAllData.find(r=>String(r['Task ID'])===tid)||{})['_id'];
+  if(rowId){
+    fetch(
+      `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
+      {
+        method: 'PATCH',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({
+          actual_timestamp: now.toISOString(),
+          remarks: remarks || null
+        })
+      }
+    ).then(res => {
+      if(res.ok) setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 3000);
+    }).catch(()=>{});
   }
 }
 
@@ -7740,85 +7447,94 @@ async function tSilentRefresh(){
   if(_tasksSyncing || !tLoaded) return;
   _tasksSyncing = true;
   try {
-    let mainRaw=[], suppRaw=[], salesRaw=[], gujRaw=[], goaRaw=[], bngRaw=[];
-    const apis = getTaskAPIsForUser();
-    const fetches=[];
-    const _cb='?refresh=true&t='+Date.now(); // GAS cache bypass + browser cache bypass
-    if(apis.main)  fetches.push(fetch(TASK_API+_cb).then(r=>r.json()).then(d=>{mainRaw=decompressAPI(d);}).catch(()=>{}));
-    if(apis.supp)  fetches.push(fetch(SUPPORT_API+_cb).then(r=>r.json()).then(d=>{
-      if(d&&d.h&&d.r){suppRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}
-      else{suppRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}
-    }).catch(()=>{}));
-    if(apis.sales) fetches.push(fetch(SALES_API+_cb).then(r=>r.json()).then(d=>{
-      if(d&&d.h&&d.r){salesRaw=d.r.map(row=>{const obj={};d.h.forEach((k,i)=>{obj[k]=row[i]??'';});return obj;});}
-      else{salesRaw=Array.isArray(d)?d:(d&&Array.isArray(d.data)?d.data:[]);}
-    }).catch(()=>{}));
-    // ── FIX: Branch location APIs bhi fetch karo (pehle ye missing tha!) ──
-    if(apis.guj)   fetches.push(fetch(GUJARAT_API+_cb).then(r=>r.json()).then(d=>{gujRaw=decompressAPI(d);}).catch(()=>{}));
-    if(apis.goa)   fetches.push(fetch(GOA_API+_cb).then(r=>r.json()).then(d=>{goaRaw=decompressAPI(d);}).catch(()=>{}));
-    if(apis.bng)   fetches.push(fetch(BANGALORE_API+_cb).then(r=>r.json()).then(d=>{bngRaw=decompressAPI(d);}).catch(()=>{}));
-    await Promise.allSettled(fetches);
+    const _rawRole2 = CURRENT_USER ? (CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim() : '';
+    const isOwner = CURRENT_USER && (
+      CURRENT_USER.role==='owner' || _rawRole2==='owner' ||
+      _rawRole2==='mis' || _rawRole2==='pc' ||
+      _rawRole2==='executive assistant' || _rawRole2==='ea'
+    );
+    const myEmail = CURRENT_USER ? String(CURRENT_USER.email||'').trim().toLowerCase() : '';
 
-    // Normalize (same shape as in loadTasks->mergeAndRender)
-    const _sk=suppRaw.length>0?Object.keys(suppRaw[0]):[];
-    const _sName=_sk.find(k=>/^name$/i.test(k))||_sk.find(k=>/name/i.test(k))||"Name";
-    const _sEmail=_sk.find(k=>/^email$/i.test(k))||_sk.find(k=>/email/i.test(k))||"Email";
-    const _sTaskId=_sk.find(k=>/task.?id/i.test(k))||"Task ID";
-    const _sTask=_sk.find(k=>/^task$/i.test(k))||_sk.find(k=>/^task/i.test(k))||"Task";
-    const _sFreq=_sk.find(k=>/freq/i.test(k))||"Freq";
-    const _sDept=_sk.find(k=>/dept/i.test(k))||"Department";
-    const _sPlanned=_sk.find(k=>/planned/i.test(k))||"Planned";
-    const _sActual=_sk.find(k=>/actual/i.test(k))||"Actual";
-    const _sStatus=_sk.find(k=>/status/i.test(k))||"Status";
-    const _sRemark=_sk.find(k=>/remark/i.test(k))||"Remarks";
-    const norm_supp = suppRaw.map(r=>({
-      'Name':String(r[_sName]||'').trim(),'Email':String(r[_sEmail]||'').trim(),
-      'Department':String(r[_sDept]||'Support').trim(),'Task ID':String(r[_sTaskId]||r['TaskID']||'').trim(),
-      'Freq':String(r[_sFreq]||'').trim(),'Task':String(r[_sTask]||'').trim(),
-      'Planned':String(r[_sPlanned]||'').trim(),'Actual':String(r[_sActual]||'').trim(),
-      'Status':String(r[_sStatus]||'').trim(),'Remarks':String(r[_sRemark]||'').trim(),'_source':'support','_location':'Mumbai'
-    }));
-    const norm_sales = salesRaw.map(r=>({
-      'Name':String(r['Name']||'').trim(),'Email':String(r['Email']||'').trim(),
-      'Department':String(r['Department']||'Sales').trim(),'Task ID':String(r['Task ID']||r['TaskID']||'').trim(),
-      'Freq':String(r['Freq']||'').trim(),'Task':String(r['Task']||'').trim(),
-      'Planned':r['Planned'] instanceof Date?r['Planned'].toISOString():String(r['Planned']||'').trim(),
-      'Actual':r['Actual'] instanceof Date?r['Actual'].toISOString():String(r['Actual']||'').trim(),
-      'Status':String(r['Status']||'').trim(),'Remarks':String(r['Remarks']||'').trim(),'_source':'sales','_location':'Mumbai'
-    }));
-    const norm_main = mainRaw.map(r=>{if(r['Freq'])r['Freq']=String(r['Freq']).trim();r['_location']='Mumbai';return r;});
-    // ── FIX: Branch data normalize + location tag lagao ──
-    const norm_guj = normBranch(gujRaw, 'Gujarat');
-    const norm_goa = normBranch(goaRaw, 'Goa');
-    const norm_bng = normBranch(bngRaw, 'Bangalore');
-    const combined=[...norm_main,...norm_supp,...norm_sales,...norm_guj,...norm_goa,...norm_bng];
-    const allRaw=combined.filter(r=>r['Name']&&String(r['Name']).trim()!=='');
+    // Dono ke liye current active date use karo (default today)
+    const _todaySync = new Date().toISOString().slice(0,10);
+    const fetchFrom = tActiveDateFrom || _todaySync;
+    const fetchTo   = tActiveDateTo   || _todaySync;
 
-    let newData;
-    if(CURRENT_USER && CURRENT_USER.role!=='owner'){
-      const myEmail=String(CURRENT_USER.email||'').trim().toLowerCase();
-      const myName=String(CURRENT_USER.name||'').trim().toLowerCase();
-      newData=allRaw.filter(r=>{
-        const rName=String(r['Name']||'').trim().toLowerCase();
-        const rEmail=String(r['Email']||'').trim().toLowerCase();
-        if(rEmail&&rEmail===myEmail)return true;
-        if(rName&&myName&&rName===myName)return true;
-        if(rName&&myName&&rName.replace(/\s+/g,' ')===myName.replace(/\s+/g,' '))return true;
-        const myEmailLocal=myEmail.split('@')[0].toLowerCase();
-        if(myEmailLocal&&rEmail&&rEmail.split('@')[0]===myEmailLocal)return true;
-        return false;
-      });
-    } else {
-      newData = allRaw;
+    // Employee: emp_id lookup
+    let myEmpId = null;
+    if(!isOwner && myEmail){
+      const empRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id&Email_Id=ilike.${encodeURIComponent(myEmail)}&limit=1`,
+        { headers: SB_HDRS() }
+      );
+      const empRows = await empRes.json();
+      myEmpId = empRows && empRows[0] ? String(empRows[0].Emp_id || empRows[0].emp_id || '').trim() : null;
+      if(!myEmpId){ _tasksSyncing=false; return; }
     }
 
+    // Tasks fetch - dono ke liye date filter, paginated
+    let tasksBaseUrl2;
+    if(isOwner){
+      tasksBaseUrl2 = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
+               + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
+               + `&order=planned_date.desc`;
+    } else {
+      tasksBaseUrl2 = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
+               + `&emp_id=eq.${encodeURIComponent(myEmpId)}`
+               + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
+               + `&order=planned_date.desc`;
+    }
+
+    const tasks = await tFetchAllPages(tasksBaseUrl2);
+    if(!Array.isArray(tasks)) throw new Error('Bad response');
+
+    // Employee_details batch fetch
+    const empIdSet = [...new Set(tasks.map(r=>String(r.emp_id||'').trim()).filter(Boolean))];
+    let empMap = {};
+    if(empIdSet.length > 0){
+      const edRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id,Employee_name,Employee_Dept,Email_Id,Location&Emp_id=in.(${empIdSet.join(',')})`,
+        { headers: SB_HDRS() }
+      );
+      const edRows = await edRes.json();
+      if(Array.isArray(edRows)){
+        edRows.forEach(r=>{
+          const id = String(r.Emp_id || r.emp_id || '').trim();
+          if(id) empMap[id] = {
+            name:  String(r.Employee_name || '').trim(),
+            dept:  String(r.Employee_Dept || '').trim(),
+            email: String(r.Email_Id || '').trim(),
+            loc:   String(r.Location || '').trim(),
+          };
+        });
+      }
+    }
+
+    const newData = tasks.map(r => {
+      const empId = String(r.emp_id || '').trim();
+      const ed = empMap[empId] || {};
+      return {
+        'Name':       ed.name  || empId || '',
+        'Email':      ed.email || '',
+        'Department': ed.dept  || '',
+        'Task ID':    String(r.sheet_task_id || '').trim(),
+        'Freq':       String(r.frequency || '').trim(),
+        'Task':       String(r.task_name || '').trim(),
+        'Planned':    String(r.planned_date || r.planned_data || '').trim(),
+        'Actual':     String(r.actual_timestamp || '').trim(),
+        'Status':     r.actual_timestamp ? 'Done' : 'Pending',
+        'Remarks':    String(r.remarks || '').trim(),
+        '_location':  ed.loc || String(r.branch_id || '').trim(),
+        '_id':        r.id,
+      };
+    });
+
     newData.forEach(r=>{ r['_tDate']=tParseDate(r['Planned']); });
-
     tAllData = newData;
-    tApplyDoneTasks(); // short-TTL localStorage overrides
+    tApplyDoneTasks();
 
-    // 0 tasks hain to Dashboards accordion bhi hide karo (employee ke liye)
-    if(CURRENT_USER && CURRENT_USER.role!=='owner'){
+    const _notOwner = !isOwner;
+    if(CURRENT_USER && _notOwner){
       if(tAllData.length===0){
         const navTasks=document.getElementById('nav-tasks');
         if(navTasks)navTasks.style.display='none';
@@ -7830,7 +7546,6 @@ async function tSilentRefresh(){
           if(card.textContent.includes('Task Checklist'))card.style.display='none';
         });
       } else {
-        // Tasks wapas aa gaye to tabs restore karo
         const navTasks=document.getElementById('nav-tasks');
         if(navTasks)navTasks.style.display='';
         const navDash=document.getElementById('nav-dashboards-trigger');
@@ -7841,25 +7556,18 @@ async function tSilentRefresh(){
       }
     }
 
-    // Preserve filters + page
     const prevPage = tPage || 1;
     tFiltered = tGetFiltered();
     const maxPage = Math.max(1, Math.ceil(tFiltered.length / T_PER_PAGE));
     tPage = Math.min(prevPage, maxPage);
 
-    // Destroy + rebuild charts (to avoid stale chart state)
     Object.values(tCharts).forEach(c=>c&&c.destroy&&c.destroy()); tCharts={};
-    tRenderKPIs();
-    tRenderCharts();
-    tRenderTable();
-    tUpdateBadge();
-    // Refresh home task banner after live sync
+    tRenderKPIs(); tRenderCharts(); tRenderTable(); tUpdateBadge();
     updateHomeTaskBanner();
     const syncBadge = document.getElementById('tLastSyncBadge');
     if(syncBadge) syncBadge.textContent = '✓ Synced ' + new Date().toLocaleTimeString();
     const refreshBtn = document.getElementById('tForceRefreshBtn');
-    if(refreshBtn){ refreshBtn.textContent=''; refreshBtn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Refresh'; refreshBtn.disabled=false; refreshBtn.style.opacity='1'; }
-
+    if(refreshBtn){ refreshBtn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Refresh'; refreshBtn.disabled=false; refreshBtn.style.opacity='1'; }
     const sync = document.getElementById('tasksSync');
     if(sync) sync.textContent='Live · '+new Date().toLocaleTimeString();
     _tasksLastSync = Date.now();
@@ -7914,8 +7622,8 @@ let _usersFetchPromise=null;
 function warmupAPIs(){
   // Pre-fetch users list so login is instant
   _usersFetchPromise=fetch(USERS_URL).then(r=>r.json()).then(data=>{_usersCache=data;return data;}).catch(()=>null);
-  // Warm-up ping to all other Google Apps Scripts (fire & forget)
-  [L_URL,C_URL,TASK_API,SUPPORT_API,SALES_API,FMS_API,GUJARAT_API,GOA_API,BANGALORE_API].forEach(url=>{
+  // Warm-up ping to other Google Apps Scripts (fire & forget) — Task Checklist ab Supabase se hai
+  [L_URL,C_URL,FMS_API].forEach(url=>{
     fetch(url+'?ping=1',{method:'GET',mode:'cors'}).catch(()=>{});
   });
 }
@@ -7938,9 +7646,6 @@ window.addEventListener('load',function(){
         CURRENT_USER.role='owner';
         localStorage.setItem('aditiUser',JSON.stringify(CURRENT_USER));
       }
-      // Hardcoded branch map se location override karo (cached user ke liye bhi)
-      const _savedMapLoc = BRANCH_EMPLOYEE_MAP[(CURRENT_USER.name||'').toLowerCase().trim()];
-      if(_savedMapLoc) CURRENT_USER.location = _savedMapLoc;
       // Cached empId restore karo (_canUploadQuiz ke liye)
       if (CURRENT_USER.empId) _actEmpId = CURRENT_USER.empId;
       showPortal();
@@ -8027,8 +7732,6 @@ async function doLogin(){
         name:String(user['Name']||user['name']||email.split('@')[0]),
         location:String(user['Location']||user['location']||user['Branch']||user['branch']||'').trim()
       };
-      const _mapLoc=BRANCH_EMPLOYEE_MAP[(CURRENT_USER.name||'').toLowerCase().trim()];
-      if(_mapLoc) CURRENT_USER.location=_mapLoc;
       localStorage.setItem('aditiUser',JSON.stringify(CURRENT_USER));
       localStorage.setItem('aditiLoginTime',Date.now().toString());
       localStorage.removeItem('annSeenIds'); // Reset announcement count on each login
