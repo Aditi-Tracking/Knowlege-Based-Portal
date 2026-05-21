@@ -6558,15 +6558,6 @@ function fmsExportCSV(){
 
 // NOTE: Google Form submissions removed — task status updates directly to Supabase DB.
 
-// ── IST (Mumbai) Timestamp Helper — Task Checklist only ──
-// toISOString() UTC deta hai jo 5:30 hrs peeche hota hai, isliye IST fix kiya hai
-function getISTTimestamp() {
-  const now = new Date();
-  const istOffsetMs = 5.5 * 60 * 60 * 1000; // IST = UTC+5:30
-  const istDate = new Date(now.getTime() + istOffsetMs);
-  return istDate.toISOString().slice(0, 19) + '+05:30';
-}
-
 // ── Supabase REST API: Task done mark karo ──
 async function markTaskDone(rowId, remarks) {
   try {
@@ -6576,7 +6567,7 @@ async function markTaskDone(rowId, remarks) {
         method: 'PATCH',
         headers: SB_HDRS_JSON(),
         body: JSON.stringify({
-          actual_timestamp: getISTTimestamp(),
+          actual_timestamp: new Date().toISOString(),
           remarks: remarks || null
         })
       }
@@ -6627,8 +6618,18 @@ async function tFetchAllPages(baseUrl){
 
 
 async function loadTasks(overrideDateFrom, overrideDateTo){
-  document.getElementById('tasksLoad').style.display='flex';
-  document.getElementById('tasksCont').style.display='none';
+  // Loader overlay — content hide mat karo, sirf dim karo (no jerk/flash)
+  const _tasksCont = document.getElementById('tasksCont');
+  const _isFirstLoad = !window._tasksEverLoaded;
+  if(_isFirstLoad){
+    document.getElementById('tasksLoad').style.display='flex';
+    _tasksCont.style.display='none';
+  } else {
+    document.getElementById('tasksLoad').style.display='none';
+    _tasksCont.style.opacity='0.45';
+    _tasksCont.style.pointerEvents='none';
+    _tasksCont.style.transition='opacity 0.2s';
+  }
   try{
     const _rawRole = CURRENT_USER ? (CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim() : '';
     const isOwner = CURRENT_USER && (
@@ -6758,13 +6759,20 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
 
     tAllData.forEach(r=>{ r['_tDate']=tParseDate(r['Planned']); });
     tProcessData();
+    window._tasksEverLoaded = true;
     document.getElementById('tasksLoad').style.display='none';
-    document.getElementById('tasksCont').style.display='block';
+    const _tc = document.getElementById('tasksCont');
+    _tc.style.display='block';
+    _tc.style.opacity='1';
+    _tc.style.pointerEvents='';
     document.getElementById('tasksSync').textContent='Updated '+new Date().toLocaleTimeString();
 
   }catch(e){
     document.getElementById('tasksLoad').style.display='none';
-    document.getElementById('tasksCont').style.display='block';
+    const _tcErr = document.getElementById('tasksCont');
+    _tcErr.style.display='block';
+    _tcErr.style.opacity='1';
+    _tcErr.style.pointerEvents='';
     document.getElementById('tTblBody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--hot)">❌ ${e.message}</td></tr>`;
   }
 }
@@ -7149,9 +7157,12 @@ function tApply(){
   const locEl=document.getElementById('tFLocation');
   const loc=locEl?locEl.value:'';
 
-  // Date change hone pe DONO ke liye server se re-fetch karo
+  // Date change hone pe DONO ke liye server se re-fetch karo — debounced (no jerk)
   if(dateFrom !== tActiveDateFrom || dateTo !== tActiveDateTo){
-    loadTasks(dateFrom || undefined, dateTo || undefined);
+    clearTimeout(window._tDateFilterTimer);
+    window._tDateFilterTimer = setTimeout(()=>{
+      loadTasks(dateFrom || undefined, dateTo || undefined);
+    }, 400);
     return;
   }
 
@@ -7225,37 +7236,28 @@ function fmtDate(val){
   }catch(e){return s;}
 }
 
-// ── Task Checklist Actual column ke liye — Date + Time dono dikhao ──
+// ── Task Checklist Actual column — UTC → IST (Mumbai +5:30) display ──
 function fmtDateTime(val){
   if(!val||val==='—'||val==='') return '—';
-  const s=String(val).trim();
-  // Already formatted DD/MM/YYYY HH:MM:SS → as-is
-  if(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/.test(s)) return s;
-  // Already formatted DD/MM/YYYY (only date, no time) → as-is
-  if(/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
-  // ISO datetime: 2025-05-21T13:00:00+05:30 or 2025-05-21T07:30:00.000Z
-  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  if(iso){
-    // +05:30 wala IST direct use karo, Z wala UTC hai to convert karo
-    if(s.endsWith('+05:30') || s.includes('+05:30')){
-      return `${iso[3]}/${iso[2]}/${iso[1]} ${iso[4]}:${iso[5]}`;
-    } else {
-      // UTC → IST convert (browser ke through)
-      try{
-        const d=new Date(s);
-        const day=String(d.getDate()).padStart(2,'0');
-        const mon=String(d.getMonth()+1).padStart(2,'0');
-        const yr=d.getFullYear();
-        const hr=String(d.getHours()).padStart(2,'0');
-        const mn=String(d.getMinutes()).padStart(2,'0');
-        return `${day}/${mon}/${yr} ${hr}:${mn}`;
-      }catch(e){return s;}
-    }
-  }
-  // Pure date only
-  const dateOnly = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if(dateOnly) return `${dateOnly[3]}/${dateOnly[2]}/${dateOnly[1]}`;
-  return s;
+  try{
+    let s = String(val).trim();
+    if(!s) return '—';
+    // Supabase plain timestamp column 'Z' ya '+00:00' nahi deta
+    // Browser bina timezone ke string ko LOCAL time maanta hai (IST)
+    // Isliye 'Z' append karo — force UTC parsing
+    if(!/[Zz]|[+-]\d{2}:?\d{2}$/.test(s)) s += 'Z';
+    const d = new Date(s);
+    if(isNaN(d.getTime())) return String(val);
+    // UTC + 5:30 = IST
+    const istMs = d.getTime() + (330 * 60 * 1000);
+    const ist   = new Date(istMs);
+    const dd    = String(ist.getUTCDate()).padStart(2,'0');
+    const mon   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][ist.getUTCMonth()];
+    const yr    = ist.getUTCFullYear();
+    const hh    = String(ist.getUTCHours()).padStart(2,'0');
+    const mn    = String(ist.getUTCMinutes()).padStart(2,'0');
+    return `${dd} ${mon} ${yr}, ${hh}:${mn}`;
+  }catch(e){ return String(val); }
 }
 
 function tRenderTable(){
@@ -7447,7 +7449,19 @@ function deptSubmitDone(taskId, src){
       }
     });
   });
-  setTimeout(()=>{ tRenderKPIs(); tRenderCharts(); tRenderTable(); updateHomeTaskBanner&&updateHomeTaskBanner(); }, 200);
+  // Surgical DOM update — sirf is row ke cells update, puri table re-render nahi (no jerk)
+  const _actEl = document.getElementById('act_' + tid);
+  if(_actEl){
+    _actEl.innerHTML = '<span style="color:#00d4aa;font-size:0.85rem;font-weight:600">✅ Done</span>';
+    const _row = _actEl.closest('tr');
+    if(_row){
+      const _stTd = _row.cells[5]; // Status column
+      if(_stTd) _stTd.innerHTML = '<span class="badge" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.25)">✅ Done</span>';
+      const _acTd = _row.cells[4]; // Actual column
+      if(_acTd){ _acTd.style.color='#00d4aa'; _acTd.textContent=fmtDateTime(now.toISOString()); }
+    }
+  }
+  setTimeout(()=>{ tRenderKPIs(); updateHomeTaskBanner&&updateHomeTaskBanner(); }, 200);
   tSaveDoneTask(tid, actualForDisplay);
 
   // ── Supabase REST API se update karo (id se match karke) ──
@@ -7459,7 +7473,7 @@ function deptSubmitDone(taskId, src){
         method: 'PATCH',
         headers: SB_HDRS_JSON(),
         body: JSON.stringify({
-          actual_timestamp: getISTTimestamp(),
+          actual_timestamp: now.toISOString(),
           remarks: remarks || null
         })
       }
