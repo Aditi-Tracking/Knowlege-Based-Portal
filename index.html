@@ -6558,6 +6558,15 @@ function fmsExportCSV(){
 
 // NOTE: Google Form submissions removed — task status updates directly to Supabase DB.
 
+// ── IST (Mumbai) Timestamp Helper — Task Checklist only ──
+// toISOString() UTC deta hai jo 5:30 hrs peeche hota hai, isliye IST fix kiya hai
+function getISTTimestamp() {
+  const now = new Date();
+  const istOffsetMs = 5.5 * 60 * 60 * 1000; // IST = UTC+5:30
+  const istDate = new Date(now.getTime() + istOffsetMs);
+  return istDate.toISOString().slice(0, 19) + '+05:30';
+}
+
 // ── Supabase REST API: Task done mark karo ──
 async function markTaskDone(rowId, remarks) {
   try {
@@ -6567,7 +6576,7 @@ async function markTaskDone(rowId, remarks) {
         method: 'PATCH',
         headers: SB_HDRS_JSON(),
         body: JSON.stringify({
-          actual_timestamp: new Date().toISOString(),
+          actual_timestamp: getISTTimestamp(),
           remarks: remarks || null
         })
       }
@@ -7216,6 +7225,39 @@ function fmtDate(val){
   }catch(e){return s;}
 }
 
+// ── Task Checklist Actual column ke liye — Date + Time dono dikhao ──
+function fmtDateTime(val){
+  if(!val||val==='—'||val==='') return '—';
+  const s=String(val).trim();
+  // Already formatted DD/MM/YYYY HH:MM:SS → as-is
+  if(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/.test(s)) return s;
+  // Already formatted DD/MM/YYYY (only date, no time) → as-is
+  if(/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+  // ISO datetime: 2025-05-21T13:00:00+05:30 or 2025-05-21T07:30:00.000Z
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if(iso){
+    // +05:30 wala IST direct use karo, Z wala UTC hai to convert karo
+    if(s.endsWith('+05:30') || s.includes('+05:30')){
+      return `${iso[3]}/${iso[2]}/${iso[1]} ${iso[4]}:${iso[5]}`;
+    } else {
+      // UTC → IST convert (browser ke through)
+      try{
+        const d=new Date(s);
+        const day=String(d.getDate()).padStart(2,'0');
+        const mon=String(d.getMonth()+1).padStart(2,'0');
+        const yr=d.getFullYear();
+        const hr=String(d.getHours()).padStart(2,'0');
+        const mn=String(d.getMinutes()).padStart(2,'0');
+        return `${day}/${mon}/${yr} ${hr}:${mn}`;
+      }catch(e){return s;}
+    }
+  }
+  // Pure date only
+  const dateOnly = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(dateOnly) return `${dateOnly[3]}/${dateOnly[2]}/${dateOnly[1]}`;
+  return s;
+}
+
 function tRenderTable(){
   const start=(tPage-1)*T_PER_PAGE;
   const pg=tFiltered.slice(start,start+T_PER_PAGE);
@@ -7252,7 +7294,7 @@ function tRenderTable(){
       <td style="font-size:0.88rem;color:var(--muted);text-align:center;font-weight:600">${r['Task ID']||'—'}</td>
       <td style="font-size:0.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Task']||'').replace(/"/g,'')}">${r['Task']||'—'}</td>
       <td style="font-size:0.85rem;color:var(--muted)">${fmtDate(r['Planned'])}</td>
-      <td style="font-size:0.85rem;color:${r['Actual']?'#00d4aa':'var(--muted)'}">${fmtDate(r['Actual'])}</td>
+      <td style="font-size:0.85rem;color:${r['Actual']?'#00d4aa':'var(--muted)'}">${fmtDateTime(r['Actual'])}</td>
       <td>${statusBadge}</td>
       <td>${remarkCell}</td>
       <td style="white-space:nowrap;max-width:140px;overflow:hidden;" id="act_${r['Task ID']||''}">${actionCell}</td>
@@ -7417,7 +7459,7 @@ function deptSubmitDone(taskId, src){
         method: 'PATCH',
         headers: SB_HDRS_JSON(),
         body: JSON.stringify({
-          actual_timestamp: now.toISOString(),
+          actual_timestamp: getISTTimestamp(),
           remarks: remarks || null
         })
       }
