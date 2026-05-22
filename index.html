@@ -6683,12 +6683,12 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
     if(isOwner){
       tasksBaseUrl = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
                    + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
-                   + `&order=planned_date.desc`;
+                   + `&order=planned_date.desc,id.asc`;
     } else {
       tasksBaseUrl = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
                    + `&emp_id=eq.${encodeURIComponent(myEmpId)}`
                    + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
-                   + `&order=planned_date.desc`;
+                   + `&order=planned_date.desc,id.asc`;
     }
 
     const tasks = await tFetchAllPages(tasksBaseUrl);
@@ -7459,6 +7459,15 @@ function deptSubmitDone(taskId, src){
       if(_stTd) _stTd.innerHTML = '<span class="badge" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.25)">✅ Done</span>';
       const _acTd = _row.cells[4]; // Actual column
       if(_acTd){ _acTd.style.color='#00d4aa'; _acTd.textContent=fmtDateTime(now.toISOString()); }
+      // FIX: Remarks cell turant update karo — delay nahi aayegi
+      const _remTd = _row.cells[6]; // Remarks column
+      if(_remTd){
+        if(remarks){
+          _remTd.innerHTML = '<span style="font-size:0.82rem;color:var(--text);background:var(--surface2);padding:3px 7px;border-radius:5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+remarks.replace(/"/g,'')+'">'+ remarks +'</span>';
+        } else {
+          _remTd.innerHTML = '<span style="color:var(--muted);font-size:0.82rem">—</span>';
+        }
+      }
     }
   }
   setTimeout(()=>{ tRenderKPIs(); updateHomeTaskBanner&&updateHomeTaskBanner(); }, 200);
@@ -7533,12 +7542,12 @@ async function tSilentRefresh(){
     if(isOwner){
       tasksBaseUrl2 = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
                + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
-               + `&order=planned_date.desc`;
+               + `&order=planned_date.desc,id.asc`;
     } else {
       tasksBaseUrl2 = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
                + `&emp_id=eq.${encodeURIComponent(myEmpId)}`
                + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
-               + `&order=planned_date.desc`;
+               + `&order=planned_date.desc,id.asc`;
     }
 
     const tasks = await tFetchAllPages(tasksBaseUrl2);
@@ -7586,7 +7595,21 @@ async function tSilentRefresh(){
     });
 
     newData.forEach(r=>{ r['_tDate']=tParseDate(r['Planned']); });
-    tAllData = newData;
+
+    // FIX: In-place merge — existing rows ki position preserve karo (niche shift nahi hoga)
+    const newDataMap = new Map(newData.map(r => [r['_id'], r]));
+    const existingIds = new Set(tAllData.map(r => r['_id']));
+    // Existing rows in-place update karo
+    tAllData.forEach((r, i) => {
+      const updated = newDataMap.get(r['_id']);
+      if(updated) Object.assign(tAllData[i], updated);
+    });
+    // Naye rows add karo (jo pehle nahi the)
+    newData.forEach(r => { if(!existingIds.has(r['_id'])) tAllData.push(r); });
+    // Delete hue rows hatao
+    const newIds = new Set(newData.map(r => r['_id']));
+    tAllData = tAllData.filter(r => newIds.has(r['_id']));
+
     tApplyDoneTasks();
 
     const _notOwner = !isOwner;
@@ -7618,7 +7641,12 @@ async function tSilentRefresh(){
     tPage = Math.min(prevPage, maxPage);
 
     Object.values(tCharts).forEach(c=>c&&c.destroy&&c.destroy()); tCharts={};
-    tRenderKPIs(); tRenderCharts(); tRenderTable(); tUpdateBadge();
+    tRenderKPIs(); tRenderCharts();
+    // FIX: Agar koi remarks input active hai (user type kar raha hai), table re-render skip karo
+    // — warna user ka inline input gayab ho jayega (task "disappears" bug)
+    const _hasActiveInput = !!document.querySelector('[id^="dept_rem_"]');
+    if(!_hasActiveInput){ tRenderTable(); }
+    tUpdateBadge();
     updateHomeTaskBanner();
     const syncBadge = document.getElementById('tLastSyncBadge');
     if(syncBadge) syncBadge.textContent = '✓ Synced ' + new Date().toLocaleTimeString();
