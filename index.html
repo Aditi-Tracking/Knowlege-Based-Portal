@@ -16,6 +16,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
+<!-- ══ Supabase JS SDK ══ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
 <!-- ══ OneSignal Web Push ══ -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
@@ -5659,6 +5662,14 @@ function initHistory(){
   history.replaceState({panel:'home'},'','');
 }
 
+// ── Supabase constants + header helpers (defined early — used throughout) ──
+const SUPABASE_URL  = 'https://rramdtpabwjsndgkohbi.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyYW1kdHBhYndqc25kZ2tvaGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDQ4ODUsImV4cCI6MjA5MTQ4MDg4NX0.hpdTOkhRrbqmbPM6VJWEtz2oEjkeXAjYJQS9rgzheec';
+const SB_HDRS      = () => ({ 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' });
+const SB_HDRS_JSON = () => ({ ...SB_HDRS(), 'Content-Type': 'application/json' });
+const SB_HDRS_REPR = () => ({ ...SB_HDRS_JSON(), 'Prefer': 'return=representation' });
+const SB_HDRS_MIN  = () => ({ ...SB_HDRS_JSON(), 'Prefer': 'return=minimal' });
+
 // ═══════════════════════════════════
 // LEAD TRACKING DASHBOARD
 // ═══════════════════════════════════
@@ -7696,45 +7707,42 @@ setInterval(function(){
 // ═══════════════════════════════════
 // LOGIN SYSTEM
 // ═══════════════════════════════════
-const USERS_URL='https://script.google.com/macros/s/AKfycbzCIRFpQ97olQ1Yfoj5EJBSSXQg5jI3gHuaQ8l69IjPZ6n-mkwi9xPb7DB5CWi53nE/exec';
-let CURRENT_USER=null;
+// USERS_URL (Google Sheet) removed — employee data now fetched from Supabase Employee_details table
+
+// ── Supabase Auth Client ──
+const _sbAuth = window.supabase.createClient(
+  'https://rramdtpabwjsndgkohbi.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyYW1kdHBhYndqc25kZ2tvaGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDQ4ODUsImV4cCI6MjA5MTQ4MDg4NX0.hpdTOkhRrbqmbPM6VJWEtz2oEjkeXAjYJQS9rgzheec'
+);
+
+// ── Auth state listener (token refresh, logout detect) ──
+_sbAuth.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_OUT' || !session) {
+    CURRENT_USER = null;
+  }
+  if (event === 'TOKEN_REFRESHED') {
+    console.log('✅ Supabase session refreshed');
+  }
+});
 
 // Cache for pre-fetched user list
-let _usersCache=null;
-let _usersFetchPromise=null;
+let CURRENT_USER = null;
 
 function warmupAPIs(){
-  // Pre-fetch users list so login is instant
-  _usersFetchPromise=fetch(USERS_URL).then(r=>r.json()).then(data=>{_usersCache=data;return data;}).catch(()=>null);
-  // Warm-up ping to other Google Apps Scripts (fire & forget) — Task Checklist ab Supabase se hai
+  // Warm-up ping to Google Apps Scripts (fire & forget)
   [L_URL,C_URL,FMS_API].forEach(url=>{
     fetch(url+'?ping=1',{method:'GET',mode:'cors'}).catch(()=>{});
   });
 }
 
-window.addEventListener('load',function(){
-  const saved=localStorage.getItem('aditiUser');
-  const loginTime=localStorage.getItem('aditiLoginTime');
-  const THIRTY_DAYS=30*24*60*60*1000; // 30 din milliseconds mein
-  if(saved){
-    // Check karo 30 din se zyada hua hai kya
-    if(loginTime && (Date.now()-parseInt(loginTime)) > THIRTY_DAYS){
-      // 30 din baad auto logout (security)
-      localStorage.removeItem('aditiUser');
-      localStorage.removeItem('aditiLoginTime');
-    } else {
-      CURRENT_USER=JSON.parse(saved);
-      // Re-normalize managing director rawRole (stale localStorage fix)
-      if((CURRENT_USER.rawRole||'').toLowerCase().trim()==='managing director'){
-        CURRENT_USER.rawRole='owner';
-        CURRENT_USER.role='owner';
-        localStorage.setItem('aditiUser',JSON.stringify(CURRENT_USER));
-      }
-      // Cached empId restore karo (_canUploadQuiz ke liye)
-      if (CURRENT_USER.empId) _actEmpId = CURRENT_USER.empId;
-      showPortal();
+window.addEventListener('load', async function(){
+  try {
+    const { data: { session } } = await _sbAuth.auth.getSession();
+    if (session) {
+      await _loadUserProfile(session.user);
+      return;
     }
-  }
+  } catch(e) { console.warn('Session check error:', e); }
   // Always warm up APIs in background
   warmupAPIs();
 });
@@ -7744,6 +7752,72 @@ function togglePass(){
   const e=document.getElementById('eyeIcon');
   if(p.type==='password'){p.type='text';e.textContent='🙈';}
   else{p.type='password';e.textContent='👁️';}
+}
+
+// ── Load user profile — Auth + Data both from Supabase Employee_details ──
+async function _loadUserProfile(authUser) {
+  try {
+    let empData = null;
+
+    // Supabase Employee_details table se email match karke data lo
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Employee_Dept,Location,Email_Id&Email_Id=ilike.${encodeURIComponent(authUser.email)}&limit=1`,
+        { headers: SB_HDRS() }
+      );
+      const rows = await res.json();
+      if (Array.isArray(rows) && rows.length > 0) {
+        empData = rows[0];
+      }
+    } catch(e) {
+      console.warn('Supabase Employee_details fetch failed:', e);
+    }
+
+    const _rawR = String(
+      (empData && empData['Employee_Dept']) || 'employee'
+    ).trim().toLowerCase();
+    const _fullAccessRoles = ['managing director','mis','pc','executive assistant','ea'];
+
+    CURRENT_USER = {
+      email:    authUser.email,
+      role:     _fullAccessRoles.includes(_rawR) ? 'owner' : 'employee',
+      rawRole:  _rawR === 'managing director' ? 'owner'
+                : _rawR === 'ea' ? 'executive assistant'
+                : _rawR,
+      name:     empData
+                  ? String(empData['Employee_name'] || authUser.email.split('@')[0])
+                  : authUser.email.split('@')[0],
+      location: empData
+                  ? String(empData['Location'] || '').trim()
+                  : ''
+    };
+
+    showPortal();
+    warmupAPIs();
+    _actLoginTime = Date.now();
+    _fetchAndCacheEmpId().then(() => {
+      logActivity({
+        event_type:   'login',
+        event_detail: `User logged in: ${CURRENT_USER.name || CURRENT_USER.email}`,
+        page_name:    'home',
+        metadata:     { role: CURRENT_USER.rawRole, location: CURRENT_USER.location }
+      });
+    });
+    setTimeout(maybeLoadHolidayCard, 800);
+
+  } catch(e) {
+    console.error('Profile load error:', e);
+    // Fallback — basic info se portal dikhao
+    CURRENT_USER = {
+      email:    authUser.email,
+      role:     'employee',
+      rawRole:  'employee',
+      name:     authUser.email.split('@')[0],
+      location: ''
+    };
+    showPortal();
+    warmupAPIs();
+  }
 }
 
 async function doLogin(){
@@ -7769,76 +7843,32 @@ async function doLogin(){
     btn.disabled=false;
   };
 
-  try{
-    let users=null;
-
-    // Try from cache first
-    if(_usersCache){
-      users=_usersCache;
-    } else if(_usersFetchPromise){
-      try{ users=await _usersFetchPromise; }catch(e){ users=null; }
-    }
-
-    // Fresh fetch if cache missing or failed
-    if(!users || !Array.isArray(users) || users.length===0){
-      try{
-        const res=await fetch(USERS_URL,{cache:'no-store'});
-        if(!res.ok) throw new Error('HTTP '+res.status);
-        const data=await res.json();
-        if(Array.isArray(data) && data.length>0){
-          users=data;
-          _usersCache=data;
-        } else {
-          throw new Error('Empty user list returned from server');
-        }
-      }catch(fetchErr){
-        err.style.display='block';
-        err.innerHTML='⚠️ Could not connect to server.<br><small style="opacity:0.8">Check internet connection and try again.<br>Error: '+fetchErr.message+'</small>';
-        resetBtn();
-        return;
-      }
-    }
-
-    // Find user by email + password
-    const user=users.find(u=>{
-      const uEmail=String(u['Email']||u['email']||'').trim().toLowerCase();
-      const uPass =String(u['Password']||u['Passoword']||u['password']||'').trim();
-      return uEmail===email && uPass===pass;
+  try {
+    // ✅ Supabase Auth — secure, hashed passwords
+    const { data, error } = await _sbAuth.auth.signInWithPassword({
+      email: email,
+      password: pass
     });
 
-    if(user){
-      const _rawR=String(user['Role']||user['role']||'employee').trim().toLowerCase();
-      const _fullAccessRoles=['managing director','mis','pc','executive assistant','ea'];
-      CURRENT_USER={
-        email:email,
-        role:_fullAccessRoles.includes(_rawR)?'owner':'employee',
-        rawRole:_rawR==='managing director'?'owner':_rawR==='ea'?'executive assistant':_rawR,
-        name:String(user['Name']||user['name']||email.split('@')[0]),
-        location:String(user['Location']||user['location']||user['Branch']||user['branch']||'').trim()
-      };
-      localStorage.setItem('aditiUser',JSON.stringify(CURRENT_USER));
-      localStorage.setItem('aditiLoginTime',Date.now().toString());
-      localStorage.removeItem('annSeenIds'); // Reset announcement count on each login
-      showPortal();
-      _actLoginTime = Date.now();
-      // Fetch numeric Emp_id first, then log the login event
-      _fetchAndCacheEmpId().then(() => {
-        logActivity({ event_type:'login', event_detail:`User logged in: ${CURRENT_USER.name||CURRENT_USER.email}`,
-                      page_name:'home', metadata:{ role: CURRENT_USER.rawRole, location: CURRENT_USER.location } });
-      });
-      setTimeout(maybeLoadHolidayCard,800);
-    } else {
-      // Check if email exists (to give better error)
-      const emailExists=users.some(u=>String(u['Email']||u['email']||'').trim().toLowerCase()===email);
+    if (error) {
       err.style.display='block';
-      err.textContent=emailExists
-        ? '❌ Wrong password! Please try again.'
-        : '❌ Email not found. Please check your email ID.';
+      if (error.message.includes('Invalid login') || error.message.includes('invalid_grant')) {
+        err.textContent = '❌ Incorrect email or password. Please try again.';
+      } else if (error.message.includes('Email not confirmed')) {
+        err.textContent = '📧 Please confirm your email address before logging in.';
+      } else {
+        err.textContent = '❌ Login failed: ' + error.message;
+      }
       resetBtn();
+      return;
     }
-  }catch(e){
+
+    // Login successful — load profile
+    await _loadUserProfile(data.user);
+
+  } catch(e) {
     err.style.display='block';
-    err.innerHTML='⚠️ Something went wrong.<br><small style="opacity:0.8">'+e.message+'</small>';
+    err.innerHTML='⚠️ Network error.<br><small style="opacity:0.8">Please check your internet connection and try again.</small>';
     resetBtn();
   }
 }
@@ -8148,7 +8178,13 @@ function doLogout(){
     logActivity({ event_type:'logout', event_detail:'User logged out: '+(CURRENT_USER?(CURRENT_USER.name||CURRENT_USER.email):''),
                   session_duration_seconds:totalSecs, logout_at: new Date().toISOString() });
   } catch(e) {}
-  setTimeout(()=>{ localStorage.removeItem('aditiUser'); localStorage.removeItem('aditiLoginTime'); CURRENT_USER=null; location.reload(); }, 400);
+  setTimeout(async ()=>{ 
+    try { await _sbAuth.auth.signOut(); } catch(e) {}
+    localStorage.removeItem('aditiUser'); 
+    localStorage.removeItem('aditiLoginTime'); 
+    CURRENT_USER=null; 
+    location.reload(); 
+  }, 400);
 }
 function mobMenuGo(panel){
   // update active highlight in mobile menu
@@ -9091,13 +9127,7 @@ async function loadMISDBQuizzes() {
 }
 
 // ── Supabase Config ──
-const SUPABASE_URL  = 'https://rramdtpabwjsndgkohbi.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyYW1kdHBhYndqc25kZ2tvaGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDQ4ODUsImV4cCI6MjA5MTQ4MDg4NX0.hpdTOkhRrbqmbPM6VJWEtz2oEjkeXAjYJQS9rgzheec';
-// ── Global Supabase header helpers (use these everywhere) ──
-const SB_HDRS      = () => ({ 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' });
-const SB_HDRS_JSON = () => ({ ...SB_HDRS(), 'Content-Type': 'application/json' });
-const SB_HDRS_REPR = () => ({ ...SB_HDRS_JSON(), 'Prefer': 'return=representation' });
-const SB_HDRS_MIN  = () => ({ ...SB_HDRS_JSON(), 'Prefer': 'return=minimal' });
+// ── Global Supabase header helpers (defined early — see initHistory block above) ──
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ACTIVITY TRACKING SYSTEM
@@ -18879,6 +18909,87 @@ async function deletePortalUpdate(id) {
     alert('Delete error: ' + (e.message || 'Please try again.'));
   }
 }
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     IDLE SESSION TIMEOUT — 3 Hours Auto-Logout
+     No activity for 3 hours → auto logout.
+     Warning shown 5 minutes before logout.
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+(function initIdleTimeout() {
+  const IDLE_LIMIT  = 3 * 60 * 60 * 1000;  // 3 hours idle = logout
+  const WARN_BEFORE = 5  * 60 * 1000;       // warn 5 minutes before logout
+
+  let lastActivity = Date.now();
+  let warnShown    = false;
+  let logoutDone   = false;
+
+  ['click', 'keydown', 'scroll', 'touchstart'].forEach(ev => {
+    document.addEventListener(ev, () => {
+      lastActivity = Date.now();
+      if (warnShown) {
+        warnShown  = false;
+        logoutDone = false;
+        const w = document.getElementById('_idleWarn');
+        if (w) { w.style.opacity = '0'; setTimeout(() => w && w.remove(), 300); }
+      }
+    }, { passive: true });
+  });
+
+  function showIdleWarning() {
+    if (warnShown) return;
+    warnShown = true;
+    const w = document.createElement('div');
+    w.id = '_idleWarn';
+    w.style.cssText = `
+      position:fixed;bottom:28px;right:24px;z-index:999990;
+      background:#1e1b14;border:1.5px solid #f0a500;
+      border-radius:16px;padding:16px 20px;
+      font-family:'DM Sans',sans-serif;
+      box-shadow:0 8px 32px rgba(0,0,0,0.55);
+      display:flex;align-items:flex-start;gap:13px;
+      opacity:0;transition:opacity 0.35s;max-width:340px;
+    `;
+    w.innerHTML = `
+      <span style="font-size:1.6rem;line-height:1;margin-top:2px;">⏱️</span>
+      <div style="flex:1;">
+        <div style="font-size:0.92rem;font-weight:700;color:#f0a500;margin-bottom:4px;">Session Expiring Soon</div>
+        <div style="font-size:0.81rem;color:#c8cdd8;line-height:1.5;">
+          You will be automatically logged out in <strong style="color:#fff;">5 minutes</strong> due to inactivity.
+        </div>
+        <div style="font-size:0.78rem;color:#8a909e;margin-top:5px;">Click anywhere to stay logged in.</div>
+      </div>
+      <button onclick="(function(){var w=document.getElementById('_idleWarn');if(w){w.style.opacity='0';setTimeout(function(){w&&w.remove();},300);}})()"
+        style="background:none;border:none;color:#8a909e;cursor:pointer;font-size:1.1rem;padding:0;line-height:1;margin-top:2px;flex-shrink:0;">✕</button>
+    `;
+    document.body.appendChild(w);
+    requestAnimationFrame(() => w.style.opacity = '1');
+  }
+
+  function doIdleLogout() {
+    if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return;
+    if (logoutDone) return;
+    logoutDone = true;
+    const w = document.getElementById('_idleWarn');
+    if (w) w.remove();
+    if (typeof showToast === 'function') {
+      showToast('🔒 Session expired due to inactivity. Please log in again.', 'warning', 5000);
+    }
+    setTimeout(() => {
+      if (typeof doLogout === 'function') doLogout();
+      else { _sbAuth.auth.signOut().catch(() => {}); location.reload(); }
+    }, 1800);
+  }
+
+  setInterval(() => {
+    if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return;
+    const idleMs = Date.now() - lastActivity;
+    if (!warnShown  && idleMs >= (IDLE_LIMIT - WARN_BEFORE)) showIdleWarning();
+    if (!logoutDone && idleMs >= IDLE_LIMIT)                  doIdleLogout();
+  }, 10000);
+})();
 </script>
 
 </body>
