@@ -5218,8 +5218,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         style="display:none;width:100%;height:100%;background:#000;object-fit:contain;position:absolute;top:0;left:0;z-index:3;">
         Your browser does not support the video tag.
       </video>
-      <!-- RIGHT-CLICK BLOCKER: pointer-events auto = right-click block; wheel/touch pe turant pointer-events:none hota hai taaki native scroll fast kaam kare -->
-      <div id="iframe-rcb" style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:10;background:transparent;pointer-events:auto;overscroll-behavior:contain;touch-action:pan-y;"></div>
+
     </div>
     </div>
   </div>
@@ -5464,7 +5463,7 @@ async function uploadProfilePhoto(file) {
     const bucket   = 'Employee_Photos';
     const hdrs = {
       'apikey': SUPABASE_ANON,
-      'Authorization': `Bearer ${SUPABASE_ANON}`,
+      'Authorization': `Bearer ${_currentToken}`,
       'Content-Type': file.type,
       'Cache-Control': '3600',
       'x-upsert': 'true'   // agar file already hai toh overwrite karo
@@ -5493,7 +5492,7 @@ async function uploadProfilePhoto(file) {
         method: 'PATCH',
         headers: {
           'apikey': SUPABASE_ANON,
-          'Authorization': `Bearer ${SUPABASE_ANON}`,
+          'Authorization': `Bearer ${_currentToken}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=minimal'
         },
@@ -5665,10 +5664,19 @@ function initHistory(){
 // ── Supabase constants + header helpers (defined early — used throughout) ──
 const SUPABASE_URL  = 'https://rramdtpabwjsndgkohbi.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyYW1kdHBhYndqc25kZ2tvaGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDQ4ODUsImV4cCI6MjA5MTQ4MDg4NX0.hpdTOkhRrbqmbPM6VJWEtz2oEjkeXAjYJQS9rgzheec';
-const SB_HDRS      = () => ({ 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' });
+// ── Auth token — login ke baad user JWT yahan save hota hai ──
+let _currentToken = SUPABASE_ANON; // default: anon; login hone pe user JWT set hoga
+
+// SB_HDRS ab _currentToken use karta hai — authenticated RLS policies kaam karengi
+// SB_HDRS_JSON / SB_HDRS_REPR / SB_HDRS_MIN sab inhi se extend hote hain — auto-fix!
+const SB_HDRS      = () => ({ 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${_currentToken}`, 'Accept': 'application/json' });
 const SB_HDRS_JSON = () => ({ ...SB_HDRS(), 'Content-Type': 'application/json' });
 const SB_HDRS_REPR = () => ({ ...SB_HDRS_JSON(), 'Prefer': 'return=representation' });
 const SB_HDRS_MIN  = () => ({ ...SB_HDRS_JSON(), 'Prefer': 'return=minimal' });
+
+// SB_HDRS_AUTH alias — purana code jo SB_HDRS_AUTH() use karta hai vo bhi kaam kare
+const SB_HDRS_AUTH      = SB_HDRS;
+const SB_HDRS_AUTH_JSON = SB_HDRS_JSON;
 
 // ═══════════════════════════════════
 // LEAD TRACKING DASHBOARD
@@ -7719,6 +7727,10 @@ const _sbAuth = window.supabase.createClient(
 _sbAuth.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_OUT' || !session) {
     CURRENT_USER = null;
+    _currentToken = SUPABASE_ANON; // reset to anon on logout
+  }
+  if (session?.access_token) {
+    _currentToken = session.access_token; // ✅ user JWT save — RLS authenticated policies kaam karengi
   }
   if (event === 'TOKEN_REFRESHED') {
     console.log('✅ Supabase session refreshed');
@@ -7739,6 +7751,7 @@ window.addEventListener('load', async function(){
   try {
     const { data: { session } } = await _sbAuth.auth.getSession();
     if (session) {
+      _currentToken = session.access_token; // ✅ page reload pe bhi token set karo
       await _loadUserProfile(session.user);
       return;
     }
@@ -7863,7 +7876,8 @@ async function doLogin(){
       return;
     }
 
-    // Login successful — load profile
+    // Login successful — token pehle set karo, phir profile load karo
+    _currentToken = data.session.access_token; // ✅ PEHLE token set — RLS pass hogi
     await _loadUserProfile(data.user);
 
   } catch(e) {
@@ -9256,7 +9270,7 @@ async function logActivity(data) {
 
     const hdrs = {
       'apikey': SUPABASE_ANON,
-      'Authorization': `Bearer ${SUPABASE_ANON}`,
+      'Authorization': `Bearer ${_currentToken}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=minimal'
     };
@@ -9371,15 +9385,24 @@ window.addEventListener('beforeunload', () => {
   if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return;
   const totalSecs = Math.round((Date.now() - _actLoginTime) / 1000);
   _actStopVideoTracking();
-  navigator.sendBeacon(`${SUPABASE_URL}/rest/v1/activity_logs`,
-    new Blob([JSON.stringify({
+  // sendBeacon can't send auth headers — use fetch with keepalive instead (RLS ke liye zaroori)
+  fetch(`${SUPABASE_URL}/rest/v1/activity_logs`, {
+    method: 'POST',
+    keepalive: true,
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': `Bearer ${_currentToken}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({
       emp_id: CURRENT_USER.email || CURRENT_USER.name,
       event_type: 'page_unload', event_detail: 'Browser tab closed / navigated away',
       session_id: _ACT_SESSION_ID, device: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?'mobile':'desktop',
       page_name: _actPageName, session_duration_seconds: totalSecs,
       logout_at: new Date().toISOString(), metadata: { unload: true }
-    })], {type:'application/json'})
-  );
+    })
+  }).catch(()=>{});
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -9411,6 +9434,10 @@ const CN = {
 
   // ── Fetch both tables ────────────────────────────────────────────────
   async load() {
+    // ✅ Smart reset: agar pehle load empty aaya tha (anon token se) toh dobara fetch karo
+    if (this.loaded && this.nodes.length === 0) {
+      this.loaded = false;
+    }
     if (this.loaded) return;
     if (this.loading) return new Promise(res => this.callbacks.push(res));
     this.loading = true;
@@ -10302,7 +10329,7 @@ async function handleMediclaimFileSelected(e) {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_ANON,
-        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Authorization': `Bearer ${_currentToken}`,
         'Content-Type': file.type || 'application/octet-stream',
         'x-upsert': 'false'
       },
@@ -10330,7 +10357,7 @@ async function handleMediclaimFileSelected(e) {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_ANON,
-        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Authorization': `Bearer ${_currentToken}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
@@ -11395,8 +11422,6 @@ function openFileViewer(url, title){
     if(mask)  mask.style.display  = 'none';
     if(mask2) mask2.style.display = 'none';
     // Training video jaisa exact approach — static HTML element, direct src set, sirf load()
-    var rcb = document.getElementById('iframe-rcb');
-    if(rcb) rcb.style.display = 'none'; // video ke upar overlay nahi chahiye — clicks block hote the
     var vid = document.getElementById('file-viewer-video');
     vid.style.display = 'block';
     pauseAllVideosExcept('file-viewer-video');
@@ -11404,8 +11429,6 @@ function openFileViewer(url, title){
     vid.load();      // sirf load — no autoplay (training video approach)
   } else {
     // Document / folder → iframe with embeddable URL
-    var rcb = document.getElementById('iframe-rcb');
-    if(rcb) rcb.style.display = 'block'; // iframe ke liye right-click blocker wapas on
     var vid = document.getElementById('file-viewer-video');
     if(vid){ try{vid.pause();}catch(e){} vid.removeAttribute('src'); vid.load(); vid.style.display='none'; }
 
@@ -11456,8 +11479,6 @@ function closeFileViewer(){
   if(frame) frame.src = 'about:blank';
   var vid = document.getElementById('file-viewer-video');
   if(vid){ try{vid.pause();}catch(e){} vid.removeAttribute('src'); vid.load(); vid.style.display='none'; }
-  var rcb = document.getElementById('iframe-rcb');
-  if(rcb) rcb.style.display = 'block'; // next open ke liye restore
   document.getElementById('file-viewer-overlay').style.display = 'none';
   document.body.style.overflow = '';
 }
@@ -11467,18 +11488,11 @@ document.getElementById('file-viewer-overlay').addEventListener('click', functio
   if(e.target === this) closeFileViewer();
 });
 
-// Escape key closes; block Ctrl+S / Ctrl+P / Ctrl+A when viewer is open
+// Escape key closes file viewer
 document.addEventListener('keydown', function(e){
   var ov = document.getElementById('file-viewer-overlay');
   var isOpen = ov && ov.style.display === 'flex';
   if(e.key === 'Escape' && isOpen){ closeFileViewer(); return; }
-  if(isOpen && (e.ctrlKey || e.metaKey)){
-    var k = (e.key||'').toLowerCase();
-    if(k === 's' || k === 'p' || k === 'a'){
-      e.preventDefault();
-      return false;
-    }
-  }
 });
 
 /* Auto-intercept: any <a> tag pointing to drive.google.com or docs.google.com
@@ -11494,134 +11508,6 @@ document.addEventListener('click', function(e){
   openFileViewer(a.href, title);
 });
 
-/* ─────────────────────────────────────────────────────────────
-   IFRAME RIGHT-CLICK BLOCKER v6 — Fast Native Scroll + Right-Click Block
-   
-   Technique:
-   1. Overlay pointer-events:auto → right-click hamesha block
-   2. Wheel/touch event aate hi → pointer-events:none (passive listener)
-      → native browser scroll direct iframe pe jaata hai, zero lag
-   3. NO preventDefault, NO synthetic re-dispatch (cross-origin iframe pe
-      kaam hi nahi karta tha — pehla tick hamesha lost ho raha tha)
-   4. 2000ms timeout — continuous scrolling me overlay re-engage nahi hota,
-      isliye periodic tick loss nahi hota (ye pehle wali problem thi)
-   5. Mouse iframe se bahar nikalne pe overlay turant auto (smart reset)
-   ───────────────────────────────────────────────────────────── */
-(function(){
-  function setupOverlay(){
-    var overlay = document.getElementById('iframe-rcb');
-    var iframe  = document.getElementById('file-viewer-frame');
-    if(!overlay || !iframe) return;
-
-    var scrollTimer = null;
-
-    /* Right-click block */
-    overlay.addEventListener('contextmenu', function(e){
-      e.preventDefault(); e.stopPropagation(); return false;
-    }, true);
-
-    /* Left-click: hatao briefly taaki iframe click le */
-    overlay.addEventListener('mousedown', function(e){
-      if(e.button === 2){ e.preventDefault(); e.stopPropagation(); return false; }
-      overlay.style.pointerEvents = 'none';
-      setTimeout(function(){ overlay.style.pointerEvents = 'auto'; }, 350);
-    }, true);
-
-    /* Wheel / Scroll handler — native smooth scroll (FAST)
-       Strategy: overlay ko turant transparent karo taaki wheel events iframe ko
-       naturally jaayen. preventDefault NAHI karte — passive:true browser ki
-       native scroll optimization on rakhta hai.
-       Timeout 2000ms — continuous scrolling me overlay re-engage nahi hota,
-       koi tick lost nahi hota. User scroll rok ke 2 sec wait kare toh overlay
-       wapas auto ho jaata hai right-click protection ke liye. */
-    overlay.addEventListener('wheel', function(){
-      overlay.style.pointerEvents = 'none';
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(function(){
-        scrollTimer = null;
-        overlay.style.pointerEvents = 'auto';
-      }, 2000);
-    }, { passive: true });
-
-    /* Touch scroll fix — mobile/tablet pe overlay bypass karo
-       Mobile mein right-click hota hi nahi, toh safely pass through kar sakte hain */
-    overlay.addEventListener('touchstart', function(){
-      overlay.style.pointerEvents = 'none';
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(function(){
-        scrollTimer = null;
-        overlay.style.pointerEvents = 'auto';
-      }, 2000);
-    }, { passive: true });
-
-    overlay.addEventListener('touchend', function(){
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(function(){
-        scrollTimer = null;
-        overlay.style.pointerEvents = 'auto';
-      }, 1000);
-    }, { passive: true });
-
-    /* Smart reset: jab mouse iframe area se bahar jaata hai, overlay turant
-       wapas auto kar do. Iska fayda — scroll ke baad user mouse nikalega
-       to right-click protection immediately restore ho jaati hai,
-       2 sec wait nahi karna padta. */
-    var body = document.getElementById('file-viewer-body');
-    if(body){
-      body.addEventListener('mouseleave', function(){
-        clearTimeout(scrollTimer);
-        scrollTimer = null;
-        overlay.style.pointerEvents = 'auto';
-      });
-    }
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', setupOverlay);
-  } else {
-    setupOverlay();
-  }
-})();
-
-/* ─────────────────────────────────────────────────────────────
-   DOCUMENT PROTECTION
-   Right-click, Save (Ctrl+S), Print (Ctrl+P) disable karein
-   ───────────────────────────────────────────────────────────── */
-
-// Right-click sirf PDF viewer iframe pe block hai (overlay via #iframe-rcb)
-// Baaki poori website par right-click allow hai
-
-// Keyboard shortcuts block karo (Ctrl+S = Save, Ctrl+P = Print)
-document.addEventListener('keydown', function(e) {
-  var key = e.key || e.keyCode;
-  // Ctrl+S / Cmd+S — Save As
-  if ((e.ctrlKey || e.metaKey) && (key === 's' || key === 'S' || key === 83)) {
-    e.preventDefault();
-    return false;
-  }
-  // Ctrl+P / Cmd+P — Print
-  if ((e.ctrlKey || e.metaKey) && (key === 'p' || key === 'P' || key === 80)) {
-    e.preventDefault();
-    return false;
-  }
-  // Ctrl+Shift+S — Save As (some browsers)
-  if ((e.ctrlKey || e.metaKey) && e.shiftKey && (key === 's' || key === 'S' || key === 83)) {
-    e.preventDefault();
-    return false;
-  }
-});
-
-// Print dialog bhi block karo (CSS via media query)
-var noPrintStyle = document.createElement('style');
-noPrintStyle.innerHTML = '@media print { body { display: none !important; } }';
-document.head.appendChild(noPrintStyle);
-
-// beforeprint event bhi block karo
-window.addEventListener('beforeprint', function(e) {
-  e.preventDefault ? e.preventDefault() : (e.returnValue = false);
-  window.stop && window.stop();
-});
-
 // ══════════════════════════════════════════════════════════
 // HOLIDAY LIST  — Supabase fetch, location-wise filter
 // ══════════════════════════════════════════════════════════
@@ -11631,7 +11517,7 @@ let _holidayFetched = false;
 async function loadHolidayCard() {
   if (_holidayFetched) { renderHolidayCard(); return; }
   try {
-    const hdrs = SB_HDRS();
+    const hdrs = SB_HDRS_AUTH(); // ✅ user JWT token use hoga — RLS pass hogi
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/Holiday%20List?select=*&order=Date.asc`,
       { headers: hdrs }
@@ -12045,7 +11931,7 @@ async function createCardOnly() {
 
   const hdrs = {
     'apikey':        SUPABASE_ANON,
-    'Authorization': `Bearer ${SUPABASE_ANON}`,
+    'Authorization': `Bearer ${_currentToken}`,
     'Content-Type':  'application/json',
     'Prefer':        'return=representation'
   };
@@ -12375,7 +12261,7 @@ async function submitUpload() {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', storageUrl);
         xhr.setRequestHeader('apikey', SUPABASE_ANON);
-        xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON}`);
+        xhr.setRequestHeader('Authorization', `Bearer ${_currentToken}`);
         xhr.setRequestHeader('Content-Type', currentFile.type || 'application/octet-stream');
         xhr.setRequestHeader('x-upsert', 'false');
         xhr.upload.onprogress = (ev) => {
@@ -13084,7 +12970,7 @@ async function actLogTestConnection() {
   const res_el = document.getElementById('actlog-test-result');
   if (res_el) res_el.innerHTML = '<span style="color:var(--muted);">⏳ Testing...</span>';
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/activity_logs?select=id,emp_id,event_type,page_name,card_name&limit=1`, { headers: SB_HDRS() });
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/activity_logs?select=id,emp_id,event_type,page_name,card_name&limit=1`, { headers: SB_HDRS_AUTH() });
     if (r.ok) {
       const d = await r.json();
       // Check if new columns exist
@@ -13114,7 +13000,7 @@ async function actLogSendTestEvent() {
   const res_el = document.getElementById('actlog-test-result');
   if (res_el) res_el.innerHTML = '<span style="color:var(--muted);">⏳ Sending test log...</span>';
   try {
-    const hdrs = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+    const hdrs = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${_currentToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
 
     // Try full payload
     const fullP = { emp_id: CURRENT_USER?.email || 'test', event_type: 'login', event_detail: 'Test event from Activity Log panel',
@@ -13184,7 +13070,7 @@ async function loadActivityLog(forceRefresh) {
     try {
       const res1 = await fetch(
         `${SUPABASE_URL}/rest/v1/activity_logs?select=*,employee:Employee_details!emp_id(Employee_name)&order=created_at.desc&limit=2000`,
-        { headers: SB_HDRS() }
+        { headers: SB_HDRS_AUTH() }
       );
       if (res1.ok) {
         const data = await res1.json();
@@ -13196,7 +13082,7 @@ async function loadActivityLog(forceRefresh) {
     if (!rows) {
       const res2 = await fetch(
         `${SUPABASE_URL}/rest/v1/activity_logs?select=*&order=created_at.desc&limit=2000`,
-        { headers: SB_HDRS() }
+        { headers: SB_HDRS_AUTH() }
       );
       if (!res2.ok) throw new Error('HTTP ' + res2.status);
       const data2 = await res2.json();
