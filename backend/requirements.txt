@@ -1,0 +1,4 @@
+requests
+supabase
+schedule
+urllib3
