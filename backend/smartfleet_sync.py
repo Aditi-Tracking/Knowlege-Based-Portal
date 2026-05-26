@@ -4,18 +4,17 @@ from supabase import create_client
 import os
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# ================================================================
 # CONFIGURATION
 # On Railway: set these as Environment Variables
 # For local testing: fill them in directly below
-# ================================================================
+
 SUPABASE_URL     = os.environ.get("SUPABASE_URL",     "")
 SUPABASE_KEY     = os.environ.get("SUPABASE_KEY",     "")
 PREMIUM_USERNAME = os.environ.get("PREMIUM_USERNAME", "")
 PREMIUM_PASSWORD = os.environ.get("PREMIUM_PASSWORD", "")
 PRO_USERNAME     = os.environ.get("PRO_USERNAME",     "")
 PRO_PASSWORD     = os.environ.get("PRO_PASSWORD",     "")
-# ================================================================
+
 
 SYNC_EVERY_MINUTES = 15
 
@@ -94,7 +93,7 @@ def pull_vehicles(server, token, session):
                     return raw[k]
         return []
     except Exception as e:
-        print(f"  ❌ Pull error ({server['name']}): {e}")
+        print(f"   Pull error ({server['name']}): {e}")
         return []
 
 
@@ -209,7 +208,7 @@ def sync_all():
 
     try:
         supabase.rpc("refresh_customer_crm").execute()
-        print("\n  CRM updated ✅")
+        print("\n  CRM updated ")
     except Exception as e:
         print(f"\n  CRM error: {e}")
 
