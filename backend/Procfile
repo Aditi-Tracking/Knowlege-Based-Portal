@@ -1,0 +1,1 @@
+worker: python smartfleet_sync.py
