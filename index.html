@@ -632,7 +632,7 @@
 
   /* ── KPI CARDS ── */
   .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:20px;}
-  #tKpiGrid{grid-template-columns:repeat(5,1fr) !important;}
+  #tKpiGrid{grid-template-columns:repeat(6,1fr) !important;}
   .kpi-card{
     background:var(--surface);border:1px solid var(--border);
     border-radius:var(--radius);padding:18px 14px 14px;
@@ -1126,7 +1126,7 @@
     .sidebar-logo { font-size: 0.7rem; padding: 16px 10px; text-align: center; }
     .nav-item { justify-content: center; margin: 2px 4px; padding: 10px; }
     .kpi-grid { grid-template-columns: repeat(3, 1fr) !important; }
-    #tKpiGrid  { grid-template-columns: repeat(5, 1fr) !important; }
+    #tKpiGrid  { grid-template-columns: repeat(3, 1fr) !important; }
     .charts-grid, .charts-grid2, .charts-grid4 { grid-template-columns: 1fr 1fr !important; }
     .insights-grid { grid-template-columns: 1fr 1fr !important; }
     .home-cards { grid-template-columns: repeat(3, 1fr) !important; }
@@ -4672,6 +4672,10 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     </div>
     <div class="header-right">
       
+      <button class="refresh-btn" id="tasksUploadViewBtn" onclick="tShowAllUploads()" style="display:none;background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.3);color:#00d4aa;gap:5px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Uploaded Files
+      </button>
       <button class="refresh-btn" onclick="refreshTasks()" id="tasksRefBtn"><span id="tasksRefIco"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></span> Refresh</button>
       <div class="last-sync" id="tasksSync">—</div>
     </div>
@@ -4742,6 +4746,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <option value="">All Status</option>
         <option value="done">✅ Done</option>
         <option value="pending">⏳ Pending</option>
+        <option value="ongoing">🔄 Ongoing</option>
       </select>
       <button class="reset-btn" onclick="tClearAll()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset</button>
     </div>
@@ -4753,17 +4758,18 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <span id="tLastSyncBadge" style="font-size:0.72rem;color:var(--muted);margin-left:4px;"></span>
         <span class="table-count" id="tTblCnt" style="margin-left:auto">—</span>
       </div>
-      <div class="table-scroll" style="overflow-x:auto">
-        <table style="width:100%;table-layout:fixed;min-width:780px">
+      <div class="table-scroll" style="overflow-x:hidden">
+        <table style="width:100%;table-layout:fixed;">
           <colgroup>
-            <col style="width:14%">
+            <col style="width:10%">
+            <col style="width:6%">
+            <col style="width:17%">
+            <col style="width:9%">
+            <col style="width:8%">
             <col style="width:7%">
-            <col style="width:25%">
-            <col style="width:10%">
-            <col style="width:11%">
-            <col style="width:10%">
-            <col style="width:10%">
             <col style="width:13%">
+            <col style="width:12%">
+            <col style="width:8%">
           </colgroup>
           <thead><tr>
             <th>NAME</th>
@@ -4771,9 +4777,10 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
             <th>TASK</th>
             <th>PLANNED</th>
             <th>ACTUAL</th>
-            <th>STATUS</th>
             <th>REMARKS</th>
             <th>ACTION</th>
+            <th>ONGOING</th>
+            <th style="text-align:left;padding-left:6px;">UPLOAD</th>
           </tr></thead>
           <tbody id="tTblBody"></tbody>
         </table>
@@ -6697,24 +6704,31 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
       }
     }
 
-    // ── Step 2: Tasks fetch with pagination ──
+    // ── Step 2: Tasks fetch — ek hi query mein planned tasks + pending ongoing tasks ──
+    // OR condition: (planned_date in range) OR (ongoing >= fetchFrom AND not done)
+    // Yeh single query dono cases handle karta hai — koi second fetch nahi chahiye
+    // OR condition: planned tasks + ongoing tasks due IN this date range + tasks completed on view date
+    const orFilter = `or=(and(planned_date.gte.${fetchFrom},planned_date.lte.${fetchTo}),and(ongoing.gte.${fetchFrom},ongoing.lte.${fetchTo},actual_timestamp.is.null),and(actual_timestamp.gte.${fetchFrom},actual_timestamp.lte.${fetchTo}T23:59:59))`;
     let tasksBaseUrl;
     if(isOwner){
       tasksBaseUrl = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
-                   + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
+                   + `&${orFilter}`
                    + `&order=planned_date.desc,id.asc`;
     } else {
       tasksBaseUrl = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
                    + `&emp_id=eq.${encodeURIComponent(myEmpId)}`
-                   + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
+                   + `&${orFilter}`
                    + `&order=planned_date.desc,id.asc`;
     }
 
     const tasks = await tFetchAllPages(tasksBaseUrl);
     if(!Array.isArray(tasks)) throw new Error('Tasks fetch failed');
 
+    // tasks = planned tasks + pending ongoing tasks (already merged in one query)
+    const mergedTasks = tasks;
+
     // ── Step 3: Employee_details batch fetch ──
-    const empIdSet = [...new Set(tasks.map(r=>String(r.emp_id||'').trim()).filter(Boolean))];
+    const empIdSet = [...new Set(mergedTasks.map(r=>String(r.emp_id||'').trim()).filter(Boolean))];
     let empMap = {};
     if(empIdSet.length > 0){
       const edRes = await fetch(
@@ -6735,23 +6749,30 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
       }
     }
 
-    // ── Step 4: Merge ──
-    tAllData = tasks.map(r => {
+    // ── Step 4: Build tAllData from merged tasks ──
+    tAllData = mergedTasks.map(r => {
       const empId = String(r.emp_id || '').trim();
       const ed = empMap[empId] || {};
+      // expected_date: YYYY-MM-DD → DD/MM/YYYY for display
+      const expRaw = r.ongoing ? String(r.ongoing).trim() : null;
+      const expParts = expRaw ? expRaw.split('-') : null;
+      const expDisplay = expParts && expParts.length===3 ? `${expParts[2]}/${expParts[1]}/${expParts[0]}` : null;
       return {
-        'Name':       ed.name  || empId || '',
-        'Email':      ed.email || '',
-        'Department': ed.dept  || '',
-        'Task ID':    String(r.sheet_task_id || '').trim(),
-        'Freq':       String(r.frequency || '').trim(),
-        'Task':       String(r.task_name || '').trim(),
-        'Planned':    String(r.planned_date || r.planned_data || '').trim(),
-        'Actual':     String(r.actual_timestamp || '').trim(),
-        'Status':     r.actual_timestamp ? 'Done' : 'Pending',
-        'Remarks':    String(r.remarks || '').trim(),
-        '_location':  ed.loc || String(r.branch_id || '').trim(),
-        '_id':        r.id,
+        'Name':             ed.name  || empId || '',
+        'Email':            ed.email || '',
+        'Department':       ed.dept  || '',
+        'Task ID':          String(r.sheet_task_id || '').trim(),
+        'Freq':             String(r.frequency || '').trim(),
+        'Task':             String(r.task_name || '').trim(),
+        'Planned':          String(r.planned_date || r.planned_data || '').trim(),
+        'Actual':           String(r.actual_timestamp || '').trim(),
+        'Status':           r.actual_timestamp ? 'Done' : 'Pending',
+        'Remarks':          String(r.remarks || '').trim(),
+        '_location':        ed.loc || String(r.branch_id || '').trim(),
+        '_id':              r.id,
+        '_expected_date':   expRaw,
+        '_expected_display':expDisplay,
+        '_upload_url':      r.upload ? String(r.upload).trim() : null,
       };
     });
 
@@ -6777,8 +6798,13 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
     }
 
     tAllData.forEach(r=>{ r['_tDate']=tParseDate(r['Planned']); });
+
+    // ── DB Sync: agar DB mein ongoing/upload NULL hai toh localStorage bhi clear karo ──
+    tSyncLocalStorageWithDB(tAllData);
+
     tProcessData();
     window._tasksEverLoaded = true;
+    tInitUploadsButton(); // Show 📂 Uploaded Files button for owner/MIS/Saajan
     document.getElementById('tasksLoad').style.display='none';
     const _tc = document.getElementById('tasksCont');
     _tc.style.display='block';
@@ -6792,7 +6818,7 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
     _tcErr.style.display='block';
     _tcErr.style.opacity='1';
     _tcErr.style.pointerEvents='';
-    document.getElementById('tTblBody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--hot)">❌ ${e.message}</td></tr>`;
+    document.getElementById('tTblBody').innerHTML=`<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--hot)">❌ ${e.message}</td></tr>`;
   }
 }
 
@@ -6850,12 +6876,13 @@ function updateHomeTaskBanner(){
     return;
   }
 
-  // Work with today's tasks only
-  const todayStr = new Date().toISOString().slice(0,10); // yyyy-mm-dd
-  const todayTasks = tAllData.filter(r => r['_tDate'] && r['_tDate'] === todayStr);
+  // Work with today's tasks — ongoing task sirf expected date (ongoing column) pe dikhega
+  const todayStr = new Date().toISOString().slice(0,10);
+  const todayAllTasks = tAllData.filter(r => tIsVisibleOnDate(r, todayStr));
+  const todayTasks = tGetCountableForDate(todayStr, todayAllTasks);
   const totalToday = todayTasks.length;
 
-  // If no tasks assigned today at all, hide banner
+  // If no countable tasks today, hide banner
   if(totalToday === 0){
     banner.style.display='none';
     return;
@@ -6917,10 +6944,26 @@ function tGetFiltered(){
     if(tActiveDept&&r['Department']!==tActiveDept) return false;
     if(tActiveLocation&&(r['_location']||'')!==tActiveLocation) return false;
     if(tActiveStatus==='done'&&!tIsDone(r)) return false;
-    if(tActiveStatus==='pending'&&tIsDone(r)) return false;
+    if(tActiveStatus==='pending'&&(tIsDone(r)||tIsOngoing(r))) return false;
+    if(tActiveStatus==='ongoing'&&(!tIsOngoing(r)||tIsDone(r))) return false;
     if(tActiveFreq&&String(r['Freq']||'').trim()!==tActiveFreq) return false;
-    if(tActiveDateFrom&&r['_tDate']&&r['_tDate']<tActiveDateFrom) return false;
-    if(tActiveDateTo&&r['_tDate']&&r['_tDate']>tActiveDateTo) return false;
+    // ── Date filter — ongoing: sirf expected date pe dikhao; done: actual date pe ──
+    if(tActiveDateFrom || tActiveDateTo){
+      const df = tActiveDateFrom || '0000-01-01';
+      const dt = tActiveDateTo   || '9999-12-31';
+      if(tIsOngoing(r)){
+        // Ongoing task: original planned date se HAAT ke expected date (ongoing column) pe aao
+        const exp = r['_expected_date'] || r['_tDate'] || '';
+        if(exp < df || exp > dt) return false;
+      } else if(tIsDone(r)){
+        // Done task: actual completion date se match karo
+        const actRaw = String(r['Actual']||'').trim();
+        const actDate = actRaw ? actRaw.slice(0,10) : (r['_tDate']||'');
+        if(actDate < df || actDate > dt) return false;
+      } else {
+        if((r['_tDate']||'') < df || (r['_tDate']||'') > dt) return false;
+      }
+    }
     const q=(document.getElementById('tSearch').value||'').toLowerCase();
     if(q&&!((r['Name']||'').toLowerCase().includes(q)||(r['Task']||'').toLowerCase().includes(q)||(r['Department']||'').toLowerCase().includes(q))) return false;
     return true;
@@ -6930,24 +6973,38 @@ function tGetFiltered(){
 function tRenderKPIs(){
   // Use date-filtered data so KPIs match what the table shows
   const baseData = tGetDateFiltered();
-  const total=baseData.length;
-  const done=baseData.filter(r=>tIsDone(r)).length;
+  // ── Ongoing tasks are excluded; done ongoing tasks count on completion date ──
+  const ongoingTasks = baseData.filter(r=>tIsOngoing(r));
+  const ongoingCount = ongoingTasks.length;
+
+  // If single day view, use tGetCountableForDate for accurate score
+  // (ongoing task done today = +1 on today's count)
+  let countableData;
+  if(tActiveDateFrom && tActiveDateFrom === tActiveDateTo){
+    countableData = tGetCountableForDate(tActiveDateFrom, baseData);
+  } else {
+    countableData = baseData.filter(r=>!tIsOngoing(r));
+  }
+
+  const total=countableData.length;
+  const done=countableData.filter(r=>tIsDone(r)).length;
   const pending=total-done;
   const pct=total?Math.round((done/total)*100):0;
 
   // Unique employees (from date-filtered data)
   const uniqueEmp=[...new Set(baseData.map(r=>r['Name']).filter(Boolean))].length;
 
-  // Score = (completed / total * 100) - 100  → range: -100 to 0
+  // Score = (completed / countable_total * 100) - 100  → range: -100 to 0
   const score = total ? Math.round((done/total)*100) - 100 : -100;
   const scoreColor = score >= -10 ? '#00d4aa' : score >= -30 ? '#34d399' : score >= -50 ? '#4e9af1' : score >= -75 ? '#f0a500' : '#ff5c7c';
 
   const kpis=[
-    {id:'all',      label:'Total Tasks',      value:total,       color:'#a855f7', sub:'All records',           clickable:true},
+    {id:'all',      label:'Total Tasks',      value:total,       color:'#a855f7', sub:ongoingCount?ongoingCount+' ongoing excluded':'All records', clickable:true},
     {id:'done',     label:'Completed',        value:done,        color:'#00d4aa', sub:pct+'% completion',      clickable:true},
     {id:'pending',  label:'Pending',          value:pending,     color:'#f0a500', sub:(100-pct)+'% remaining', clickable:true},
+    {id:'ongoing',  label:'🔄 Ongoing',       value:ongoingCount,color:'#00d4ff', sub:'Click to view all',     clickable:true},
     {id:'emp',      label:'Total Employees',  value:uniqueEmp,   color:'#f472b6', sub:'Active members',        clickable:true},
-    {id:'score',    label:'Score',            value:score+'%',       color:scoreColor, sub:'Overall Rate',          clickable:true},
+    {id:'score',    label:'Score',            value:score+'%',   color:scoreColor, sub:ongoingCount?'Ongoing excluded':'Overall Rate', clickable:true},
   ];
 
   // Set grid to 5 columns — handled via CSS #tKpiGrid rule
@@ -6970,8 +7027,9 @@ function tKpiClick(id){
   if(tActiveKpi===id){tActiveKpi=null; tActiveStatus=null;}
   else{
     tActiveKpi=id;
-    if(id==='done') tActiveStatus='done';
-    else if(id==='pending') tActiveStatus='pending';
+    if(id==='done')    tActiveStatus='done';
+    else if(id==='pending')  tActiveStatus='pending';
+    else if(id==='ongoing')  tActiveStatus='ongoing';  // 🔄 Ongoing KPI click
     else tActiveStatus=null; // 'all', 'emp', 'score' → no status filter
   }
   tFiltered=tGetFiltered(); tPage=1;
@@ -7124,7 +7182,7 @@ function tUpdateBadge(){
   if(tActiveDept) parts.push(`<strong style="color:#a855f7">🏢 ${tActiveDept}</strong>`);
   if(tActiveLocation) parts.push(`<strong style="color:#06b6d4">📍 ${tActiveLocation}</strong>`);
   if(tActiveFreq) parts.push(`<strong style="color:#34d399">🔄 ${tActiveFreq}</strong>`);
-  if(tActiveStatus) parts.push(`<strong style="color:#f0a500">${tActiveStatus==='done'?'✅ Completed':'⏳ Pending'}</strong>`);
+  if(tActiveStatus) parts.push(`<strong style="color:#f0a500">${tActiveStatus==='done'?'✅ Completed':tActiveStatus==='ongoing'?'🔄 Ongoing':'⏳ Pending'}</strong>`);
   if(parts.length){
     badge.style.display='flex';
     badge.innerHTML='🎯 Filter: '+parts.join(' + ')+' <span onclick="tClearAll()" style="cursor:pointer;color:var(--hot);margin-left:8px;font-weight:600">✕ Clear All</span>';
@@ -7287,6 +7345,8 @@ function tRenderTable(){
   const buildPrefillUrl = function(r){ return null; };
   document.getElementById('tTblBody').innerHTML=pg.map((r,i)=>{
     const done=tIsDone(r);
+    const isOngoing=!done&&tIsOngoing(r);
+    const ongoingData=tGetOngoingData(r['Task ID']);
     const isSupport=(r['Department']||'').toLowerCase()==='support'||r['_source']==='support';
     // ── FIX (Goa): isSales check sirf HO Sales sheet ke liye chale, branch (goa/gujarat/bangalore)
     // ke Sales-dept rows ke liye nahi. Branch employees pre-filled Google Form direct kholenge,
@@ -7297,11 +7357,13 @@ function tRenderTable(){
     const isSales=!isBranch && _src==='sales';
     const statusBadge=done
       ?'<span class="badge" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.25)">✅ Done</span>'
+      :isOngoing
+      ?'<span class="badge" style="background:rgba(0,212,255,0.12);color:#00d4ff;border:1px solid rgba(0,212,255,0.25)">🔄 Ongoing</span>'
       :'<span class="badge" style="background:rgba(240,165,0,0.1);color:#f0a500;border:1px solid rgba(240,165,0,0.2)">⏳ Pending</span>';
     const actionCell=done
-      ?`<span style="color:#00d4aa;font-size:0.85rem;font-weight:600">✅ Done</span>`
+      ?`<span style="color:#00d4aa;font-size:0.84rem;font-weight:700;display:flex;align-items:center;gap:4px;">✅ Done</span>`
       :`<button data-dept-tid="${r['Task ID']||''}" onclick="deptShowRemarksInput('${r['Task ID']||''}','${_src}')"
-            style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:7px 10px;font-size:0.82rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 8px rgba(168,85,247,0.4)">
+            style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:6px 8px;font-size:0.78rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 6px rgba(168,85,247,0.3);transition:all 0.18s;">
             ✅ Mark Done
           </button>`;
     const remarks = r['Remarks']||'';
@@ -7310,15 +7372,57 @@ function tRenderTable(){
       : `<span style="color:var(--muted);font-size:0.82rem">—</span>`;
     const deptColor = (r['Department']||'').toLowerCase()==='support' ? '#00d4ff' : (r['Department']||'').toLowerCase()==='sales' ? '#00d4aa' : '#a855f7';
     const deptBg = (r['Department']||'').toLowerCase()==='support' ? 'rgba(0,212,255,0.1)' : (r['Department']||'').toLowerCase()==='sales' ? 'rgba(0,212,170,0.1)' : 'rgba(168,85,247,0.1)';
+    const ongoingCell = done
+      ? `<span style="color:#00d4aa;font-size:0.82rem;font-weight:600">✅ Done</span>`
+      : isOngoing
+      ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
+           <span style="color:#00d4ff;font-size:0.80rem;font-weight:700">🔄 Ongoing</span>
+           ${ongoingData&&ongoingData.expectedDate?`<span style="color:var(--muted);font-size:0.71rem;font-weight:500">📅 ${ongoingData.expectedDate}</span>`:''}
+         </div>`
+      : `<button id="ong_${r['Task ID']||''}" onclick="tShowOngoing('${r['Task ID']||''}','${_src}')"
+           style="background:rgba(0,212,255,0.08);border:1.5px solid rgba(0,212,255,0.3);color:#00d4ff;border-radius:8px;padding:6px 8px;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;width:100%;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.18s;">
+           🔄 Ongoing
+         </button>`;
+    const hasUpload = !!(r['_upload_url'] || tGetUploadCount(r['Task ID']||'') > 0);
+    const uploadUrl  = r['_upload_url'] || (() => { try{ const s=JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}'); const f=(s[String(r['Task ID']||'')]||[])[0]; return f?f.url:null; }catch(e){return null;} })();
+    const uploadCell = `
+      <input type="file" id="tfu_${r['Task ID']||''}" style="display:none;" accept="*/*"
+        onchange="tDirectUpload(this,'${r['Task ID']||''}')">
+      <div style="display:flex;align-items:center;justify-content:center;">
+        ${hasUpload && uploadUrl
+          ? `<a href="${uploadUrl}" target="_blank" rel="noopener" title="Uploaded file dekhein"
+               style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;
+                      background:rgba(0,212,170,0.12);border:1.5px solid rgba(0,212,170,0.4);
+                      border-radius:8px;text-decoration:none;font-size:1rem;cursor:pointer;transition:all 0.18s;"
+               onmouseover="this.style.background='rgba(0,212,170,0.25)'"
+               onmouseout="this.style.background='rgba(0,212,170,0.12)'">📄</a>`
+          : `<button id="tfu_btn_${r['Task ID']||''}" title="Upload file"
+               onclick="document.getElementById('tfu_${r['Task ID']||''}').click()"
+               style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;
+                      background:rgba(168,85,247,0.08);border:1.5px solid rgba(168,85,247,0.3);
+                      border-radius:8px;font-size:1rem;cursor:pointer;transition:all 0.18s;color:#a855f7;"
+               onmouseover="this.style.background='rgba(168,85,247,0.22)'"
+               onmouseout="this.style.background='rgba(168,85,247,0.08)'">📎</button>`
+        }
+      </div>`;
     return `<tr>
-      <td><div style="font-weight:600">${r['Name']||'—'}</div></td>
-      <td style="font-size:0.88rem;color:var(--muted);text-align:center;font-weight:600">${r['Task ID']||'—'}</td>
-      <td style="font-size:0.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Task']||'').replace(/"/g,'')}">${r['Task']||'—'}</td>
-      <td style="font-size:0.85rem;color:var(--muted)">${fmtDate(r['Planned'])}</td>
-      <td style="font-size:0.85rem;color:${r['Actual']?'#00d4aa':'var(--muted)'}">${fmtDateTime(r['Actual'])}</td>
-      <td>${statusBadge}</td>
-      <td>${remarkCell}</td>
-      <td style="white-space:nowrap;max-width:140px;overflow:hidden;" id="act_${r['Task ID']||''}">${actionCell}</td>
+      <td style="padding:8px 8px;"><div style="font-weight:600;font-size:0.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r['Name']||''}">${r['Name']||'—'}</div></td>
+      <td style="padding:8px 5px;font-size:0.82rem;color:var(--muted);text-align:center;font-weight:600">${r['Task ID']||'—'}</td>
+      <td style="padding:8px 8px;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Task']||'').replace(/"/g,'')}">${r['Task']||'—'}</td>
+      <td style="padding:9px 6px;font-size:0.82rem;color:${isOngoing?'#00d4ff':'var(--muted)'}">
+        ${isOngoing && r['_expected_date']
+          ? `<div style="display:flex;flex-direction:column;gap:1px;">
+               <span style="font-weight:700;">${fmtDate(r['_expected_date'])}</span>
+               <span style="font-size:0.70rem;color:var(--muted);">from ${fmtDate(r['Planned'])}</span>
+             </div>`
+          : fmtDate(r['Planned'])
+        }
+      </td>
+      <td style="padding:9px 6px;font-size:0.82rem;color:${r['Actual']?'#00d4aa':'var(--muted)'}">${fmtDateTime(r['Actual'])}</td>
+      <td style="padding:9px 6px;">${remarkCell}</td>
+      <td style="padding:7px 5px;" id="act_${r['Task ID']||''}">${actionCell}</td>
+      <td style="padding:7px 5px;" id="ong_td_${r['Task ID']||''}">${ongoingCell}</td>
+      <td style="padding:8px 4px;text-align:center;">${uploadCell}</td>
     </tr>`;
   }).join('');
 
@@ -7385,6 +7489,82 @@ function tApplyDoneTasks(){
 }
 
 // ── Date-aware base data for KPI & Charts ────────────────────────────
+// ── DB Sync: DB se NULL aane par localStorage bhi clear karo ────────────
+function tSyncLocalStorageWithDB(dataArr){
+  try{
+    const ongoingStore = JSON.parse(localStorage.getItem(ONGOING_KEY)||'{}');
+    const uploadStore  = JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}');
+    let ongoingChanged = false, uploadChanged = false;
+    dataArr.forEach(r=>{
+      const tid = String(r['Task ID']||'');
+      if(!tid) return;
+      // DB mein ongoing NULL hai → localStorage se bhi hatao
+      if(!r['_expected_date'] && ongoingStore[tid]){
+        delete ongoingStore[tid];
+        ongoingChanged = true;
+      }
+      // DB mein upload NULL hai → localStorage se bhi hatao
+      if(!r['_upload_url'] && uploadStore[tid]){
+        delete uploadStore[tid];
+        uploadChanged = true;
+      }
+    });
+    if(ongoingChanged) localStorage.setItem(ONGOING_KEY, JSON.stringify(ongoingStore));
+    if(uploadChanged)  localStorage.setItem('aditiTaskUploads', JSON.stringify(uploadStore));
+  }catch(e){}
+}
+
+// ── Ongoing Task Date Range Check ───────────────────────────────────────
+// Ongoing task un tamam dinon mein dikhega jab tak expected date na aa jaye
+// r['_tDate'] = planned date (YYYY-MM-DD)
+// r['_expected_date'] = expected completion date (YYYY-MM-DD)
+function tIsVisibleOnDate(r, dateStr){
+  const planned = r['_tDate'];
+  if(!planned) return false;
+
+  if(tIsDone(r)){
+    // Done task: jis din complete kiya uss din dikhao
+    const actualRaw = String(r['Actual']||'').trim();
+    if(actualRaw){
+      const actualDate = actualRaw.slice(0,10);
+      return actualDate === dateStr;
+    }
+    return planned === dateStr;
+  }
+
+  if(tIsOngoing(r)){
+    // Ongoing task: sirf expected date pe dikhao (original planned date se HAAT jao)
+    const exp = r['_expected_date'];
+    if(!exp) return planned === dateStr;
+    return exp === dateStr; // exact match only
+  }
+
+  // Normal pending: sirf planned date pe
+  return planned === dateStr;
+}
+
+// ── Ongoing done = us din +1 task count ─────────────────────────────────
+// Returns tasks that should be counted on a given date for score calculation
+function tGetCountableForDate(dateStr, dataArr){
+  return (dataArr||tAllData).filter(r=>{
+    if(tIsOngoing(r)) return false; // active ongoing = count nahi
+    if(tIsDone(r)){
+      // Done tasks: agar actual date = dateStr → count (even if planned != dateStr)
+      const actualRaw = String(r['Actual']||'').trim();
+      if(actualRaw){
+        const actualDate = actualRaw.slice(0,10);
+        if(actualDate === dateStr) return true; // completed today
+        // Original planned date pe bhi count (agar actual date match nahi)
+        return r['_tDate'] === dateStr;
+      }
+      return r['_tDate'] === dateStr;
+    }
+    // Pending: sirf planned date pe count
+    return r['_tDate'] === dateStr;
+  });
+}
+
+
 function tGetDateFiltered(){
   // KPI & Charts base data: date + person + dept + freq + location (NO status/kpi filter)
   return tAllData.filter(r=>{
@@ -7392,8 +7572,23 @@ function tGetDateFiltered(){
     if(tActiveDept&&r['Department']!==tActiveDept) return false;
     if(tActiveLocation&&(r['_location']||'')!==tActiveLocation) return false;
     if(tActiveFreq&&String(r['Freq']||'').trim()!==tActiveFreq) return false;
-    if(tActiveDateFrom&&r['_tDate']&&r['_tDate']<tActiveDateFrom) return false;
-    if(tActiveDateTo&&r['_tDate']&&r['_tDate']>tActiveDateTo) return false;
+    // ── Date filter — ongoing: sirf expected date pe dikhao; done: actual date pe ──
+    if(tActiveDateFrom || tActiveDateTo){
+      const df = tActiveDateFrom || '0000-01-01';
+      const dt = tActiveDateTo   || '9999-12-31';
+      if(tIsOngoing(r)){
+        // Ongoing task: original planned date se HAAT ke expected date (ongoing column) pe aao
+        const exp = r['_expected_date'] || r['_tDate'] || '';
+        if(exp < df || exp > dt) return false;
+      } else if(tIsDone(r)){
+        // Done task: actual completion date se match karo
+        const actRaw = String(r['Actual']||'').trim();
+        const actDate = actRaw ? actRaw.slice(0,10) : (r['_tDate']||'');
+        if(actDate < df || actDate > dt) return false;
+      } else {
+        if((r['_tDate']||'') < df || (r['_tDate']||'') > dt) return false;
+      }
+    }
     const q=(document.getElementById('tSearch')?document.getElementById('tSearch').value||'':'').toLowerCase();
     if(q&&!((r['Name']||'').toLowerCase().includes(q)||(r['Task']||'').toLowerCase().includes(q)||(r['Department']||'').toLowerCase().includes(q))) return false;
     return true;
@@ -7471,15 +7666,12 @@ function deptSubmitDone(taskId, src){
   // Surgical DOM update — sirf is row ke cells update, puri table re-render nahi (no jerk)
   const _actEl = document.getElementById('act_' + tid);
   if(_actEl){
-    _actEl.innerHTML = '<span style="color:#00d4aa;font-size:0.85rem;font-weight:600">✅ Done</span>';
+    _actEl.innerHTML = '<span style="color:#00d4aa;font-size:0.85rem;font-weight:700;display:flex;align-items:center;gap:4px;">✅ Done</span>';
     const _row = _actEl.closest('tr');
     if(_row){
-      const _stTd = _row.cells[5]; // Status column
-      if(_stTd) _stTd.innerHTML = '<span class="badge" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.25)">✅ Done</span>';
-      const _acTd = _row.cells[4]; // Actual column
+      const _acTd = _row.cells[4]; // Actual column (index 4)
       if(_acTd){ _acTd.style.color='#00d4aa'; _acTd.textContent=fmtDateTime(now.toISOString()); }
-      // FIX: Remarks cell turant update karo — delay nahi aayegi
-      const _remTd = _row.cells[6]; // Remarks column
+      const _remTd = _row.cells[5]; // Remarks column (index 5, STATUS hata diya)
       if(_remTd){
         if(remarks){
           _remTd.innerHTML = '<span style="font-size:0.82rem;color:var(--text);background:var(--surface2);padding:3px 7px;border-radius:5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+remarks.replace(/"/g,'')+'">'+ remarks +'</span>';
@@ -7487,6 +7679,9 @@ function deptSubmitDone(taskId, src){
           _remTd.innerHTML = '<span style="color:var(--muted);font-size:0.82rem">—</span>';
         }
       }
+      // Ongoing column bhi Done dikhao
+      const _ongTd = _row.cells[7]; // Ongoing column (index 7)
+      if(_ongTd) _ongTd.innerHTML = '<span style="color:#00d4aa;font-size:0.82rem;font-weight:600">✅ Done</span>';
     }
   }
   setTimeout(()=>{ tRenderKPIs(); updateHomeTaskBanner&&updateHomeTaskBanner(); }, 200);
@@ -7514,6 +7709,576 @@ function deptSubmitDone(taskId, src){
 // Legacy aliases — purane calls break na ho
 function salesShowRemarksInput(taskId){ deptShowRemarksInput(taskId,'sales'); }
 function salesSubmitDone(taskId){ deptSubmitDone(taskId,'sales'); }
+
+// ═══════════════════════════════════════════════════════════════════════
+// ONGOING STATUS — localStorage mein store karo
+// ═══════════════════════════════════════════════════════════════════════
+
+const ONGOING_KEY = 'aditiOngoingTasks';
+
+function tGetOngoingData(taskId){
+  // Pehle Supabase data check karo (row mein _expected_date field)
+  const row = tAllData.find(r=>String(r['Task ID'])===String(taskId));
+  if(row && row['_expected_date']){
+    return { expectedDate: row['_expected_display'] || row['_expected_date'] };
+  }
+  // Fallback: localStorage
+  try{
+    const saved = JSON.parse(localStorage.getItem(ONGOING_KEY)||'{}');
+    return saved[String(taskId)] || null;
+  }catch(e){ return null; }
+}
+
+function tIsOngoing(r){
+  if(tIsDone(r)) return false;
+  // Supabase column check
+  if(r['_expected_date']) return true;
+  // localStorage fallback
+  const data = tGetOngoingData(r['Task ID']);
+  return !!(data && data.expectedDate);
+}
+
+function tGetUploadCount(taskId){
+  try{
+    const saved = JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}');
+    const files = saved[String(taskId)];
+    return Array.isArray(files) ? files.length : 0;
+  }catch(e){ return 0; }
+}
+
+function tSaveOngoingTask(taskId, expectedDate){
+  try{
+    const saved = JSON.parse(localStorage.getItem(ONGOING_KEY)||'{}');
+    saved[String(taskId)] = { expectedDate, savedAt: Date.now() };
+    localStorage.setItem(ONGOING_KEY, JSON.stringify(saved));
+  }catch(e){}
+}
+
+function tRemoveOngoingTask(taskId){
+  try{
+    const saved = JSON.parse(localStorage.getItem(ONGOING_KEY)||'{}');
+    delete saved[String(taskId)];
+    localStorage.setItem(ONGOING_KEY, JSON.stringify(saved));
+  }catch(e){}
+}
+
+function tShowOngoing(taskId, src){
+  const tid = String(taskId);
+  const td = document.getElementById('ong_td_' + tid);
+  if(!td) return;
+  // Default date: kal
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  const tomorrowStr = tomorrow.toISOString().slice(0,10);
+  td.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:4px;min-width:110px;box-sizing:border-box;">
+      <label style="font-size:0.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Expected Completion Date</label>
+      <input type="date" id="ong_date_${tid}" value="${tomorrowStr}" min="${new Date().toISOString().slice(0,10)}"
+        style="padding:4px 6px;border-radius:6px;border:1.5px solid rgba(0,212,255,0.4);
+               background:var(--surface2);color:var(--text);font-size:0.80rem;
+               width:100%;box-sizing:border-box;outline:none;font-family:inherit;">
+      <div style="display:flex;gap:4px;">
+        <button onclick="tSubmitOngoing('${tid}','${src}')"
+          style="flex:1;background:#00d4ff;color:#000;border:none;border-radius:6px;
+                 padding:4px 0;font-size:0.76rem;font-weight:700;cursor:pointer;">✓ Set</button>
+        <button onclick="tRenderTable()"
+          style="flex:0 0 auto;background:var(--surface2);color:var(--text2);
+                 border:1px solid var(--border);border-radius:6px;
+                 padding:4px 7px;font-size:0.76rem;cursor:pointer;">✕</button>
+      </div>
+    </div>`;
+  try{ document.getElementById('ong_date_'+tid).focus(); }catch(e){}
+}
+
+function tSubmitOngoing(taskId, src){
+  const tid = String(taskId);
+  const inp = document.getElementById('ong_date_'+tid);
+  if(!inp || !inp.value){ alert('Please select a date!'); return; }
+  const rawDate = inp.value; // YYYY-MM-DD
+  const parts = rawDate.split('-');
+  const displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+
+  tSaveOngoingTask(tid, displayDate);
+
+  // Immediate DOM update — status badge bhi update karo
+  const td = document.getElementById('ong_td_'+tid);
+  if(td){
+    td.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
+        <span style="color:#00d4ff;font-size:0.80rem;font-weight:700">🔄 Ongoing</span>
+        <span style="color:var(--muted);font-size:0.71rem;font-weight:500">📅 ${displayDate}</span>
+      </div>`;
+  }
+  const row = td ? td.closest('tr') : null;
+  if(row){
+    const stTd = row.cells[6]; // ACTION column — ongoing ke baad status reflect karne ki zaroorat nahi (STATUS column hata diya)
+    // no-op: STATUS column removed
+  }
+
+  // ✅ Supabase mein expected_date column directly update karo
+  const rowId = (tAllData.find(r=>String(r['Task ID'])===tid)||{})['_id'];
+  if(rowId){
+    fetch(
+      `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
+      { method:'PATCH', headers:SB_HDRS_JSON(), body:JSON.stringify({ ongoing: rawDate }) }
+    ).catch(()=>{});
+    // Local data update
+    [tAllData, tFiltered].forEach(arr=>{
+      arr.forEach(r=>{ if(String(r['Task ID'])===tid){ r['_expected_date']=rawDate; r['_expected_display']=displayDate; } });
+    });
+  }
+  setTimeout(()=>{ tRenderKPIs(); updateHomeTaskBanner&&updateHomeTaskBanner(); }, 150);
+}
+
+function tCancelOngoing(taskId){
+  const tid = String(taskId);
+  tRemoveOngoingTask(tid);
+
+  // ✅ Supabase mein expected_date NULL karo
+  const rowId = (tAllData.find(r=>String(r['Task ID'])===tid)||{})['_id'];
+  if(rowId){
+    fetch(
+      `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
+      { method:'PATCH', headers:SB_HDRS_JSON(), body:JSON.stringify({ ongoing: null }) }
+    ).catch(()=>{});
+    [tAllData, tFiltered].forEach(arr=>{
+      arr.forEach(r=>{ if(String(r['Task ID'])===tid){ r['_expected_date']=null; r['_expected_display']=null; } });
+    });
+  }
+  tFiltered=tGetFiltered(); tRenderKPIs(); tRenderTable();
+}
+
+// ── Uploaded Files Viewer — owner / MIS / Saajan Jain access ──────────
+function tCanViewUploads(){
+  if(!CURRENT_USER) return false;
+  const role = String(CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim();
+  if(CURRENT_USER.role==='owner' || role==='owner' || role==='mis') return true;
+  // Saajan Jain special access
+  const name = String(CURRENT_USER.name||'').trim().toLowerCase();
+  return name==='saajan jain';
+}
+
+function tInitUploadsButton(){
+  const btn = document.getElementById('tasksUploadViewBtn');
+  if(btn) btn.style.display = tCanViewUploads() ? 'flex' : 'none';
+}
+
+// Sab uploaded files gather karo — Supabase data + localStorage
+let _allUploadsCache = [];
+
+function tShowAllUploads(){
+  if(!tCanViewUploads()) return;
+  document.getElementById('taskAllUploadsModal').style.display='flex';
+  document.body.style.overflow='hidden';
+  document.getElementById('uploadsSearchInput').value='';
+  document.getElementById('uploadsDateFrom').value='';
+  document.getElementById('uploadsDateTo').value='';
+  tBuildUploadsData();
+  tPopulateUploadsNameFilter();
+  tRenderAllUploads(_allUploadsCache);
+}
+
+function tResetUploadsFilter(){
+  document.getElementById('uploadsSearchInput').value='';
+  document.getElementById('uploadsNameFilter').value='';
+  document.getElementById('uploadsDateFrom').value='';
+  document.getElementById('uploadsDateTo').value='';
+  tRenderAllUploads(_allUploadsCache);
+}
+
+function tPopulateUploadsNameFilter(){
+  const sel = document.getElementById('uploadsNameFilter');
+  if(!sel) return;
+  const names = [...new Set(_allUploadsCache.map(f=>f.employee).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All Employees</option>' +
+    names.map(n=>`<option value="${n}">${n}</option>`).join('');
+}
+
+function tBuildUploadsData(){
+  _allUploadsCache = [];
+  const localStore = (() => { try{ return JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}'); }catch(e){ return {}; } })();
+
+  tAllData.forEach(r => {
+    const tid = String(r['Task ID']||'');
+    const cloudUrl = r['_upload_url'] || null;
+    if(!cloudUrl && !localStore[tid]) return; // no upload for this task
+
+    const localFiles = localStore[tid] || [];
+    const localMatch = cloudUrl ? localFiles.find(f=>f.url===cloudUrl) : null;
+
+    // Build display filename
+    const rawName = cloudUrl
+      ? (localMatch ? localMatch.name : cloudUrl.split('/').pop().replace(/^\d+_/,'').replace(/_/g,' '))
+      : (localFiles[0] ? localFiles[0].name : '—');
+
+    const uploadedAt = localMatch ? localMatch.uploadedAt
+      : (localFiles[0] ? localFiles[0].uploadedAt : null);
+
+    const fileUrl = cloudUrl || (localFiles[0] ? localFiles[0].url : null);
+
+    const ext = rawName.split('.').pop().toLowerCase();
+    const icon = ['pdf'].includes(ext) ? '📄' : ['png','jpg','jpeg','gif','webp'].includes(ext) ? '🖼️'
+      : ['xls','xlsx','csv'].includes(ext) ? '📊' : ['doc','docx'].includes(ext) ? '📝' : '📎';
+
+    _allUploadsCache.push({
+      taskId: tid,
+      task: String(r['Task']||r['task_name']||'—').trim(),
+      employee: String(r['Name']||'—').trim(),
+      dept: String(r['Department']||'—').trim(),
+      fileName: rawName,
+      fileUrl: fileUrl,
+      uploadedAt: uploadedAt,
+      icon: icon,
+      fromCloud: !!cloudUrl
+    });
+  });
+
+  // Sort: latest uploads first (by uploadedAt string; fallback to task order)
+  _allUploadsCache.sort((a,b)=>{
+    if(!a.uploadedAt && !b.uploadedAt) return 0;
+    if(!a.uploadedAt) return 1;
+    if(!b.uploadedAt) return -1;
+    return b.uploadedAt.localeCompare(a.uploadedAt);
+  });
+}
+
+function tFilterUploadsModal(){
+  const q    = (document.getElementById('uploadsSearchInput').value||'').toLowerCase();
+  const name = (document.getElementById('uploadsNameFilter').value||'').toLowerCase();
+  const df   = document.getElementById('uploadsDateFrom').value||'';  // YYYY-MM-DD
+  const dt   = document.getElementById('uploadsDateTo').value||'';
+
+  const filtered = _allUploadsCache.filter(f=>{
+    // Text search
+    if(q && !(f.employee.toLowerCase().includes(q)||f.task.toLowerCase().includes(q)||
+              f.dept.toLowerCase().includes(q)||f.fileName.toLowerCase().includes(q))) return false;
+    // Name filter
+    if(name && f.employee.toLowerCase() !== name) return false;
+    // Date filter — uploadedAt format: DD/MM/YYYY HH:MM → convert to YYYY-MM-DD
+    if((df||dt) && f.uploadedAt){
+      // uploadedAt: "26/05/2026 11:05"
+      const parts = f.uploadedAt.split(' ')[0].split('/'); // ["26","05","2026"]
+      if(parts.length===3){
+        const dateISO = `${parts[2]}-${parts[1]}-${parts[0]}`; // YYYY-MM-DD
+        if(df && dateISO < df) return false;
+        if(dt && dateISO > dt) return false;
+      }
+    }
+    return true;
+  });
+  tRenderAllUploads(filtered);
+}
+
+function tRenderAllUploads(list){
+  const el = document.getElementById('taskAllUploadsList');
+  if(!el) return;
+  if(!list.length){
+    el.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.9rem;">📭 No uploaded files found</div>';
+    return;
+  }
+  el.innerHTML = list.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);${i===list.length-1?'border-bottom:none;':''}">
+      <!-- Icon -->
+      <div style="width:38px;height:38px;border-radius:10px;background:${f.fromCloud?'rgba(0,212,170,0.1)':'rgba(240,165,0,0.1)'};
+           border:1.5px solid ${f.fromCloud?'rgba(0,212,170,0.3)':'rgba(240,165,0,0.3)'};
+           display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">${f.icon}</div>
+      <!-- Info -->
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.85rem;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.fileName}">${f.fileName}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px;align-items:center;">
+          <span style="font-size:0.74rem;background:rgba(168,85,247,0.1);color:#a855f7;border:1px solid rgba(168,85,247,0.2);border-radius:5px;padding:1px 7px;font-weight:600;">👤 ${f.employee}</span>
+          <span style="font-size:0.74rem;color:var(--muted);">${f.dept}</span>
+          ${f.uploadedAt?`<span style="font-size:0.72rem;color:var(--muted);">🕐 ${f.uploadedAt}</span>`:''}
+          ${f.fromCloud?'<span style="font-size:0.70rem;color:#00d4aa;font-weight:700;">☁ Cloud</span>':''}
+        </div>
+        <div style="font-size:0.77rem;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📋 ${f.task}</div>
+      </div>
+      <!-- View button -->
+      ${f.fileUrl?`<a href="${f.fileUrl}" target="_blank" rel="noopener"
+        style="background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.3);color:#00d4aa;
+               border-radius:8px;padding:7px 13px;font-size:0.78rem;font-weight:700;text-decoration:none;white-space:nowrap;flex-shrink:0;">
+        ⬇ View
+      </a>`:'<span style="font-size:0.72rem;color:var(--muted);flex-shrink:0;">No URL</span>'}
+    </div>`).join('');
+}
+
+
+async function tDirectUpload(input, taskId){
+  const file = input.files[0];
+  if(!file) return;
+  const tid = String(taskId);
+
+  const btn = document.getElementById('tfu_btn_'+tid);
+  if(btn){ btn.textContent='⏳'; btn.style.opacity='0.7'; btn.disabled=true; }
+
+  try{
+    const ts       = Date.now();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const bucket   = 'files';
+    const filePath = `task_docs/task_${tid}/${ts}_${safeName}`;
+
+    const uploadRes = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/${bucket}/${filePath}`,
+      {
+        method : 'POST',
+        headers: {
+          'apikey'        : SUPABASE_ANON,
+          'Authorization' : `Bearer ${_currentToken}`,
+          'Content-Type'  : file.type || 'application/octet-stream',
+          'Cache-Control' : '3600',
+          'x-upsert'      : 'true'
+        },
+        body: file
+      }
+    );
+
+    let fileUrl = null;
+    if(uploadRes.ok){
+      fileUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${filePath}`;
+    }
+
+    // Save to Supabase upload column — URL if upload succeeded, else just filename
+    const saveValue = fileUrl || file.name;
+    const rowId = (tAllData.find(r=>String(r['Task ID'])===tid)||{})['_id'];
+    if(rowId){
+      fetch(
+        `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
+        { method:'PATCH', headers:SB_HDRS_JSON(), body:JSON.stringify({ upload: saveValue }) }
+      ).catch(()=>{});
+      [tAllData, tFiltered].forEach(arr=>{
+        arr.forEach(r=>{ if(String(r['Task ID'])===tid) r['_upload_url']=saveValue; });
+      });
+    }
+
+    // localStorage backup (offline fallback)
+    const now2 = new Date();
+    const uploadedAt = `${String(now2.getDate()).padStart(2,'0')}/${String(now2.getMonth()+1).padStart(2,'0')}/${now2.getFullYear()} ${String(now2.getHours()).padStart(2,'0')}:${String(now2.getMinutes()).padStart(2,'0')}`;
+    const saved2 = JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}');
+    saved2[tid] = [{ name: file.name, url: fileUrl, uploadedAt, size: file.size }];
+    localStorage.setItem('aditiTaskUploads', JSON.stringify(saved2));
+
+    // Icon update — 📄 green if URL received, orange if only filename saved
+    const td = btn ? btn.closest('td') : null;
+    if(td){
+      const isCloud = !!fileUrl;
+      td.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;">
+          <a href="${fileUrl||'#'}" target="${isCloud?'_blank':'_self'}" rel="noopener" title="${file.name}"
+             style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;
+                    background:${isCloud?'rgba(0,212,170,0.12)':'rgba(240,165,0,0.12)'};
+                    border:1.5px solid ${isCloud?'rgba(0,212,170,0.4)':'rgba(240,165,0,0.4)'};
+                    border-radius:8px;text-decoration:none;font-size:1rem;transition:all 0.18s;">📄</a>
+        </div>`;
+    }
+
+  }catch(err){
+    // On error show 📎 again — do not show ❌
+    const btx = document.getElementById('tfu_btn_'+tid);
+    const tdx = btx ? btx.closest('td') : null;
+    if(tdx){
+      tdx.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;">
+          <input type="file" id="tfu_${tid}" style="display:none;" accept="*/*" onchange="tDirectUpload(this,'${tid}')">
+          <button id="tfu_btn_${tid}" title="Retry upload" onclick="document.getElementById('tfu_${tid}').click()"
+            style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;
+                   background:rgba(168,85,247,0.08);border:1.5px solid rgba(168,85,247,0.3);
+                   border-radius:8px;font-size:1rem;cursor:pointer;">📎</button>
+        </div>`;
+    }
+    console.error('Upload error:', err);
+  }
+  input.value='';
+}
+
+let _taskUploadId   = null;
+let _taskUploadName = '';
+let _taskUploadFile = null;
+
+function tOpenTaskUpload(taskId, taskName){
+  _taskUploadId   = String(taskId);
+  _taskUploadName = taskName;
+  _taskUploadFile = null;
+
+  document.getElementById('taskUploadTaskId').textContent   = 'Task #' + taskId;
+  document.getElementById('taskUploadTaskName').textContent = taskName;
+  document.getElementById('taskUploadStatus').style.display = 'none';
+  document.getElementById('taskUploadFileInput').value      = '';
+  document.getElementById('taskUploadDropLabel').textContent= 'Click or drag a file here';
+  document.getElementById('taskUploadDropMeta').textContent = 'PDF, Image, Doc — any format';
+  document.getElementById('taskUploadDropZone').style.borderColor = '';
+  document.getElementById('taskUploadDropZone').style.background  = '';
+
+  // Existing files dikhao
+  tRenderTaskFileList(taskId);
+
+  document.getElementById('taskUploadModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function tCloseTaskUpload(){
+  document.getElementById('taskUploadModal').style.display = 'none';
+  document.body.style.overflow = '';
+  _taskUploadFile = null; _taskUploadId = null;
+}
+
+function tRenderTaskFileList(taskId){
+  const list = document.getElementById('taskUploadFileList');
+  if(!list) return;
+  try{
+    // Supabase se file URL
+    const row = tAllData.find(r=>String(r['Task ID'])===String(taskId));
+    const cloudUrl = row ? row['_upload_url'] : null;
+
+    // localStorage se bhi check
+    const saved = JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}');
+    const localFiles = saved[String(taskId)] || [];
+
+    // Cloud URL ko prefer karo
+    const allFiles = [];
+    if(cloudUrl){
+      const localMatch = localFiles.find(f=>f.url===cloudUrl);
+      allFiles.push({
+        name: localMatch ? localMatch.name : cloudUrl.split('/').pop().replace(/^\d+_/,''),
+        url: cloudUrl,
+        uploadedAt: localMatch ? localMatch.uploadedAt : '—',
+        size: localMatch ? localMatch.size : null,
+        fromCloud: true
+      });
+    } else if(localFiles.length){
+      allFiles.push(...localFiles);
+    }
+
+    if(!allFiles.length){
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:0.82rem;padding:14px 0;">No files uploaded yet</div>';
+      return;
+    }
+    list.innerHTML = allFiles.map((f,i)=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:1.2rem;flex-shrink:0">${f.name&&f.name.match(/\.(pdf)$/i)?'📄':f.name&&f.name.match(/\.(png|jpg|jpeg|gif|webp)$/i)?'🖼️':'📎'}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.83rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${f.name}">${f.name}</div>
+          <div style="font-size:0.71rem;color:var(--muted);margin-top:1px;">${f.uploadedAt||'—'} ${f.fromCloud?'<span style="color:#00d4aa;font-weight:600">☁ Cloud</span>':''}</div>
+        </div>
+        ${f.url?`<a href="${f.url}" target="_blank" rel="noopener"
+          style="background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.3);color:#00d4aa;
+                 border-radius:7px;padding:5px 10px;font-size:0.76rem;font-weight:700;text-decoration:none;white-space:nowrap;flex-shrink:0;">
+          ⬇ View
+        </a>`:'<span style="font-size:0.72rem;color:var(--muted)">No URL</span>'}
+      </div>`).join('');
+  }catch(e){ list.innerHTML='<div style="color:var(--hot);font-size:0.82rem;">Error loading files</div>'; }
+}
+
+function tDeleteTaskFile(taskId, idx){
+  if(!confirm('Delete this file?')) return;
+  try{
+    const saved = JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}');
+    const files = saved[String(taskId)] || [];
+    files.splice(idx, 1);
+    saved[String(taskId)] = files;
+    localStorage.setItem('aditiTaskUploads', JSON.stringify(saved));
+    tRenderTaskFileList(taskId);
+    tRenderTable();
+  }catch(e){}
+}
+
+function tHandleTaskFileSelect(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  _taskUploadFile = file;
+  document.getElementById('taskUploadDropLabel').textContent = file.name;
+  document.getElementById('taskUploadDropMeta').textContent  = (file.size/1024).toFixed(1)+' KB';
+  document.getElementById('taskUploadDropZone').style.borderColor = '#a855f7';
+  document.getElementById('taskUploadDropZone').style.background  = 'rgba(168,85,247,0.06)';
+}
+
+async function tSubmitTaskUpload(){
+  if(!_taskUploadFile){ alert('Please select a file first!'); return; }
+  if(!_taskUploadId){ return; }
+
+  const statusEl = document.getElementById('taskUploadStatus');
+  const btn      = document.getElementById('taskUploadSubmitBtn');
+  btn.disabled   = true;
+  statusEl.style.display    = 'block';
+  statusEl.style.color      = '#00d4ff';
+  statusEl.style.background = 'rgba(0,212,255,0.06)';
+  statusEl.style.border     = '1px solid rgba(0,212,255,0.2)';
+  statusEl.textContent      = '⏳ Uploading...';
+
+  try{
+    const file = _taskUploadFile;
+    const ts   = Date.now();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const bucket   = 'files';
+    const filePath = `task_docs/task_${_taskUploadId}/${ts}_${safeName}`;
+
+    const uploadRes = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/${bucket}/${filePath}`,
+      {
+        method : 'POST',
+        headers: {
+          'apikey'        : SUPABASE_ANON,
+          'Authorization' : `Bearer ${_currentToken}`,
+          'Content-Type'  : file.type || 'application/octet-stream',
+          'Cache-Control' : '3600',
+          'x-upsert'      : 'true'
+        },
+        body: file
+      }
+    );
+
+    let fileUrl = null;
+    if(uploadRes.ok){
+      fileUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${filePath}`;
+
+      // ✅ Supabase mein task_doc_urls column update karo
+      const rowId = (tAllData.find(r=>String(r['Task ID'])===_taskUploadId)||{})['_id'];
+      if(rowId){
+        await fetch(
+          `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
+          { method:'PATCH', headers:SB_HDRS_JSON(), body:JSON.stringify({ upload: fileUrl }) }
+        ).catch(()=>{});
+        // Local data update
+        [tAllData, tFiltered].forEach(arr=>{
+          arr.forEach(r=>{ if(String(r['Task ID'])===_taskUploadId) r['_upload_url']=fileUrl; });
+        });
+      }
+
+      statusEl.style.color = '#00d4aa';
+      statusEl.style.background = 'rgba(0,212,170,0.06)';
+      statusEl.style.border = '1px solid rgba(0,212,170,0.2)';
+      statusEl.textContent = '✅ Upload successful! File saved to cloud.';
+    } else {
+      statusEl.style.color = '#f0a500';
+      statusEl.style.background = 'rgba(240,165,0,0.06)';
+      statusEl.style.border = '1px solid rgba(240,165,0,0.2)';
+      statusEl.textContent = '⚠️ Cloud upload failed — saved locally only';
+    }
+
+    // localStorage mein bhi save karo (offline fallback)
+    const saved = JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}');
+    const now2 = new Date();
+    const uploadedAt = `${String(now2.getDate()).padStart(2,'0')}/${String(now2.getMonth()+1).padStart(2,'0')}/${now2.getFullYear()} ${String(now2.getHours()).padStart(2,'0')}:${String(now2.getMinutes()).padStart(2,'0')}`;
+    saved[_taskUploadId] = [{ name: file.name, url: fileUrl, uploadedAt, size: file.size }];
+    localStorage.setItem('aditiTaskUploads', JSON.stringify(saved));
+
+    // UI refresh
+    tRenderTaskFileList(_taskUploadId);
+    tRenderTable();
+    document.getElementById('taskUploadFileInput').value = '';
+    _taskUploadFile = null;
+    document.getElementById('taskUploadDropLabel').textContent = 'Click or drag a file here';
+    document.getElementById('taskUploadDropMeta').textContent  = 'PDF, Image, Doc — any format';
+    document.getElementById('taskUploadDropZone').style.borderColor = '';
+    document.getElementById('taskUploadDropZone').style.background  = '';
+
+  } catch(err){
+    statusEl.style.color = '#ff5c7c';
+    statusEl.style.background = 'rgba(255,92,124,0.06)';
+    statusEl.style.border = '1px solid rgba(255,92,124,0.2)';
+    statusEl.textContent = '❌ Error: ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // LIVE SYNC — portal aur sheet real-time sync mein rahein
@@ -7556,24 +8321,52 @@ async function tSilentRefresh(){
       if(!myEmpId){ _tasksSyncing=false; return; }
     }
 
-    // Tasks fetch - dono ke liye date filter, paginated
+    // Tasks fetch - single OR query (planned tasks + pending ongoing tasks)
+    // OR condition: planned tasks + ongoing tasks due IN this date range + tasks completed on view date
+    const orFilter2 = `or=(and(planned_date.gte.${fetchFrom},planned_date.lte.${fetchTo}),and(ongoing.gte.${fetchFrom},ongoing.lte.${fetchTo},actual_timestamp.is.null),and(actual_timestamp.gte.${fetchFrom},actual_timestamp.lte.${fetchTo}T23:59:59))`;
     let tasksBaseUrl2;
     if(isOwner){
       tasksBaseUrl2 = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
-               + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
+               + `&${orFilter2}`
                + `&order=planned_date.desc,id.asc`;
     } else {
       tasksBaseUrl2 = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
                + `&emp_id=eq.${encodeURIComponent(myEmpId)}`
-               + `&planned_date=gte.${fetchFrom}&planned_date=lte.${fetchTo}`
+               + `&${orFilter2}`
                + `&order=planned_date.desc,id.asc`;
     }
 
     const tasks = await tFetchAllPages(tasksBaseUrl2);
     if(!Array.isArray(tasks)) throw new Error('Bad response');
 
+    // ── Silent Refresh: Ongoing tasks bhi fetch karo (jo future mein due hain) ──
+    let ongoingTasksSync = [];
+    try{
+      let ongoingUrlSync;
+      if(isOwner){
+        ongoingUrlSync = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
+                       + `&ongoing=gte.${fetchFrom}&actual_timestamp=is.null`
+                       + `&order=planned_date.desc,id.asc`;
+      } else if(myEmpId){
+        ongoingUrlSync = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
+                       + `&emp_id=eq.${encodeURIComponent(myEmpId)}`
+                       + `&ongoing=gte.${fetchFrom}&actual_timestamp=is.null`
+                       + `&order=planned_date.desc,id.asc`;
+      }
+      if(ongoingUrlSync){
+        const ogRes2 = await fetch(ongoingUrlSync + '&limit=500', { headers: SB_HDRS() });
+        const ogRows2 = await ogRes2.json();
+        if(Array.isArray(ogRows2)) ongoingTasksSync = ogRows2;
+      }
+    }catch(e){ console.warn('Ongoing sync fetch failed:', e); }
+
+    // Merge: dedup by id
+    const taskIdSet2 = new Set(tasks.map(r=>r.id));
+    const mergedTasksSync = [...tasks];
+    ongoingTasksSync.forEach(r=>{ if(!taskIdSet2.has(r.id)){ mergedTasksSync.push(r); } });
+
     // Employee_details batch fetch
-    const empIdSet = [...new Set(tasks.map(r=>String(r.emp_id||'').trim()).filter(Boolean))];
+    const empIdSet = [...new Set(mergedTasksSync.map(r=>String(r.emp_id||'').trim()).filter(Boolean))];
     let empMap = {};
     if(empIdSet.length > 0){
       const edRes = await fetch(
@@ -7594,26 +8387,35 @@ async function tSilentRefresh(){
       }
     }
 
-    const newData = tasks.map(r => {
+    const newData = mergedTasksSync.map(r => {
       const empId = String(r.emp_id || '').trim();
       const ed = empMap[empId] || {};
+      const expRaw = r.ongoing ? String(r.ongoing).trim() : null;
+      const expParts = expRaw ? expRaw.split('-') : null;
+      const expDisplay = expParts && expParts.length===3 ? `${expParts[2]}/${expParts[1]}/${expParts[0]}` : null;
       return {
-        'Name':       ed.name  || empId || '',
-        'Email':      ed.email || '',
-        'Department': ed.dept  || '',
-        'Task ID':    String(r.sheet_task_id || '').trim(),
-        'Freq':       String(r.frequency || '').trim(),
-        'Task':       String(r.task_name || '').trim(),
-        'Planned':    String(r.planned_date || r.planned_data || '').trim(),
-        'Actual':     String(r.actual_timestamp || '').trim(),
-        'Status':     r.actual_timestamp ? 'Done' : 'Pending',
-        'Remarks':    String(r.remarks || '').trim(),
-        '_location':  ed.loc || String(r.branch_id || '').trim(),
-        '_id':        r.id,
+        'Name':             ed.name  || empId || '',
+        'Email':            ed.email || '',
+        'Department':       ed.dept  || '',
+        'Task ID':          String(r.sheet_task_id || '').trim(),
+        'Freq':             String(r.frequency || '').trim(),
+        'Task':             String(r.task_name || '').trim(),
+        'Planned':          String(r.planned_date || r.planned_data || '').trim(),
+        'Actual':           String(r.actual_timestamp || '').trim(),
+        'Status':           r.actual_timestamp ? 'Done' : 'Pending',
+        'Remarks':          String(r.remarks || '').trim(),
+        '_location':        ed.loc || String(r.branch_id || '').trim(),
+        '_id':              r.id,
+        '_expected_date':   expRaw,
+        '_expected_display':expDisplay,
+        '_upload_url':      r.upload ? String(r.upload).trim() : null,
       };
     });
 
     newData.forEach(r=>{ r['_tDate']=tParseDate(r['Planned']); });
+
+    // ── DB Sync: silent refresh ke baad bhi localStorage clear karo ──
+    tSyncLocalStorageWithDB(newData);
 
     // FIX: In-place merge — existing rows ki position preserve karo (niche shift nahi hoga)
     const newDataMap = new Map(newData.map(r => [r['_id'], r]));
@@ -7625,9 +8427,23 @@ async function tSilentRefresh(){
     });
     // Naye rows add karo (jo pehle nahi the)
     newData.forEach(r => { if(!existingIds.has(r['_id'])) tAllData.push(r); });
-    // Delete hue rows hatao
+    // Delete hue rows hatao — LEKIN done tasks mat hatao
+    // Ongoing task done hone ke baad planned_date purana hota hai isliye server se nahi aata
+    // Aise tasks ko view mein rakho agar aaj complete kiya ho
     const newIds = new Set(newData.map(r => r['_id']));
-    tAllData = tAllData.filter(r => newIds.has(r['_id']));
+    const _vFrom = tActiveDateFrom || new Date().toISOString().slice(0,10);
+    const _vTo   = tActiveDateTo   || _vFrom;
+    tAllData = tAllData.filter(r => {
+      if(newIds.has(r['_id'])) return true;
+      // Server se nahi aaya — recently done task hai toh rakho
+      if(r['Actual'] && String(r['Actual']).trim()){
+        try{
+          const actDate = String(r['Actual']).trim().slice(0,10);
+          if(actDate >= _vFrom && actDate <= _vTo) return true;
+        }catch(e){}
+      }
+      return false;
+    });
 
     tApplyDoneTasks();
 
@@ -12928,7 +13744,13 @@ async function confirmDeleteTrainingVideo(videoId, videoTitle, subKey) {
 // ═══════════════════════════════════════════════════════════════════
 
 // ── CONFIG ────────────────────────────────────────────────────────
-const IMS_API_URL = 'https://script.googleusercontent.com/a/macros/adititracking.com/echo?user_content_key=AUkAhnRwPJXjjaqs1u_J4CxLrg0gPh0_f-Bn0eIwcG057_dzfUQD7818GSfHbdrphDwGuazt3_EAFC9apDz48LUFYJGD2oUaZcS-FAek-YJhYNCgMR1wWw7a2_fIMl46tEXcV7QgRA2zZ_C19MN9P5qQywh535O06mnLKJhFQokIW7Cb34YeI445kSF_gM8St_D0HgqPG7s_CRM64WCi3IVHwqdQ54P_yH1d9cfqG-7s8KSdbuLpyAv2rxxJkMOs3F-_PCOdfmpyEHGZ8hoo1uYiYu4BKvgYxQ5rma3qeIOSVqfY_AU4Qx0&lib=MeRHp2Bf7LTWgUgAzsd8SbI7QKfk-2PaQ';
+const IMS_API_URL = 'https://script.googleusercontent.com/a/macros/adititracking.com/echo?user_content_key=AUkAhnRwPJXjjaqs1u_J4CxLrg0gPh0_f-Bn0eIwcG057_dzfUQD7818GSfHbdrphDwGuazt3_EAFC9apDz48LUFYJGD2oUaZcS-FAek-YJhYNCgMR1wWw7a2_fIMl46tEXcV7QgRA2zZ_C19MN9P5qQywh535O06mnLKJhFQokIW7Cb34YeI445kSF_gM8St_D0HgqPG7s_CRM64WCi3IVHwqdQ54P_yH1d9cfqG-7s8KSdbuLpyAv2rxxJkMOs3F-_PCOdfmpyEHGZ8hoo1uYiYu4BKvgYxQ5rma3qeIOSVqfY_AU4Qx0&lib=MeRHp2Bf7LTWgUgAzsd8SbI7QKfk-2PaQ'; // HQ
+
+// ── Location-specific API URLs ─────────────────────────────────────
+// ⚠️ REPLACE these with actual Google Apps Script URLs for each location
+const IMS_GOA_API       = 'https://script.google.com/macros/s/AKfycbyJdOUvUvSDgRkFtVUlFahtABXzR-H1nrcv-Syj--wf1ehNoQIteTLuoXTZIwWBPQtByg/exec';
+const IMS_GUJARAT_API   = 'https://script.google.com/macros/s/AKfycbz3m_D7OETa5BIX1JBL8wj4rZ_kVELBOzhqRpZSeSQi-gEBnCoHKCp9p4ir3TNwfFiR/exec';
+const IMS_BANGALORE_API = 'https://script.google.com/macros/s/AKfycbz6NrjwVJxfivZfTlbeolSXy3Azsq0kdrHbMDgDT9UioBOQ4Gl-0Ypd--QtpvJjM3Sf_w/exec';
 
 // ── STATE ─────────────────────────────────────────────────────────
 let _imsLoaded       = false;
@@ -13394,8 +14216,11 @@ function imsRefresh() { _imsLoaded = false; loadIMSDashboard(); }
 async function loadIMSDashboard() {
   if (_imsLoaded) return;
   if (!_canAccessIMS()) { switchDB('home'); return; }
-  if (_imsLocation === 'hq' && (!IMS_API_URL || IMS_API_URL.includes('PASTE_YOUR'))) {
-    _imsShowError('IMS_API_URL is not configured.');
+  // Validate all location APIs
+  const _apiCheck = _imsGetAPI();
+  if (!_apiCheck || _apiCheck.includes('PASTE_')) {
+    const _locNames = { hq: 'HQ', goa: 'Goa', gujarat: 'Gujarat', bangalore: 'Bangalore' };
+    _imsShowError(`IMS ${_locNames[_imsLocation] || _imsLocation} API URL is not configured. Please add the Google Apps Script URL in the HTML file.`);
     document.getElementById('imsLoader').style.display = 'none';
     return;
   }
@@ -18877,6 +19702,106 @@ async function deletePortalUpdate(id) {
   }, 10000);
 })();
 </script>
+<!-- ═══════ TASK DOCUMENT UPLOAD MODAL ═══════ -->
+<div id="taskUploadModal" style="
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
+  <div style="
+    background:var(--surface);border:1px solid var(--border);border-radius:20px;
+    padding:28px 24px;max-width:440px;width:100%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);position:relative;max-height:88vh;overflow-y:auto;">
+
+    <!-- Close btn -->
+    <button onclick="tCloseTaskUpload()" style="
+      position:absolute;top:14px;right:14px;
+      background:var(--surface2);border:1px solid var(--border);
+      color:var(--muted);width:30px;height:30px;border-radius:8px;
+      font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+
+    <!-- Header -->
+    <div style="margin-bottom:18px;">
+      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:1.1rem;
+        background:linear-gradient(135deg,#a855f7,#7c3aed);
+        -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;">
+        📎 Upload Task Document
+      </div>
+      <div id="taskUploadTaskId" style="font-size:0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;"></div>
+      <div id="taskUploadTaskName" style="font-size:0.84rem;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+    </div>
+
+    <!-- Drop Zone -->
+    <div id="taskUploadDropZone"
+      onclick="document.getElementById('taskUploadFileInput').click()"
+      ondragover="event.preventDefault();this.style.borderColor='#a855f7';this.style.background='rgba(168,85,247,0.06)'"
+      ondragleave="this.style.borderColor='';this.style.background=''"
+      ondrop="event.preventDefault();document.getElementById('taskUploadFileInput').files=event.dataTransfer.files;tHandleTaskFileSelect({target:{files:event.dataTransfer.files}})"
+      style="
+        border:2px dashed rgba(168,85,247,0.35);border-radius:12px;
+        padding:22px 16px;text-align:center;cursor:pointer;
+        transition:all 0.2s;margin-bottom:12px;background:rgba(168,85,247,0.03);">
+      <div style="font-size:1.6rem;margin-bottom:6px;">📎</div>
+      <div id="taskUploadDropLabel" style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:3px;">Click or drag a file here</div>
+      <div id="taskUploadDropMeta"  style="font-size:0.76rem;color:var(--muted);">PDF, Image, Doc — any format</div>
+      <input type="file" id="taskUploadFileInput" style="display:none;" onchange="tHandleTaskFileSelect(event)" accept="*/*">
+    </div>
+
+    <!-- Status -->
+    <div id="taskUploadStatus" style="display:none;border-radius:10px;padding:10px 14px;font-size:0.84rem;font-weight:600;margin-bottom:12px;"></div>
+
+    <!-- Submit -->
+    <button id="taskUploadSubmitBtn" onclick="tSubmitTaskUpload()" style="
+      width:100%;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;
+      border:none;border-radius:12px;padding:13px;font-size:0.94rem;font-weight:700;
+      cursor:pointer;font-family:'Playfair Display',serif;letter-spacing:0.03em;
+      margin-bottom:18px;transition:all 0.2s;">
+      📤 Upload
+    </button>
+
+    <!-- Divider -->
+    <div style="border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-size:0.76rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Previously Uploaded Files</div>
+      <div id="taskUploadFileList"></div>
+    </div>
+  </div>
+</div>
+<!-- ══ UPLOADED FILES VIEWER MODAL ══ -->
+<div id="taskAllUploadsModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;width:100%;max-width:700px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.45);overflow:hidden;">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;">
+      <div style="width:38px;height:38px;border-radius:10px;background:rgba(0,212,170,0.12);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">📂</div>
+      <div style="flex:1;">
+        <div style="font-size:1rem;font-weight:800;color:var(--text);">Uploaded Files</div>
+        <div style="font-size:0.76rem;color:var(--muted);">Task-wise file upload log — with employee name, date & time</div>
+      </div>
+      <button onclick="document.getElementById('taskAllUploadsModal').style.display='none';document.body.style.overflow='';"
+        style="background:var(--surface2);border:1px solid var(--border);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+    </div>
+    <!-- Filter bar -->
+    <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
+      <input id="uploadsSearchInput" type="text" placeholder="🔍 Search by name, task, department..." oninput="tFilterUploadsModal()"
+        style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.85rem;box-sizing:border-box;outline:none;font-family:inherit;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:0.75rem;color:var(--muted);font-weight:600;">👤 Name:</span>
+        <select id="uploadsNameFilter" onchange="tFilterUploadsModal()"
+          style="padding:6px 10px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.82rem;outline:none;font-family:inherit;cursor:pointer;">
+          <option value="">All Employees</option>
+        </select>
+        <span style="font-size:0.75rem;color:var(--muted);font-weight:600;">📅 Date:</span>
+        <input type="date" id="uploadsDateFrom" onchange="tFilterUploadsModal()"
+          style="padding:5px 8px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.82rem;outline:none;font-family:inherit;cursor:pointer;">
+        <span style="font-size:0.75rem;color:var(--muted);">to</span>
+        <input type="date" id="uploadsDateTo" onchange="tFilterUploadsModal()"
+          style="padding:5px 8px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.82rem;outline:none;font-family:inherit;cursor:pointer;">
+        <button onclick="tResetUploadsFilter()"
+          style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.78rem;cursor:pointer;font-family:inherit;">✕ Reset</button>
+      </div>
+    </div>
+    <!-- List -->
+    <div id="taskAllUploadsList" style="overflow-y:auto;flex:1;padding:12px 20px 20px;"></div>
+  </div>
+</div>
 
 </body>
 </html>
