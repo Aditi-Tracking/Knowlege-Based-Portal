@@ -16,7 +16,7 @@ PRO_USERNAME     = os.environ.get("PRO_USERNAME",     "")
 PRO_PASSWORD     = os.environ.get("PRO_PASSWORD",     "")
 
 
-SYNC_EVERY_MINUTES = 15
+SYNC_EVERY_MINUTES = 5
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -63,12 +63,12 @@ def get_token(server, session):
         )
         token = res.json().get("data", {}).get("token")
         if token:
-            print(f"  ✅ Token OK — {server['name']}")
+            print(f"  Token OK — {server['name']}")
         else:
-            print(f"  ❌ No token — {server['name']} — {res.text[:100]}")
+            print(f"  No token — {server['name']} — {res.text[:100]}")
         return token
     except Exception as e:
-        print(f"  ❌ Token error ({server['name']}): {e}")
+        print(f"  Token error ({server['name']}): {e}")
         return None
 
 
@@ -195,7 +195,7 @@ def sync_server(server):
         except Exception as e:
             print(f"  [{server['name']}] Save error: {e}")
 
-    print(f"  [{server['name']}] Saved {total} rows ✅")
+    print(f"  [{server['name']}] Saved {total} rows ")
 
 
 def sync_all():
