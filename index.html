@@ -1704,6 +1704,10 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
         <span class="nav-sub-dot"></span>
         <span class="nav-label">IMS</span><span class="nav-badge live" style="background:rgba(245,166,35,0.18);color:#f5a623;border:1px solid rgba(245,166,35,0.35);">Live</span>
       </div>
+      <div class="nav-item nav-sub-item" onclick="switchDB('crm')" id="nav-crm" style="display:none;">
+        <span class="nav-sub-dot"></span>
+        <span class="nav-label">CRM Vehicle</span><span class="nav-badge live" style="background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.35);">Live</span>
+      </div>
     </div>
 
     <!-- ANNOUNCEMENTS -->
@@ -2049,6 +2053,10 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <button class="mm-nav-item mm-sub" id="mm-ims" onclick="mobMenuGo('ims')" style="display:none;">
         <span class="mm-subdot"></span><span class="mm-label">IMS</span>
         <span class="mm-badge" style="margin-left:auto;background:rgba(245,166,35,0.18);color:#f5a623;border:1px solid rgba(245,166,35,0.35);">Live</span>
+      </button>
+      <button class="mm-nav-item mm-sub" id="mm-crm" onclick="mobMenuGo('crm')" style="display:none;">
+        <span class="mm-subdot"></span><span class="mm-label">CRM Vehicle</span>
+        <span class="mm-badge" style="margin-left:auto;background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.35);">Live</span>
       </button>
     </div>
 
@@ -5087,6 +5095,208 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ════════ CRM VEHICLE DASHBOARD PANEL ════════ -->
+<div class="dashboard-panel" id="panel-crm">
+<style>
+#panel-crm .crm-topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:20px 24px 0;}
+#panel-crm .crm-access-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+#panel-crm .crm-pill-all{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);}
+#panel-crm .crm-pill-tier{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);}
+#panel-crm .crm-srv{display:flex;gap:6px;}
+#panel-crm .crm-srv-btn{padding:7px 18px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;}
+#panel-crm .crm-srv-btn:hover{border-color:var(--accent);color:var(--accent);}
+#panel-crm .crm-srv-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+#panel-crm .crm-srv-btn.both-active{background:#7c3aed;color:#fff;border-color:#7c3aed;}
+#panel-crm .crm-tier-row{display:flex;gap:6px;flex-wrap:wrap;padding:0 24px;}
+#panel-crm .crm-tier-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;font-family:'DM Sans',sans-serif;transition:all .18s;}
+#panel-crm .crm-t-all{background:var(--surface2);color:var(--muted);border-color:var(--border);}
+#panel-crm .crm-t-all.active{background:var(--text);color:var(--bg);}
+#panel-crm .crm-t-plat{background:rgba(99,102,241,0.1);color:#6366f1;border-color:rgba(99,102,241,0.3);}
+#panel-crm .crm-t-plat.active{background:#6366f1;color:#fff;}
+#panel-crm .crm-t-gold{background:rgba(245,158,11,0.1);color:#d97706;border-color:rgba(245,158,11,0.3);}
+#panel-crm .crm-t-gold.active{background:#f59e0b;color:#fff;}
+#panel-crm .crm-t-silv{background:var(--surface2);color:var(--muted);border-color:var(--border);}
+#panel-crm .crm-t-silv.active{background:var(--muted);color:#fff;}
+/* Cards */
+#panel-crm .crm-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;padding:0 24px;}
+#panel-crm .crm-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+#panel-crm .crm-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+#panel-crm .crm-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.15);}
+#panel-crm .crm-card.no-click{cursor:default;}
+#panel-crm .crm-card.no-click:hover{transform:none;box-shadow:none;}
+#panel-crm .crm-card.active-filter{border-color:var(--accent);box-shadow:0 0 0 2px rgba(10,123,196,0.2);}
+#panel-crm .crm-c-customers::before{background:#7c3aed;}
+#panel-crm .crm-c-total::before{background:#0a7bc4;}
+#panel-crm .crm-c-active::before{background:linear-gradient(90deg,#10b981,#f59e0b,#64748b);}
+#panel-crm .crm-c-run::before{background:#10b981;}
+#panel-crm .crm-c-idle::before{background:#f59e0b;}
+#panel-crm .crm-c-stop::before{background:#64748b;}
+#panel-crm .crm-c-inac::before{background:#ef4444;}
+#panel-crm .crm-card-num{font-size:2rem;font-weight:800;line-height:1;margin:8px 0 4px;font-family:'DM Sans',sans-serif;}
+#panel-crm .crm-c-customers .crm-card-num{color:#7c3aed;}
+#panel-crm .crm-c-total    .crm-card-num{color:#0a7bc4;}
+#panel-crm .crm-c-active   .crm-card-num{color:#10b981;}
+#panel-crm .crm-c-run      .crm-card-num{color:#10b981;}
+#panel-crm .crm-c-idle     .crm-card-num{color:#f59e0b;}
+#panel-crm .crm-c-stop     .crm-card-num{color:#64748b;}
+#panel-crm .crm-c-inac     .crm-card-num{color:#ef4444;}
+#panel-crm .crm-card-lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+#panel-crm .crm-card-sub{font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);}
+#panel-crm .crm-active-pills{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
+#panel-crm .crm-ap{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:600;}
+#panel-crm .crm-ap-run{background:rgba(16,185,129,0.12);color:#10b981;}
+#panel-crm .crm-ap-idle{background:rgba(245,158,11,0.12);color:#d97706;}
+#panel-crm .crm-ap-stop{background:rgba(100,116,139,0.12);color:#64748b;}
+/* Selected company panel */
+#panel-crm .crm-selected-bar{display:none;margin:0 24px 12px;padding:12px 16px;background:var(--surface2);border:1.5px solid var(--accent);border-radius:12px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+#panel-crm .crm-selected-bar.show{display:flex;}
+#panel-crm .crm-sel-name{font-weight:700;color:var(--text);font-size:14px;}
+#panel-crm .crm-sel-stats{display:flex;gap:10px;flex-wrap:wrap;}
+#panel-crm .crm-sel-stat{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;}
+#panel-crm .crm-sel-clear{padding:5px 12px;border:1.5px solid var(--border);background:var(--surface);border-radius:8px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;}
+#panel-crm .crm-sel-clear:hover{border-color:#ef4444;color:#ef4444;}
+/* Search */
+#panel-crm .crm-search-row{display:flex;gap:10px;padding:0 24px;flex-wrap:wrap;align-items:center;}
+#panel-crm .crm-search{flex:1;min-width:200px;padding:9px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--text);outline:none;transition:.2s;}
+#panel-crm .crm-search:focus{border-color:var(--accent);}
+#panel-crm .crm-count{font-size:13px;color:var(--muted);}
+#panel-crm .crm-count-badge{background:var(--accent);color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:700;margin-left:4px;}
+/* Table */
+#panel-crm .crm-tbl-wrap{padding:0 24px 24px;overflow-x:auto;}
+#panel-crm table{width:100%;border-collapse:collapse;font-size:13px;}
+#panel-crm thead th{background:var(--surface2);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);white-space:nowrap;border-bottom:2px solid var(--border);}
+#panel-crm tbody td{padding:11px 14px;border-bottom:1px solid var(--border);white-space:nowrap;transition:background .1s;}
+#panel-crm tbody tr{cursor:pointer;transition:background .12s;}
+#panel-crm tbody tr:hover td{background:rgba(59,130,246,0.06);}
+#panel-crm tbody tr.crm-row-selected td{background:rgba(59,130,246,0.1);border-left:3px solid var(--accent);}
+#panel-crm tbody tr:last-child td{border-bottom:none;}
+#panel-crm .crm-tier-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+#panel-crm .tb-plat{background:rgba(99,102,241,0.12);color:#6366f1;}
+#panel-crm .tb-gold{background:rgba(245,158,11,0.12);color:#b45309;}
+#panel-crm .tb-silv{background:var(--surface2);color:var(--muted);}
+#panel-crm .crm-bar{display:flex;height:4px;border-radius:4px;overflow:hidden;width:80px;gap:1px;margin-top:4px;}
+#panel-crm .crm-bar-run{background:#10b981;}
+#panel-crm .crm-bar-idle{background:#f59e0b;}
+#panel-crm .crm-bar-stop{background:#64748b;}
+#panel-crm .crm-bar-inac{background:#ef4444;}
+#panel-crm .crm-emp-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--surface2);border-radius:20px;font-size:12px;color:var(--muted);}
+#panel-crm .crm-emp-dot{width:6px;height:6px;border-radius:50%;}
+/* Clickable num cells */
+#panel-crm .crm-num-clickable{border-radius:6px;padding:2px 6px;transition:background .15s;cursor:pointer;}
+#panel-crm .crm-num-clickable:hover{background:rgba(59,130,246,0.12);}
+#panel-crm .crm-num-clickable.highlighted{background:rgba(59,130,246,0.18);outline:2px solid var(--accent);}
+@media(max-width:768px){
+  #panel-crm .crm-topbar{padding:14px 16px 0;}
+  #panel-crm .crm-cards{padding:0 16px;grid-template-columns:repeat(2,1fr);}
+  #panel-crm .crm-search-row,#panel-crm .crm-tier-row,#panel-crm .crm-tbl-wrap,#panel-crm .crm-selected-bar{padding-left:16px;padding-right:16px;}
+  #panel-crm .crm-selected-bar{margin-left:16px;margin-right:16px;}
+}
+</style>
+
+  <div class="db-header" style="padding:20px 24px 16px;">
+    <div>
+      <div class="db-title"><span>Aditi</span> CRM Vehicle<span style="font-size:0.67rem;font-weight:400;color:var(--muted);margin-left:8px;letter-spacing:0.05em;">LIVE TRACKING</span></div>
+      <div class="db-breadcrumb">Portal → Dashboards → CRM Vehicle</div>
+    </div>
+  </div>
+
+  <div class="crm-topbar">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Server</div>
+      <div class="crm-srv">
+        <button class="crm-srv-btn" id="crm-btn-both" onclick="crmSwitchServer('both')">Both</button>
+        <button class="crm-srv-btn active" id="crm-btn-prem" onclick="crmSwitchServer('Premium Server')">Premium</button>
+        <button class="crm-srv-btn" id="crm-btn-pro" onclick="crmSwitchServer('PRO Server')">PRO</button>
+      </div>
+    </div>
+    <div id="crm-access-pill-wrap"></div>
+  </div>
+
+  <div style="padding:12px 24px 0;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Filter by Tier</div>
+  <div class="crm-tier-row" style="margin-top:6px;margin-bottom:16px;">
+    <button class="crm-tier-btn crm-t-all active" id="crm-tf-all"  onclick="crmSwitchTier('')">All</button>
+    <button class="crm-tier-btn crm-t-plat"       id="crm-tf-plat" onclick="crmSwitchTier('Platinum')">💎 Platinum</button>
+    <button class="crm-tier-btn crm-t-gold"       id="crm-tf-gold" onclick="crmSwitchTier('Gold')">🥇 Gold</button>
+    <button class="crm-tier-btn crm-t-silv"       id="crm-tf-silv" onclick="crmSwitchTier('Silver')">🥈 Silver</button>
+  </div>
+
+  <!-- KPI Cards: Customers | Total | Active | Running | Idle | Stop | Inactive -->
+  <div class="crm-cards" style="margin-bottom:16px;">
+    <div class="crm-card crm-c-customers no-click">
+      <div class="crm-card-lbl">Customers</div>
+      <div class="crm-card-num" id="crm-s-customers">—</div>
+      <div class="crm-card-sub" id="crm-ss-customers">companies</div>
+    </div>
+    <div class="crm-card crm-c-total no-click">
+      <div class="crm-card-lbl">Total Vehicles</div>
+      <div class="crm-card-num" id="crm-s-total">—</div>
+      <div class="crm-card-sub" id="crm-ss-total">all vehicles</div>
+    </div>
+    <div class="crm-card crm-c-active no-click">
+      <div class="crm-card-lbl">Active</div>
+      <div class="crm-card-num" id="crm-s-active">—</div>
+      <div class="crm-card-sub" id="crm-ss-active">% of total fleet</div>
+      <div class="crm-active-pills">
+        <span class="crm-ap crm-ap-run">🟢 <span id="crm-ap-run">—</span></span>
+        <span class="crm-ap crm-ap-idle">🟡 <span id="crm-ap-idle">—</span></span>
+        <span class="crm-ap crm-ap-stop">⚫ <span id="crm-ap-stop">—</span></span>
+      </div>
+    </div>
+    <div class="crm-card crm-c-run"  onclick="crmFilterStatus('RUNNING')"  id="crm-card-run">
+      <div class="crm-card-lbl">Running</div>
+      <div class="crm-card-num" id="crm-s-run">—</div>
+      <div class="crm-card-sub" id="crm-ss-run">in motion</div>
+    </div>
+    <div class="crm-card crm-c-idle" onclick="crmFilterStatus('IDLE')"     id="crm-card-idle">
+      <div class="crm-card-lbl">Idle</div>
+      <div class="crm-card-num" id="crm-s-idle">—</div>
+      <div class="crm-card-sub" id="crm-ss-idle">engine on</div>
+    </div>
+    <div class="crm-card crm-c-stop" onclick="crmFilterStatus('STOP')"     id="crm-card-stop">
+      <div class="crm-card-lbl">Stop</div>
+      <div class="crm-card-num" id="crm-s-stop">—</div>
+      <div class="crm-card-sub" id="crm-ss-stop">parked</div>
+    </div>
+    <div class="crm-card crm-c-inac" onclick="crmFilterStatus('INACTIVE')" id="crm-card-inac">
+      <div class="crm-card-lbl">Inactive</div>
+      <div class="crm-card-num" id="crm-s-inac">—</div>
+      <div class="crm-card-sub" id="crm-ss-inac">no signal</div>
+    </div>
+  </div>
+
+  <!-- Selected company info bar (shows when row is clicked) -->
+  <div class="crm-selected-bar" id="crm-selected-bar">
+    <div>
+      <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Selected Company</div>
+      <div class="crm-sel-name" id="crm-sel-name">—</div>
+    </div>
+    <div class="crm-sel-stats" id="crm-sel-stats"></div>
+    <button class="crm-sel-clear" onclick="crmClearSelection()">✕ Clear</button>
+  </div>
+
+  <div class="crm-search-row" style="margin-bottom:10px;">
+    <input class="crm-search" type="text" id="crm-search" placeholder="🔍  Search company name..." oninput="crmApplyFilters()">
+    <div class="crm-count">Showing <span class="crm-count-badge" id="crm-count">0</span> companies</div>
+  </div>
+  <div style="padding:0 24px 10px;font-size:11px;color:var(--muted);font-style:italic;" id="crm-sync-info">Data syncs every 5 minutes · Click any row to see details</div>
+
+  <div class="crm-tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Customer Name</th><th>Tier</th><th>Total</th>
+          <th>Running</th><th>Idle</th><th>Stop</th><th>Inactive</th>
+          <th>Status Bar</th><th>Assigned To</th><th>Last Synced</th>
+        </tr>
+      </thead>
+      <tbody id="crm-tbl-body">
+        <tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- end panel-crm -->
+
 </div><!-- main-area -->
 
 </div><!-- end mainPortal -->
@@ -5601,7 +5811,7 @@ function switchDB(id, fromPopState){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
   // Auto-open dashboard accordion when a sub-dashboard is selected
-  var dashPanels=['leads','collection','fms','tasks','ims'];
+  var dashPanels=['leads','collection','fms','tasks','ims','crm'];
   if(dashPanels.indexOf(id)>=0){
     var grp=document.getElementById('dashboardSubGroup');
     var arrow=document.getElementById('dashAccordionArrow');
@@ -5640,6 +5850,7 @@ function switchDB(id, fromPopState){
   if(id==='training'){loadTrainingSection();}
   if(id==='marketing'){loadMarketingCounts();}
   if(id==='ims')      { loadIMSDashboard(); }
+  if(id==='crm')      { loadCRMDashboard(); }
   if(id==='finance')    { loadSimpleCNPanel('finance',    'Finance');    }
   if(id==='compliance') { loadSimpleCNPanel('compliance', 'Compliance'); }
   if(id==='referral')   { loadSimpleCNPanel('referral',   'Referral');   }
@@ -8591,7 +8802,7 @@ async function _loadUserProfile(authUser) {
     // Supabase Employee_details table se email match karke data lo
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Employee_Dept,Location,Email_Id&Email_Id=ilike.${encodeURIComponent(authUser.email)}&limit=1`,
+        `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Employee_Dept,Location,Email_Id,tier_assignment,special_panel_access&Email_Id=ilike.${encodeURIComponent(authUser.email)}&limit=1`,
         { headers: SB_HDRS() }
       );
       const rows = await res.json();
@@ -8608,17 +8819,19 @@ async function _loadUserProfile(authUser) {
     const _fullAccessRoles = ['managing director','mis','pc','executive assistant','ea'];
 
     CURRENT_USER = {
-      email:    authUser.email,
-      role:     _fullAccessRoles.includes(_rawR) ? 'owner' : 'employee',
-      rawRole:  _rawR === 'managing director' ? 'owner'
-                : _rawR === 'ea' ? 'executive assistant'
-                : _rawR,
-      name:     empData
-                  ? String(empData['Employee_name'] || authUser.email.split('@')[0])
-                  : authUser.email.split('@')[0],
-      location: empData
-                  ? String(empData['Location'] || '').trim()
-                  : ''
+      email:          authUser.email,
+      role:           _fullAccessRoles.includes(_rawR) ? 'owner' : 'employee',
+      rawRole:        _rawR === 'managing director' ? 'owner'
+                      : _rawR === 'ea' ? 'executive assistant'
+                      : _rawR,
+      name:           empData
+                        ? String(empData['Employee_name'] || authUser.email.split('@')[0])
+                        : authUser.email.split('@')[0],
+      location:       empData
+                        ? String(empData['Location'] || '').trim()
+                        : '',
+      tierAssignment: empData ? String(empData['tier_assignment'] || '').trim() : '',
+      crmAccess:      empData ? String(empData['special_panel_access'] || '').trim() : ''
     };
 
     showPortal();
@@ -8822,6 +9035,7 @@ function showPortal(){
   _applyUploadVisibility();
   // IMS nav — sirf MIS, Managing Director, PC ke liye dikhao
   _applyIMSNavVisibility();
+  _applyCRMNavVisibility();
   // Activity Log nav — sirf MIS aur Managing Director ke liye
   _applyActLogNavVisibility();
   // Fetch employee profile photo from Supabase → home page pe dikhao
@@ -14166,6 +14380,237 @@ function _applyIMSNavVisibility() {
   const mmIms = document.getElementById('mm-ims');
   if (mmIms) mmIms.style.display = _canAccessIMS() ? 'flex' : 'none';
 }
+/* ═══════════════════════════════════════════════════
+   CRM VEHICLE DASHBOARD
+═══════════════════════════════════════════════════ */
+let _crmLoaded=false, _crmServer='Premium Server', _crmTier='', _crmStatus='';
+let _crmData=[], _crmSelectedIdx=null;
+
+function _canAccessCRM(){
+  if(!CURRENT_USER)return false;
+  const r=String(CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim();
+  if(['mis','owner','pc','managing director','executive assistant','ea'].includes(r))return true;
+  if(CURRENT_USER.crmAccess==='crm_all')return true;
+  if(CURRENT_USER.tierAssignment)return true;
+  return false;
+}
+function _getCRMAccessLevel(){
+  if(!CURRENT_USER)return'none';
+  const r=String(CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim();
+  if(['mis','owner','pc','managing director','executive assistant','ea'].includes(r)||CURRENT_USER.crmAccess==='crm_all')return'all';
+  if(CURRENT_USER.tierAssignment)return CURRENT_USER.tierAssignment;
+  return'none';
+}
+function _applyCRMNavVisibility(){
+  const el=document.getElementById('nav-crm'), mm=document.getElementById('mm-crm'), show=_canAccessCRM();
+  if(el)el.style.display=show?'flex':'none';
+  if(mm)mm.style.display=show?'flex':'none';
+}
+function _crmAnim(el,val,dur=600){
+  if(!el)return;
+  const t0=performance.now();
+  function step(now){const p=Math.min((now-t0)/dur,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(e*val).toLocaleString();if(p<1)requestAnimationFrame(step);}
+  requestAnimationFrame(step);
+}
+
+/* Paginated fetch — bypasses Supabase 1000 row default limit */
+async function _crmFetchAll(baseUrl){
+  const pageSize=1000, hdrs=SB_HDRS();
+  let allRows=[], offset=0;
+  while(true){
+    const res=await fetch(`${baseUrl}&limit=${pageSize}&offset=${offset}`,{
+      headers:{...hdrs,'Range-Unit':'items','Range':`${offset}-${offset+pageSize-1}`}
+    });
+    const batch=await res.json();
+    if(!Array.isArray(batch)||batch.length===0)break;
+    allRows=[...allRows,...batch];
+    if(batch.length<pageSize)break;
+    offset+=pageSize;
+  }
+  return allRows;
+}
+
+async function loadCRMDashboard(){
+  if(!_canAccessCRM()){switchDB('home');return;}
+  const acc=_getCRMAccessLevel();
+  const pw=document.getElementById('crm-access-pill-wrap');
+  if(pw){
+    if(acc==='all')pw.innerHTML='<span class="crm-access-pill crm-pill-all">✅ Full Access</span>';
+    else{
+      pw.innerHTML=`<span class="crm-access-pill crm-pill-tier">🔒 ${acc} Only</span>`;
+      crmSwitchTier(acc);
+      document.querySelectorAll('#panel-crm .crm-tier-btn').forEach(b=>b.style.pointerEvents='none');
+    }
+  }
+  const tb=document.getElementById('crm-tbl-body');
+  if(tb)tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">Loading data...</td></tr>';
+  crmClearSelection();
+  try{
+    const baseUrl=_crmServer==='both'
+      ?`${SUPABASE_URL}/rest/v1/server_customer_summary?order=total_vehicles.desc`
+      :`${SUPABASE_URL}/rest/v1/server_customer_summary?region=eq.${encodeURIComponent(_crmServer)}&order=total_vehicles.desc`;
+    let data=await _crmFetchAll(baseUrl);
+    if(acc!=='all'&&acc!=='none')data=data.filter(r=>r.tier===acc);
+    _crmData=data; _crmLoaded=true;
+    const si=document.getElementById('crm-sync-info');
+    if(si)si.textContent='Last loaded: '+new Date().toLocaleTimeString()+' — syncs every 5 min · Click any row to see details';
+    crmApplyFilters();
+  }catch(e){
+    console.error('CRM load error:',e);
+    const tb2=document.getElementById('crm-tbl-body');
+    if(tb2)tb2.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Failed to load. Check console.</td></tr>';
+  }
+}
+
+function crmApplyFilters(){
+  const s=(document.getElementById('crm-search')?.value||'').toLowerCase();
+  let f=_crmData.filter(r=>(!s||(r.company||'').toLowerCase().includes(s))&&(!_crmTier||r.tier===_crmTier));
+  if(_crmStatus){const km={RUNNING:'running_count',IDLE:'idle_count',STOP:'stop_count',INACTIVE:'inactive_count'};f=f.filter(r=>(r[km[_crmStatus]]||0)>0);}
+  crmRenderCards(f);
+  crmRenderTable(f);
+  const c=document.getElementById('crm-count'); if(c)c.textContent=f.length;
+}
+
+function crmRenderCards(data){
+  const tot =data.reduce((s,r)=>s+(r.total_vehicles||0),0);
+  const run =data.reduce((s,r)=>s+(r.running_count||0),0);
+  const idl =data.reduce((s,r)=>s+(r.idle_count||0),0);
+  const stp =data.reduce((s,r)=>s+(r.stop_count||0),0);
+  const ina =data.reduce((s,r)=>s+(r.inactive_count||0),0);
+  const act =run+idl+stp;
+  const cust=data.length;
+  const g=id=>document.getElementById(id);
+  _crmAnim(g('crm-s-customers'),cust);
+  _crmAnim(g('crm-s-total'),tot);
+  _crmAnim(g('crm-s-active'),act);
+  _crmAnim(g('crm-s-run'),run);
+  _crmAnim(g('crm-s-idle'),idl);
+  _crmAnim(g('crm-s-stop'),stp);
+  _crmAnim(g('crm-s-inac'),ina);
+  if(g('crm-ap-run')) g('crm-ap-run').textContent=run.toLocaleString();
+  if(g('crm-ap-idle'))g('crm-ap-idle').textContent=idl.toLocaleString();
+  if(g('crm-ap-stop'))g('crm-ap-stop').textContent=stp.toLocaleString();
+  const srv=_crmServer==='both'?'both servers':_crmServer;
+  if(g('crm-ss-customers'))g('crm-ss-customers').textContent=_crmTier?_crmTier+' tier':srv;
+  if(g('crm-ss-total'))g('crm-ss-total').textContent=cust+' companies · '+srv;
+  if(g('crm-ss-active'))g('crm-ss-active').textContent=tot?Math.round(act/tot*100)+'% of total fleet':'running+idle+stop';
+  if(g('crm-ss-run'))g('crm-ss-run').textContent=act?Math.round(run/act*100)+'% of active':'in motion';
+  if(g('crm-ss-idle'))g('crm-ss-idle').textContent=act?Math.round(idl/act*100)+'% of active':'engine on';
+  if(g('crm-ss-stop'))g('crm-ss-stop').textContent=act?Math.round(stp/act*100)+'% of active':'parked';
+  if(g('crm-ss-inac'))g('crm-ss-inac').textContent=tot?Math.round(ina/tot*100)+'% of fleet':'no signal';
+}
+
+/* Clicking a table row highlights it + updates KPI cards with that company's data */
+function crmSelectRow(idx, rowEl){
+  const r=_crmData[idx];
+  if(!r)return;
+  // Deselect previous
+  document.querySelectorAll('#crm-tbl-body tr.crm-row-selected').forEach(tr=>tr.classList.remove('crm-row-selected'));
+  // If same row clicked again — deselect
+  if(_crmSelectedIdx===idx){
+    _crmSelectedIdx=null;
+    crmClearSelection();
+    crmApplyFilters(); // restore full cards
+    return;
+  }
+  _crmSelectedIdx=idx;
+  rowEl.classList.add('crm-row-selected');
+  // Update KPI cards to show this company's data
+  const act=(r.running_count||0)+(r.idle_count||0)+(r.stop_count||0);
+  const tot=r.total_vehicles||0;
+  const g=id=>document.getElementById(id);
+  _crmAnim(g('crm-s-customers'),1,300);
+  _crmAnim(g('crm-s-total'),tot,300);
+  _crmAnim(g('crm-s-active'),act,300);
+  _crmAnim(g('crm-s-run'),r.running_count||0,300);
+  _crmAnim(g('crm-s-idle'),r.idle_count||0,300);
+  _crmAnim(g('crm-s-stop'),r.stop_count||0,300);
+  _crmAnim(g('crm-s-inac'),r.inactive_count||0,300);
+  if(g('crm-ap-run')) g('crm-ap-run').textContent=(r.running_count||0).toLocaleString();
+  if(g('crm-ap-idle'))g('crm-ap-idle').textContent=(r.idle_count||0).toLocaleString();
+  if(g('crm-ap-stop'))g('crm-ap-stop').textContent=(r.stop_count||0).toLocaleString();
+  if(g('crm-ss-customers'))g('crm-ss-customers').textContent='selected company';
+  if(g('crm-ss-total'))g('crm-ss-total').textContent=r.company||'—';
+  if(g('crm-ss-active'))g('crm-ss-active').textContent=tot?Math.round(act/tot*100)+'% of this company':'running+idle+stop';
+  if(g('crm-ss-run'))g('crm-ss-run').textContent=act?Math.round((r.running_count||0)/act*100)+'% of active':'—';
+  if(g('crm-ss-idle'))g('crm-ss-idle').textContent=act?Math.round((r.idle_count||0)/act*100)+'% of active':'—';
+  if(g('crm-ss-stop'))g('crm-ss-stop').textContent=act?Math.round((r.stop_count||0)/act*100)+'% of active':'—';
+  if(g('crm-ss-inac'))g('crm-ss-inac').textContent=tot?Math.round((r.inactive_count||0)/tot*100)+'% of company':'—';
+  // Show selected company bar
+  const bar=document.getElementById('crm-selected-bar');
+  const nm=document.getElementById('crm-sel-name');
+  const st=document.getElementById('crm-sel-stats');
+  if(bar)bar.classList.add('show');
+  if(nm)nm.textContent=r.company||'—';
+  if(st)st.innerHTML=`
+    <span class="crm-sel-stat" style="color:#0a7bc4">🚗 ${(r.total_vehicles||0).toLocaleString()} Total</span>
+    <span class="crm-sel-stat" style="color:#10b981">🟢 ${(r.running_count||0).toLocaleString()} Running</span>
+    <span class="crm-sel-stat" style="color:#f59e0b">🟡 ${(r.idle_count||0).toLocaleString()} Idle</span>
+    <span class="crm-sel-stat" style="color:#64748b">⚫ ${(r.stop_count||0).toLocaleString()} Stop</span>
+    <span class="crm-sel-stat" style="color:#ef4444">🔴 ${(r.inactive_count||0).toLocaleString()} Inactive</span>
+    <span class="crm-sel-stat" style="color:#7c3aed">${r.tier||'—'}</span>
+  `;
+}
+
+function crmClearSelection(){
+  _crmSelectedIdx=null;
+  document.querySelectorAll('#crm-tbl-body tr.crm-row-selected').forEach(tr=>tr.classList.remove('crm-row-selected'));
+  const bar=document.getElementById('crm-selected-bar');
+  if(bar)bar.classList.remove('show');
+}
+
+function crmRenderTable(data){
+  const tb=document.getElementById('crm-tbl-body'); if(!tb)return;
+  if(!data.length){tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No companies found</td></tr>';return;}
+  const ec={'guddu':'#6366f1','darshil':'#f59e0b','nitasha':'#10b981'};
+  tb.innerHTML=data.map((r,i)=>{
+    const tc=r.tier==='Platinum'?'tb-plat':r.tier==='Gold'?'tb-gold':'tb-silv';
+    const ti=r.tier==='Platinum'?'💎':r.tier==='Gold'?'🥇':'🥈';
+    const t=r.total_vehicles||1;
+    const bR=Math.round((r.running_count||0)/t*80),bI=Math.round((r.idle_count||0)/t*80),bS=Math.round((r.stop_count||0)/t*80),bN=Math.max(0,80-bR-bI-bS);
+    const syn=r.last_synced?new Date(r.last_synced).toLocaleString():'—';
+    const en=r.assigned_to||'—',ek=Object.keys(ec).find(k=>en.toLowerCase().includes(k)),ecol=ek?ec[ek]:'var(--muted)';
+    // Find original index in _crmData for selection
+    const dataIdx=_crmData.indexOf(r);
+    return`<tr onclick="crmSelectRow(${dataIdx},this)" title="Click to see ${r.company||''} details in cards">
+      <td style="color:var(--muted);font-weight:500">${i+1}</td>
+      <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${r.company||''}">${r.company||'—'}</td>
+      <td><span class="crm-tier-badge ${tc}">${ti} ${r.tier||'—'}</span></td>
+      <td style="font-weight:700;color:#0a7bc4;">${(r.total_vehicles||0).toLocaleString()}</td>
+      <td style="font-weight:600;color:#10b981;">${(r.running_count||0).toLocaleString()}</td>
+      <td style="font-weight:600;color:#f59e0b;">${(r.idle_count||0).toLocaleString()}</td>
+      <td style="font-weight:600;color:#64748b;">${(r.stop_count||0).toLocaleString()}</td>
+      <td style="font-weight:600;color:#ef4444;">${(r.inactive_count||0).toLocaleString()}</td>
+      <td><div class="crm-bar"><div class="crm-bar-run" style="width:${bR}px"></div><div class="crm-bar-idle" style="width:${bI}px"></div><div class="crm-bar-stop" style="width:${bS}px"></div><div class="crm-bar-inac" style="width:${bN}px"></div></div></td>
+      <td><span class="crm-emp-chip"><span class="crm-emp-dot" style="background:${ecol}"></span>${en}</span></td>
+      <td style="font-size:11px;color:var(--muted);">${syn}</td>
+    </tr>`;
+  }).join('');
+}
+
+function crmSwitchServer(s){
+  _crmServer=s; _crmLoaded=false;
+  document.getElementById('crm-btn-both').className='crm-srv-btn'+(s==='both'?' both-active':'');
+  document.getElementById('crm-btn-prem').className='crm-srv-btn'+(s==='Premium Server'?' active':'');
+  document.getElementById('crm-btn-pro').className ='crm-srv-btn'+(s==='PRO Server'?' active':'');
+  loadCRMDashboard();
+}
+function crmSwitchTier(t){
+  _crmTier=t;
+  document.querySelectorAll('#panel-crm .crm-tier-btn').forEach(b=>b.classList.remove('active'));
+  const m={'':'crm-tf-all','Platinum':'crm-tf-plat','Gold':'crm-tf-gold','Silver':'crm-tf-silv'};
+  const el=document.getElementById(m[t]); if(el)el.classList.add('active');
+  crmApplyFilters();
+}
+function crmFilterStatus(s){
+  _crmStatus=s;
+  document.querySelectorAll('#panel-crm .crm-card').forEach(c=>c.classList.remove('active-filter'));
+  if(s){const m={RUNNING:'crm-card-run',IDLE:'crm-card-idle',STOP:'crm-card-stop',INACTIVE:'crm-card-inac'};const el=document.getElementById(m[s]);if(el)el.classList.add('active-filter');}
+  crmClearSelection();
+  crmApplyFilters();
+}
+setInterval(()=>{if(_crmLoaded&&!_crmSelectedIdx)loadCRMDashboard();},5*60*1000);
+
 
 // ── Get effective date index ──────────────────────────────────────
 function _imsEffDateIdx() {
