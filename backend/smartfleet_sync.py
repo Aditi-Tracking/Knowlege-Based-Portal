@@ -97,10 +97,11 @@ def pull_vehicles(server, token, session):
         return []
 
 
-def map_vehicle(v, region):
+# CHANGE 1: Added sync_time parameter so all rows in a batch share the same timestamp
+def map_vehicle(v, region, sync_time):
     imei = str(v.get("Imeino", "")).strip()
     return {
-        "synced_at":          datetime.now(timezone.utc).isoformat(),
+        "synced_at":          sync_time,   # CHANGED: use shared batch timestamp
         "region":             region,
         "vehicle_name":       v.get("Vehicle_Name", ""),
         "vehicle_no":         v.get("Vehicle_No", ""),
@@ -152,6 +153,9 @@ def map_vehicle(v, region):
 
 
 def sync_server(server):
+    # CHANGE 2: Create one shared timestamp for the entire sync batch
+    sync_time = datetime.now(timezone.utc).isoformat()
+
     print(f"\n  [{server['name']}] Syncing...")
     session = get_session(server["ip"])
     token = get_token(server, session)
@@ -168,7 +172,8 @@ def sync_server(server):
         if not imei or imei.lower() == "null":
             skipped += 1
             continue
-        rows.append(map_vehicle(v, server["name"]))
+        # CHANGE 3: Pass sync_time to map_vehicle
+        rows.append(map_vehicle(v, server["name"], sync_time))
 
     print(f"  [{server['name']}] Valid: {len(rows)} | Skipped (no IMEI): {skipped}")
 
@@ -195,7 +200,20 @@ def sync_server(server):
         except Exception as e:
             print(f"  [{server['name']}] Save error: {e}")
 
-    print(f"  [{server['name']}] Saved {total} rows ")
+    print(f"  [{server['name']}] Saved {total} rows")
+
+    # CHANGE 4: Delete stale vehicles no longer returned by API
+    # Since all rows in this batch share sync_time, anything older = stale
+    try:
+        current_imeis = [row["imeino"] for row in unique_rows]
+        supabase.table("vehicle_live_data") \
+            .delete() \
+            .eq("region", server["name"]) \
+            .not_.in_("imeino", current_imeis) \
+            .execute()
+        print(f"  [{server['name']}] Stale vehicles removed")
+    except Exception as e:
+        print(f"  [{server['name']}] Stale cleanup error: {e}")
 
 
 def sync_all():
@@ -208,7 +226,7 @@ def sync_all():
 
     try:
         supabase.rpc("refresh_customer_crm").execute()
-        print("\n  CRM updated ")
+        print("\n  CRM updated")
     except Exception as e:
         print(f"\n  CRM error: {e}")
 
