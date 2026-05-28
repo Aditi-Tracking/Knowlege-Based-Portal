@@ -4756,7 +4756,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <option value="pending">⏳ Pending</option>
         <option value="ongoing">🔄 Ongoing</option>
       </select>
-      <button class="reset-btn" onclick="tClearAll()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset</button>
+
     </div>
 
     <!-- Table -->
@@ -6845,7 +6845,7 @@ async function tFetchAllPages(baseUrl){
     const res = await fetch(url, { headers: SB_HDRS() });
     const batch = await res.json();
     if(!Array.isArray(batch) || batch.length === 0) break;
-    all = all.concat(batch);
+    all.push(...batch); // FIX: avoid creating new array every iteration
     if(batch.length < BATCH) break; // last page
     offset += BATCH;
     if(offset > 100000) break; // safety cap at 100k
@@ -7052,21 +7052,25 @@ function tProcessData(){
   // 1. Restore locally-saved done states
   tApplyDoneTasks();
 
-  // 2. Date filter is already set by loadTasks() — don't override here
+  // 2. Date filter is already set by loadTasks()
 
   // 3. Populate dropdowns
   tPopulateFilters();
 
-  // 4. Render KPIs & charts (now date-filtered)
-  tRenderKPIs();
-  tRenderCharts();
-
-  // 5. Render table
-  tFiltered = tGetFiltered(); tPage=1;
-  tRenderTable();
-  tUpdateBadge();
-  // Update home page task alert banner
-  updateHomeTaskBanner();
+  // 4. Yield BEFORE every heavy render step to keep browser responsive
+  //    Each setTimeout(0) gives browser a chance to breathe between steps
+  setTimeout(function(){
+    tRenderKPIs();
+    setTimeout(function(){
+      tRenderCharts();
+      setTimeout(function(){
+        tFiltered = tGetFiltered(); tPage=1;
+        tRenderTable();
+        tUpdateBadge();
+        updateHomeTaskBanner();
+      }, 0);
+    }, 0);
+  }, 0);
 }
 
 function tIsDone(r){
@@ -7277,8 +7281,10 @@ function tRenderCharts(){
   });
 
   // 2. Person bar - clickable
-  const persons=[...new Set(chartData.map(r=>r['Name']))].sort();
-  const personCounts=persons.map(p=>chartData.filter(r=>r['Name']===p).length);
+  // FIX: Use reduce to count in O(n) instead of filter-per-person O(n²)
+  const personCountMap = chartData.reduce((acc,r)=>{ const n=r['Name']||''; acc[n]=(acc[n]||0)+1; return acc; },{});
+  const persons = Object.keys(personCountMap).sort();
+  const personCounts = persons.map(p=>personCountMap[p]);
   tCharts.person=new Chart(document.getElementById('tChPerson'),{
     type:'bar',
     data:{labels:persons,datasets:[{
@@ -7301,8 +7307,10 @@ function tRenderCharts(){
   });
 
   // 3. Dept bar - clickable
-  const depts=[...new Set(chartData.map(r=>r['Department']).filter(Boolean))].sort();
-  const deptCounts=depts.map(d=>chartData.filter(r=>r['Department']===d).length);
+  // FIX: Use reduce to count in O(n) instead of filter-per-dept O(n²)
+  const deptCountMap = chartData.reduce((acc,r)=>{ const d=r['Department']||''; if(d){acc[d]=(acc[d]||0)+1;} return acc; },{});
+  const depts = Object.keys(deptCountMap).sort();
+  const deptCounts = depts.map(d=>deptCountMap[d]);
   const DCOLS=['#a855f7','#f0a500','#00d4aa','#00d4ff','#ff5c7c','#f472b6','#34d399'];
   tCharts.dept=new Chart(document.getElementById('tChDept'),{
     type:'bar',
@@ -7325,14 +7333,18 @@ function tRenderCharts(){
     }
   });
 
-  // 4. Leaderboard
-  const allStats=[...new Set(chartData.map(r=>r['Name']))].map(p=>{
-    const rows=chartData.filter(r=>r['Name']===p);
-    const d=rows.filter(r=>tIsDone(r)).length;
-    const pen=rows.length-d;
-    const dept=rows[0]?rows[0]['Department']:'';
-    return{name:p,dept,total:rows.length,done:d,pending:pen,score:+(d-pen*0.5).toFixed(1),pct:rows.length?Math.round((d/rows.length)*100):0};
-  }).sort((a,b)=>b.done-a.done);
+  // 4. Leaderboard — FIX: single-pass reduce instead of filter-per-person O(n²)
+  const _statsMap = chartData.reduce((acc,r)=>{
+    const n=r['Name']||''; if(!n) return acc;
+    if(!acc[n]) acc[n]={name:n,dept:r['Department']||'',total:0,done:0,pending:0};
+    acc[n].total++;
+    if(tIsDone(r)) acc[n].done++; else acc[n].pending++;
+    return acc;
+  },{});
+  const allStats = Object.values(_statsMap).map(p=>({
+    ...p,score:+(p.done-p.pending*0.5).toFixed(1),
+    pct:p.total?Math.round((p.done/p.total)*100):0
+  })).sort((a,b)=>b.done-a.done);
 
   const medals=['🥇','🥈','🥉'];
   document.getElementById('tLeaderboard').innerHTML=`
@@ -7396,15 +7408,14 @@ function tUpdateBadge(){
   if(tActiveStatus) parts.push(`<strong style="color:#f0a500">${tActiveStatus==='done'?'✅ Completed':tActiveStatus==='ongoing'?'🔄 Ongoing':'⏳ Pending'}</strong>`);
   if(parts.length){
     badge.style.display='flex';
-    badge.innerHTML='🎯 Filter: '+parts.join(' + ')+' <span onclick="tClearAll()" style="cursor:pointer;color:var(--hot);margin-left:8px;font-weight:600">✕ Clear All</span>';
+    badge.innerHTML='🎯 Filter: '+parts.join(' + ')+'';
   } else {
     badge.style.display='none';
   }
 }
 
 function tPopulateFilters(){
-  // Parse _tDate from Planned field for each row
-  tAllData.forEach(r=>{ r['_tDate']=tParseDate(r['Planned']); });
+  // _tDate already parsed in loadTasks — no need to re-parse here
   const depts=[...new Set(tAllData.map(r=>r['Department']).filter(Boolean))].sort();
   const persons=[...new Set(tAllData.map(r=>r['Name']).filter(Boolean))].sort();
   const freqs=[...new Set(tAllData.map(r=>String(r['Freq']||'').trim()).filter(Boolean))].sort();
@@ -7469,35 +7480,6 @@ function tApply(){
   tUpdateBadge();
 }
 
-function tClearAll(){
-  tActiveKpi=null; tActivePerson=null; tActiveDept=null; tActiveStatus=null; tActiveFreq=null; tActiveLocation=null;
-  document.getElementById('tSearch').value='';
-  document.getElementById('tFDept').value='';
-  document.getElementById('tFPerson').value='';
-  document.getElementById('tFFreq').value='';
-  document.getElementById('tFStatus').value='';
-  const locEl=document.getElementById('tFLocation'); if(locEl) locEl.value='';
-
-  const _rawRoleClr = CURRENT_USER ? (CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim() : '';
-  const _isAdminClr = CURRENT_USER && (
-    CURRENT_USER.role==='owner' || _rawRoleClr==='owner' ||
-    _rawRoleClr==='mis' || _rawRoleClr==='pc' ||
-    _rawRoleClr==='executive assistant' || _rawRoleClr==='ea'
-  );
-
-  if(_isAdminClr){
-    // Admin: saara data dikhao — koi date filter nahi
-    tActiveDateFrom = null; tActiveDateTo = null;
-    document.getElementById('tFDateFrom').value = '';
-    document.getElementById('tFDateTo').value   = '';
-    loadTasks('1900-01-01', '2100-12-31'); // effectively all data
-  } else {
-    // Employee: today pe wapas
-    const _ts = new Date().toISOString().slice(0,10);
-    tActiveDateFrom = null; tActiveDateTo = null;
-    loadTasks(_ts, _ts);
-  }
-}
 
 
 
