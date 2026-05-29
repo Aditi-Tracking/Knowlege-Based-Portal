@@ -55,6 +55,7 @@ ROLE_MAP = {
     "pc":                  "pc",
     "executive assistant": "executive assistant",
     "ea":                  "executive assistant",
+    "admin":               "admin"
 }
 
 # ── Helper: check database is connected ────────────────────────
