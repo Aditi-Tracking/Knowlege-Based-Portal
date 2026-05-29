@@ -2,3 +2,5 @@ requests
 supabase
 schedule
 urllib3
+flask
+flask-cors
