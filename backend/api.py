@@ -4,9 +4,9 @@
 # from the frontend (index.html).
 #
 # Three endpoints:
-#   GET  /api/permissions              — called on login
-#   POST /api/admin/permissions        — called when admin flips a toggle
-#   GET  /api/admin/all-users-permissions — called when admin opens panel
+#   GET  /api/permissions                  — called on login
+#   POST /api/admin/permissions            — called when admin flips a toggle
+#   GET  /api/admin/all-users-permissions  — called when admin opens panel
 # ═══════════════════════════════════════════════════════════════
 
 from flask import Flask, request, jsonify   # Flask web framework
@@ -27,12 +27,12 @@ CORS(app)
 # The service role key bypasses RLS and has full read/write access.
 # NEVER put this key in your frontend HTML file.
 # Store it as an environment variable on Railway.
-# ── Supabase connection ─────────────────────────────────────────
 SUPABASE_URL         = os.environ.get("SUPABASE_URL", "https://rramdtpabwjsndgkohbi.supabase.co")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
-# Validate that service key is present before trying to connect
-# If missing, log a clear error but don't crash — Flask still starts
+# Validate that service key is present before trying to connect.
+# If missing, log a clear error but do NOT crash — Flask still starts.
+# This means smartfleet_sync.py keeps running even if this key is missing.
 sb = None
 if SUPABASE_SERVICE_KEY:
     try:
@@ -43,22 +43,38 @@ if SUPABASE_SERVICE_KEY:
         sb = None
 else:
     print("WARNING: SUPABASE_SERVICE_KEY not set — database calls will fail but server will still start")
+
 # ── Role mapping ────────────────────────────────────────────────
 # Your Employee_details table stores roles as Employee_Dept values
 # like "Managing Director", "MIS", "PC" etc.
 # This maps those values to the short role keys used in role_defaults table.
+# All keys are lowercase because we call .lower() before looking up.
 ROLE_MAP = {
     "managing director":   "owner",
     "mis":                 "mis",
     "pc":                  "pc",
-    "executive Assistant": "executive Assistant"
+    "executive assistant": "executive assistant",
+    "ea":                  "executive assistant",
 }
+
+# ── Helper: check database is connected ────────────────────────
+# Called at the top of every endpoint.
+# If the Supabase client failed to initialise (missing key),
+# this returns a clean 503 error instead of crashing with an AttributeError.
+def db_check():
+    if sb is None:
+        return jsonify({
+            "error": "Database not connected — SUPABASE_SERVICE_KEY is missing or invalid"
+        }), 503
+    return None   # None means all good, continue
 
 # ── Helper: check if a caller is an admin ───────────────────────
 # Used by the two admin endpoints to block non-admin callers.
 # Reads the X-User-Email header that the frontend sends with every request.
 def is_admin(caller_email):
     if not caller_email:
+        return False
+    if sb is None:
         return False
     try:
         res = sb.table("Employee_details") \
@@ -125,6 +141,11 @@ def get_permissions(email, role):
 # ══════════════════════════════════════════════════════════════════
 @app.route("/api/permissions", methods=["GET"])
 def fetch_user_permissions():
+    # Check database is connected — return 503 if not
+    err = db_check()
+    if err:
+        return err
+
     # Read the email from the URL query string: /api/permissions?email=...
     email = request.args.get("email", "").strip().lower()
 
@@ -146,10 +167,10 @@ def fetch_user_permissions():
     if emp_res.data:
         raw_role = str(emp_res.data[0].get("Employee_Dept", "")).strip().lower()
 
-    # Convert department name to role key
+    # Convert department name to role key using ROLE_MAP
     role = ROLE_MAP.get(raw_role, "employee")
 
-    # Build merged permissions
+    # Build merged permissions (role defaults + user overrides)
     permissions = get_permissions(email, role)
 
     return jsonify({
@@ -176,6 +197,11 @@ def fetch_user_permissions():
 # ══════════════════════════════════════════════════════════════════
 @app.route("/api/admin/permissions", methods=["POST"])
 def save_user_permission():
+    # Check database is connected — return 503 if not
+    err = db_check()
+    if err:
+        return err
+
     # The frontend sends the admin's email in this header
     caller_email = request.headers.get("X-User-Email", "").strip().lower()
 
@@ -193,8 +219,8 @@ def save_user_permission():
     if not user_email or not permission or not value:
         return jsonify({"error": "user_email, permission, and value are all required"}), 400
 
-    # Upsert = insert if this row doesn't exist, update if it does
-    # on_conflict means: if user_email+permission already exists, update the value
+    # Upsert = insert if this row doesn't exist, update if it does.
+    # on_conflict means: if user_email + permission already exists, update the value.
     try:
         sb.table("user_permissions").upsert(
             {
@@ -233,6 +259,11 @@ def save_user_permission():
 # ══════════════════════════════════════════════════════════════════
 @app.route("/api/admin/all-users-permissions", methods=["GET"])
 def all_users_permissions():
+    # Check database is connected — return 503 if not
+    err = db_check()
+    if err:
+        return err
+
     # Block non-admins
     caller_email = request.headers.get("X-User-Email", "").strip().lower()
     if not is_admin(caller_email):
@@ -308,9 +339,14 @@ def all_users_permissions():
 
 # ── Health check endpoint ───────────────────────────────────────
 # Visit /health in your browser to confirm the server is running.
+# Also shows whether the database is connected.
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "service": "Aditi Permissions API"})
+    return jsonify({
+        "status":   "ok",
+        "service":  "Aditi Permissions API",
+        "database": "connected" if sb is not None else "NOT connected — check SUPABASE_SERVICE_KEY"
+    })
 
 
 # ── Start the server ────────────────────────────────────────────
