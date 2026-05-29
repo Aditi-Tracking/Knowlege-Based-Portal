@@ -1735,6 +1735,17 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 
     </div>
 
+    <!-- ACCESS CONTROL — MIS only, shown/hidden by JS -->
+    <div class="nav-item" onclick="switchDB('adminperms')" id="nav-adminperms" style="display:none;">
+      <span class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </span>
+      <span class="nav-label">Access Control</span>
+    </div>
+
     <!-- ABOUT ORGANISATION -->
     <div class="nav-item" onclick="switchDB('about')" id="nav-about">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><circle cx="12" cy="14" r="3"/></svg></span>
@@ -5297,6 +5308,34 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
 </div><!-- end panel-crm -->
 
+<!-- ACCESS CONTROL PANEL — inside main-area so sidebar margin applies correctly -->
+<div class="dashboard-panel" id="panel-adminperms">
+  <div class="db-header">
+    <div>
+      <div class="db-title">🔐 <span>Access Control</span></div>
+      <div class="db-breadcrumb">Manage what each person can see and do</div>
+    </div>
+    <div class="header-right">
+      <button class="theme-toggle" onclick="switchDB('home')" style="font-size:0.80rem;">← Back to Home</button>
+    </div>
+  </div>
+  <div class="db-content">
+    <div id="acpLoading" style="text-align:center;padding:60px;color:var(--muted);">
+      <div style="font-size:2rem;margin-bottom:12px;">⏳</div>
+      <div style="font-size:0.88rem;">Loading employees...</div>
+    </div>
+    <div id="acpError" style="display:none;color:#ef4444;text-align:center;padding:40px;font-size:0.9rem;"></div>
+    <div id="acpTable" style="display:none;">
+      <input id="acpSearch" type="text" placeholder="🔍 Search by name or email..."
+        oninput="acpFilter()"
+        style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);
+               background:var(--surface2);color:var(--text);font-size:0.88rem;
+               font-family:'DM Sans',sans-serif;outline:none;box-sizing:border-box;margin-bottom:16px;">
+      <div id="acpRows"></div>
+    </div>
+  </div>
+</div>
+
 </div><!-- main-area -->
 
 </div><!-- end mainPortal -->
@@ -5637,9 +5676,7 @@ const VIDEO_DOWNLOAD_EMAILS = [
 ];
 function _canDownloadVideo() {
   if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
-  const email = String(CURRENT_USER.email || '').toLowerCase().trim();
-  const role  = String(CURRENT_USER.rawRole || '').toLowerCase().trim();
-  return VIDEO_DOWNLOAD_EMAILS.includes(email) || role === 'owner' || role === 'mis';
+  return PERMISSIONS.can_download_video === 'true';
 }
 
 // ─── PROFILE PHOTO UPLOAD ────────────────────────────────────────────────────
@@ -5857,6 +5894,7 @@ function switchDB(id, fromPopState){
   if(id==='announcements') { /* handled by override below */ }
   if(id==='activitylog') { loadActivityLog(); }
   if(id==='itadmin')    { loadSimpleCNPanel('itadmin',    'IT Admin');   }
+  if(id==='adminperms') { loadAdminPermsPanel(); }
   // Training panel needs no data loading — just shows static links
   // Push history state so back button returns to home
   if(!fromPopState){
@@ -6868,12 +6906,7 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
     _tasksCont.style.transition='opacity 0.2s';
   }
   try{
-    const _rawRole = CURRENT_USER ? (CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim() : '';
-    const isOwner = CURRENT_USER && (
-      CURRENT_USER.role==='owner' || _rawRole==='owner' ||
-      _rawRole==='mis' || _rawRole==='pc' ||
-      _rawRole==='executive assistant' || _rawRole==='ea'
-    );
+    const isOwner = PERMISSIONS.checklist_scope === 'all';
     const myEmail = CURRENT_USER ? String(CURRENT_USER.email||'').trim().toLowerCase() : '';
 
     // ── Date: dono ke liye today default, admin date change kar sakta hai ──
@@ -8489,12 +8522,7 @@ async function tSilentRefresh(){
   if(_tasksSyncing || !tLoaded) return;
   _tasksSyncing = true;
   try {
-    const _rawRole2 = CURRENT_USER ? (CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim() : '';
-    const isOwner = CURRENT_USER && (
-      CURRENT_USER.role==='owner' || _rawRole2==='owner' ||
-      _rawRole2==='mis' || _rawRole2==='pc' ||
-      _rawRole2==='executive assistant' || _rawRole2==='ea'
-    );
+    const isOwner = PERMISSIONS.checklist_scope === 'all';
     const myEmail = CURRENT_USER ? String(CURRENT_USER.email||'').trim().toLowerCase() : '';
 
     // Dono ke liye current active date use karo (default today)
@@ -8748,6 +8776,7 @@ _sbAuth.auth.onAuthStateChange(async (event, session) => {
 
 // Cache for pre-fetched user list
 let CURRENT_USER = null;
+let PERMISSIONS  = {};   // populated from Python backend after login
 
 function warmupAPIs(){
   // Warm-up ping to Google Apps Scripts (fire & forget)
@@ -8776,6 +8805,29 @@ function togglePass(){
   else{p.type='password';e.textContent='👁️';}
 }
 
+// Fallback — builds PERMISSIONS from rawRole if Python backend unreachable
+function _buildFallbackPermissions(rawRole) {
+  const r       = (rawRole || 'employee').toLowerCase();
+  const isOwner = r === 'owner' || r === 'managing director';
+  const isMIS   = r === 'mis';
+  const isPC    = r === 'pc' || r === 'executive assistant' || r === 'ea';
+  const hasAll  = isOwner || isMIS || isPC;
+  return {
+    can_view_leads:         String(hasAll),
+    can_view_collection:    String(hasAll),
+    can_view_fms:           String(hasAll),
+    can_view_ims:           String(isMIS || isPC || isOwner),
+    can_view_crm:           String(isOwner || isPC),
+    can_view_activitylog:   String(isOwner || isMIS),
+    can_view_announcements: 'true',
+    can_post_announcements: String(isMIS),
+    can_upload_files:       String(isMIS),
+    can_upload_quiz:        String(isMIS),
+    can_download_video:     String(isOwner || isMIS),
+    checklist_scope:        hasAll ? 'all' : 'own',
+  };
+}
+
 // ── Load user profile — Auth + Data both from Supabase Employee_details ──
 async function _loadUserProfile(authUser) {
   try {
@@ -8784,7 +8836,7 @@ async function _loadUserProfile(authUser) {
     // Supabase Employee_details table se email match karke data lo
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Employee_Dept,Location,Email_Id,tier_assignment,special_panel_access&Email_Id=ilike.${encodeURIComponent(authUser.email)}&limit=1`,
+        `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Employee_Dept,Location,Email_Id&Email_Id=ilike.${encodeURIComponent(authUser.email)}&limit=1`,
         { headers: SB_HDRS() }
       );
       const rows = await res.json();
@@ -8811,10 +8863,25 @@ async function _loadUserProfile(authUser) {
                         : authUser.email.split('@')[0],
       location:       empData
                         ? String(empData['Location'] || '').trim()
-                        : '',
-      tierAssignment: empData ? String(empData['tier_assignment'] || '').trim() : '',
-      crmAccess:      empData ? String(empData['special_panel_access'] || '').trim() : ''
+                        : ''
     };
+
+    // ── Fetch permissions from Python backend ──────────────
+    const _PAPI = 'https://knowlege-based-portal-production.up.railway.app';
+    try {
+      const _pr = await fetch(`${_PAPI}/api/permissions?email=${encodeURIComponent(authUser.email)}`);
+      if (_pr.ok) {
+        const _pd = await _pr.json();
+        PERMISSIONS = _pd.permissions || {};
+        if (_pd.rawRole) CURRENT_USER.rawRole = _pd.rawRole;
+        if (_pd.role)    CURRENT_USER.role    = _pd.role === 'owner' ? 'owner' : 'employee';
+      } else {
+        PERMISSIONS = _buildFallbackPermissions(CURRENT_USER.rawRole);
+      }
+    } catch(_pe) {
+      console.warn('Permissions fetch failed, using fallback:', _pe);
+      PERMISSIONS = _buildFallbackPermissions(CURRENT_USER.rawRole);
+    }
 
     showPortal();
     warmupAPIs();
@@ -8839,6 +8906,7 @@ async function _loadUserProfile(authUser) {
       name:     authUser.email.split('@')[0],
       location: ''
     };
+    PERMISSIONS = _buildFallbackPermissions('employee');
     showPortal();
     warmupAPIs();
   }
@@ -9020,6 +9088,9 @@ function showPortal(){
   _applyCRMNavVisibility();
   // Activity Log nav — sirf MIS aur Managing Director ke liye
   _applyActLogNavVisibility();
+  // Access Control nav — only for MIS (can_upload_files)
+  const _acpNav = document.getElementById('nav-adminperms');
+  if (_acpNav) _acpNav.style.display = (PERMISSIONS.can_upload_files === 'true') ? '' : 'none';
   // Fetch employee profile photo from Supabase → home page pe dikhao
   fetchUserProfilePhoto();
   // Performer of the Month cards load karo
@@ -9029,44 +9100,41 @@ function showPortal(){
 }
 
 function restrictEmployee(){
-  // Saajan Jain ko Lead Tracking ka special access hai
-  const isSaajanJain=(CURRENT_USER.name||'').trim().toLowerCase()==='saajan jain';
-  // Hide dashboard nav items — employee only sees Tasks + Training
-  ['nav-leads','nav-collection','nav-fms'].forEach(id=>{
-    // Saajan Jain ke liye nav-leads hide mat karo
-    if(id==='nav-leads'&&isSaajanJain) return;
-    const el=document.getElementById(id);
-    if(el)el.style.display='none';
+  // Nav items — controlled by PERMISSIONS from database
+  const navPermMap = {
+    'nav-leads':      'can_view_leads',
+    'nav-collection': 'can_view_collection',
+    'nav-fms':        'can_view_fms',
+    'bn-leads':       'can_view_leads',
+    'bn-collection':  'can_view_collection',
+    'bn-fms':         'can_view_fms',
+    'mm-leads':       'can_view_leads',
+    'mm-collection':  'can_view_collection',
+    'mm-fms':         'can_view_fms',
+  };
+  Object.entries(navPermMap).forEach(([id, perm]) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (PERMISSIONS[perm] === 'true') ? '' : 'none';
   });
-  ['bn-leads','bn-collection','bn-fms'].forEach(id=>{
-    // Saajan Jain ke liye bn-leads hide mat karo
-    if(id==='bn-leads'&&isSaajanJain) return;
-    const el=document.getElementById(id);
-    if(el)el.style.display='none';
+
+  // Home page dashboard cards — show/hide based on permissions
+  document.querySelectorAll('#panel-home .home-card:not(.disabled)').forEach(card => {
+    const txt = card.textContent;
+    let show  = true;
+    if (txt.includes('Lead Tracking') && PERMISSIONS.can_view_leads      !== 'true') show = false;
+    if (txt.includes('Collection')    && PERMISSIONS.can_view_collection  !== 'true') show = false;
+    if (txt.includes('FMS')           && PERMISSIONS.can_view_fms         !== 'true') show = false;
+    if (txt.includes('IMS')           && PERMISSIONS.can_view_ims         !== 'true') show = false;
+    card.style.display = show ? '' : 'none';
   });
-  // Mobile menu sheet ke items bhi hide karo (employee restriction)
-  ['mm-leads','mm-collection','mm-fms'].forEach(id=>{
-    if(id==='mm-leads'&&isSaajanJain) return;
-    const el=document.getElementById(id);
-    if(el)el.style.display='none';
-  });
-  // Only hide cards inside the HOME panel — not inside Training/Resources panels
-  document.querySelectorAll('#panel-home .home-card:not(.disabled)').forEach(card=>{
-    const txt=card.textContent;
-    // Saajan Jain ke liye Lead Tracking card bhi dikhao
-    if(isSaajanJain&&txt.includes('Lead Tracking')) return;
-    if(!txt.includes('Task Checklist') && !txt.includes('Training Videos') && !txt.includes('Resources')){
-      card.style.display='none';
-    }
-  });
-  window.EMPLOYEE_EMAIL=CURRENT_USER.email;
+
+  if (CURRENT_USER) window.EMPLOYEE_EMAIL = CURRENT_USER.email;
 }
 
-// ── Upload & Delete button visibility — sirf MIS ke liye dikhao ──────────
+// ── Upload & Delete button visibility — controlled by PERMISSIONS ──────────
 function _applyUploadVisibility() {
-  const role = CURRENT_USER ? String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim() : '';
-  const canManage = (role === 'mis');
-  if (!canManage) {
+  const canUpload = PERMISSIONS.can_upload_files === 'true';
+  if (!canUpload) {
     // Hide every upload button
     document.querySelectorAll('button').forEach(btn => {
       const oc = btn.getAttribute('onclick') || '';
@@ -10542,9 +10610,7 @@ function cnTheme(i) {
 // ── Generic category grid renderer ───────────────────────────────────────
 // ── Role helper — sirf MIS ko manage karne ka haq hai ───────────────────
 function _isMIS() {
-  if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
-  const r = String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim();
-  return r === 'mis';
+  return PERMISSIONS.can_upload_files === 'true';
 }
 
 // Quiz admin access — email (Hemant & Krishna) + Emp_id (Pranali & Saajan Jain)
@@ -10557,12 +10623,7 @@ const _QUIZ_UPLOAD_EMP_IDS = [1, 2, 3, 15, 19, 34, 35];
 
 function _canUploadQuiz() {
   if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
-  const email = String(CURRENT_USER.email || CURRENT_USER.rawEmail || '').toLowerCase().trim();
-  if (_QUIZ_UPLOAD_EMAILS.includes(email)) return true;
-  // Emp_id check — CURRENT_USER.empId ya cached _actEmpId/_qzEmpId
-  const empId = Number(CURRENT_USER.empId || _actEmpId || _qzEmpId || 0);
-  if (empId && _QUIZ_UPLOAD_EMP_IDS.includes(empId)) return true;
-  return false;
+  return PERMISSIONS.can_upload_quiz === 'true';
 }
 
 // ── Card descriptions — naam se description milta hai ────────────────────
@@ -13970,9 +14031,7 @@ function _imsGetAPI() {
 
 // ── Role ──────────────────────────────────────────────────────────
 function _canAccessIMS() {
-  if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
-  const r = String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim();
-  return r === 'mis' || r === 'owner' || r === 'pc' || r === 'managing director' || r === 'executive assistant' || r === 'ea';
+  return PERMISSIONS.can_view_ims === 'true';
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -14058,9 +14117,7 @@ if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER?.email) {
 }
 
 function _canAccessActLog() {
-  if (!CURRENT_USER) return false;
-  const r = (CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim();
-  return r === 'mis' || r === 'owner';
+  return PERMISSIONS.can_view_activitylog === 'true';
 }
 
 function _applyActLogNavVisibility() {
@@ -14356,11 +14413,11 @@ function renderActLogStats(rows) {
 
 
 function _applyIMSNavVisibility() {
-  const el = document.getElementById('nav-ims');
-  if (el) el.style.display = _canAccessIMS() ? 'flex' : 'none';
-  // Mobile menu IMS item bhi update karo
-  const mmIms = document.getElementById('mm-ims');
-  if (mmIms) mmIms.style.display = _canAccessIMS() ? 'flex' : 'none';
+  const show = PERMISSIONS.can_view_ims === 'true';
+  const el   = document.getElementById('nav-ims');
+  const mmEl = document.getElementById('mm-ims');
+  if (el)   el.style.display   = show ? 'flex' : 'none';
+  if (mmEl) mmEl.style.display = show ? 'flex' : 'none';
 }
 /* ═══════════════════════════════════════════════════
    CRM VEHICLE DASHBOARD
@@ -14370,18 +14427,15 @@ let _crmData=[], _crmSelectedIdx=null;
 
 function _canAccessCRM(){
   if(!CURRENT_USER)return false;
-  const r=String(CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim();
-  if(['mis','owner','pc','managing director','executive assistant','ea'].includes(r))return true;
-  if(CURRENT_USER.crmAccess==='crm_all')return true;
-  if(CURRENT_USER.tierAssignment)return true;
-  return false;
+  const crmPerm = PERMISSIONS.can_view_crm || 'false';
+  return crmPerm !== 'false';
 }
 function _getCRMAccessLevel(){
   if(!CURRENT_USER)return'none';
-  const r=String(CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim();
-  if(['mis','owner','pc','managing director','executive assistant','ea'].includes(r)||CURRENT_USER.crmAccess==='crm_all')return'all';
-  if(CURRENT_USER.tierAssignment)return CURRENT_USER.tierAssignment;
-  return'none';
+  const crmPerm = PERMISSIONS.can_view_crm || 'false';
+  if(crmPerm === 'false') return 'none';
+  if(crmPerm === 'true')  return 'all';
+  return crmPerm;  // e.g. 'tier1', 'tier2' stored as value in user_permissions
 }
 function _applyCRMNavVisibility(){
   const el=document.getElementById('nav-crm'), mm=document.getElementById('mm-crm'), show=_canAccessCRM();
@@ -16870,7 +16924,7 @@ function annDrwFilter(f) {
   const updFooter  = document.getElementById('annFooterUpdates');
   const chatFooter = document.getElementById('annFooterChat');
   const postBtn    = document.getElementById('annPostUpdateBtn');
-  const isMIS      = CURRENT_USER && CURRENT_USER.rawRole === 'mis';
+  const isMIS      = PERMISSIONS.can_post_announcements === 'true';
 
   const feed = document.getElementById('annDrwFeed');
 
@@ -17008,7 +17062,7 @@ function _annDrwRender() {
         const timeAgo = ann.created_at ? _annTimeLabel(ann.created_at) : '';
         const pinnedBadge = ann.pinned
           ? `<span style="font-size:0.68rem;padding:2px 8px;border-radius:20px;background:rgba(240,165,0,0.15);color:#f0a500;font-weight:700;border:1px solid rgba(240,165,0,0.3);">📌 Pinned</span>` : '';
-        const _isMIS = CURRENT_USER && CURRENT_USER.rawRole === 'mis';
+        const _isMIS = PERMISSIONS.can_post_announcements === 'true';
         const _delBtn = _isMIS
           ? `<button onclick="deletePortalUpdate(${ann.id})" style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.22);color:#ff3b30;border-radius:7px;padding:2px 9px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.background='rgba(255,59,48,0.2)'" onmouseout="this.style.background='rgba(255,59,48,0.08)'">🗑 Delete</button>`
           : '';
@@ -20229,6 +20283,113 @@ async function deletePortalUpdate(id) {
     <div id="taskAllUploadsList" style="overflow-y:auto;flex:1;padding:12px 20px 20px;"></div>
   </div>
 </div>
+
+<script>
+const _PAPI = 'https://knowlege-based-portal-production.up.railway.app';
+let _acpUsers = [], _acpAllKeys = [], _acpLoaded = false;
+
+const _permLabels = {
+  can_view_leads:         '📊 Lead Tracking Dashboard',
+  can_view_collection:    '💰 Collection Dashboard',
+  can_view_fms:           '🚚 FMS O2D Dashboard',
+  can_view_ims:           '📦 IMS Dashboard',
+  can_view_crm:           '🚗 CRM Vehicle Dashboard',
+  can_view_activitylog:   '📋 Activity Log',
+  can_view_announcements: '🔔 View Announcements',
+  can_post_announcements: '📢 Post Announcements',
+  can_upload_files:       '📤 Upload & Delete Files',
+  can_upload_quiz:        '🎯 Create & Manage Quizzes',
+  can_download_video:     '⬇️ Download Training Videos',
+  checklist_scope:        '✅ Task Checklist Scope',
+};
+
+async function loadAdminPermsPanel() {
+  if (_acpLoaded) return;
+  const loading = document.getElementById('acpLoading');
+  const error   = document.getElementById('acpError');
+  const table   = document.getElementById('acpTable');
+  try {
+    const res  = await fetch(`${_PAPI}/api/admin/all-users-permissions`, {
+      headers: { 'X-User-Email': CURRENT_USER.email }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data  = await res.json();
+    _acpUsers   = data.users || [];
+    _acpAllKeys = data.all_permission_keys || [];
+    _acpLoaded  = true;
+    if (loading) loading.style.display = 'none';
+    if (table)   table.style.display   = 'block';
+    acpRender(_acpUsers);
+  } catch(e) {
+    if (loading) loading.style.display = 'none';
+    if (error) { error.style.display = 'block'; error.textContent = '❌ ' + e.message; }
+  }
+}
+
+function acpFilter() {
+  const q = (document.getElementById('acpSearch').value || '').toLowerCase();
+  acpRender(_acpUsers.filter(u => (u.name||'').toLowerCase().includes(q) || (u.email||'').includes(q)));
+}
+
+function acpRender(users) {
+  const rows = document.getElementById('acpRows');
+  if (!rows) return;
+  if (!users.length) { rows.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">No employees found</div>'; return; }
+  rows.innerHTML = users.map(u => {
+    const perms = u.permissions || {};
+    const permHtml = _acpAllKeys.map(key => {
+      const label = _permLabels[key] || key;
+      const val   = perms[key] || 'false';
+      if (key === 'checklist_scope') {
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:0.82rem;color:var(--text2);">${label}</span>
+          <select onchange="acpSave('${u.email}','${key}',this.value)"
+            style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.80rem;font-family:inherit;cursor:pointer;outline:none;">
+            <option value="own" ${val==='own'?'selected':''}>Own data only</option>
+            <option value="all" ${val==='all'?'selected':''}>All employees</option>
+          </select></div>`;
+      }
+      const isOn = val === 'true';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:0.82rem;color:var(--text2);">${label}</span>
+        <label style="position:relative;display:inline-block;width:38px;height:22px;cursor:pointer;flex-shrink:0;">
+          <input type="checkbox" ${isOn?'checked':''} style="opacity:0;width:0;height:0;position:absolute;"
+            onchange="acpSave('${u.email}','${key}',this.checked?'true':'false');
+                      this.parentElement.querySelector('span').style.background=this.checked?'#00d4aa':'var(--border)';
+                      this.parentElement.querySelector('span span').style.left=this.checked?'18px':'2px';">
+          <span style="position:absolute;inset:0;border-radius:22px;background:${isOn?'#00d4aa':'var(--border)'};transition:background 0.2s;">
+            <span style="position:absolute;left:${isOn?'18px':'2px'};top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.25);"></span>
+          </span>
+        </label></div>`;
+    }).join('');
+    const rc = u.role==='owner'?'#f0a500':u.role==='mis'?'#00d4aa':u.role==='pc'?'#a855f7':'#6b7280';
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <div style="width:38px;height:38px;border-radius:50%;background:${rc}22;color:${rc};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0;border:1.5px solid ${rc}44;">${(u.name||'?')[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.92rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.name}</div>
+          <div style="font-size:0.74rem;color:var(--muted);">${u.email}</div>
+        </div>
+        <span style="font-size:0.72rem;padding:3px 10px;border-radius:20px;background:${rc}18;color:${rc};font-weight:700;border:1px solid ${rc}33;">${u.role}</span>
+      </div>
+      ${permHtml}</div>`;
+  }).join('');
+}
+
+async function acpSave(email, permission, value) {
+  try {
+    const res = await fetch(`${_PAPI}/api/admin/permissions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-User-Email': CURRENT_USER.email },
+      body: JSON.stringify({ user_email: email, permission, value })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (typeof showToast === 'function') showToast('✅ Permission saved!', 'success', 2000);
+    const user = _acpUsers.find(u => u.email === email);
+    if (user) user.permissions[permission] = value;
+  } catch(e) { alert('❌ Failed to save: ' + e.message); }
+}
+</script>
 
 </body>
 </html>
