@@ -27,12 +27,22 @@ CORS(app)
 # The service role key bypasses RLS and has full read/write access.
 # NEVER put this key in your frontend HTML file.
 # Store it as an environment variable on Railway.
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://rramdtpabwjsndgkohbi.supabase.co")
+# ── Supabase connection ─────────────────────────────────────────
+SUPABASE_URL         = os.environ.get("SUPABASE_URL", "https://rramdtpabwjsndgkohbi.supabase.co")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
-# Create the Supabase client using the service key
-sb = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-
+# Validate that service key is present before trying to connect
+# If missing, log a clear error but don't crash — Flask still starts
+sb = None
+if SUPABASE_SERVICE_KEY:
+    try:
+        sb = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        print("Supabase connected successfully")
+    except Exception as e:
+        print(f"Supabase connection failed: {e}")
+        sb = None
+else:
+    print("WARNING: SUPABASE_SERVICE_KEY not set — database calls will fail but server will still start")
 # ── Role mapping ────────────────────────────────────────────────
 # Your Employee_details table stores roles as Employee_Dept values
 # like "Managing Director", "MIS", "PC" etc.
