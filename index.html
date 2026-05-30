@@ -4692,7 +4692,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     <div class="header-right">
       
       <button class="refresh-btn" id="tasksUploadViewBtn" onclick="tShowAllUploads()" style="display:none;background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.3);color:#00d4aa;gap:5px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
         Uploaded Files
       </button>
       <button class="refresh-btn" onclick="refreshTasks()" id="tasksRefBtn"><span id="tasksRefIco"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></span> Refresh</button>
@@ -7615,7 +7615,7 @@ function tRenderTable(){
         onchange="tDirectUpload(this,'${r['Task ID']||''}')">
       <div style="display:flex;align-items:center;justify-content:center;">
         ${hasUpload && uploadUrl
-          ? `<a href="${uploadUrl}" target="_blank" rel="noopener" title="See Your Uploaded file"
+          ? `<a href="${uploadUrl}" target="_blank" rel="noopener" title="Uploaded file dekhein"
                style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;
                       background:rgba(0,212,170,0.12);border:1.5px solid rgba(0,212,170,0.4);
                       border-radius:8px;text-decoration:none;font-size:1rem;cursor:pointer;transition:all 0.18s;"
@@ -8089,11 +8089,13 @@ function tShowAllUploads(){
   document.getElementById('taskAllUploadsModal').style.display='flex';
   document.body.style.overflow='hidden';
   document.getElementById('uploadsSearchInput').value='';
-  document.getElementById('uploadsDateFrom').value='';
-  document.getElementById('uploadsDateTo').value='';
-  tBuildUploadsData();
-  tPopulateUploadsNameFilter();
-  tRenderAllUploads(_allUploadsCache);
+  document.getElementById('uploadsNameFilter').value='';
+  // Default: aaj ki date dono fields mein
+  const todayISO = new Date().toISOString().slice(0,10);
+  document.getElementById('uploadsDateFrom').value = todayISO;
+  document.getElementById('uploadsDateTo').value   = todayISO;
+  _allUploadsCache = [];
+  tFetchAndRenderUploads();
 }
 
 function tResetUploadsFilter(){
@@ -8101,87 +8103,109 @@ function tResetUploadsFilter(){
   document.getElementById('uploadsNameFilter').value='';
   document.getElementById('uploadsDateFrom').value='';
   document.getElementById('uploadsDateTo').value='';
-  tRenderAllUploads(_allUploadsCache);
+  tFetchAndRenderUploads();
 }
 
 function tPopulateUploadsNameFilter(){
   const sel = document.getElementById('uploadsNameFilter');
   if(!sel) return;
+  const curVal = sel.value;
   const names = [...new Set(_allUploadsCache.map(f=>f.employee).filter(Boolean))].sort();
   sel.innerHTML = '<option value="">All Employees</option>' +
-    names.map(n=>`<option value="${n}">${n}</option>`).join('');
+    names.map(n=>`<option value="${n}"${n===curVal?' selected':''} >${n}</option>`).join('');
 }
 
-function tBuildUploadsData(){
-  _allUploadsCache = [];
-  const localStore = (() => { try{ return JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}'); }catch(e){ return {}; } })();
+// ── Main fetch: Supabase se date-range ke hisaab se upload wale tasks laao ──
+async function tFetchAndRenderUploads(){
+  const listEl = document.getElementById('taskAllUploadsList');
+  if(!listEl) return;
+  listEl.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:0.9rem;">⏳ Loading…</div>';
 
-  tAllData.forEach(r => {
-    const tid = String(r['Task ID']||'');
-    const cloudUrl = r['_upload_url'] || null;
-    if(!cloudUrl && !localStore[tid]) return; // no upload for this task
+  const df = document.getElementById('uploadsDateFrom').value || '';
+  const dt = document.getElementById('uploadsDateTo').value   || '';
 
-    const localFiles = localStore[tid] || [];
-    const localMatch = cloudUrl ? localFiles.find(f=>f.url===cloudUrl) : null;
+  try {
+    // Step 1: Upload wale tasks fetch karo with date filter
+    let url = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*&upload=not.is.null`;
+    if(df) url += `&planned_date=gte.${df}`;
+    if(dt) url += `&planned_date=lte.${dt}`;
+    url += `&order=planned_date.desc,id.desc&limit=500`;
 
-    // Build display filename
-    const rawName = cloudUrl
-      ? (localMatch ? localMatch.name : cloudUrl.split('/').pop().replace(/^\d+_/,'').replace(/_/g,' '))
-      : (localFiles[0] ? localFiles[0].name : '—');
+    const res  = await fetch(url, { headers: SB_HDRS() });
+    const rows = await res.json();
+    if(!Array.isArray(rows)) throw new Error('Bad response');
 
-    const uploadedAt = localMatch ? localMatch.uploadedAt
-      : (localFiles[0] ? localFiles[0].uploadedAt : null);
-
-    const fileUrl = cloudUrl || (localFiles[0] ? localFiles[0].url : null);
-
-    const ext = rawName.split('.').pop().toLowerCase();
-    const icon = ['pdf'].includes(ext) ? '📄' : ['png','jpg','jpeg','gif','webp'].includes(ext) ? '🖼️'
-      : ['xls','xlsx','csv'].includes(ext) ? '📊' : ['doc','docx'].includes(ext) ? '📝' : '📎';
-
-    _allUploadsCache.push({
-      taskId: tid,
-      task: String(r['Task']||r['task_name']||'—').trim(),
-      employee: String(r['Name']||'—').trim(),
-      dept: String(r['Department']||'—').trim(),
-      fileName: rawName,
-      fileUrl: fileUrl,
-      uploadedAt: uploadedAt,
-      icon: icon,
-      fromCloud: !!cloudUrl
+    // Step 2: Employee details cache (emp_id → name, dept)
+    // tAllData mein already loaded hai — usse map banao
+    const empMap = {};
+    tAllData.forEach(r => {
+      const eid = String(r['_id']||'');
+      // emp_id se bhi map karo
+      if(r['Name']) empMap[String(r['emp_id']||r['_emp_id']||'')] = { name: r['Name'], dept: r['Department']||'' };
     });
-  });
 
-  // Sort: latest uploads first (by uploadedAt string; fallback to task order)
-  _allUploadsCache.sort((a,b)=>{
-    if(!a.uploadedAt && !b.uploadedAt) return 0;
-    if(!a.uploadedAt) return 1;
-    if(!b.uploadedAt) return -1;
-    return b.uploadedAt.localeCompare(a.uploadedAt);
-  });
+    // Fallback: employee_details table se bhi try karo if empMap empty
+    let edCache = {};
+    try {
+      const edRes  = await fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id,Employee_name,Employee_Dept&limit=500`, { headers: SB_HDRS() });
+      const edRows = await edRes.json();
+      if(Array.isArray(edRows)){
+        edRows.forEach(e => {
+          edCache[String(e.Emp_id||'')] = { name: e.Employee_name||'', dept: e.Employee_Dept||'' };
+        });
+      }
+    } catch(_){}
+
+    _allUploadsCache = rows.map(r => {
+      const cloudUrl  = r.upload ? String(r.upload).trim() : null;
+      if(!cloudUrl) return null;
+      const rawName   = cloudUrl.split('/').pop().replace(/^\d+_/,'').replace(/_/g,' ');
+      const pd        = String(r.planned_date||'').slice(0,10);
+      let uploadedAt  = '';
+      if(pd && pd.length===10){
+        const [yy,mm,dd] = pd.split('-');
+        uploadedAt = `${dd}/${mm}/${yy} 00:00`;
+      }
+      // Employee info — edCache se lo
+      const empId = String(r.emp_id||'');
+      const ed    = edCache[empId] || empMap[empId] || {};
+      const employeeName = ed.name || r.employee_name || empId || '—';
+      const deptName     = ed.dept || r.department || '—';
+
+      const ext  = rawName.split('.').pop().toLowerCase();
+      const icon = ['pdf'].includes(ext) ? '📄'
+        : ['png','jpg','jpeg','gif','webp'].includes(ext) ? '🖼️'
+        : ['xls','xlsx','csv'].includes(ext) ? '📊'
+        : ['doc','docx'].includes(ext) ? '📝' : '📎';
+      return {
+        taskId:     String(r.id||''),
+        task:       String(r.task_name||r.task||'—').trim(),
+        employee:   employeeName,
+        dept:       deptName,
+        fileName:   rawName,
+        fileUrl:    cloudUrl,
+        uploadedAt: uploadedAt,
+        plannedDate: pd,
+        icon:       icon,
+        fromCloud:  true
+      };
+    }).filter(Boolean);
+
+    tPopulateUploadsNameFilter();
+    tFilterUploadsModal();
+  } catch(e) {
+    listEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:#ff3b30;font-size:0.87rem;">❌ Error loading: ${e.message}</div>`;
+  }
 }
 
 function tFilterUploadsModal(){
   const q    = (document.getElementById('uploadsSearchInput').value||'').toLowerCase();
   const name = (document.getElementById('uploadsNameFilter').value||'').toLowerCase();
-  const df   = document.getElementById('uploadsDateFrom').value||'';  // YYYY-MM-DD
-  const dt   = document.getElementById('uploadsDateTo').value||'';
 
   const filtered = _allUploadsCache.filter(f=>{
-    // Text search
     if(q && !(f.employee.toLowerCase().includes(q)||f.task.toLowerCase().includes(q)||
               f.dept.toLowerCase().includes(q)||f.fileName.toLowerCase().includes(q))) return false;
-    // Name filter
     if(name && f.employee.toLowerCase() !== name) return false;
-    // Date filter — uploadedAt format: DD/MM/YYYY HH:MM → convert to YYYY-MM-DD
-    if((df||dt) && f.uploadedAt){
-      // uploadedAt: "26/05/2026 11:05"
-      const parts = f.uploadedAt.split(' ')[0].split('/'); // ["26","05","2026"]
-      if(parts.length===3){
-        const dateISO = `${parts[2]}-${parts[1]}-${parts[0]}`; // YYYY-MM-DD
-        if(df && dateISO < df) return false;
-        if(dt && dateISO > dt) return false;
-      }
-    }
     return true;
   });
   tRenderAllUploads(filtered);
@@ -8206,8 +8230,7 @@ function tRenderAllUploads(list){
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px;align-items:center;">
           <span style="font-size:0.74rem;background:rgba(168,85,247,0.1);color:#a855f7;border:1px solid rgba(168,85,247,0.2);border-radius:5px;padding:1px 7px;font-weight:600;">👤 ${f.employee}</span>
           <span style="font-size:0.74rem;color:var(--muted);">${f.dept}</span>
-          ${f.uploadedAt?`<span style="font-size:0.72rem;color:var(--muted);">🕐 ${f.uploadedAt}</span>`:''}
-          ${f.fromCloud?'<span style="font-size:0.70rem;color:#00d4aa;font-weight:700;">☁ Cloud</span>':''}
+
         </div>
         <div style="font-size:0.77rem;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📋 ${f.task}</div>
       </div>
@@ -20321,10 +20344,10 @@ async function deletePortalUpdate(id) {
           <option value="">All Employees</option>
         </select>
         <span style="font-size:0.75rem;color:var(--muted);font-weight:600;">📅 Date:</span>
-        <input type="date" id="uploadsDateFrom" onchange="tFilterUploadsModal()"
+        <input type="date" id="uploadsDateFrom" onchange="tFetchAndRenderUploads()"
           style="padding:5px 8px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.82rem;outline:none;font-family:inherit;cursor:pointer;">
         <span style="font-size:0.75rem;color:var(--muted);">to</span>
-        <input type="date" id="uploadsDateTo" onchange="tFilterUploadsModal()"
+        <input type="date" id="uploadsDateTo" onchange="tFetchAndRenderUploads()"
           style="padding:5px 8px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.82rem;outline:none;font-family:inherit;cursor:pointer;">
         <button onclick="tResetUploadsFilter()"
           style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.78rem;cursor:pointer;font-family:inherit;">✕ Reset</button>
