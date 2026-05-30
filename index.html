@@ -2718,7 +2718,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(460px,94vw);background:var(--surface);border-radius:18px;border:1px solid var(--border);z-index:1201;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
     <div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:800;color:var(--text);">✨ Post Portal Update</div>
+      <div id="postUpdateHeading" style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:800;color:var(--text);">✨ Post Portal Update</div>
       <div style="font-size:0.76rem;color:var(--muted);margin-top:2px;">Will be visible to all team members</div>
     </div>
     <button onclick="closePostUpdateModal()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
@@ -6949,10 +6949,10 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
     }
 
     // ── Step 2: Tasks fetch — ek hi query mein planned tasks + pending ongoing tasks ──
-    // OR condition: (planned_date in range) OR (ongoing >= fetchFrom AND not done)
-    // Yeh single query dono cases handle karta hai — koi second fetch nahi chahiye
-    // OR condition: planned tasks + ongoing tasks due IN this date range + tasks completed on view date
-    const orFilter = `or=(and(planned_date.gte.${fetchFrom},planned_date.lte.${fetchTo}),and(ongoing.gte.${fetchFrom},ongoing.lte.${fetchTo},actual_timestamp.is.null),and(actual_timestamp.gte.${fetchFrom},actual_timestamp.lte.${fetchTo}T23:59:59))`;
+    // OR condition: (planned_date in range) OR (ongoing date in range AND not done)
+    // NOTE: actual_timestamp wali condition hata di — done task sirf apni planned_date pe dikhega,
+    // doosre din nahi aayega chahe kisi bhi din done kiya ho
+    const orFilter = `or=(and(planned_date.gte.${fetchFrom},planned_date.lte.${fetchTo}),and(ongoing.gte.${fetchFrom},ongoing.lte.${fetchTo},actual_timestamp.is.null))`;
     let tasksBaseUrl;
     if(isOwner){
       tasksBaseUrl = `${SUPABASE_URL}/rest/v1/employee_checklists?select=*`
@@ -7119,7 +7119,7 @@ function updateHomeTaskBanner(){
 
   // Don't show for Managing Director, MIS, or PC roles
   const role = CURRENT_USER && (CURRENT_USER.rawRole||'').toLowerCase();
-  if(!CURRENT_USER || CURRENT_USER.role==='owner' || role==='owner' || role==='mis' || role==='pc' || role==='executive assistant' || role==='ea'){
+  if(!CURRENT_USER || CURRENT_USER.role==='owner' || role==='owner' || role==='mis' || role==='pc' || role==='executive assistant' || role==='ea' || role==='admin'){
     banner.style.display='none';
     return;
   }
@@ -7204,10 +7204,9 @@ function tGetFiltered(){
         const exp = r['_expected_date'] || r['_tDate'] || '';
         if(exp < df || exp > dt) return false;
       } else if(tIsDone(r)){
-        // Done task: actual completion date se match karo
-        const actRaw = String(r['Actual']||'').trim();
-        const actDate = actRaw ? actRaw.slice(0,10) : (r['_tDate']||'');
-        if(actDate < df || actDate > dt) return false;
+        // Done task: sirf apni planned_date pe dikhao
+        // actual_date se match karne se task doosre din bhi dikh raha tha — FIX
+        if((r['_tDate']||'') < df || (r['_tDate']||'') > dt) return false;
       } else {
         if((r['_tDate']||'') < df || (r['_tDate']||'') > dt) return false;
       }
@@ -7749,12 +7748,8 @@ function tIsVisibleOnDate(r, dateStr){
   if(!planned) return false;
 
   if(tIsDone(r)){
-    // Done task: jis din complete kiya uss din dikhao
-    const actualRaw = String(r['Actual']||'').trim();
-    if(actualRaw){
-      const actualDate = actualRaw.slice(0,10);
-      return actualDate === dateStr;
-    }
+    // Done task: sirf apni planned_date pe dikhao
+    // actual_timestamp se match karne se task doosre din bhi dikh raha tha — FIX
     return planned === dateStr;
   }
 
@@ -7807,10 +7802,8 @@ function tGetDateFiltered(){
         const exp = r['_expected_date'] || r['_tDate'] || '';
         if(exp < df || exp > dt) return false;
       } else if(tIsDone(r)){
-        // Done task: actual completion date se match karo
-        const actRaw = String(r['Actual']||'').trim();
-        const actDate = actRaw ? actRaw.slice(0,10) : (r['_tDate']||'');
-        if(actDate < df || actDate > dt) return false;
+        // Done task: sirf apni planned_date pe dikhao (actual_date se nahi)
+        if((r['_tDate']||'') < df || (r['_tDate']||'') > dt) return false;
       } else {
         if((r['_tDate']||'') < df || (r['_tDate']||'') > dt) return false;
       }
@@ -10900,10 +10893,14 @@ async function fetchUserProfilePhoto() {
       img.alt = userName;
       img.style.cssText = 'width:90px;height:90px;object-fit:cover;border-radius:50%;';
       img.onerror = function() {
-        // URL broken hai — placeholder dikhao
-        _showPhotoPlaceholder(photoEl, userName);
-        hintEl.style.display = 'block';
-        hintEl.textContent = '⚠️ Photo URL is broken. Please contact MIS.';
+        // URL broken hai — silently initials placeholder dikhao, error message nahi
+        const wrap = this.closest('.emp-photo-wrap');
+        const placeholder = document.createElement('div');
+        placeholder.className = 'emp-photo-placeholder';
+        placeholder.textContent = (userName || 'U')[0].toUpperCase();
+        if (wrap) { wrap.innerHTML = ''; wrap.appendChild(placeholder); }
+        else { _showPhotoPlaceholder(photoEl, userName); }
+        hintEl.style.display = 'none';
       };
       // Replace loading div with actual photo
       const wrap = document.createElement('div');
@@ -17064,7 +17061,7 @@ function _annDrwRender() {
           ? `<span style="font-size:0.68rem;padding:2px 8px;border-radius:20px;background:rgba(240,165,0,0.15);color:#f0a500;font-weight:700;border:1px solid rgba(240,165,0,0.3);">📌 Pinned</span>` : '';
         const _isMIS = PERMISSIONS.can_post_announcements === 'true';
         const _delBtn = _isMIS
-          ? `<button onclick="deletePortalUpdate(${ann.id})" style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.22);color:#ff3b30;border-radius:7px;padding:2px 9px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.background='rgba(255,59,48,0.2)'" onmouseout="this.style.background='rgba(255,59,48,0.08)'">🗑 Delete</button>`
+          ? `<button onclick="editPortalUpdate(${ann.id})" style="background:rgba(78,154,241,0.08);border:1px solid rgba(78,154,241,0.25);color:#4e9af1;border-radius:7px;padding:2px 9px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;margin-right:4px;" onmouseover="this.style.background='rgba(78,154,241,0.2)'" onmouseout="this.style.background='rgba(78,154,241,0.08)'">✏️ Edit</button><button onclick="deletePortalUpdate(${ann.id})" style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.22);color:#ff3b30;border-radius:7px;padding:2px 9px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.background='rgba(255,59,48,0.2)'" onmouseout="this.style.background='rgba(255,59,48,0.08)'">🗑 Delete</button>`
           : '';
         html += `
         <div id="ann-card-${ann.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;border-left:3px solid ${typeClr};flex-shrink:0;animation:annCardIn 0.35s cubic-bezier(0.22,1,0.36,1) both;animation-delay:${i*0.06}s;">
@@ -17566,11 +17563,20 @@ function _annFmtDate(str) {
 // ── Days ago label ────────────────────────────────────────────
 function _annTimeLabel(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now - d;
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffDays === 0) return '🔴 Today';
+  // IST (UTC+5:30) mein compare karo — raw ms diff se galat din aata tha
+  const toIST = dt => {
+    const utc = dt.getTime() + dt.getTimezoneOffset() * 60000;
+    return new Date(utc + 5.5 * 3600000);
+  };
+  const dIST   = toIST(new Date(dateStr));
+  const nowIST = toIST(new Date());
+  // Date-only strings compare karo (time ignore karo)
+  const dDate   = dIST.toISOString().slice(0,10);
+  const nowDate = nowIST.toISOString().slice(0,10);
+  if (dDate === nowDate) return '🔴 Today';
+  // Diff in calendar days
+  const diffMs   = new Date(nowDate) - new Date(dDate);
+  const diffDays = Math.round(diffMs / 86400000);
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7)  return diffDays + ' days ago';
   if (diffDays < 30) return Math.floor(diffDays/7) + ' weeks ago';
@@ -20007,10 +20013,36 @@ async function editQuizFromDB(quizId) {
 }
 
 /* ══ PORTAL UPDATE MODAL FUNCTIONS ══ */
+let _editingAnnId = null; // null = new post, number = edit mode
+
 function openPostUpdateModal() {
+  _editingAnnId = null;
   document.getElementById('postUpdateTitle').value = '';
   document.getElementById('postUpdateBody').value = '';
   document.getElementById('postUpdateError').style.display = 'none';
+  // Modal heading aur button text reset
+  const heading = document.getElementById('postUpdateHeading');
+  if (heading) heading.textContent = '✨ Post Update';
+  const btn = document.getElementById('postUpdateSubmitBtn');
+  if (btn) btn.textContent = '🚀 Publish Update';
+  document.getElementById('postUpdateModal').style.display = 'block';
+  document.getElementById('postUpdateBackdrop').style.display = 'block';
+  setTimeout(()=>document.getElementById('postUpdateTitle').focus(), 100);
+}
+
+function editPortalUpdate(id) {
+  if (!CURRENT_USER || PERMISSIONS.can_post_announcements !== 'true') return;
+  const ann = _annDrwUpdates.find(a => a.id === id);
+  if (!ann) { alert('Update nahi mila.'); return; }
+  _editingAnnId = id;
+  document.getElementById('postUpdateTitle').value = ann.title || '';
+  document.getElementById('postUpdateBody').value  = ann.body  || '';
+  document.getElementById('postUpdateError').style.display = 'none';
+  // Modal heading aur button update karo
+  const heading = document.getElementById('postUpdateHeading');
+  if (heading) heading.textContent = '✏️ Edit Update';
+  const btn = document.getElementById('postUpdateSubmitBtn');
+  if (btn) btn.textContent = '💾 Save Changes';
   document.getElementById('postUpdateModal').style.display = 'block';
   document.getElementById('postUpdateBackdrop').style.display = 'block';
   setTimeout(()=>document.getElementById('postUpdateTitle').focus(), 100);
@@ -20031,8 +20063,9 @@ async function submitPortalUpdate() {
   if (!title) { errEl.textContent = '⚠️ Title is required.'; errEl.style.display = 'block'; return; }
   if (!body)  { errEl.textContent = '⚠️ Message cannot be empty.'; errEl.style.display = 'block'; return; }
 
+  const isEditing = !!_editingAnnId;
   btn.disabled = true;
-  btn.textContent = 'Publishing…';
+  btn.textContent = isEditing ? 'Saving…' : 'Publishing…';
 
   try {
     const hdrs = {
@@ -20040,37 +20073,55 @@ async function submitPortalUpdate() {
       'Content-Type': 'application/json',
       'Prefer': 'return=minimal'
     };
-    // Dedicated portal_update_text table mein insert
-    const postedBy = (CURRENT_USER && CURRENT_USER.name) || 'MIS Team';
-    const payload = {
-      title:      title,
-      body:       body,
-      posted_by:  postedBy
-    };
-    const res = await fetch(
-      SUPABASE_URL + '/rest/v1/portal_update_text',
-      { method: 'POST', headers: hdrs, body: JSON.stringify(payload) }
-    );
+
+    let res;
+    if (isEditing) {
+      // ── EDIT mode: PATCH existing row ──
+      const payload = { title, body };
+      res = await fetch(
+        SUPABASE_URL + '/rest/v1/portal_update_text?id=eq.' + _editingAnnId,
+        { method: 'PATCH', headers: hdrs, body: JSON.stringify(payload) }
+      );
+    } else {
+      // ── NEW post: INSERT ──
+      const postedBy = (CURRENT_USER && CURRENT_USER.name) || 'MIS Team';
+      const payload = { title, body, posted_by: postedBy };
+      res = await fetch(
+        SUPABASE_URL + '/rest/v1/portal_update_text',
+        { method: 'POST', headers: hdrs, body: JSON.stringify(payload) }
+      );
+    }
+
     if (!res.ok) {
       const txt = await res.text();
       throw new Error(txt || res.statusText);
     }
+
+    // Local data bhi update karo (immediate UI refresh)
+    if (isEditing) {
+      const idx = _annDrwUpdates.findIndex(a => a.id === _editingAnnId);
+      if (idx !== -1) { _annDrwUpdates[idx].title = title; _annDrwUpdates[idx].body = body; }
+    }
+
     // Refresh the feed
     _annDrwLoaded = false;
     _annDrwUpdates = [];
+    _editingAnnId = null;
     closePostUpdateModal();
     document.getElementById('annDrwFeed').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:0.85rem;">Refreshing…</div>';
     await _annDrwLoad();
-    annDrwFilter('update'); // switch to Updates tab to show new post
+    annDrwFilter('update');
 
-    // ── Push via Supabase Edge Function (no CORS!) ──
-    osSendPush('New Announcement', title + '\nPortal kholein aur dekhein — learn.adititracking.com');
+    if (!isEditing) {
+      // ── Push sirf new post pe ──
+      osSendPush('New Announcement', title + '\nPortal kholein aur dekhein — learn.adititracking.com');
+    }
   } catch(e) {
-    errEl.textContent = '❌ Error publishing: ' + (e.message || 'Please try again.');
+    errEl.textContent = '❌ Error: ' + (e.message || 'Please try again.');
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false;
-    btn.textContent = '🚀 Publish Update';
+    btn.textContent = isEditing ? '💾 Save Changes' : '🚀 Publish Update';
   }
 }
 
