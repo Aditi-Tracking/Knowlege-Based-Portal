@@ -4817,6 +4817,12 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <div class="db-breadcrumb">Home › Finance</div>
     </div>
     <div class="header-right">
+      <button onclick="openVrDash()" id="vendorPurchaseBtn"
+        style="display:none;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1.5px solid rgba(240,165,0,0.4);background:rgba(240,165,0,0.08);color:#f0a500;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;margin-right:8px;"
+        onmouseover="this.style.background='rgba(240,165,0,0.18)'" onmouseout="this.style.background='rgba(240,165,0,0.08)'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Purchase Request
+      </button>
       <button onclick="openUploadModal('Finance')"
         style="display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;"
         onmouseover="this.style.background='rgba(0,212,170,0.18)'" onmouseout="this.style.background='rgba(0,212,170,0.08)'">
@@ -8898,6 +8904,9 @@ async function _loadUserProfile(authUser) {
       console.warn('Permissions fetch failed, using fallback:', _pe);
       PERMISSIONS = _buildFallbackPermissions(CURRENT_USER.rawRole);
     }
+
+    // Show/hide Purchase Request button based on vendor_access permission
+    if(typeof _vrCheckBtnAccess==='function') _vrCheckBtnAccess();
 
     showPortal();
     warmupAPIs();
@@ -20463,6 +20472,624 @@ async function acpSave(email, permission, value) {
     if (user) user.permissions[permission] = value;
   } catch(e) { alert('❌ Failed to save: ' + e.message); }
 }
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     VENDOR PURCHASE APPROVAL MODULE
+     CSS + Modals + JavaScript
+═══════════════════════════════════════════════════════════ -->
+<style>
+.vr-fbtn{padding:6px 13px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.18s;}
+.vr-fbtn:hover{border-color:#f0a500;color:#f0a500;}
+.vr-fbtn.active{background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.45);color:#f0a500;}
+#vrTbody tr:hover td{background:var(--surface2);}
+#vrTbody td{padding:11px 14px;font-size:0.84rem;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle;}
+#vrTbody tr:last-child td{border-bottom:none;}
+.vr-badge{display:inline-block;font-size:0.70rem;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.vr-act{padding:5px 12px;border-radius:7px;border:none;font-size:0.76rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;}
+/* Submit form */
+#vfOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;overflow-y:auto;padding:20px;}
+#vfBox{max-width:700px;margin:24px auto;background:var(--surface);border-radius:18px;overflow:hidden;box-shadow:0 24px 72px rgba(0,0,0,0.5);}
+.vfh{background:linear-gradient(135deg,rgba(240,165,0,0.14),rgba(240,165,0,0.05));border-bottom:1px solid var(--border);padding:22px 26px;display:flex;align-items:center;justify-content:space-between;}
+.vfh-title{font-size:1.05rem;font-weight:800;color:var(--text);}
+.vfh-sub{font-size:0.76rem;color:var(--muted);margin-top:3px;}
+.vf-xbtn{background:var(--surface2);border:1px solid var(--border);width:32px;height:32px;border-radius:8px;cursor:pointer;color:var(--text);font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.vf-body{padding:24px 26px;}
+.vf-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
+.vf-full{grid-column:1/-1;}
+.vf-lbl{font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:5px;}
+.vf-inp{width:100%;padding:9px 13px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface2);color:var(--text);font-size:0.88rem;font-family:inherit;outline:none;transition:border-color 0.18s;box-sizing:border-box;}
+.vf-inp:focus{border-color:#f0a500;}
+.vf-inp::placeholder{color:var(--muted);}
+.vf-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:18px;border-top:1px solid var(--border);margin-top:18px;}
+.vf-cancel{padding:10px 22px;border-radius:9px;border:1.5px solid var(--border);background:none;color:var(--muted);font-size:0.88rem;cursor:pointer;font-family:inherit;}
+.vf-submit{padding:10px 26px;border-radius:9px;border:none;background:linear-gradient(135deg,#f0a500,#ffcc44);color:#000;font-size:0.88rem;font-weight:800;cursor:pointer;font-family:inherit;}
+.vf-submit:disabled{opacity:0.5;cursor:not-allowed;}
+.vf-vendor-row{display:flex;gap:8px;align-items:flex-end;}
+.vf-vendor-row select{flex:1;}
+.vf-new-vendor-btn{padding:9px 13px;border-radius:9px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all 0.18s;flex-shrink:0;}
+.vf-new-vendor-btn:hover{background:rgba(0,212,170,0.18);}
+#vfNewVendorBox{display:none;background:rgba(0,212,170,0.06);border:1.5px solid rgba(0,212,170,0.25);border-radius:12px;padding:16px;margin-top:10px;}
+.vf-nv-title{font-size:0.78rem;font-weight:700;color:#00d4aa;margin-bottom:12px;}
+.vf-nv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.vf-nv-save{margin-top:12px;padding:8px 20px;border-radius:8px;border:none;background:#00d4aa;color:#fff;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.vf-nv-cancel{margin-top:12px;margin-left:8px;padding:8px 16px;border-radius:8px;border:1.5px solid var(--border);background:none;color:var(--muted);font-size:0.84rem;cursor:pointer;font-family:inherit;}
+/* Review modal */
+#vrModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:10000;align-items:center;justify-content:center;padding:20px;}
+#vrModalBox{width:100%;max-width:580px;background:var(--surface);border-radius:18px;box-shadow:0 24px 72px rgba(0,0,0,0.55);max-height:92vh;overflow-y:auto;}
+.vrm-head{background:linear-gradient(135deg,rgba(240,165,0,0.13),rgba(0,212,170,0.05));border-bottom:1px solid var(--border);padding:20px 24px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.vrm-body{padding:22px 24px;}
+.vrm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.vrm-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;}
+.vrm-lbl{font-size:0.67rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
+.vrm-val{font-size:0.88rem;font-weight:600;color:var(--text);word-break:break-word;}
+.vrm-section-title{font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.vrm-submit{width:100%;padding:13px;border-radius:10px;border:none;font-size:0.92rem;font-weight:800;cursor:pointer;font-family:inherit;margin-top:14px;}
+@media(max-width:640px){
+  .vf-grid,.vf-nv-grid,.vrm-grid{grid-template-columns:1fr;}
+  #vrKpiRow{grid-template-columns:repeat(2,1fr)!important;}
+}
+</style>
+
+<!-- ══════════════════════════════════════════════════════
+     VENDOR DASHBOARD OVERLAY (full screen)
+     Opens when Purchase Request button is clicked
+══════════════════════════════════════════════════════════ -->
+<div id="vrDashOverlay" style="display:none;position:fixed;inset:0;background:var(--bg,#0f1117);z-index:9990;overflow-y:auto;">
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1.5px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:2;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button onclick="closeVrDash()" style="background:var(--surface2);border:1px solid var(--border);padding:7px 14px;border-radius:9px;cursor:pointer;color:var(--text);font-size:0.82rem;font-weight:700;font-family:inherit;display:flex;align-items:center;gap:6px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to Finance
+      </button>
+      <div>
+        <div style="font-size:1rem;font-weight:800;color:var(--text);">Vendor Purchase Approvals</div>
+        <div style="font-size:0.72rem;color:var(--muted);">Finance › Purchase Requests</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="vr-fbtn active" id="vrf-all"      onclick="vrSetFilter('all',this)">All</button>
+      <button class="vr-fbtn"        id="vrf-onhold"   onclick="vrSetFilter('On Hold',this)">🔒 On Hold</button>
+      <button class="vr-fbtn"        id="vrf-approved" onclick="vrSetFilter('Approved',this)">✅ Approved</button>
+      <button class="vr-fbtn"        id="vrf-declined" onclick="vrSetFilter('Declined',this)">❌ Declined</button>
+      <button class="vr-fbtn"        id="vrf-paid"     onclick="vrSetFilter('Paid',this)">💳 Paid</button>
+      <button onclick="loadVendorRequests(true)" style="padding:6px 13px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        Refresh
+      </button>
+      <button onclick="openVendorForm()" style="display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#f0a500,#ffcc44);color:#000;font-size:0.84rem;font-weight:800;cursor:pointer;font-family:inherit;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Request
+      </button>
+    </div>
+  </div>
+  <!-- Body -->
+  <div style="padding:24px 28px;">
+    <!-- KPIs -->
+    <div id="vrKpiRow" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;"></div>
+    <!-- Search -->
+    <div style="position:relative;margin-bottom:16px;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="vrSearch" placeholder="Search vendor, product, employee…" oninput="vrApplyFilter()" style="width:100%;padding:10px 13px 10px 34px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:0.84rem;font-family:inherit;outline:none;box-sizing:border-box;">
+    </div>
+    <!-- Table -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div id="vrLoading" style="text-align:center;padding:2.5rem;color:var(--muted);">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        Loading requests…
+      </div>
+      <div id="vrTableWrap" style="display:none;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:var(--surface2);">
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Date</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Requested By</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Vendor</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Product / Service</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Qty</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Amount (₹)</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Location</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Status</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Payment</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Action</th>
+            </tr>
+          </thead>
+          <tbody id="vrTbody"></tbody>
+        </table>
+      </div>
+      <div id="vrEmpty" style="display:none;text-align:center;padding:3rem;color:var(--muted);">
+        <div style="font-size:2.2rem;margin-bottom:10px;">📋</div>
+        <div style="font-size:0.92rem;font-weight:600;color:var(--text);margin-bottom:5px;">No requests found</div>
+        <div style="font-size:0.8rem;">Try a different filter or submit a new request.</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="vfOverlay">
+  <div id="vfBox">
+    <div class="vfh">
+      <div><div class="vfh-title">📦 New Purchase Request</div><div class="vfh-sub">Submit a vendor payment request for approval</div></div>
+      <button class="vf-xbtn" onclick="closeVendorForm()">✕</button>
+    </div>
+    <div class="vf-body">
+      <div class="vf-grid">
+        <div class="vf-full">
+          <label class="vf-lbl">Vendor *</label>
+          <div class="vf-vendor-row">
+            <select class="vf-inp" id="vfVendorSel">
+              <option value="">— Select Vendor —</option>
+            </select>
+            <button class="vf-new-vendor-btn" onclick="vfToggleNewVendor()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Vendor
+            </button>
+          </div>
+          <div id="vfNewVendorBox">
+            <div class="vf-nv-title">➕ Add New Vendor</div>
+            <div class="vf-nv-grid">
+              <div class="vf-full"><label class="vf-lbl">Vendor Name *</label><input class="vf-inp" id="nvName" placeholder="Company / Vendor name"></div>
+              <div class="vf-full"><label class="vf-lbl">Contact Number</label><input class="vf-inp" id="nvContact" placeholder="Phone"></div>
+              <div class="vf-full"><label class="vf-lbl">Notes</label><input class="vf-inp" id="nvNotes" placeholder="Optional notes"></div>
+            </div>
+            <div id="nvErr" style="display:none;margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;font-size:0.8rem;"></div>
+            <button class="vf-nv-save" id="nvSaveBtn" onclick="saveNewVendor()">Save Vendor</button>
+            <button class="vf-nv-cancel" onclick="vfToggleNewVendor()">Cancel</button>
+          </div>
+        </div>
+        <div class="vf-full"><label class="vf-lbl">Product / Service *</label><input class="vf-inp" id="vfProduct" placeholder="Describe what is being purchased"></div>
+        <div><label class="vf-lbl">Quantity</label><input class="vf-inp" id="vfQty" type="number" min="1" placeholder="e.g. 10"></div>
+        <div><label class="vf-lbl">Amount (₹) *</label><input class="vf-inp" id="vfAmount" type="number" min="0" step="0.01" placeholder="e.g. 25000"></div>
+        <div>
+          <label class="vf-lbl">Location *</label>
+          <select class="vf-inp" id="vfLocation">
+            <option value="">— Select Location —</option>
+            <option value="Head Office">Head Office</option>
+            <option value="Bangalore">Bangalore</option>
+            <option value="Goa">Goa</option>
+            <option value="Gujarat">Gujarat</option>
+          </select>
+        </div>
+        <div><label class="vf-lbl">Invoice Number</label><input class="vf-inp" id="vfInvNo" placeholder="INV-0001"></div>
+        <div class="vf-full">
+          <label class="vf-lbl">Invoice / Quotation Attachment</label>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <label style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.84rem;font-weight:700;cursor:pointer;white-space:nowrap;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload File
+              <input type="file" id="vfInvFile" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;" onchange="vfFileChosen(this)">
+            </label>
+            <span id="vfInvFileName" style="font-size:0.82rem;color:var(--muted);">No file chosen</span>
+          </div>
+          <div style="margin-top:8px;">
+            <input class="vf-inp" id="vfInvLink" placeholder="Or paste Google Drive / any link (optional)">
+          </div>
+        </div>
+      </div>
+      <div id="vfErr" style="display:none;margin-top:12px;padding:10px 14px;border-radius:9px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;font-size:0.83rem;"></div>
+      <div class="vf-footer">
+        <button class="vf-cancel" onclick="closeVendorForm()">Cancel</button>
+        <button class="vf-submit" id="vfSubmitBtn" onclick="submitVendorRequest()">🚀 Submit for Approval</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REVIEW / ACTION MODAL -->
+<div id="vrModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:10000;align-items:center;justify-content:center;padding:20px;">
+  <div id="vrModalBox">
+    <div class="vrm-head">
+      <div>
+        <div style="font-size:0.68rem;font-weight:700;color:#f0a500;letter-spacing:0.09em;text-transform:uppercase;margin-bottom:4px;">PURCHASE REQUEST</div>
+        <div id="vrmVendor" style="font-size:1.1rem;font-weight:800;color:var(--text);">—</div>
+        <div id="vrmProduct" style="font-size:0.82rem;color:var(--muted);margin-top:3px;">—</div>
+      </div>
+      <button onclick="closeVrModal()" style="background:var(--surface2);border:1px solid var(--border);width:32px;height:32px;border-radius:8px;cursor:pointer;color:var(--text);font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+    </div>
+    <div class="vrm-body">
+      <div class="vrm-grid" id="vrmDetailsGrid"></div>
+      <div id="vrmInvWrap" style="display:none;margin-bottom:16px;">
+        <a id="vrmInvLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:rgba(78,154,241,0.1);border:1px solid rgba(78,154,241,0.3);color:#4e9af1;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:0.82rem;font-weight:700;">📎 View Invoice / Quotation ↗</a>
+      </div>
+      <div id="vrmPayAttachWrap" style="display:none;margin-bottom:16px;">
+        <a id="vrmPayAttachLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:#a855f7;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:0.82rem;font-weight:700;">💳 View Payment Proof ↗</a>
+      </div>
+      <!-- EA Section -->
+      <div id="vrmEASection" style="display:none;">
+        <div class="vrm-section-title">🔑 Approval Decision <span style="font-size:0.65rem;font-weight:400;color:var(--muted);">(Hetal Ma'am)</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+          <div><label class="vf-lbl" style="margin-bottom:5px;">Status *</label>
+            <select class="vf-inp" id="vrmStatus">
+              <option value="On Hold">🔒 On Hold</option>
+              <option value="Approved">✅ Approved</option>
+              <option value="Declined">❌ Declined</option>
+            </select>
+          </div>
+          <div><label class="vf-lbl" style="margin-bottom:5px;">Remarks</label><input class="vf-inp" id="vrmRemarks" placeholder="Optional notes"></div>
+        </div>
+        <button class="vrm-submit" onclick="vrSaveDecision()" style="background:linear-gradient(135deg,#f0a500,#ffcc44);color:#000;">💾 Save Decision</button>
+      </div>
+      <!-- Accounts Section -->
+      <div id="vrmAcctSection" style="display:none;">
+        <div class="vrm-section-title">💳 Payment Details <span style="font-size:0.65rem;font-weight:400;color:var(--muted);">(Accounts)</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+          <div><label class="vf-lbl" style="margin-bottom:5px;">UTR Number *</label><input class="vf-inp" id="vrmUTR" placeholder="UTR / Transaction ref"></div>
+          <div>
+            <label class="vf-lbl" style="margin-bottom:5px;">Payment Proof</label>
+            <label style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.82rem;font-weight:700;cursor:pointer;width:100%;box-sizing:border-box;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span id="vrmAttachName">Upload Screenshot / PDF</span>
+              <input type="file" id="vrmAttachFile" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;" onchange="document.getElementById('vrmAttachName').textContent=this.files[0]?this.files[0].name:'Upload Screenshot / PDF'">
+            </label>
+            <input class="vf-inp" id="vrmAttachment" placeholder="Or paste link (optional)" style="margin-top:6px;">
+          </div>
+        </div>
+        <button class="vrm-submit" onclick="vrMarkPaid()" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;">💳 Mark as PAID</button>
+      </div>
+      <div id="vrmMsg" style="display:none;margin-top:12px;text-align:center;font-size:0.84rem;padding:10px;border-radius:9px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────
+let _vrAll=[], _vrFiltered=[], _vrFilterMode='all', _vrCurId=null, _vrNameMap={}, _vrVendors=[], _vrLoaded=false;
+
+// ── ROLE HELPERS ───────────────────────────────────
+function _vrRole(){return(typeof CURRENT_USER!=='undefined'&&CURRENT_USER)?String(CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim():'';}
+function _vrCanViewAll(){if(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.vendor_view_all==='true')return true;const r=_vrRole();return r==='owner'||r==='mis'||r==='executive assistant'||r==='ea';}
+function _vrIsEA(){const r=_vrRole();return r==='executive assistant'||r==='ea'||r==='owner'||r==='mis';}
+function _vrIsAccounts(){
+  // Uses vendor_pay permission — set via Access Control panel for Ashish sir specifically
+  // This is role-independent so any employee given this permission gets PAID button access
+  if(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.vendor_pay==='true')return true;
+  // owner/mis always have pay access
+  const r=_vrRole();return r==='owner'||r==='mis';
+}
+function _vrMyEmail(){return(typeof CURRENT_USER!=='undefined'&&CURRENT_USER&&CURRENT_USER.email)?String(CURRENT_USER.email).trim().toLowerCase():'';}
+
+// ── LOAD ───────────────────────────────────────────
+async function loadVendorRequests(force){
+  if(_vrLoaded&&!force)return;
+  _vrLoaded=true;
+  const ldg=document.getElementById('vrLoading');
+  const tw=document.getElementById('vrTableWrap');
+  const em=document.getElementById('vrEmpty');
+  if(ldg)ldg.style.display='block';
+  if(tw)tw.style.display='none';
+  if(em)em.style.display='none';
+  document.getElementById('vrKpiRow').innerHTML='';
+  try{
+    const empRes=await fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=Email_Id,Employee_name`,{headers:SB_HDRS()});
+    const empData=empRes.ok?await empRes.json():[];
+    _vrNameMap={};
+    (empData||[]).forEach(e=>{if(e.Email_Id)_vrNameMap[String(e.Email_Id).toLowerCase().trim()]=e.Employee_name||e.Email_Id;});
+    await _vrLoadVendors();
+    let url=`${SUPABASE_URL}/rest/v1/vendor_requests?select=*&order=created_at.desc`;
+    if(!_vrCanViewAll())url+=`&submitted_by=eq.${encodeURIComponent(_vrMyEmail())}`;
+    const vrRes=await fetch(url,{headers:SB_HDRS()});
+    if(!vrRes.ok)throw new Error('HTTP '+vrRes.status);
+    _vrAll=await vrRes.json();
+    _vrRenderKPIs();
+    _vrApplyFilter();
+  }catch(e){
+    if(ldg)ldg.innerHTML=`<div style="color:#ef4444;font-size:0.84rem;">❌ ${e.message}</div>`;
+    return;
+  }
+  if(ldg)ldg.style.display='none';
+}
+
+async function _vrLoadVendors(){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/vendors?select=id,vendor_name&order=vendor_name.asc`,{headers:SB_HDRS()});
+  _vrVendors=res.ok?await res.json():[];
+  _vrPopulateVendorDropdown();
+}
+function _vrPopulateVendorDropdown(){
+  const sel=document.getElementById('vfVendorSel');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Select Vendor —</option>';
+  _vrVendors.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.vendor_name;o.dataset.name=v.vendor_name;sel.appendChild(o);});
+  if(cur)sel.value=cur;
+}
+
+// ── KPIs ───────────────────────────────────────────
+function _vrRenderKPIs(){
+  const kpis=[
+    {label:'Total',val:_vrAll.length,color:'#4e9af1',icon:'📋'},
+    {label:'On Hold',val:_vrAll.filter(r=>r.status==='On Hold').length,color:'#f59e0b',icon:'🔒'},
+    {label:'Approved',val:_vrAll.filter(r=>r.status==='Approved').length,color:'#22c55e',icon:'✅'},
+    {label:'Paid',val:_vrAll.filter(r=>r.payment_status==='Paid').length,color:'#a855f7',icon:'💳'},
+  ];
+  document.getElementById('vrKpiRow').innerHTML=kpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:14px 16px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:1.2rem;margin-bottom:5px;">${k.icon}</div><div style="font-size:1.7rem;font-weight:900;color:${k.color};line-height:1;">${k.val}</div><div style="font-size:0.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;">${k.label}</div></div>`).join('');
+}
+
+// ── FILTER ─────────────────────────────────────────
+function vrSetFilter(mode,btn){
+  _vrFilterMode=mode;
+  document.querySelectorAll('.vr-fbtn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  _vrApplyFilter();
+}
+function vrApplyFilter(){_vrApplyFilter();}
+function _vrApplyFilter(){
+  const q=(document.getElementById('vrSearch')?.value||'').toLowerCase().trim();
+  _vrFiltered=_vrAll.filter(r=>{
+    if(_vrFilterMode==='On Hold'&&r.status!=='On Hold')return false;
+    if(_vrFilterMode==='Approved'&&r.status!=='Approved')return false;
+    if(_vrFilterMode==='Declined'&&r.status!=='Declined')return false;
+    if(_vrFilterMode==='Paid'&&r.payment_status!=='Paid')return false;
+    if(q){const name=(_vrNameMap[String(r.submitted_by||'').toLowerCase()]||r.submitted_by||'').toLowerCase();const hay=[r.vendor_name,r.product_name,r.location,r.submitted_by,name,String(r.amount||'')].join(' ').toLowerCase();if(!hay.includes(q))return false;}
+    return true;
+  });
+  _vrRenderTable();
+}
+
+// ── BADGES ─────────────────────────────────────────
+function _vrStatusBadge(s){const m={Approved:{bg:'rgba(34,197,94,0.12)',c:'#22c55e'},Declined:{bg:'rgba(239,68,68,0.1)',c:'#ef4444'},'On Hold':{bg:'rgba(245,158,11,0.1)',c:'#f59e0b'}};const t=m[s]||m['On Hold'];return`<span class="vr-badge" style="background:${t.bg};color:${t.c};border:1px solid ${t.c}44;">${s||'On Hold'}</span>`;}
+function _vrPayBadge(s){if(s==='Paid')return`<span class="vr-badge" style="background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.3);">💳 Paid</span>`;return`<span class="vr-badge" style="background:rgba(107,114,128,0.1);color:var(--muted);border:1px solid var(--border);">Unpaid</span>`;}
+
+// ── RENDER TABLE ───────────────────────────────────
+function _vrRenderTable(){
+  const tbody=document.getElementById('vrTbody');
+  const tw=document.getElementById('vrTableWrap');
+  const em=document.getElementById('vrEmpty');
+  if(!tbody)return;
+  if(!_vrFiltered.length){if(tw)tw.style.display='none';if(em)em.style.display='block';return;}
+  if(em)em.style.display='none';
+  if(tw)tw.style.display='block';
+  tbody.innerHTML=_vrFiltered.map(r=>{
+    const d=r.created_at?new Date(r.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+    const nameDisplay=_vrNameMap[String(r.submitted_by||'').toLowerCase()]||r.submitted_by||'—';
+    const status=r.status||'On Hold';
+    let actBtn='';
+    if(_vrIsEA())actBtn=`<button class="vr-act" style="background:rgba(240,165,0,0.12);color:#f0a500;border:1px solid rgba(240,165,0,0.3);" onclick="openVrModal(${r.id})">Review →</button>`;
+    else if(_vrIsAccounts()&&status==='Approved'&&r.payment_status!=='Paid')actBtn=`<button class="vr-act" style="background:rgba(59,130,246,0.12);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);" onclick="openVrModal(${r.id})">Pay →</button>`;
+    else actBtn=`<button class="vr-act" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="openVrModal(${r.id})">View</button>`;
+    const canDelete=(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.vendor_delete==='true')||_vrIsEA()||(String(r.submitted_by||'').toLowerCase()===_vrMyEmail());
+    const delBtn=canDelete?`<button class="vr-act" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);margin-left:5px;" onclick="vrDeleteRequest(${r.id},event)" title="Delete request">🗑</button>`:'';
+    return`<tr><td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${d}</td><td><div style="font-weight:700;font-size:0.85rem;color:var(--text);">${nameDisplay}</div></td><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'—'}</div></td><td style="text-align:center;">${r.qty||'—'}</td><td style="font-weight:700;white-space:nowrap;">₹${r.amount!=null?Number(r.amount).toLocaleString('en-IN'):'—'}</td><td style="font-size:0.82rem;">${r.location||'—'}</td><td>${_vrStatusBadge(status)}</td><td>${_vrPayBadge(r.payment_status)}</td><td style="white-space:nowrap;">${actBtn}${delBtn}</td></tr>`;
+  }).join('');
+}
+
+// ── VENDOR BUTTON VISIBILITY ───────────────────────
+// Called after PERMISSIONS loads — shows Purchase Request button if allowed
+function _vrCheckBtnAccess(){
+  const btn=document.getElementById('vendorPurchaseBtn');
+  if(!btn)return;
+  const r=_vrRole();
+  // only mis is hardcoded — everyone else needs vendor_access toggled ON
+  const alwaysAllow=r==='mis';
+  const hasPermission=typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.vendor_access==='true';
+  if(alwaysAllow||hasPermission){
+    btn.style.display='flex';
+  } else {
+    btn.style.display='none';
+  }
+}
+
+// ── OPEN VENDOR DASHBOARD (called by Purchase Request button) ──
+function openVrDash(){
+  document.getElementById('vrDashOverlay').style.display='block';
+  document.body.style.overflow='hidden';
+  loadVendorRequests();
+}
+function closeVrDash(){
+  document.getElementById('vrDashOverlay').style.display='none';
+  document.body.style.overflow='';
+}
+
+// ── SUBMIT FORM ────────────────────────────────────
+async function openVendorForm(){
+  document.getElementById('vfErr').style.display='none';
+  ['vfProduct','vfQty','vfAmount','vfInvNo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('vfLocation').value='';
+  document.getElementById('vfVendorSel').value='';
+  document.getElementById('vfNewVendorBox').style.display='none';
+  const fi=document.getElementById('vfInvFile');if(fi)fi.value='';
+  document.getElementById('vfInvFileName').textContent='No file chosen';
+  await _vrLoadVendors();
+  document.getElementById('vfOverlay').style.display='block';
+}
+function closeVendorForm(){document.getElementById('vfOverlay').style.display='none';}
+function vfToggleNewVendor(){
+  const box=document.getElementById('vfNewVendorBox');
+  box.style.display=box.style.display==='none'?'block':'none';
+  if(box.style.display==='block'){['nvName','nvContact','nvNotes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('nvErr').style.display='none';}
+}
+async function saveNewVendor(){
+  const name=(document.getElementById('nvName').value||'').trim();
+  const errEl=document.getElementById('nvErr');
+  const btn=document.getElementById('nvSaveBtn');
+  errEl.style.display='none';
+  if(!name){errEl.textContent='⚠️ Vendor name is required.';errEl.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const payload={vendor_name:name,contact:document.getElementById('nvContact').value.trim()||null,notes:document.getElementById('nvNotes').value.trim()||null};
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/vendors`,{method:'POST',headers:{...SB_HDRS_JSON(),'Prefer':'return=representation','Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok){const t=await res.text();throw new Error(t);}
+    const newVendors=await res.json();
+    const newV=newVendors[0];
+    _vrVendors.push(newV);_vrVendors.sort((a,b)=>a.vendor_name.localeCompare(b.vendor_name));
+    _vrPopulateVendorDropdown();
+    document.getElementById('vfVendorSel').value=newV.id;
+    document.getElementById('vfNewVendorBox').style.display='none';
+    if(typeof showToast==='function')showToast('✅ Vendor added!','success',2000);
+  }catch(e){
+    errEl.textContent=(e.message&&e.message.toLowerCase().includes('unique'))?'⚠️ A vendor with this name already exists.':'❌ '+e.message;
+    errEl.style.display='block';
+  }finally{btn.disabled=false;btn.textContent='Save Vendor';}
+}
+async function submitVendorRequest(){
+  const errEl=document.getElementById('vfErr');
+  const btn=document.getElementById('vfSubmitBtn');
+  errEl.style.display='none';
+  const sel=document.getElementById('vfVendorSel');
+  const vendorId=sel.value;
+  const vendorName=sel.options[sel.selectedIndex]?.dataset?.name||'';
+  const product=(document.getElementById('vfProduct').value||'').trim();
+  const amount=document.getElementById('vfAmount').value;
+  const location=document.getElementById('vfLocation').value;
+  if(!vendorId){errEl.textContent='⚠️ Please select a vendor.';errEl.style.display='block';return;}
+  if(!product){errEl.textContent='⚠️ Product / Service is required.';errEl.style.display='block';return;}
+  if(!amount||isNaN(Number(amount))||Number(amount)<=0){errEl.textContent='⚠️ Please enter a valid amount.';errEl.style.display='block';return;}
+  if(!location){errEl.textContent='⚠️ Please select a location.';errEl.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Submitting…';
+  try{
+    // Upload invoice file if chosen
+    let invoiceUrl=(document.getElementById('vfInvLink').value||'').trim()||null;
+    const invFile=document.getElementById('vfInvFile')?.files?.[0];
+    if(invFile){
+      btn.textContent='Uploading file…';
+      try{ invoiceUrl=await _vrUploadFile(invFile,'vendor-attachments','invoices'); }
+      catch(uploadErr){ invoiceUrl=null; /* non-fatal, continue */ }
+    }
+    btn.textContent='Saving…';
+    // Look up Emp_id from Employee_details to properly link to employee record
+    let empId=null;
+    try{
+      const empLookup=await fetch(
+        `${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id&Email_Id=ilike.${encodeURIComponent(_vrMyEmail())}&limit=1`,
+        {headers:SB_HDRS()}
+      );
+      const empRows=empLookup.ok?await empLookup.json():[];
+      if(empRows&&empRows[0])empId=empRows[0].Emp_id||null;
+    }catch(e){ /* non-fatal, submit anyway */ }
+    const payload={submitted_by:_vrMyEmail(),submitted_by_emp_id:empId,vendor_id:parseInt(vendorId),vendor_name:vendorName,product_name:product,qty:parseInt(document.getElementById('vfQty').value)||null,amount:parseFloat(amount),location,invoice_number:document.getElementById('vfInvNo').value.trim()||null,invoice_link:invoiceUrl,status:'On Hold',payment_status:'Unpaid'};
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/vendor_requests`,{method:'POST',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+    if(!res.ok){const t=await res.text();throw new Error(t);}
+    closeVendorForm();
+    if(typeof showToast==='function')showToast('✅ Purchase request submitted!','success',3000);
+    _vrLoaded=false;await loadVendorRequests(true);
+  }catch(e){errEl.textContent='❌ '+e.message;errEl.style.display='block';}
+  finally{btn.disabled=false;btn.textContent='🚀 Submit for Approval';}
+}
+
+// ── REVIEW MODAL ───────────────────────────────────
+function openVrModal(id){
+  const r=_vrAll.find(x=>x.id===id);if(!r)return;
+  _vrCurId=id;
+  document.getElementById('vrmVendor').textContent=r.vendor_name||'—';
+  document.getElementById('vrmProduct').textContent=r.product_name||'—';
+  const nameDisplay=_vrNameMap[String(r.submitted_by||'').toLowerCase()]||r.submitted_by||'—';
+  const d=r.created_at?new Date(r.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+  const details=[['Requested By',nameDisplay],['Date',d],['Amount',r.amount!=null?'₹'+Number(r.amount).toLocaleString('en-IN'):'—'],['Quantity',r.qty||'—'],['Location',r.location||'—'],['Invoice #',r.invoice_number||'—'],['Status',r.status||'On Hold'],['Payment',r.payment_status||'Unpaid'],...(r.remarks?[['Remarks',r.remarks]]:[]),...(r.reviewed_by?[['Reviewed By',_vrNameMap[String(r.reviewed_by||'').toLowerCase()]||r.reviewed_by]]:[]),...(r.utr_number?[['UTR Number',r.utr_number]]:[]),...(r.paid_by?[['Paid By',_vrNameMap[String(r.paid_by||'').toLowerCase()]||r.paid_by]]:[])];
+  document.getElementById('vrmDetailsGrid').innerHTML=details.map(([l,v])=>`<div class="vrm-item"><div class="vrm-lbl">${l}</div><div class="vrm-val">${v}</div></div>`).join('');
+  const invWrap=document.getElementById('vrmInvWrap');
+  if(r.invoice_link){document.getElementById('vrmInvLink').href=r.invoice_link;invWrap.style.display='block';}else{invWrap.style.display='none';}
+  const payWrap=document.getElementById('vrmPayAttachWrap');
+  if(r.payment_attachment){document.getElementById('vrmPayAttachLink').href=r.payment_attachment;payWrap.style.display='block';}else{payWrap.style.display='none';}
+  const eaSect=document.getElementById('vrmEASection');
+  const acctSect=document.getElementById('vrmAcctSection');
+  eaSect.style.display='none';acctSect.style.display='none';
+  if(_vrIsEA()){eaSect.style.display='block';document.getElementById('vrmStatus').value=r.status||'On Hold';document.getElementById('vrmRemarks').value=r.remarks||'';}
+  if(_vrIsAccounts()&&r.status==='Approved'&&r.payment_status!=='Paid'){
+    acctSect.style.display='block';
+    document.getElementById('vrmUTR').value=r.utr_number||'';
+    document.getElementById('vrmAttachment').value=r.payment_attachment||'';
+    const af=document.getElementById('vrmAttachFile');if(af)af.value='';
+    document.getElementById('vrmAttachName').textContent='Upload Screenshot / PDF';
+  }
+  document.getElementById('vrmMsg').style.display='none';
+  const modal=document.getElementById('vrModal');modal.style.display='flex';document.body.style.overflow='hidden';
+}
+function closeVrModal(){document.getElementById('vrModal').style.display='none';}
+
+// ── EA: SAVE DECISION ──────────────────────────────
+async function vrSaveDecision(){
+  if(!_vrCurId)return;
+  const msgEl=document.getElementById('vrmMsg');msgEl.style.display='none';
+  const status=document.getElementById('vrmStatus').value;
+  const remarks=(document.getElementById('vrmRemarks').value||'').trim();
+  try{
+    const payload={status,remarks:remarks||null,reviewed_by:_vrMyEmail(),reviewed_at:new Date().toISOString()};
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/vendor_requests?id=eq.${_vrCurId}`,{method:'PATCH',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+    if(!res.ok){const t=await res.text();throw new Error(t);}
+    const idx=_vrAll.findIndex(x=>x.id===_vrCurId);if(idx!==-1)_vrAll[idx]={..._vrAll[idx],...payload};
+    msgEl.style.cssText='display:block;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:9px;color:#22c55e;padding:10px;';msgEl.textContent='✅ Decision saved!';
+    _vrRenderKPIs();_vrApplyFilter();
+    if(typeof showToast==='function')showToast('✅ Decision saved!','success',2500);
+    setTimeout(closeVrModal,1200);
+  }catch(e){msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';msgEl.textContent='❌ '+e.message;}
+}
+
+// ── ACCOUNTS: MARK PAID ────────────────────────────
+async function vrMarkPaid(){
+  if(!_vrCurId)return;
+  const msgEl=document.getElementById('vrmMsg');msgEl.style.display='none';
+  const utr=(document.getElementById('vrmUTR').value||'').trim();
+  const attachment=(document.getElementById('vrmAttachment').value||'').trim();
+  if(!utr){msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';msgEl.textContent='⚠️ UTR Number is required before marking as Paid.';return;}
+  try{
+    // Upload payment proof file if chosen
+    let attachUrl=(document.getElementById('vrmAttachment').value||'').trim()||null;
+    const attachFile=document.getElementById('vrmAttachFile')?.files?.[0];
+    if(attachFile){
+      msgEl.style.cssText='display:block;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:9px;color:#3b82f6;padding:10px;';
+      msgEl.textContent='⏳ Uploading payment proof…';
+      try{ attachUrl=await _vrUploadFile(attachFile,'vendor-attachments','payments'); }
+      catch(e){ /* non-fatal */ }
+    }
+    const payload={payment_status:'Paid',utr_number:utr,payment_attachment:attachUrl,paid_by:_vrMyEmail(),paid_at:new Date().toISOString()};
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/vendor_requests?id=eq.${_vrCurId}`,{method:'PATCH',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+    if(!res.ok){const t=await res.text();throw new Error(t);}
+    const idx=_vrAll.findIndex(x=>x.id===_vrCurId);if(idx!==-1)_vrAll[idx]={..._vrAll[idx],...payload};
+    msgEl.style.cssText='display:block;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:9px;color:#a855f7;padding:10px;';msgEl.textContent='💳 Marked as PAID!';
+    _vrRenderKPIs();_vrApplyFilter();
+    if(typeof showToast==='function')showToast('💳 Payment recorded!','success',2500);
+    setTimeout(closeVrModal,1200);
+  }catch(e){msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';msgEl.textContent='❌ '+e.message;}
+}
+
+// ── FILE CHOSEN DISPLAY ────────────────────────────
+function vfFileChosen(input){
+  document.getElementById('vfInvFileName').textContent=input.files[0]?input.files[0].name:'No file chosen';
+}
+
+// ── UPLOAD FILE TO SUPABASE STORAGE ───────────────
+async function _vrUploadFile(file, bucket, folder){
+  if(!file)return null;
+  const ext=file.name.split('.').pop();
+  const fileName=`${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const res=await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${fileName}`,{
+    method:'POST',
+    headers:{...SB_HDRS(),'Content-Type':file.type,'x-upsert':'true'},
+    body:file
+  });
+  if(!res.ok){const t=await res.text();throw new Error('Upload failed: '+t);}
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${fileName}`;
+}
+
+// ── DELETE REQUEST ─────────────────────────────────
+async function vrDeleteRequest(id, event){
+  if(event)event.stopPropagation();
+  const r=_vrAll.find(x=>x.id===id);
+  if(!r)return;
+  // Confirm before deleting
+  const vendorName=r.vendor_name||'this request';
+  const confirmed=confirm(`Delete purchase request from ${vendorName}?\n\nThis cannot be undone.`);
+  if(!confirmed)return;
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/vendor_requests?id=eq.${id}`,{
+      method:'DELETE',
+      headers:SB_HDRS()
+    });
+    if(!res.ok){const t=await res.text();throw new Error(t);}
+    // Remove from local state
+    _vrAll=_vrAll.filter(x=>x.id!==id);
+    _vrRenderKPIs();
+    _vrApplyFilter();
+    if(typeof showToast==='function')showToast('🗑 Request deleted','success',2000);
+  }catch(e){
+    if(typeof showToast==='function')showToast('❌ Delete failed: '+e.message,'error',3000);
+    else alert('❌ Delete failed: '+e.message);
+  }
+}
+
+// ── CLOSE ON BACKDROP CLICK ─────────────────────────────────────────────────────────
+document.getElementById('vfOverlay').addEventListener('click',function(e){if(e.target===this)closeVendorForm();});
+document.getElementById('vrModal').addEventListener('click',function(e){if(e.target===this)closeVrModal();});
 </script>
 
 </body>
