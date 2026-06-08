@@ -20653,17 +20653,14 @@ async function acpSave(email, permission, value) {
         </div>
         <div><label class="vf-lbl">Invoice Number</label><input class="vf-inp" id="vfInvNo" placeholder="INV-0001"></div>
         <div class="vf-full">
-          <label class="vf-lbl">Invoice / Quotation Attachment</label>
+          <label class="vf-lbl">Invoice / Quotation <span style="color:var(--muted);font-weight:400;text-transform:none;">(optional)</span></label>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <label style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.84rem;font-weight:700;cursor:pointer;white-space:nowrap;">
+            <label id="vfInvUploadLabel" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1.5px solid rgba(78,154,241,0.4);background:rgba(78,154,241,0.08);color:#4e9af1;font-size:0.84rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.18s;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Upload File
-              <input type="file" id="vfInvFile" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;" onchange="vfFileChosen(this)">
+              📎 Upload Invoice
+              <input type="file" id="vfInvFile" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;" onchange="vfInvFileChosen(this)">
             </label>
             <span id="vfInvFileName" style="font-size:0.82rem;color:var(--muted);">No file chosen</span>
-          </div>
-          <div style="margin-top:8px;">
-            <input class="vf-inp" id="vfInvLink" placeholder="Or paste Google Drive / any link (optional)">
           </div>
         </div>
       </div>
@@ -20689,11 +20686,18 @@ async function acpSave(email, permission, value) {
     </div>
     <div class="vrm-body">
       <div class="vrm-grid" id="vrmDetailsGrid"></div>
-      <div id="vrmInvWrap" style="display:none;margin-bottom:16px;">
-        <a id="vrmInvLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:rgba(78,154,241,0.1);border:1px solid rgba(78,154,241,0.3);color:#4e9af1;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:0.82rem;font-weight:700;">📎 View Invoice / Quotation ↗</a>
-      </div>
-      <div id="vrmPayAttachWrap" style="display:none;margin-bottom:16px;">
-        <a id="vrmPayAttachLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:#a855f7;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:0.82rem;font-weight:700;">💳 View Payment Proof ↗</a>
+      <div id="vrmInvWrap" style="margin-bottom:16px;">
+        <div class="vrm-section-title" style="margin-top:0;">📎 Attachments</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <div id="vrmInvLinkWrap">
+            <a id="vrmInvLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:rgba(78,154,241,0.1);border:1px solid rgba(78,154,241,0.3);color:#4e9af1;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:0.82rem;font-weight:700;">📎 View Invoice / Quotation ↗</a>
+          </div>
+          <div id="vrmInvNoLink" style="display:none;font-size:0.82rem;color:var(--muted);padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">📎 No invoice attached</div>
+          <div id="vrmPayAttachLinkWrap">
+            <a id="vrmPayAttachLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);color:#a855f7;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:0.82rem;font-weight:700;">💳 View Payment Proof ↗</a>
+          </div>
+          <div id="vrmPayNoLink" style="display:none;font-size:0.82rem;color:var(--muted);padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">💳 No payment proof yet</div>
+        </div>
       </div>
       <!-- EA Section -->
       <div id="vrmEASection" style="display:none;">
@@ -20717,12 +20721,14 @@ async function acpSave(email, permission, value) {
           <div><label class="vf-lbl" style="margin-bottom:5px;">UTR Number *</label><input class="vf-inp" id="vrmUTR" placeholder="UTR / Transaction ref"></div>
           <div>
             <label class="vf-lbl" style="margin-bottom:5px;">Payment Proof</label>
-            <label style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.82rem;font-weight:700;cursor:pointer;width:100%;box-sizing:border-box;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <span id="vrmAttachName">Upload Screenshot / PDF</span>
-              <input type="file" id="vrmAttachFile" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;" onchange="document.getElementById('vrmAttachName').textContent=this.files[0]?this.files[0].name:'Upload Screenshot / PDF'">
-            </label>
-            <input class="vf-inp" id="vrmAttachment" placeholder="Or paste link (optional)" style="margin-top:6px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <label style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;border:1.5px solid rgba(168,85,247,0.4);background:rgba(168,85,247,0.08);color:#a855f7;font-size:0.82rem;font-weight:700;cursor:pointer;white-space:nowrap;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                💳 Upload Proof
+                <input type="file" id="vrmAttachFile" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;" onchange="vrmAttachFileChosen(this)">
+              </label>
+              <span id="vrmAttachName" style="font-size:0.82rem;color:var(--muted);">No file chosen</span>
+            </div>
           </div>
         </div>
         <button class="vrm-submit" onclick="vrMarkPaid()" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;">💳 Mark as PAID</button>
@@ -20889,6 +20895,8 @@ async function openVendorForm(){
   document.getElementById('vfNewVendorBox').style.display='none';
   const fi=document.getElementById('vfInvFile');if(fi)fi.value='';
   document.getElementById('vfInvFileName').textContent='No file chosen';
+  const lbl=document.getElementById('vfInvUploadLabel');if(lbl)lbl.style.background='rgba(78,154,241,0.08)';
+
   await _vrLoadVendors();
   document.getElementById('vfOverlay').style.display='block';
 }
@@ -20937,13 +20945,16 @@ async function submitVendorRequest(){
   if(!location){errEl.textContent='⚠️ Please select a location.';errEl.style.display='block';return;}
   btn.disabled=true;btn.textContent='Submitting…';
   try{
-    // Upload invoice file if chosen
-    let invoiceUrl=(document.getElementById('vfInvLink').value||'').trim()||null;
+    let invoiceUrl=null;
     const invFile=document.getElementById('vfInvFile')?.files?.[0];
     if(invFile){
-      btn.textContent='Uploading file…';
-      try{ invoiceUrl=await _vrUploadFile(invFile,'vendor-attachments','invoices'); }
-      catch(uploadErr){ invoiceUrl=null; /* non-fatal, continue */ }
+      btn.textContent='Uploading invoice…';
+      try{
+        invoiceUrl=await _vrUploadFile(invFile,'vendor-attachments','invoices');
+      }catch(e){
+        console.warn('Invoice upload failed, proceeding without it:',e.message);
+        invoiceUrl=null;
+      }
     }
     btn.textContent='Saving…';
     // Look up Emp_id from Employee_details to properly link to employee record
@@ -20976,10 +20987,28 @@ function openVrModal(id){
   const d=r.created_at?new Date(r.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
   const details=[['Requested By',nameDisplay],['Date',d],['Amount',r.amount!=null?'₹'+Number(r.amount).toLocaleString('en-IN'):'—'],['Quantity',r.qty||'—'],['Location',r.location||'—'],['Invoice #',r.invoice_number||'—'],['Status',r.status||'On Hold'],['Payment',r.payment_status||'Unpaid'],...(r.remarks?[['Remarks',r.remarks]]:[]),...(r.reviewed_by?[['Reviewed By',_vrNameMap[String(r.reviewed_by||'').toLowerCase()]||r.reviewed_by]]:[]),...(r.utr_number?[['UTR Number',r.utr_number]]:[]),...(r.paid_by?[['Paid By',_vrNameMap[String(r.paid_by||'').toLowerCase()]||r.paid_by]]:[])];
   document.getElementById('vrmDetailsGrid').innerHTML=details.map(([l,v])=>`<div class="vrm-item"><div class="vrm-lbl">${l}</div><div class="vrm-val">${v}</div></div>`).join('');
-  const invWrap=document.getElementById('vrmInvWrap');
-  if(r.invoice_link){document.getElementById('vrmInvLink').href=r.invoice_link;invWrap.style.display='block';}else{invWrap.style.display='none';}
-  const payWrap=document.getElementById('vrmPayAttachWrap');
-  if(r.payment_attachment){document.getElementById('vrmPayAttachLink').href=r.payment_attachment;payWrap.style.display='block';}else{payWrap.style.display='none';}
+  // Invoice attachment
+  const invLinkWrap=document.getElementById('vrmInvLinkWrap');
+  const invNoLink=document.getElementById('vrmInvNoLink');
+  if(r.invoice_link){
+    document.getElementById('vrmInvLink').href=r.invoice_link;
+    invLinkWrap.style.display='block';
+    invNoLink.style.display='none';
+  }else{
+    invLinkWrap.style.display='none';
+    invNoLink.style.display='block';
+  }
+  // Payment attachment
+  const payLinkWrap=document.getElementById('vrmPayAttachLinkWrap');
+  const payNoLink=document.getElementById('vrmPayNoLink');
+  if(r.payment_attachment){
+    document.getElementById('vrmPayAttachLink').href=r.payment_attachment;
+    payLinkWrap.style.display='block';
+    payNoLink.style.display='none';
+  }else{
+    payLinkWrap.style.display='none';
+    payNoLink.style.display='block';
+  }
   const eaSect=document.getElementById('vrmEASection');
   const acctSect=document.getElementById('vrmAcctSection');
   eaSect.style.display='none';acctSect.style.display='none';
@@ -20987,9 +21016,9 @@ function openVrModal(id){
   if(_vrIsAccounts()&&r.status==='Approved'&&r.payment_status!=='Paid'){
     acctSect.style.display='block';
     document.getElementById('vrmUTR').value=r.utr_number||'';
-    document.getElementById('vrmAttachment').value=r.payment_attachment||'';
-    const af=document.getElementById('vrmAttachFile');if(af)af.value='';
-    document.getElementById('vrmAttachName').textContent='Upload Screenshot / PDF';
+    const paf=document.getElementById('vrmAttachFile');if(paf)paf.value='';
+    document.getElementById('vrmAttachName').textContent='No file chosen';
+
   }
   document.getElementById('vrmMsg').style.display='none';
   const modal=document.getElementById('vrModal');modal.style.display='flex';document.body.style.overflow='hidden';
@@ -21019,46 +21048,68 @@ async function vrMarkPaid(){
   if(!_vrCurId)return;
   const msgEl=document.getElementById('vrmMsg');msgEl.style.display='none';
   const utr=(document.getElementById('vrmUTR').value||'').trim();
-  const attachment=(document.getElementById('vrmAttachment').value||'').trim();
-  if(!utr){msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';msgEl.textContent='⚠️ UTR Number is required before marking as Paid.';return;}
+  if(!utr){
+    msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';
+    msgEl.textContent='⚠️ UTR Number is required before marking as Paid.';
+    return;
+  }
   try{
-    // Upload payment proof file if chosen
-    let attachUrl=(document.getElementById('vrmAttachment').value||'').trim()||null;
+    let attachUrl=null;
     const attachFile=document.getElementById('vrmAttachFile')?.files?.[0];
     if(attachFile){
-      msgEl.style.cssText='display:block;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:9px;color:#3b82f6;padding:10px;';
+      msgEl.style.cssText='display:block;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:9px;color:#a855f7;padding:10px;';
       msgEl.textContent='⏳ Uploading payment proof…';
-      try{ attachUrl=await _vrUploadFile(attachFile,'vendor-attachments','payments'); }
-      catch(e){ /* non-fatal */ }
+      try{
+        attachUrl=await _vrUploadFile(attachFile,'vendor-attachments','payments');
+      }catch(e){
+        // Upload failed — proceed without attachment, can be added later
+        console.warn('Attachment upload failed, proceeding without it:',e.message);
+        attachUrl=null;
+      }
     }
+    msgEl.textContent='⏳ Saving…';
     const payload={payment_status:'Paid',utr_number:utr,payment_attachment:attachUrl,paid_by:_vrMyEmail(),paid_at:new Date().toISOString()};
     const res=await fetch(`${SUPABASE_URL}/rest/v1/vendor_requests?id=eq.${_vrCurId}`,{method:'PATCH',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
     if(!res.ok){const t=await res.text();throw new Error(t);}
     const idx=_vrAll.findIndex(x=>x.id===_vrCurId);if(idx!==-1)_vrAll[idx]={..._vrAll[idx],...payload};
-    msgEl.style.cssText='display:block;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:9px;color:#a855f7;padding:10px;';msgEl.textContent='💳 Marked as PAID!';
+    msgEl.style.cssText='display:block;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:9px;color:#a855f7;padding:10px;';
+    msgEl.textContent='💳 Marked as PAID!';
     _vrRenderKPIs();_vrApplyFilter();
     if(typeof showToast==='function')showToast('💳 Payment recorded!','success',2500);
     setTimeout(closeVrModal,1200);
-  }catch(e){msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';msgEl.textContent='❌ '+e.message;}
+  }catch(e){
+    msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';
+    msgEl.textContent='❌ '+e.message;
+  }
 }
 
-// ── FILE CHOSEN DISPLAY ────────────────────────────
-function vfFileChosen(input){
-  document.getElementById('vfInvFileName').textContent=input.files[0]?input.files[0].name:'No file chosen';
+// ── FILE HELPERS ───────────────────────────────────
+function vfInvFileChosen(input){
+  const name=input.files[0]?input.files[0].name:'No file chosen';
+  document.getElementById('vfInvFileName').textContent=name;
+  const label=document.getElementById('vfInvUploadLabel');
+  if(input.files[0])label.style.background='rgba(78,154,241,0.18)';
 }
-
-// ── UPLOAD FILE TO SUPABASE STORAGE ───────────────
+function vrmAttachFileChosen(input){
+  document.getElementById('vrmAttachName').textContent=input.files[0]?input.files[0].name:'No file chosen';
+}
 async function _vrUploadFile(file, bucket, folder){
   if(!file)return null;
-  const ext=file.name.split('.').pop();
-  const fileName=`${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const res=await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${fileName}`,{
+  const ext=file.name.split('.').pop().toLowerCase();
+  const safeName=`${folder}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+  // Storage API needs apikey + Authorization but NOT Accept:application/json
+  const res=await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${safeName}`,{
     method:'POST',
-    headers:{...SB_HDRS(),'Content-Type':file.type,'x-upsert':'true'},
+    headers:{
+      'apikey': SUPABASE_ANON,
+      'Authorization': `Bearer ${_currentToken}`,
+      'Content-Type': file.type||'application/octet-stream',
+      'x-upsert': 'true'
+    },
     body:file
   });
   if(!res.ok){const t=await res.text();throw new Error('Upload failed: '+t);}
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${fileName}`;
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${safeName}`;
 }
 
 // ── DELETE REQUEST ─────────────────────────────────
