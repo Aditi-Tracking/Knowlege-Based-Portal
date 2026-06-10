@@ -5124,6 +5124,10 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 #panel-crm .crm-srv-btn:hover{border-color:var(--accent);color:var(--accent);}
 #panel-crm .crm-srv-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 #panel-crm .crm-srv-btn.both-active{background:#7c3aed;color:#fff;border-color:#7c3aed;}
+#panel-crm .crm-chg-qbtn{padding:6px 14px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;}
+#panel-crm .crm-chg-qbtn:hover{border-color:#6366f1;color:#6366f1;}
+#panel-crm .crm-chg-qbtn.active{background:#6366f1;color:#fff;border-color:#6366f1;}
+#crm-changes-section{display:none;}/* hidden until permission check */
 #panel-crm .crm-tier-row{display:flex;gap:6px;flex-wrap:wrap;padding:0 24px;}
 #panel-crm .crm-tier-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;font-family:'DM Sans',sans-serif;transition:all .18s;}
 #panel-crm .crm-t-all{background:var(--surface2);color:var(--muted);border-color:var(--border);}
@@ -5221,9 +5225,12 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     <div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Server</div>
       <div class="crm-srv">
-        <button class="crm-srv-btn" id="crm-btn-both" onclick="crmSwitchServer('both')">Both</button>
-        <button class="crm-srv-btn active" id="crm-btn-prem" onclick="crmSwitchServer('Premium Server')">Premium</button>
+        <button class="crm-srv-btn both-active" id="crm-btn-both" onclick="crmSwitchServer('both')">All</button>
+        <button class="crm-srv-btn" id="crm-btn-prem" onclick="crmSwitchServer('Premium Server')">Premium</button>
         <button class="crm-srv-btn" id="crm-btn-pro" onclick="crmSwitchServer('PRO Server')">PRO</button>
+        <button class="crm-srv-btn" id="crm-btn-goa" onclick="crmSwitchServer('Goa Server')">Goa</button>
+        <button class="crm-srv-btn" id="crm-btn-bang" onclick="crmSwitchServer('Bangalore Server')">Bangalore</button>
+        <button class="crm-srv-btn" id="crm-btn-guj" onclick="crmSwitchServer('Gujarat Server')">Gujarat</button>
       </div>
     </div>
     <div id="crm-access-pill-wrap"></div>
@@ -5281,6 +5288,71 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     </div>
   </div>
 
+  <!-- ── VEHICLE CHANGES SECTION ─────────────────────────────── -->
+  <div id="crm-changes-section" style="padding:0 24px 16px;">
+    <!-- Header row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+      <div>
+        <div style="font-size:0.95rem;font-weight:800;color:var(--text);">🔄 Vehicle Changes</div>
+        <div style="font-size:0.74rem;color:var(--muted);margin-top:2px;">Compares end-of-day snapshots (taken 11:50 PM IST daily)</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button class="crm-chg-qbtn active" id="chg-q-today"     onclick="crmChgQuick('today')">Today</button>
+        <button class="crm-chg-qbtn"        id="chg-q-yesterday" onclick="crmChgQuick('yesterday')">Yesterday</button>
+        <button class="crm-chg-qbtn"        id="chg-q-7d"        onclick="crmChgQuick('7d')">Last 7 Days</button>
+        <button class="crm-chg-qbtn"        id="chg-q-30d"       onclick="crmChgQuick('30d')">Last 30 Days</button>
+        <div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;">
+          <span style="font-size:0.75rem;color:var(--muted);">From</span>
+          <input type="date" id="chg-date-from" onchange="crmChgCustom()"
+            style="border:none;background:transparent;color:var(--text);font-size:0.80rem;font-family:inherit;outline:none;cursor:pointer;">
+          <span style="font-size:0.75rem;color:var(--muted);">To</span>
+          <input type="date" id="chg-date-to" onchange="crmChgCustom()"
+            style="border:none;background:transparent;color:var(--text);font-size:0.80rem;font-family:inherit;outline:none;cursor:pointer;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary badges only (no detail tables) -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div style="background:rgba(16,185,129,0.08);border:1.5px solid rgba(16,185,129,0.3);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.3rem;">🟢</span>
+        <div>
+          <div style="font-size:1.4rem;font-weight:800;color:#10b981;" id="chg-added-count">—</div>
+          <div style="font-size:0.72rem;color:var(--muted);">Vehicles Added</div>
+        </div>
+      </div>
+      <div style="background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.3);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.3rem;">🔴</span>
+        <div>
+          <div style="font-size:1.4rem;font-weight:800;color:#ef4444;" id="chg-removed-count">—</div>
+          <div style="font-size:0.72rem;color:var(--muted);">Vehicles Removed</div>
+        </div>
+      </div>
+      <div style="background:rgba(99,102,241,0.08);border:1.5px solid rgba(99,102,241,0.3);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.3rem;">📅</span>
+        <div>
+          <div style="font-size:0.80rem;font-weight:700;color:#6366f1;" id="chg-period-label">—</div>
+          <div style="font-size:0.72rem;color:var(--muted);">Comparing</div>
+        </div>
+      </div>
+      <div style="background:rgba(245,158,11,0.08);border:1.5px solid rgba(245,158,11,0.3);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.3rem;">🖥️</span>
+        <div>
+          <div style="font-size:0.80rem;font-weight:700;color:#f59e0b;" id="chg-server-label">—</div>
+          <div style="font-size:0.72rem;color:var(--muted);">Server</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden dummy tbodies so existing JS doesn't break -->
+    <div style="display:none;">
+      <table><tbody id="chg-added-tbody"></tbody></table>
+      <table><tbody id="chg-removed-tbody"></tbody></table>
+      <input id="chg-search-added"><input id="chg-search-removed">
+    </div>
+  </div>
+  <!-- ── END VEHICLE CHANGES SECTION ─────────────────────────── -->
+
   <!-- Selected company info bar (shows when row is clicked) -->
   <div class="crm-selected-bar" id="crm-selected-bar">
     <div>
@@ -5311,6 +5383,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </tbody>
     </table>
   </div>
+
 
 </div><!-- end panel-crm -->
 
@@ -9113,9 +9186,12 @@ function showPortal(){
   _applyCRMNavVisibility();
   // Activity Log nav — sirf MIS aur Managing Director ke liye
   _applyActLogNavVisibility();
-  // Access Control nav — only for MIS (can_upload_files)
+  // Access Control nav — only for owner or MIS role
   const _acpNav = document.getElementById('nav-adminperms');
-  if (_acpNav) _acpNav.style.display = (PERMISSIONS.can_upload_files === 'true') ? '' : 'none';
+  if (_acpNav) {
+    const _rawRole = String((CURRENT_USER && (CURRENT_USER.rawRole || CURRENT_USER.role)) || '').toLowerCase().trim();
+    _acpNav.style.display = (_rawRole === 'owner' || _rawRole === 'mis') ? '' : 'none';
+  }
   // Fetch employee profile photo from Supabase → home page pe dikhao
   fetchUserProfilePhoto();
   // Performer of the Month cards load karo
@@ -14451,25 +14527,81 @@ function _applyIMSNavVisibility() {
 /* ═══════════════════════════════════════════════════
    CRM VEHICLE DASHBOARD
 ═══════════════════════════════════════════════════ */
-let _crmLoaded=false, _crmServer='Premium Server', _crmTier='', _crmStatus='';
+let _crmLoaded=false, _crmServer='both', _crmTier='', _crmStatus='';
 let _crmData=[], _crmSelectedIdx=null;
 
 function _canAccessCRM(){
   if(!CURRENT_USER)return false;
-  const crmPerm = PERMISSIONS.can_view_crm || 'false';
-  return crmPerm !== 'false';
+  return (PERMISSIONS.can_view_crm||'false')!=='false';
 }
 function _getCRMAccessLevel(){
   if(!CURRENT_USER)return'none';
-  const crmPerm = PERMISSIONS.can_view_crm || 'false';
-  if(crmPerm === 'false') return 'none';
-  if(crmPerm === 'true')  return 'all';
-  return crmPerm;  // e.g. 'tier1', 'tier2' stored as value in user_permissions
+  const p=PERMISSIONS.can_view_crm||'false';
+  if(p==='false')return'none';
+  // Check if ALL individual server permissions are ON (meaning truly full access)
+  const rawRole=String(CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim();
+  const isSuperAdmin=(rawRole==='owner'||rawRole==='managing director'||rawRole==='mis');
+  // Super admins with can_view_crm=true AND no explicit server restrictions = full access
+  // But if any server toggle is explicitly set to 'true', we check them all
+  const hasAnyServerPerm=(
+    PERMISSIONS.crm_server_premium==='true'||
+    PERMISSIONS.crm_server_pro==='true'||
+    PERMISSIONS.crm_server_goa==='true'||
+    PERMISSIONS.crm_server_bangalore==='true'||
+    PERMISSIONS.crm_server_gujarat==='true'
+  );
+  // Super admins with NO server-level toggles set = full access (default)
+  if(isSuperAdmin&&!hasAnyServerPerm)return'all';
+  // Super admins WITH server toggles set = respect those toggles
+  if(isSuperAdmin&&hasAnyServerPerm)return'restricted';
+  // Regular users with can_view_crm=true = restricted (must have explicit server perms)
+  if(p==='true')return'restricted';
+  return p;
+}
+function _canViewCRMChanges(){
+  if(!CURRENT_USER)return false;
+  // Full access users always see it
+  if(_getCRMAccessLevel()==='all') return true;
+  return (PERMISSIONS.can_view_crm_changes||'false')==='true';
+}
+function _getCRMAllowedServers(){
+  const lvl=_getCRMAccessLevel();
+  if(lvl==='all')return['both','Premium Server','PRO Server','Goa Server','Bangalore Server','Gujarat Server'];
+  if(lvl==='none')return[];
+  // For restricted — always check individual server permissions
+  const map={
+    'Premium Server':  PERMISSIONS.crm_server_premium    ||'false',
+    'PRO Server':      PERMISSIONS.crm_server_pro        ||'false',
+    'Goa Server':      PERMISSIONS.crm_server_goa        ||'false',
+    'Bangalore Server':PERMISSIONS.crm_server_bangalore  ||'false',
+    'Gujarat Server':  PERMISSIONS.crm_server_gujarat    ||'false',
+  };
+  const allowed=Object.keys(map).filter(k=>map[k]==='true');
+  if(allowed.length>1)allowed.unshift('both');
+  return allowed;
 }
 function _applyCRMNavVisibility(){
-  const el=document.getElementById('nav-crm'), mm=document.getElementById('mm-crm'), show=_canAccessCRM();
+  const el=document.getElementById('nav-crm'),mm=document.getElementById('mm-crm'),show=_canAccessCRM();
   if(el)el.style.display=show?'flex':'none';
   if(mm)mm.style.display=show?'flex':'none';
+}
+function _applyCRMServerButtons(){
+  const allowed=_getCRMAllowedServers();
+  const btnMap={
+    'both':'crm-btn-both','Premium Server':'crm-btn-prem','PRO Server':'crm-btn-pro',
+    'Goa Server':'crm-btn-goa','Bangalore Server':'crm-btn-bang','Gujarat Server':'crm-btn-guj'
+  };
+  Object.keys(btnMap).forEach(srv=>{
+    const el=document.getElementById(btnMap[srv]);
+    if(el)el.style.display=allowed.includes(srv)?'':'none';
+  });
+  if(!allowed.includes(_crmServer)){
+    const first=allowed.find(s=>s!=='both')||allowed[0];
+    if(first)_crmServer=first;
+  }
+  // Show/hide changes section based on permission
+  const sec=document.getElementById('crm-changes-section');
+  if(sec)sec.style.display=_canViewCRMChanges()?'block':'none';
 }
 function _crmAnim(el,val,dur=600){
   if(!el)return;
@@ -14497,11 +14629,13 @@ async function _crmFetchAll(baseUrl){
 
 async function loadCRMDashboard(){
   if(!_canAccessCRM()){switchDB('home');return;}
+  _applyCRMServerButtons();
   const acc=_getCRMAccessLevel();
   const pw=document.getElementById('crm-access-pill-wrap');
   if(pw){
     if(acc==='all')pw.innerHTML='<span class="crm-access-pill crm-pill-all">✅ Full Access</span>';
-    else{
+    else if(acc==='restricted')pw.innerHTML='<span class="crm-access-pill crm-pill-tier">🔒 Server Restricted</span>';
+    else if(acc!=='none'){
       pw.innerHTML=`<span class="crm-access-pill crm-pill-tier">🔒 ${acc} Only</span>`;
       crmSwitchTier(acc);
       document.querySelectorAll('#panel-crm .crm-tier-btn').forEach(b=>b.style.pointerEvents='none');
@@ -14515,10 +14649,17 @@ async function loadCRMDashboard(){
       ?`${SUPABASE_URL}/rest/v1/server_customer_summary?order=total_vehicles.desc`
       :`${SUPABASE_URL}/rest/v1/server_customer_summary?region=eq.${encodeURIComponent(_crmServer)}&order=total_vehicles.desc`;
     let data=await _crmFetchAll(baseUrl);
-    if(acc!=='all'&&acc!=='none')data=data.filter(r=>r.tier===acc);
+    // For restricted users: filter data to only allowed servers
+    if(acc==='restricted'){
+      const allowedSrvs=_getCRMAllowedServers().filter(s=>s!=='both');
+      if(allowedSrvs.length>0) data=data.filter(r=>allowedSrvs.includes(r.region));
+    }
+    if(acc!=='all'&&acc!=='none'&&acc!=='restricted')data=data.filter(r=>r.tier===acc);
     _crmData=data; _crmLoaded=true;
     const si=document.getElementById('crm-sync-info');
     if(si)si.textContent='Last loaded: '+new Date().toLocaleTimeString()+' — syncs every 5 min · Click any row to see details';
+    // Auto-load today's vehicle changes if user has access
+    if(_canViewCRMChanges()) crmChgQuick('today');
     crmApplyFilters();
   }catch(e){
     console.error('CRM load error:',e);
@@ -14655,11 +14796,196 @@ function crmRenderTable(data){
 
 function crmSwitchServer(s){
   _crmServer=s; _crmLoaded=false;
-  document.getElementById('crm-btn-both').className='crm-srv-btn'+(s==='both'?' both-active':'');
-  document.getElementById('crm-btn-prem').className='crm-srv-btn'+(s==='Premium Server'?' active':'');
-  document.getElementById('crm-btn-pro').className ='crm-srv-btn'+(s==='PRO Server'?' active':'');
+  ['crm-btn-both','crm-btn-prem','crm-btn-pro','crm-btn-goa','crm-btn-bang','crm-btn-guj'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.className='crm-srv-btn';
+  });
+  const map={
+    'both':'crm-btn-both','Premium Server':'crm-btn-prem','PRO Server':'crm-btn-pro',
+    'Goa Server':'crm-btn-goa','Bangalore Server':'crm-btn-bang','Gujarat Server':'crm-btn-guj'
+  };
+  const activeId=map[s];
+  if(activeId){const el=document.getElementById(activeId);if(el)el.className='crm-srv-btn'+(s==='both'?' both-active':' active');}
   loadCRMDashboard();
 }
+
+// ── VEHICLE CHANGES ───────────────────────────────────────────
+let _chgAddedAll=[], _chgRemovedAll=[];
+
+function _fmtDate(d){ return d.toISOString().split('T')[0]; }
+
+function crmChgQuick(period){
+  // Highlight active button
+  ['chg-q-today','chg-q-yesterday','chg-q-7d','chg-q-30d'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.className='crm-chg-qbtn';
+  });
+  const activeMap={'today':'chg-q-today','yesterday':'chg-q-yesterday','7d':'chg-q-7d','30d':'chg-q-30d'};
+  const btn=document.getElementById(activeMap[period]); if(btn)btn.className='crm-chg-qbtn active';
+
+  const today=new Date(); today.setHours(0,0,0,0);
+  let fromDate, toDate, periodLabel;
+
+  if(period==='today'){
+    // Yesterday end-of-day snapshot vs current live data
+    const yest=new Date(today); yest.setDate(yest.getDate()-1);
+    fromDate=_fmtDate(yest); toDate='live';
+    periodLabel='Yesterday 11:50PM → Now (live)';
+  } else if(period==='yesterday'){
+    // Day-before end-of-day snapshot vs yesterday end-of-day snapshot
+    const yest=new Date(today); yest.setDate(yest.getDate()-1);
+    const dayBefore=new Date(today); dayBefore.setDate(dayBefore.getDate()-2);
+    fromDate=_fmtDate(dayBefore); toDate=_fmtDate(yest);
+    periodLabel=_fmtDate(dayBefore)+' 11:50PM → '+_fmtDate(yest)+' 11:50PM';
+  } else if(period==='7d'){
+    const d=new Date(today); d.setDate(d.getDate()-7);
+    fromDate=_fmtDate(d); toDate='live';
+    periodLabel='7 days ago 11:50PM → Now (live)';
+  } else if(period==='30d'){
+    const d=new Date(today); d.setDate(d.getDate()-30);
+    fromDate=_fmtDate(d); toDate='live';
+    periodLabel='30 days ago 11:50PM → Now (live)';
+  }
+
+  // Set date pickers to reflect selection
+  const fi=document.getElementById('chg-date-from');
+  const ti=document.getElementById('chg-date-to');
+  if(fi)fi.value=fromDate;
+  if(ti)ti.value=toDate==='live'?_fmtDate(today):toDate;
+
+  crmChgLoad(fromDate, toDate, periodLabel);
+}
+
+function crmChgCustom(){
+  const from=document.getElementById('chg-date-from')?.value;
+  const to=document.getElementById('chg-date-to')?.value;
+  if(!from||!to)return;
+  if(from>to){alert('From date must be before To date');return;}
+  // Deactivate quick buttons
+  ['chg-q-today','chg-q-yesterday','chg-q-7d','chg-q-30d'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.className='crm-chg-qbtn';
+  });
+  const todayStr=_fmtDate(new Date());
+  const toVal=to===todayStr?'live':to;
+  const label=from+' 11:50PM → '+(toVal==='live'?'Now (live)':to+' 11:50PM');
+  crmChgLoad(from, toVal, label);
+}
+
+async function crmChgLoad(fromDate, toDate, periodLabel){
+  // Loading state
+  ['chg-added-tbody','chg-removed-tbody'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted);">⏳ Loading...</td></tr>`;
+  });
+  const g=id=>document.getElementById(id);
+  if(g('chg-added-count'))  g('chg-added-count').textContent='...';
+  if(g('chg-removed-count'))g('chg-removed-count').textContent='...';
+  if(g('chg-period-label')) g('chg-period-label').textContent=periodLabel||'—';
+  if(g('chg-server-label')) g('chg-server-label').textContent=_crmServer==='both'?'All Servers':_crmServer.replace(' Server','');
+
+  try{
+    const hdrs={...SB_HDRS(),'Range-Unit':'items'};
+    const pageSize=1000;
+
+    // Helper to fetch all pages from snapshot table
+    async function fetchSnapshot(dateStr, region){
+      let all=[], offset=0;
+      while(true){
+        let url=`${SUPABASE_URL}/rest/v1/vehicle_daily_snapshot?select=imeino,vehicle_no,vehicle_name,company,region&snapshot_date=eq.${dateStr}`;
+        if(region!=='both') url+=`&region=eq.${encodeURIComponent(region)}`;
+        url+=`&limit=${pageSize}&offset=${offset}`;
+        const res=await fetch(url,{headers:{...hdrs,'Range':`${offset}-${offset+pageSize-1}`}});
+        const batch=await res.json();
+        if(!Array.isArray(batch)||batch.length===0)break;
+        all=[...all,...batch];
+        if(batch.length<pageSize)break;
+        offset+=pageSize;
+      }
+      return all;
+    }
+
+    // Helper to fetch all live data
+    async function fetchLive(region){
+      let all=[], offset=0;
+      while(true){
+        let url=`${SUPABASE_URL}/rest/v1/vehicle_live_data?select=imeino,vehicle_no,vehicle_name,company,region`;
+        if(region!=='both') url+=`&region=eq.${encodeURIComponent(region)}`;
+        url+=`&limit=${pageSize}&offset=${offset}`;
+        const res=await fetch(url,{headers:{...hdrs,'Range':`${offset}-${offset+pageSize-1}`}});
+        const batch=await res.json();
+        if(!Array.isArray(batch)||batch.length===0)break;
+        all=[...all,...batch];
+        if(batch.length<pageSize)break;
+        offset+=pageSize;
+      }
+      return all;
+    }
+
+    const fromRows = await fetchSnapshot(fromDate, _crmServer);
+    const toRows   = toDate==='live'
+      ? await fetchLive(_crmServer)
+      : await fetchSnapshot(toDate, _crmServer);
+
+    if(!fromRows.length&&!toRows.length){
+      const msg=`<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted);">
+        No snapshot data for these dates yet.<br>
+        <span style="font-size:0.72rem;">Snapshots are saved automatically at 11:50 PM IST every night.</span>
+      </td></tr>`;
+      ['chg-added-tbody','chg-removed-tbody'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=msg;});
+      if(g('chg-added-count'))  g('chg-added-count').textContent='0';
+      if(g('chg-removed-count'))g('chg-removed-count').textContent='0';
+      return;
+    }
+
+    // Build lookup maps using imeino+region as unique key
+    const fromMap={}, toMap={};
+    fromRows.forEach(r=>{ fromMap[r.imeino+'|'+r.region]=r; });
+    toRows.forEach(r=>{   toMap[r.imeino+'|'+r.region]=r;   });
+
+    // Added = exists in TO but not in FROM
+    _chgAddedAll   = toRows.filter(r=>!fromMap[r.imeino+'|'+r.region]);
+    // Removed = exists in FROM but not in TO
+    _chgRemovedAll = fromRows.filter(r=>!toMap[r.imeino+'|'+r.region]);
+
+    if(g('chg-added-count'))  g('chg-added-count').textContent=_chgAddedAll.length.toLocaleString();
+    if(g('chg-removed-count'))g('chg-removed-count').textContent=_chgRemovedAll.length.toLocaleString();
+
+    crmChgRenderTable('added',   _chgAddedAll);
+    crmChgRenderTable('removed', _chgRemovedAll);
+
+  }catch(e){
+    console.error('Vehicle changes error:',e);
+    const errMsg=`<tr><td colspan="4" style="text-align:center;padding:30px;color:#ef4444;">❌ Error loading data. Check console.</td></tr>`;
+    ['chg-added-tbody','chg-removed-tbody'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=errMsg;});
+  }
+}
+
+function crmChgRenderTable(type, rows){
+  const tb=document.getElementById(type==='added'?'chg-added-tbody':'chg-removed-tbody');
+  if(!tb)return;
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted);">No vehicles ${type} in this period</td></tr>`;
+    return;
+  }
+  const color=type==='added'?'#10b981':'#ef4444';
+  tb.innerHTML=rows.map((r,i)=>`
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:7px 12px;color:var(--muted);font-size:0.75rem;">${i+1}</td>
+      <td style="padding:7px 12px;font-weight:600;color:${color};">${r.vehicle_no||r.imeino||'—'}</td>
+      <td style="padding:7px 12px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.company||''}">${r.company||'—'}</td>
+      <td style="padding:7px 12px;font-size:0.72rem;color:var(--muted);">${(r.region||'').replace(' Server','')}</td>
+    </tr>`).join('');
+}
+
+function crmChgFilterTable(type){
+  const q=(document.getElementById(type==='added'?'chg-search-added':'chg-search-removed')?.value||'').toLowerCase();
+  const all=type==='added'?_chgAddedAll:_chgRemovedAll;
+  const filtered=q?all.filter(r=>
+    (r.vehicle_no||'').toLowerCase().includes(q)||
+    (r.company||'').toLowerCase().includes(q)||
+    (r.imeino||'').toLowerCase().includes(q)
+  ):all;
+  crmChgRenderTable(type,filtered);
+}
+// ── END VEHICLE CHANGES ───────────────────────────────────────
 function crmSwitchTier(t){
   _crmTier=t;
   document.querySelectorAll('#panel-crm .crm-tier-btn').forEach(b=>b.classList.remove('active'));
@@ -20377,6 +20703,12 @@ const _permLabels = {
   can_view_fms:           '🚚 FMS O2D Dashboard',
   can_view_ims:           '📦 IMS Dashboard',
   can_view_crm:           '🚗 CRM Vehicle Dashboard',
+  crm_server_premium:     '🚗 CRM — Premium Server',
+  crm_server_pro:         '🚗 CRM — PRO Server',
+  crm_server_goa:         '🚗 CRM — Goa Server',
+  crm_server_bangalore:   '🚗 CRM — Bangalore Server',
+  crm_server_gujarat:     '🚗 CRM — Gujarat Server',
+  can_view_crm_changes:   '🔄 CRM — Vehicle Changes',
   can_view_activitylog:   '📋 Activity Log',
   can_view_announcements: '🔔 View Announcements',
   can_post_announcements: '📢 Post Announcements',
