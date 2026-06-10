@@ -1,20 +1,30 @@
 import requests, schedule, time, urllib3
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from supabase import create_client
 import os
+try:
+    import pytz
+    IST = pytz.timezone('Asia/Kolkata')
+    HAS_PYTZ = True
+except ImportError:
+    HAS_PYTZ = False
+    print("WARNING: pytz not installed — snapshot will use UTC hour. Run: pip install pytz")
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # CONFIGURATION
-# On Railway: set these as Environment Variables
-# For local testing: fill them in directly below
-
-SUPABASE_URL     = os.environ.get("SUPABASE_URL",     "")
-SUPABASE_KEY     = os.environ.get("SUPABASE_KEY",     "")
-PREMIUM_USERNAME = os.environ.get("PREMIUM_USERNAME", "")
-PREMIUM_PASSWORD = os.environ.get("PREMIUM_PASSWORD", "")
-PRO_USERNAME     = os.environ.get("PRO_USERNAME",     "")
-PRO_PASSWORD     = os.environ.get("PRO_PASSWORD",     "")
-
+SUPABASE_URL       = os.environ.get("SUPABASE_URL",       "")
+SUPABASE_KEY       = os.environ.get("SUPABASE_KEY",       "")
+PREMIUM_USERNAME   = os.environ.get("PREMIUM_USERNAME",   "")
+PREMIUM_PASSWORD   = os.environ.get("PREMIUM_PASSWORD",   "")
+PRO_USERNAME       = os.environ.get("PRO_USERNAME",       "")
+PRO_PASSWORD       = os.environ.get("PRO_PASSWORD",       "")
+GOA_USERNAME       = os.environ.get("GOA_USERNAME",       "")
+GOA_PASSWORD       = os.environ.get("GOA_PASSWORD",       "")
+BANGALORE_USERNAME = os.environ.get("BANGALORE_USERNAME", "")
+BANGALORE_PASSWORD = os.environ.get("BANGALORE_PASSWORD", "")
+GUJARAT_USERNAME   = os.environ.get("GUJARAT_USERNAME",   "")
+GUJARAT_PASSWORD   = os.environ.get("GUJARAT_PASSWORD",   "")
 
 SYNC_EVERY_MINUTES = 5
 
@@ -34,8 +44,60 @@ SERVERS = [
         "password":   PRO_PASSWORD,
         "ip":         "43.204.188.112",
         "project_id": "16",
-    }
+    },
+    {
+        "name":       "Goa Server",
+        "username":   GOA_USERNAME,
+        "password":   GOA_PASSWORD,
+        "ip":         "3.7.238.246",
+        "project_id": "37",
+    },
+    {
+        "name":       "Bangalore Server",
+        "username":   BANGALORE_USERNAME,
+        "password":   BANGALORE_PASSWORD,
+        "ip":         "13.126.244.90",
+        "project_id": "37",
+    },
+    {
+        "name":       "Gujarat Server",
+        "username":   GUJARAT_USERNAME,
+        "password":   GUJARAT_PASSWORD,
+        "ip":         "13.126.244.90",
+        "project_id": "37",
+    },
 ]
+
+# Track which servers have already been snapshotted today
+_snapshotted_today = set()
+
+
+def get_ist_now():
+    """Get current time in IST"""
+    if HAS_PYTZ:
+        return datetime.now(IST)
+    else:
+        # Fallback: UTC + 5:30
+        from datetime import timedelta
+        return datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+
+
+def should_take_snapshot():
+    """
+    Returns True only between 11:50 PM and 11:59 PM IST.
+    This ensures snapshot is taken at end of day,
+    giving a consistent daily baseline for comparisons.
+    """
+    now_ist = get_ist_now()
+    return now_ist.hour == 23 and now_ist.minute >= 50
+
+
+def get_snapshot_date():
+    """
+    Returns the date string to use for today's snapshot.
+    Uses IST date so midnight doesn't cause off-by-one issues.
+    """
+    return get_ist_now().strftime('%Y-%m-%d')
 
 
 def get_session(ip):
@@ -151,6 +213,79 @@ def map_vehicle(v, region, sync_time):
     }
 
 
+def save_daily_snapshot(server_name, vehicles):
+    """
+    Save end-of-day snapshot for this server.
+    Only runs between 11:50 PM - 11:59 PM IST (once per server per day).
+
+    Timeline example:
+      23:50 sync  → snapshot saved  ← "end of Day 1"
+      23:55 sync  → skipped (already saved today)
+      00:00 sync  → new day, _snapshotted_today cleared by reset_snapshot_tracker()
+      ...
+      next 23:50  → snapshot saved  ← "end of Day 2"
+
+    Comparison:
+      "Yesterday" = Day 1 23:50 snapshot vs Day 2 23:50 snapshot
+      "Today"     = Yesterday 23:50 snapshot vs current live data
+    """
+    # Only run during 11:50 PM - 11:59 PM IST window
+    if not should_take_snapshot():
+        return
+
+    today = get_snapshot_date()
+    snapshot_key = f"{server_name}_{today}"
+
+    if snapshot_key in _snapshotted_today:
+        return  # already saved in this window today
+
+    print(f"  [{server_name}] 🌙 End-of-day snapshot for {today}...")
+
+    rows = []
+    for v in vehicles:
+        imei = str(v.get("Imeino", "")).strip()
+        if not imei or imei.lower() == "null":
+            continue
+        rows.append({
+            "snapshot_date": today,
+            "region":        server_name,
+            "imeino":        imei,
+            "vehicle_no":    v.get("Vehicle_No", ""),
+            "vehicle_name":  v.get("Vehicle_Name", ""),
+            "company":       v.get("Company", ""),
+            "status":        v.get("Status", ""),
+        })
+
+    if not rows:
+        return
+
+    saved = 0
+    for i in range(0, len(rows), 500):
+        chunk = rows[i:i+500]
+        try:
+            supabase.table("vehicle_daily_snapshot").upsert(
+                chunk,
+                on_conflict="snapshot_date,region,imeino"
+            ).execute()
+            saved += len(chunk)
+        except Exception as e:
+            print(f"  [{server_name}] Snapshot save error: {e}")
+
+    print(f"  [{server_name}] ✅ Snapshot saved — {saved} vehicles for {today} (end-of-day)")
+    _snapshotted_today.add(snapshot_key)
+
+
+def reset_snapshot_tracker():
+    """
+    Clear the daily snapshot tracker at midnight IST.
+    This allows the next day's snapshot window (11:50 PM) to run fresh.
+    Scheduled separately every day at 00:01 IST.
+    """
+    global _snapshotted_today
+    _snapshotted_today = set()
+    print(f"  🔄 Snapshot tracker reset for new day ({get_snapshot_date()})")
+
+
 def sync_server(server):
     sync_time = datetime.now(timezone.utc).isoformat()
 
@@ -183,7 +318,7 @@ def sync_server(server):
         seen[row["imeino"]] = row
     unique_rows = list(seen.values())
 
-    # Upsert — both servers go to same table
+    # Upsert live data
     total = 0
     for i in range(0, len(unique_rows), 100):
         chunk = unique_rows[i:i+100]
@@ -198,11 +333,9 @@ def sync_server(server):
 
     print(f"  [{server['name']}] Saved {total} rows")
 
-    # FIX: synced_at use karke stale records delete karo
-    # 8000+ IMEI list bhejne ki zaroorat nahi — jo bhi row
-    # is sync_time se pehle ki hai woh stale hai
+    # Delete stale records
     try:
-        result = supabase.table("vehicle_live_data") \
+        supabase.table("vehicle_live_data") \
             .delete() \
             .eq("region", server["name"]) \
             .lt("synced_at", sync_time) \
@@ -211,10 +344,14 @@ def sync_server(server):
     except Exception as e:
         print(f"  [{server['name']}] Stale cleanup error: {e}")
 
+    # Save end-of-day snapshot (only runs 11:50-11:59 PM IST)
+    save_daily_snapshot(server["name"], vehicles)
+
 
 def sync_all():
+    now_ist = get_ist_now()
     print(f"\n{'='*50}")
-    print(f"Sync — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Sync — {now_ist.strftime('%Y-%m-%d %H:%M:%S')} IST")
     print(f"{'='*50}")
 
     for server in SERVERS:
@@ -230,12 +367,18 @@ def sync_all():
 
 
 print("SmartFleet Sync Started!")
-print(f"Servers: Premium + PRO")
-print(f"Interval: every {SYNC_EVERY_MINUTES} minutes")
+print(f"Servers: Premium + PRO + Goa + Bangalore + Gujarat")
+print(f"Sync interval: every {SYNC_EVERY_MINUTES} minutes")
+print(f"Snapshot window: 11:50 PM - 11:59 PM IST daily")
 print("Press Ctrl+C to stop\n")
 
 sync_all()
 schedule.every(SYNC_EVERY_MINUTES).minutes.do(sync_all)
+
+# Reset snapshot tracker at midnight IST every day
+# This uses a fixed time schedule — runs at 00:01 IST
+schedule.every().day.at("00:01").do(reset_snapshot_tracker)
+
 while True:
     schedule.run_pending()
     time.sleep(1)
