@@ -25,7 +25,7 @@ BANGALORE_PASSWORD = os.environ.get("BANGALORE_PASSWORD", "")
 GUJARAT_USERNAME   = os.environ.get("GUJARAT_USERNAME",   "")
 GUJARAT_PASSWORD   = os.environ.get("GUJARAT_PASSWORD",   "")
 
-SYNC_EVERY_MINUTES = 5
+SYNC_EVERY_MINUTES = 10
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
