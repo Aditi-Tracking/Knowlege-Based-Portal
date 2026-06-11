@@ -27,7 +27,7 @@ CORS(app)
 # The service role key bypasses RLS and has full read/write access.
 # NEVER put this key in your frontend HTML file.
 # Store it as an environment variable on Railway.
-SUPABASE_URL         = os.environ.get("SUPABASE_URL", "https://rramdtpabwjsndgkohbi.supabase.co")
+SUPABASE_URL         = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
 # Validate that service key is present before trying to connect.
