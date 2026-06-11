@@ -5127,6 +5127,20 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 #panel-crm .crm-chg-qbtn{padding:6px 14px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;}
 #panel-crm .crm-chg-qbtn:hover{border-color:#6366f1;color:#6366f1;}
 #panel-crm .crm-chg-qbtn.active{background:#6366f1;color:#fff;border-color:#6366f1;}
+/* KPI delta indicators */
+.crm-kpi-delta{font-size:0.72rem;font-weight:700;margin-top:4px;min-height:16px;display:flex;align-items:center;gap:3px;}
+.crm-kpi-delta.up{color:#10b981;}
+.crm-kpi-delta.down{color:#ef4444;}
+.crm-kpi-delta.neutral{color:var(--muted);}
+/* Vehicle changes detail panel */
+#chg-added-card:hover{background:rgba(16,185,129,0.15)!important;transform:translateY(-1px);}
+#chg-removed-card:hover{background:rgba(239,68,68,0.15)!important;transform:translateY(-1px);}
+.chg-company-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;margin-bottom:4px;background:var(--surface);border:1px solid var(--border);}
+.chg-company-row:hover{border-color:var(--accent);}
+.chg-company-name{font-size:0.82rem;font-weight:600;color:var(--text);}
+.chg-company-count{font-size:0.82rem;font-weight:800;}
+.chg-company-count.added{color:#10b981;}
+.chg-company-count.removed{color:#ef4444;}
 #crm-changes-section{display:none;}/* hidden until permission check */
 #panel-crm .crm-tier-row{display:flex;gap:6px;flex-wrap:wrap;padding:0 24px;}
 #panel-crm .crm-tier-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;font-family:'DM Sans',sans-serif;transition:all .18s;}
@@ -5255,6 +5269,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <div class="crm-card-lbl">Total Vehicles</div>
       <div class="crm-card-num" id="crm-s-total">—</div>
       <div class="crm-card-sub" id="crm-ss-total">all vehicles</div>
+      <div class="crm-kpi-delta" id="crm-delta-total"></div>
     </div>
     <div class="crm-card crm-c-active no-click">
       <div class="crm-card-lbl">Active</div>
@@ -5265,37 +5280,40 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <span class="crm-ap crm-ap-idle">🟡 <span id="crm-ap-idle">—</span></span>
         <span class="crm-ap crm-ap-stop">⚫ <span id="crm-ap-stop">—</span></span>
       </div>
+      <div class="crm-kpi-delta" id="crm-delta-active"></div>
     </div>
-    <div class="crm-card crm-c-run"  onclick="crmFilterStatus('RUNNING')"  id="crm-card-run">
+    <div class="crm-card crm-c-run" onclick="crmFilterStatus('RUNNING')" id="crm-card-run">
       <div class="crm-card-lbl">Running</div>
       <div class="crm-card-num" id="crm-s-run">—</div>
       <div class="crm-card-sub" id="crm-ss-run">in motion</div>
+      <div class="crm-kpi-delta" id="crm-delta-run"></div>
     </div>
-    <div class="crm-card crm-c-idle" onclick="crmFilterStatus('IDLE')"     id="crm-card-idle">
+    <div class="crm-card crm-c-idle" onclick="crmFilterStatus('IDLE')" id="crm-card-idle">
       <div class="crm-card-lbl">Idle</div>
       <div class="crm-card-num" id="crm-s-idle">—</div>
       <div class="crm-card-sub" id="crm-ss-idle">engine on</div>
+      <div class="crm-kpi-delta" id="crm-delta-idle"></div>
     </div>
-    <div class="crm-card crm-c-stop" onclick="crmFilterStatus('STOP')"     id="crm-card-stop">
+    <div class="crm-card crm-c-stop" onclick="crmFilterStatus('STOP')" id="crm-card-stop">
       <div class="crm-card-lbl">Stop</div>
       <div class="crm-card-num" id="crm-s-stop">—</div>
       <div class="crm-card-sub" id="crm-ss-stop">parked</div>
+      <div class="crm-kpi-delta" id="crm-delta-stop"></div>
     </div>
     <div class="crm-card crm-c-inac" onclick="crmFilterStatus('INACTIVE')" id="crm-card-inac">
       <div class="crm-card-lbl">Inactive</div>
       <div class="crm-card-num" id="crm-s-inac">—</div>
       <div class="crm-card-sub" id="crm-ss-inac">no signal</div>
+      <div class="crm-kpi-delta" id="crm-delta-inac"></div>
     </div>
   </div>
 
   <!-- ── VEHICLE CHANGES SECTION ─────────────────────────────── -->
   <div id="crm-changes-section" style="padding:0 24px 16px;">
-    <!-- Header row -->
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
-      <div>
-        <div style="font-size:0.95rem;font-weight:800;color:var(--text);">🔄 Vehicle Changes</div>
-        <div style="font-size:0.74rem;color:var(--muted);margin-top:2px;">Compares end-of-day snapshots (taken 11:50 PM IST daily)</div>
-      </div>
+
+    <!-- Date filter row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div style="font-size:0.80rem;font-weight:700;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;">Fleet Changes Filter</div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <button class="crm-chg-qbtn active" id="chg-q-today"     onclick="crmChgQuick('today')">Today</button>
         <button class="crm-chg-qbtn"        id="chg-q-yesterday" onclick="crmChgQuick('yesterday')">Yesterday</button>
@@ -5312,43 +5330,51 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
     </div>
 
-    <!-- Summary badges only (no detail tables) -->
-    <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <div style="background:rgba(16,185,129,0.08);border:1.5px solid rgba(16,185,129,0.3);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;">
+    <!-- Added / Removed summary row -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+      <div id="chg-added-card" onclick="crmChgShowDetail('added')"
+        style="background:rgba(16,185,129,0.08);border:1.5px solid rgba(16,185,129,0.3);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.2s;min-width:160px;">
         <span style="font-size:1.3rem;">🟢</span>
         <div>
-          <div style="font-size:1.4rem;font-weight:800;color:#10b981;" id="chg-added-count">—</div>
-          <div style="font-size:0.72rem;color:var(--muted);">Vehicles Added</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#10b981;" id="chg-added-count">—</div>
+          <div style="font-size:0.70rem;color:var(--muted);">Vehicles Added</div>
+          <div style="font-size:0.68rem;color:#10b981;font-weight:600;" id="chg-added-pct"></div>
         </div>
       </div>
-      <div style="background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.3);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;">
+      <div id="chg-removed-card" onclick="crmChgShowDetail('removed')"
+        style="background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.3);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.2s;min-width:160px;">
         <span style="font-size:1.3rem;">🔴</span>
         <div>
-          <div style="font-size:1.4rem;font-weight:800;color:#ef4444;" id="chg-removed-count">—</div>
-          <div style="font-size:0.72rem;color:var(--muted);">Vehicles Removed</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#ef4444;" id="chg-removed-count">—</div>
+          <div style="font-size:0.70rem;color:var(--muted);">Vehicles Removed</div>
+          <div style="font-size:0.68rem;color:#ef4444;font-weight:600;" id="chg-removed-pct"></div>
         </div>
       </div>
-      <div style="background:rgba(99,102,241,0.08);border:1.5px solid rgba(99,102,241,0.3);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;">
-        <span style="font-size:1.3rem;">📅</span>
-        <div>
-          <div style="font-size:0.80rem;font-weight:700;color:#6366f1;" id="chg-period-label">—</div>
-          <div style="font-size:0.72rem;color:var(--muted);">Comparing</div>
-        </div>
-      </div>
-      <div style="background:rgba(245,158,11,0.08);border:1.5px solid rgba(245,158,11,0.3);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;">
-        <span style="font-size:1.3rem;">🖥️</span>
-        <div>
-          <div style="font-size:0.80rem;font-weight:700;color:#f59e0b;" id="chg-server-label">—</div>
-          <div style="font-size:0.72rem;color:var(--muted);">Server</div>
-        </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;">
+        <span style="font-size:0.80rem;color:var(--muted);">📅</span>
+        <div style="font-size:0.78rem;font-weight:600;color:var(--text2);" id="chg-period-label">—</div>
       </div>
     </div>
 
-    <!-- Hidden dummy tbodies so existing JS doesn't break -->
+    <!-- Detail panel — company wise breakdown -->
+    <div id="chg-detail-panel" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:4px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:0.88rem;font-weight:700;color:var(--text);" id="chg-detail-title">—</div>
+        <button onclick="document.getElementById('chg-detail-panel').style.display='none'"
+          style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <input type="text" id="chg-detail-search" placeholder="🔍 Search company..."
+        oninput="crmChgFilterDetail()"
+        style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:0.82rem;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:10px;">
+      <div id="chg-detail-body" style="max-height:320px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Hidden stubs so existing JS doesn't break -->
     <div style="display:none;">
       <table><tbody id="chg-added-tbody"></tbody></table>
       <table><tbody id="chg-removed-tbody"></tbody></table>
       <input id="chg-search-added"><input id="chg-search-removed">
+      <span id="chg-server-label"></span>
     </div>
   </div>
   <!-- ── END VEHICLE CHANGES SECTION ─────────────────────────── -->
@@ -14659,7 +14685,12 @@ async function loadCRMDashboard(){
     const si=document.getElementById('crm-sync-info');
     if(si)si.textContent='Last loaded: '+new Date().toLocaleTimeString()+' — syncs every 5 min · Click any row to see details';
     // Auto-load today's vehicle changes if user has access
-    if(_canViewCRMChanges()) crmChgQuick('today');
+    if(_canViewCRMChanges()){
+      crmChgQuick('today');
+      const todayStr=_fmtDate(new Date());
+      const d7=new Date(); d7.setDate(d7.getDate()-7);
+      setTimeout(()=>crmLoadKpiDeltas(_fmtDate(d7), todayStr), 1000);
+    }
     crmApplyFilters();
   }catch(e){
     console.error('CRM load error:',e);
@@ -14696,9 +14727,9 @@ function crmRenderCards(data){
   if(g('crm-ap-run')) g('crm-ap-run').textContent=run.toLocaleString();
   if(g('crm-ap-idle'))g('crm-ap-idle').textContent=idl.toLocaleString();
   if(g('crm-ap-stop'))g('crm-ap-stop').textContent=stp.toLocaleString();
-  const srv=_crmServer==='both'?'both servers':_crmServer;
-  if(g('crm-ss-customers'))g('crm-ss-customers').textContent=_crmTier?_crmTier+' tier':srv;
-  if(g('crm-ss-total'))g('crm-ss-total').textContent=cust+' companies · '+srv;
+  const srv=_crmServer==='both'?'all servers':_crmServer.replace(' Server','');
+  if(g('crm-ss-customers'))g('crm-ss-customers').textContent=_crmTier?_crmTier+' tier':'all servers';
+  if(g('crm-ss-total'))g('crm-ss-total').textContent=cust+' companies';
   if(g('crm-ss-active'))g('crm-ss-active').textContent=tot?Math.round(act/tot*100)+'% of total fleet':'running+idle+stop';
   if(g('crm-ss-run'))g('crm-ss-run').textContent=act?Math.round(run/act*100)+'% of active':'in motion';
   if(g('crm-ss-idle'))g('crm-ss-idle').textContent=act?Math.round(idl/act*100)+'% of active':'engine on';
@@ -14825,24 +14856,21 @@ function crmChgQuick(period){
   let fromDate, toDate, periodLabel;
 
   if(period==='today'){
-    // Yesterday end-of-day snapshot vs current live data
-    const yest=new Date(today); yest.setDate(yest.getDate()-1);
-    fromDate=_fmtDate(yest); toDate='live';
-    periodLabel='Yesterday 11:50PM → Now (live)';
+    // Changes that happened today (change_date = today)
+    fromDate=_fmtDate(today); toDate=_fmtDate(today);
+    periodLabel='Today\'s changes vs yesterday snapshot';
   } else if(period==='yesterday'){
-    // Day-before end-of-day snapshot vs yesterday end-of-day snapshot
     const yest=new Date(today); yest.setDate(yest.getDate()-1);
-    const dayBefore=new Date(today); dayBefore.setDate(dayBefore.getDate()-2);
-    fromDate=_fmtDate(dayBefore); toDate=_fmtDate(yest);
-    periodLabel=_fmtDate(dayBefore)+' 11:50PM → '+_fmtDate(yest)+' 11:50PM';
+    fromDate=_fmtDate(yest); toDate=_fmtDate(yest);
+    periodLabel='Yesterday\'s changes';
   } else if(period==='7d'){
     const d=new Date(today); d.setDate(d.getDate()-7);
-    fromDate=_fmtDate(d); toDate='live';
-    periodLabel='7 days ago 11:50PM → Now (live)';
+    fromDate=_fmtDate(d); toDate=_fmtDate(today);
+    periodLabel='Last 7 days — '+_fmtDate(d)+' → Today';
   } else if(period==='30d'){
     const d=new Date(today); d.setDate(d.getDate()-30);
-    fromDate=_fmtDate(d); toDate='live';
-    periodLabel='30 days ago 11:50PM → Now (live)';
+    fromDate=_fmtDate(d); toDate=_fmtDate(today);
+    periodLabel='Last 30 days — '+_fmtDate(d)+' → Today';
   }
 
   // Set date pickers to reflect selection
@@ -14869,122 +14897,202 @@ function crmChgCustom(){
   crmChgLoad(from, toVal, label);
 }
 
+// ── VEHICLE CHANGES — new logic using vehicle_changes table ──
+let _chgDetailType='added', _chgDetailData=[], _chgFromDate='', _chgToDate='';
+
 async function crmChgLoad(fromDate, toDate, periodLabel){
-  // Loading state
-  ['chg-added-tbody','chg-removed-tbody'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el)el.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted);">⏳ Loading...</td></tr>`;
-  });
   const g=id=>document.getElementById(id);
   if(g('chg-added-count'))  g('chg-added-count').textContent='...';
   if(g('chg-removed-count'))g('chg-removed-count').textContent='...';
+  if(g('chg-added-pct'))    g('chg-added-pct').textContent='';
+  if(g('chg-removed-pct'))  g('chg-removed-pct').textContent='';
   if(g('chg-period-label')) g('chg-period-label').textContent=periodLabel||'—';
   if(g('chg-server-label')) g('chg-server-label').textContent=_crmServer==='both'?'All Servers':_crmServer.replace(' Server','');
+  if(g('chg-detail-panel')) g('chg-detail-panel').style.display='none';
+
+  _chgFromDate=fromDate; _chgToDate=toDate==='live'?_fmtDate(new Date()):toDate;
+
+  // Also update KPI deltas to match selected date range
+  crmLoadKpiDeltas(fromDate, toDate==='live'?_fmtDate(new Date()):toDate);
 
   try{
-    const hdrs={...SB_HDRS(),'Range-Unit':'items'};
-    const pageSize=1000;
+    const hdrs={...SB_HDRS()};
 
-    // Helper to fetch all pages from snapshot table
-    async function fetchSnapshot(dateStr, region){
-      let all=[], offset=0;
-      while(true){
-        let url=`${SUPABASE_URL}/rest/v1/vehicle_daily_snapshot?select=imeino,vehicle_no,vehicle_name,company,region&snapshot_date=eq.${dateStr}`;
-        if(region!=='both') url+=`&region=eq.${encodeURIComponent(region)}`;
-        url+=`&limit=${pageSize}&offset=${offset}`;
-        const res=await fetch(url,{headers:{...hdrs,'Range':`${offset}-${offset+pageSize-1}`}});
-        const batch=await res.json();
-        if(!Array.isArray(batch)||batch.length===0)break;
-        all=[...all,...batch];
-        if(batch.length<pageSize)break;
-        offset+=pageSize;
-      }
-      return all;
+    // Fetch from vehicle_changes table for the date range
+    async function fetchChanges(type){
+      let url=`${SUPABASE_URL}/rest/v1/vehicle_changes?select=imeino,vehicle_no,vehicle_name,company,tier,region,change_date&change_type=eq.${type}&change_date=gte.${fromDate}&change_date=lte.${_chgToDate}`;
+      if(_crmServer!=='both') url+=`&region=eq.${encodeURIComponent(_crmServer)}`;
+      if(_crmTier) url+=`&tier=eq.${encodeURIComponent(_crmTier)}`;
+      url+=`&order=change_date.desc&limit=5000`;
+      const res=await fetch(url,{headers:hdrs});
+      return await res.json();
     }
 
-    // Helper to fetch all live data
-    async function fetchLive(region){
-      let all=[], offset=0;
-      while(true){
-        let url=`${SUPABASE_URL}/rest/v1/vehicle_live_data?select=imeino,vehicle_no,vehicle_name,company,region`;
-        if(region!=='both') url+=`&region=eq.${encodeURIComponent(region)}`;
-        url+=`&limit=${pageSize}&offset=${offset}`;
-        const res=await fetch(url,{headers:{...hdrs,'Range':`${offset}-${offset+pageSize-1}`}});
-        const batch=await res.json();
-        if(!Array.isArray(batch)||batch.length===0)break;
-        all=[...all,...batch];
-        if(batch.length<pageSize)break;
-        offset+=pageSize;
-      }
-      return all;
+    const [addedRows, removedRows] = await Promise.all([
+      fetchChanges('added'),
+      fetchChanges('removed')
+    ]);
+
+    const added   = Array.isArray(addedRows)   ? addedRows   : [];
+    const removed = Array.isArray(removedRows) ? removedRows : [];
+
+    // Get total vehicles for % calculation
+    const totalVehicles = parseInt(g('crm-s-total')?.textContent?.replace(/,/g,'')||'0')||0;
+
+    // Update counts
+    if(g('chg-added-count'))   g('chg-added-count').textContent=added.length.toLocaleString();
+    if(g('chg-removed-count')) g('chg-removed-count').textContent=removed.length.toLocaleString();
+
+    // Show percentage
+    if(totalVehicles>0){
+      const addPct=((added.length/totalVehicles)*100).toFixed(1);
+      const remPct=((removed.length/totalVehicles)*100).toFixed(1);
+      if(g('chg-added-pct'))   g('chg-added-pct').textContent=`+${addPct}% of fleet`;
+      if(g('chg-removed-pct')) g('chg-removed-pct').textContent=`-${remPct}% of fleet`;
     }
 
-    const fromRows = await fetchSnapshot(fromDate, _crmServer);
-    const toRows   = toDate==='live'
-      ? await fetchLive(_crmServer)
-      : await fetchSnapshot(toDate, _crmServer);
-
-    if(!fromRows.length&&!toRows.length){
-      const msg=`<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted);">
-        No snapshot data for these dates yet.<br>
-        <span style="font-size:0.72rem;">Snapshots are saved automatically at 11:50 PM IST every night.</span>
-      </td></tr>`;
-      ['chg-added-tbody','chg-removed-tbody'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=msg;});
-      if(g('chg-added-count'))  g('chg-added-count').textContent='0';
-      if(g('chg-removed-count'))g('chg-removed-count').textContent='0';
-      return;
-    }
-
-    // Build lookup maps using imeino+region as unique key
-    const fromMap={}, toMap={};
-    fromRows.forEach(r=>{ fromMap[r.imeino+'|'+r.region]=r; });
-    toRows.forEach(r=>{   toMap[r.imeino+'|'+r.region]=r;   });
-
-    // Added = exists in TO but not in FROM
-    _chgAddedAll   = toRows.filter(r=>!fromMap[r.imeino+'|'+r.region]);
-    // Removed = exists in FROM but not in TO
-    _chgRemovedAll = fromRows.filter(r=>!toMap[r.imeino+'|'+r.region]);
-
-    if(g('chg-added-count'))  g('chg-added-count').textContent=_chgAddedAll.length.toLocaleString();
-    if(g('chg-removed-count'))g('chg-removed-count').textContent=_chgRemovedAll.length.toLocaleString();
-
-    crmChgRenderTable('added',   _chgAddedAll);
-    crmChgRenderTable('removed', _chgRemovedAll);
+    // Store for detail view
+    window._chgAdded   = added;
+    window._chgRemoved = removed;
 
   }catch(e){
     console.error('Vehicle changes error:',e);
-    const errMsg=`<tr><td colspan="4" style="text-align:center;padding:30px;color:#ef4444;">❌ Error loading data. Check console.</td></tr>`;
-    ['chg-added-tbody','chg-removed-tbody'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=errMsg;});
+    if(g('chg-added-count'))   g('chg-added-count').textContent='—';
+    if(g('chg-removed-count')) g('chg-removed-count').textContent='—';
   }
 }
 
-function crmChgRenderTable(type, rows){
-  const tb=document.getElementById(type==='added'?'chg-added-tbody':'chg-removed-tbody');
-  if(!tb)return;
+async function crmLoadKpiDeltas(fromDate, toDate){
+  try{
+    const hdrs={...SB_HDRS()};
+
+    // Fetch latest available snapshot as base (whatever is available)
+    let url=`${SUPABASE_URL}/rest/v1/daily_fleet_stats?select=snapshot_date,region,tier,total_vehicles,active_vehicles,running_vehicles,idle_vehicles,stop_vehicles,inactive_vehicles`;
+    url+=`&tier=eq.All&order=snapshot_date.asc&limit=500`;
+    if(_crmServer!=='both') url+=`&region=eq.${encodeURIComponent(_crmServer)}`;
+
+    const res  = await fetch(url,{headers:hdrs});
+    const rows = await res.json();
+    console.log('KPI delta rows:', rows, 'fromDate:', fromDate, 'toDate:', toDate);
+    if(!Array.isArray(rows)||!rows.length){
+      console.warn('KPI delta: no data found');
+      return;
+    }
+
+    // Aggregate by date (sum all servers)
+    const byDate={};
+    rows.forEach(r=>{
+      if(!byDate[r.snapshot_date]) byDate[r.snapshot_date]={total:0,active:0,running:0,idle:0,stop:0,inactive:0};
+      byDate[r.snapshot_date].total    += r.total_vehicles    ||0;
+      byDate[r.snapshot_date].active   += r.active_vehicles   ||0;
+      byDate[r.snapshot_date].running  += r.running_vehicles  ||0;
+      byDate[r.snapshot_date].idle     += r.idle_vehicles     ||0;
+      byDate[r.snapshot_date].stop     += r.stop_vehicles     ||0;
+      byDate[r.snapshot_date].inactive += r.inactive_vehicles ||0;
+    });
+
+    const dates = Object.keys(byDate).sort();
+    console.log('KPI delta dates available:', dates);
+
+    // Base = oldest available snapshot in range
+    const base = byDate[dates[0]];
+    if(!base){ console.warn('KPI delta: no base found'); return; }
+
+    // Current = live KPI values from the cards
+    const g=id=>document.getElementById(id);
+    const current = {
+      total:    parseInt((g('crm-s-total')?.textContent||'0').replace(/,/g,''))  ||0,
+      active:   parseInt((g('crm-s-active')?.textContent||'0').replace(/,/g,'')) ||0,
+      running:  parseInt((g('crm-s-run')?.textContent||'0').replace(/,/g,''))    ||0,
+      idle:     parseInt((g('crm-s-idle')?.textContent||'0').replace(/,/g,''))   ||0,
+      stop:     parseInt((g('crm-s-stop')?.textContent||'0').replace(/,/g,''))   ||0,
+      inactive: parseInt((g('crm-s-inac')?.textContent||'0').replace(/,/g,''))   ||0,
+    };
+    console.log('KPI delta base:', base, 'current:', current);
+
+    // Render delta
+    const fields=[
+      {key:'total',   elId:'crm-delta-total'},
+      {key:'active',  elId:'crm-delta-active'},
+      {key:'running', elId:'crm-delta-run'},
+      {key:'idle',    elId:'crm-delta-idle'},
+      {key:'stop',    elId:'crm-delta-stop'},
+      {key:'inactive',elId:'crm-delta-inac'},
+    ];
+    fields.forEach(({key,elId})=>{
+      const el=document.getElementById(elId);
+      if(!el)return;
+      const diff=current[key]-base[key];
+      if(diff===0){el.textContent='No change';el.className='crm-kpi-delta neutral';return;}
+      const pct=base[key]>0?((Math.abs(diff)/base[key])*100).toFixed(1):'—';
+      const arrow=diff>0?'▲':'▼';
+      const sign=diff>0?'+':'';
+      el.className='crm-kpi-delta '+(diff>0?'up':'down');
+      el.textContent=`${arrow} ${sign}${diff.toLocaleString()} (${pct}%)`;
+    });
+  }catch(e){
+    console.error('KPI delta error:',e);
+  }
+}
+
+function crmChgShowDetail(type){
+  const g=id=>document.getElementById(id);
+  const panel=g('chg-detail-panel');
+  if(!panel)return;
+
+  _chgDetailType=type;
+  const rows=type==='added'?(window._chgAdded||[]):(window._chgRemoved||[]);
+  _chgDetailData=rows;
+
+  const color=type==='added'?'#10b981':'#ef4444';
+  const emoji=type==='added'?'🟢':'🔴';
+  if(g('chg-detail-title')) g('chg-detail-title').innerHTML=`${emoji} <span style="color:${color}">${rows.length.toLocaleString()} Vehicles ${type==='added'?'Added':'Removed'}</span> — Company Breakdown`;
+  if(g('chg-detail-search')) g('chg-detail-search').value='';
+
+  panel.style.display='block';
+  crmChgRenderDetail(rows, type);
+}
+
+function crmChgFilterDetail(){
+  const q=(document.getElementById('chg-detail-search')?.value||'').toLowerCase();
+  const rows=_chgDetailType==='added'?(window._chgAdded||[]):(window._chgRemoved||[]);
+  const filtered=q?rows.filter(r=>(r.company||'').toLowerCase().includes(q)||(r.vehicle_no||'').toLowerCase().includes(q)):rows;
+  crmChgRenderDetail(filtered,_chgDetailType);
+}
+
+function crmChgRenderDetail(rows, type){
+  const body=document.getElementById('chg-detail-body');
+  if(!body)return;
   if(!rows.length){
-    tb.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted);">No vehicles ${type} in this period</td></tr>`;
+    body.innerHTML=`<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.84rem;">No data found</div>`;
     return;
   }
+
+  // Group by company
+  const companyMap={};
+  rows.forEach(r=>{
+    const co=r.company||'Unknown';
+    if(!companyMap[co]) companyMap[co]={count:0,tier:r.tier||'',region:r.region||''};
+    companyMap[co].count++;
+  });
+
+  const sorted=Object.entries(companyMap).sort((a,b)=>b[1].count-a[1].count);
   const color=type==='added'?'#10b981':'#ef4444';
-  tb.innerHTML=rows.map((r,i)=>`
-    <tr style="border-bottom:1px solid var(--border);">
-      <td style="padding:7px 12px;color:var(--muted);font-size:0.75rem;">${i+1}</td>
-      <td style="padding:7px 12px;font-weight:600;color:${color};">${r.vehicle_no||r.imeino||'—'}</td>
-      <td style="padding:7px 12px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.company||''}">${r.company||'—'}</td>
-      <td style="padding:7px 12px;font-size:0.72rem;color:var(--muted);">${(r.region||'').replace(' Server','')}</td>
-    </tr>`).join('');
+  const sign =type==='added'?'+':'-';
+
+  body.innerHTML=sorted.map(([company,info])=>`
+    <div class="chg-company-row">
+      <div>
+        <div class="chg-company-name">${company}</div>
+        <div style="font-size:0.70rem;color:var(--muted);">${info.tier?info.tier+' · ':''}${(info.region||'').replace(' Server','')}</div>
+      </div>
+      <div class="chg-company-count ${type}" style="color:${color};">${sign}${info.count}</div>
+    </div>`).join('');
 }
 
-function crmChgFilterTable(type){
-  const q=(document.getElementById(type==='added'?'chg-search-added':'chg-search-removed')?.value||'').toLowerCase();
-  const all=type==='added'?_chgAddedAll:_chgRemovedAll;
-  const filtered=q?all.filter(r=>
-    (r.vehicle_no||'').toLowerCase().includes(q)||
-    (r.company||'').toLowerCase().includes(q)||
-    (r.imeino||'').toLowerCase().includes(q)
-  ):all;
-  crmChgRenderTable(type,filtered);
-}
+// Legacy stubs so nothing breaks
+function crmChgRenderTable(){}
+function crmChgFilterTable(){}
 // ── END VEHICLE CHANGES ───────────────────────────────────────
 function crmSwitchTier(t){
   _crmTier=t;
