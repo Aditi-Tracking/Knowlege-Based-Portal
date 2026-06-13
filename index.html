@@ -14931,7 +14931,14 @@ async function crmChgLoad(fromDate, toDate, periodLabel){
     // Fetch from vehicle_changes table for the date range
     async function fetchChanges(type){
       let url=`${SUPABASE_URL}/rest/v1/vehicle_changes?select=imeino,vehicle_no,vehicle_name,company,tier,region,change_date&change_type=eq.${type}&change_date=gte.${fromDate}&change_date=lte.${_chgToDate}`;
-      if(_crmServer!=='both') url+=`&region=eq.${encodeURIComponent(_crmServer)}`;
+      if(_crmServer!=='both'){
+        url+=`&region=eq.${encodeURIComponent(_crmServer)}`;
+      } else {
+        const allowedSrvs=_getCRMAllowedServers().filter(s=>s!=='both');
+        if(allowedSrvs.length>0 && allowedSrvs.length<5){
+          url+=`&region=in.(${allowedSrvs.map(s=>encodeURIComponent(s)).join(',')})`;
+        }
+      }
       if(_crmTier) url+=`&tier=eq.${encodeURIComponent(_crmTier)}`;
       url+=`&order=change_date.desc&limit=5000`;
       const res=await fetch(url,{headers:hdrs});
@@ -14979,7 +14986,14 @@ async function crmLoadKpiDeltas(fromDate, toDate){
     // vehicle_changes se added/removed count karo
     async function fetchCount(type){
       let url=`${SUPABASE_URL}/rest/v1/vehicle_changes?select=imeino&change_type=eq.${type}&change_date=gte.${fromDate}&change_date=lte.${toDate}`;
-      if(_crmServer!=='both') url+=`&region=eq.${encodeURIComponent(_crmServer)}`;
+      if(_crmServer!=='both'){
+        url+=`&region=eq.${encodeURIComponent(_crmServer)}`;
+      } else {
+        const allowedSrvs=_getCRMAllowedServers().filter(s=>s!=='both');
+        if(allowedSrvs.length>0 && allowedSrvs.length<5){
+          url+=`&region=in.(${allowedSrvs.map(s=>encodeURIComponent(s)).join(',')})`;
+        }
+      }
       url+=`&limit=5000`;
       const res=await fetch(url,{headers:hdrs});
       const data=await res.json();
