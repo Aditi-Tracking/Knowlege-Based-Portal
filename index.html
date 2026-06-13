@@ -15002,21 +15002,19 @@ async function crmLoadKpiDeltas(fromDate, toDate){
     const dates = Object.keys(byDate).sort();
     console.log('KPI delta dates available:', dates);
 
-    // Base = oldest available snapshot in range
-    const base = byDate[dates[0]];
+    // Base = fromDate ke sabse kareeb snapshot
+    const baseDates = dates.filter(d => d <= fromDate);
+    const baseDate  = baseDates.length ? baseDates[baseDates.length-1] : dates[0];
+    const base      = byDate[baseDate];
     if(!base){ console.warn('KPI delta: no base found'); return; }
 
-    // Current = live KPI values from the cards
-    const g=id=>document.getElementById(id);
-    const current = {
-      total:    parseInt((g('crm-s-total')?.textContent||'0').replace(/,/g,''))  ||0,
-      active:   parseInt((g('crm-s-active')?.textContent||'0').replace(/,/g,'')) ||0,
-      running:  parseInt((g('crm-s-run')?.textContent||'0').replace(/,/g,''))    ||0,
-      idle:     parseInt((g('crm-s-idle')?.textContent||'0').replace(/,/g,''))   ||0,
-      stop:     parseInt((g('crm-s-stop')?.textContent||'0').replace(/,/g,''))   ||0,
-      inactive: parseInt((g('crm-s-inac')?.textContent||'0').replace(/,/g,''))   ||0,
-    };
-    console.log('KPI delta base:', base, 'current:', current);
+    // Current = toDate ke sabse kareeb snapshot
+    const currDates = dates.filter(d => d <= toDate);
+    const currDate  = currDates.length ? currDates[currDates.length-1] : dates[dates.length-1];
+    const current   = byDate[currDate];
+    if(!current){ console.warn('KPI delta: no current found'); return; }
+
+    console.log('KPI delta base:', baseDate, base, 'current:', currDate, current);
 
     // Render delta
     const fields=[
