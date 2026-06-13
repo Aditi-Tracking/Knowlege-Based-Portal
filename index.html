@@ -14842,7 +14842,11 @@ function crmSwitchServer(s){
 // ── VEHICLE CHANGES ───────────────────────────────────────────
 let _chgAddedAll=[], _chgRemovedAll=[];
 
-function _fmtDate(d){ return d.toISOString().split('T')[0]; }
+function _fmtDate(d){
+  // IST = UTC+5:30
+  const ist = new Date(d.getTime() + (5*60+30)*60000);
+  return ist.toISOString().split('T')[0];
+}
 
 function crmChgQuick(period){
   // Highlight active button
@@ -14852,7 +14856,11 @@ function crmChgQuick(period){
   const activeMap={'today':'chg-q-today','yesterday':'chg-q-yesterday','7d':'chg-q-7d','30d':'chg-q-30d'};
   const btn=document.getElementById(activeMap[period]); if(btn)btn.className='crm-chg-qbtn active';
 
-  const today=new Date(); today.setHours(0,0,0,0);
+  // IST today
+const now = new Date();
+const istOffset = 5*60+30; // minutes
+const istNow = new Date(now.getTime() + istOffset*60000);
+const today = new Date(istNow.toISOString().split('T')[0]+'T00:00:00.000Z');
   let fromDate, toDate, periodLabel;
 
   if(period==='today'){
