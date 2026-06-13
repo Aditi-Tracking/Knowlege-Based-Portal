@@ -5128,8 +5128,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 #panel-crm .crm-chg-qbtn:hover{border-color:#6366f1;color:#6366f1;}
 #panel-crm .crm-chg-qbtn.active{background:#6366f1;color:#fff;border-color:#6366f1;}
 /* KPI delta indicators */
-.crm-kpi-delta{font-size:0.72rem;font-weight:700;margin-top:4px;min-height:16px;display:flex;align-items:center;gap:3px;}
-.crm-kpi-delta.up{color:#10b981;}
+.crm-kpi-delta{font-size:0.80rem;font-weight:700;margin-top:6px;min-height:18px;display:flex;align-items:center;gap:3px;}.crm-kpi-delta.up{color:#10b981;}
 .crm-kpi-delta.down{color:#ef4444;}
 .crm-kpi-delta.neutral{color:var(--muted);}
 /* Vehicle changes detail panel */
@@ -5275,10 +5274,10 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <div class="crm-card-lbl">Active</div>
       <div class="crm-card-num" id="crm-s-active">—</div>
       <div class="crm-card-sub" id="crm-ss-active">% of total fleet</div>
-      <div class="crm-active-pills">
-        <span class="crm-ap crm-ap-run">🟢 <span id="crm-ap-run">—</span></span>
-        <span class="crm-ap crm-ap-idle">🟡 <span id="crm-ap-idle">—</span></span>
-        <span class="crm-ap crm-ap-stop">⚫ <span id="crm-ap-stop">—</span></span>
+      <div style="display:none;">
+        <span id="crm-ap-run">—</span>
+        <span id="crm-ap-idle">—</span>
+        <span id="crm-ap-stop">—</span>
       </div>
       <div class="crm-kpi-delta" id="crm-delta-active"></div>
     </div>
