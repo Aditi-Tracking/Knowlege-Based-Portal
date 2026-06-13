@@ -7136,10 +7136,17 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
       }
       const navTasks=document.getElementById('nav-tasks');
       if(navTasks)navTasks.style.display='none';
+      // Dashboards Tasks se independent — PERMISSIONS se control hoga
+      const hasDashAccess=
+        PERMISSIONS.can_view_crm==='true'||
+        PERMISSIONS.can_view_leads==='true'||
+        PERMISSIONS.can_view_collection==='true'||
+        PERMISSIONS.can_view_fms==='true'||
+        PERMISSIONS.can_view_ims==='true';
       const navDash=document.getElementById('nav-dashboards-trigger');
-      if(navDash)navDash.style.display='none';
+      if(navDash)navDash.style.display=hasDashAccess?'':'none';
       const dashGroup=document.getElementById('dashboardSubGroup');
-      if(dashGroup)dashGroup.style.display='none';
+      if(dashGroup)dashGroup.style.display=hasDashAccess?'':'none';
       document.querySelectorAll('#panel-home .home-card').forEach(card=>{
         if(card.textContent.includes('Task Checklist'))card.style.display='none';
       });
@@ -8790,27 +8797,31 @@ async function tSilentRefresh(){
 
     const _notOwner = !isOwner;
     if(CURRENT_USER && _notOwner){
+      // Dashboards Tasks se independent — PERMISSIONS se control hoga
+      const hasDashAccess=
+        PERMISSIONS.can_view_crm==='true'||
+        PERMISSIONS.can_view_leads==='true'||
+        PERMISSIONS.can_view_collection==='true'||
+        PERMISSIONS.can_view_fms==='true'||
+        PERMISSIONS.can_view_ims==='true';
+      const navDash=document.getElementById('nav-dashboards-trigger');
+      if(navDash)navDash.style.display=hasDashAccess?'':'none';
+      const dashGroup=document.getElementById('dashboardSubGroup');
+      if(dashGroup)dashGroup.style.display=hasDashAccess?'':'none';
       if(tAllData.length===0){
         const navTasks=document.getElementById('nav-tasks');
         if(navTasks)navTasks.style.display='none';
-        const navDash=document.getElementById('nav-dashboards-trigger');
-        if(navDash)navDash.style.display='none';
-        const dashGroup=document.getElementById('dashboardSubGroup');
-        if(dashGroup)dashGroup.style.display='none';
         document.querySelectorAll('#panel-home .home-card').forEach(card=>{
           if(card.textContent.includes('Task Checklist'))card.style.display='none';
         });
       } else {
         const navTasks=document.getElementById('nav-tasks');
         if(navTasks)navTasks.style.display='';
-        const navDash=document.getElementById('nav-dashboards-trigger');
-        if(navDash)navDash.style.display='';
         document.querySelectorAll('#panel-home .home-card').forEach(card=>{
           if(card.textContent.includes('Task Checklist'))card.style.display='';
         });
       }
     }
-
     const prevPage = tPage || 1;
     tFiltered = tGetFiltered();
     const maxPage = Math.max(1, Math.ceil(tFiltered.length / T_PER_PAGE));
