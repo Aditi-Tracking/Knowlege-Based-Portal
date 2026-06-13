@@ -15007,13 +15007,23 @@ async function crmLoadKpiDeltas(fromDate, toDate){
     const base      = byDate[baseDate];
     if(!base){ console.warn('KPI delta: no base found'); return; }
 
-    // Current = toDate ke sabse kareeb snapshot
+    // Current = toDate ka snapshot — agar nahi mila to live card values use karo
+    const g=id=>document.getElementById(id);
     const currDates = dates.filter(d => d <= toDate);
-    const currDate  = currDates.length ? currDates[currDates.length-1] : dates[dates.length-1];
-    const current   = byDate[currDate];
-    if(!current){ console.warn('KPI delta: no current found'); return; }
+    const currDate  = currDates.length ? currDates[currDates.length-1] : null;
+    const snapshotCurrent = currDate ? byDate[currDate] : null;
 
-    console.log('KPI delta base:', baseDate, base, 'current:', currDate, current);
+    // Agar base aur snapshot same hai (Today case) — live values use karo
+    const current = (snapshotCurrent && currDate !== baseDate) ? snapshotCurrent : {
+      total:    parseInt((g('crm-s-total')?.textContent||'0').replace(/,/g,''))  ||0,
+      active:   parseInt((g('crm-s-active')?.textContent||'0').replace(/,/g,'')) ||0,
+      running:  parseInt((g('crm-s-run')?.textContent||'0').replace(/,/g,''))    ||0,
+      idle:     parseInt((g('crm-s-idle')?.textContent||'0').replace(/,/g,''))   ||0,
+      stop:     parseInt((g('crm-s-stop')?.textContent||'0').replace(/,/g,''))   ||0,
+      inactive: parseInt((g('crm-s-inac')?.textContent||'0').replace(/,/g,''))   ||0,
+    };
+
+    console.log('KPI delta base:', baseDate, base, 'current:', currDate||'live', current);
 
     // Render delta
     const fields=[
