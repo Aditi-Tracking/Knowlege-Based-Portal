@@ -319,6 +319,17 @@ def save_vehicle_changes(server_name, vehicles):
             continue
         today_map[imei] = v
 
+    # ── SANITY CHECK ──────────────────────────────────────────────
+    overlap = sum(1 for imei in today_map if imei in prev_map)
+    total   = max(len(prev_map), len(today_map), 1)
+    pct     = overlap / total
+    print(f"  [{server_name}] Overlap: {overlap}/{total} ({pct:.0%})")
+    if pct < 0.50:
+        print(f"  [{server_name}] ⚠️ Low overlap ({pct:.0%}) — skipping changes to avoid false positives")
+        _snapshotted_today.add(changes_key)
+        return
+    # ──────────────────────────────────────────────────────────────
+
     changes = []
 
     # Added = in today but not in yesterday
