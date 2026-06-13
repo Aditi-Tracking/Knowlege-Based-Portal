@@ -14971,83 +14971,48 @@ async function crmChgLoad(fromDate, toDate, periodLabel){
     if(g('chg-removed-count')) g('chg-removed-count').textContent='—';
   }
 }
-
 async function crmLoadKpiDeltas(fromDate, toDate){
   try{
     const hdrs={...SB_HDRS()};
+    const g=id=>document.getElementById(id);
 
-    // Fetch latest available snapshot as base (whatever is available)
-    let url=`${SUPABASE_URL}/rest/v1/daily_fleet_stats?select=snapshot_date,region,tier,total_vehicles,active_vehicles,running_vehicles,idle_vehicles,stop_vehicles,inactive_vehicles`;
-    url+=`&tier=eq.All&order=snapshot_date.asc&limit=500`;
-    if(_crmServer!=='both') url+=`&region=eq.${encodeURIComponent(_crmServer)}`;
-
-    const res  = await fetch(url,{headers:hdrs});
-    const rows = await res.json();
-    console.log('KPI delta rows:', rows, 'fromDate:', fromDate, 'toDate:', toDate);
-    if(!Array.isArray(rows)||!rows.length){
-      console.warn('KPI delta: no data found');
-      return;
+    // vehicle_changes se added/removed count karo
+    async function fetchCount(type){
+      let url=`${SUPABASE_URL}/rest/v1/vehicle_changes?select=imeino&change_type=eq.${type}&change_date=gte.${fromDate}&change_date=lte.${toDate}`;
+      if(_crmServer!=='both') url+=`&region=eq.${encodeURIComponent(_crmServer)}`;
+      url+=`&limit=5000`;
+      const res=await fetch(url,{headers:hdrs});
+      const data=await res.json();
+      return Array.isArray(data)?data.length:0;
     }
 
-    // Aggregate by date (sum all servers)
-    const byDate={};
-    rows.forEach(r=>{
-      if(!byDate[r.snapshot_date]) byDate[r.snapshot_date]={total:0,active:0,running:0,idle:0,stop:0,inactive:0};
-      byDate[r.snapshot_date].total    += r.total_vehicles    ||0;
-      byDate[r.snapshot_date].active   += r.active_vehicles   ||0;
-      byDate[r.snapshot_date].running  += r.running_vehicles  ||0;
-      byDate[r.snapshot_date].idle     += r.idle_vehicles     ||0;
-      byDate[r.snapshot_date].stop     += r.stop_vehicles     ||0;
-      byDate[r.snapshot_date].inactive += r.inactive_vehicles ||0;
+    const [addedCount, removedCount] = await Promise.all([
+      fetchCount('added'),
+      fetchCount('removed')
+    ]);
+
+    const net = addedCount - removedCount;
+
+    // Total Vehicles card mein net dikhao
+    const totalEl=g('crm-delta-total');
+    if(totalEl){
+      if(net===0){
+        totalEl.textContent='No change';
+        totalEl.className='crm-kpi-delta neutral';
+      } else {
+        const arrow=net>0?'▲':'▼';
+        const sign=net>0?'+':'';
+        totalEl.className='crm-kpi-delta '+(net>0?'up':'down');
+        totalEl.textContent=`${arrow} ${sign}${net.toLocaleString()} vehicles`;
+      }
+    }
+
+    // Baki cards clear karo
+    ['crm-delta-active','crm-delta-run','crm-delta-idle','crm-delta-stop','crm-delta-inac'].forEach(id=>{
+      const el=g(id);
+      if(el){el.textContent='';el.className='crm-kpi-delta';}
     });
 
-    const dates = Object.keys(byDate).sort();
-    console.log('KPI delta dates available:', dates);
-
-    // Base = fromDate ke sabse kareeb snapshot
-    const baseDates = dates.filter(d => d <= fromDate);
-    const baseDate  = baseDates.length ? baseDates[baseDates.length-1] : dates[0];
-    const base      = byDate[baseDate];
-    if(!base){ console.warn('KPI delta: no base found'); return; }
-
-    // Current = toDate ka snapshot — agar nahi mila to live card values use karo
-    const g=id=>document.getElementById(id);
-    const currDates = dates.filter(d => d <= toDate);
-    const currDate  = currDates.length ? currDates[currDates.length-1] : null;
-    const snapshotCurrent = currDate ? byDate[currDate] : null;
-
-    // Agar base aur snapshot same hai (Today case) — live values use karo
-    const current = (snapshotCurrent && currDate !== baseDate) ? snapshotCurrent : {
-      total:    parseInt((g('crm-s-total')?.textContent||'0').replace(/,/g,''))  ||0,
-      active:   parseInt((g('crm-s-active')?.textContent||'0').replace(/,/g,'')) ||0,
-      running:  parseInt((g('crm-s-run')?.textContent||'0').replace(/,/g,''))    ||0,
-      idle:     parseInt((g('crm-s-idle')?.textContent||'0').replace(/,/g,''))   ||0,
-      stop:     parseInt((g('crm-s-stop')?.textContent||'0').replace(/,/g,''))   ||0,
-      inactive: parseInt((g('crm-s-inac')?.textContent||'0').replace(/,/g,''))   ||0,
-    };
-
-    console.log('KPI delta base:', baseDate, base, 'current:', currDate||'live', current);
-
-    // Render delta
-    const fields=[
-      {key:'total',   elId:'crm-delta-total'},
-      {key:'active',  elId:'crm-delta-active'},
-      {key:'running', elId:'crm-delta-run'},
-      {key:'idle',    elId:'crm-delta-idle'},
-      {key:'stop',    elId:'crm-delta-stop'},
-      {key:'inactive',elId:'crm-delta-inac'},
-    ];
-    fields.forEach(({key,elId})=>{
-      const el=document.getElementById(elId);
-      if(!el)return;
-      const diff=current[key]-base[key];
-      if(diff===0){el.textContent='No change';el.className='crm-kpi-delta neutral';return;}
-      const pct=base[key]>0?((Math.abs(diff)/base[key])*100).toFixed(1):'—';
-      const arrow=diff>0?'▲':'▼';
-      const sign=diff>0?'+':'';
-      el.className='crm-kpi-delta '+(diff>0?'up':'down');
-      el.textContent=`${arrow} ${sign}${diff.toLocaleString()} (${pct}%)`;
-    });
   }catch(e){
     console.error('KPI delta error:',e);
   }
