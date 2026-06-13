@@ -14863,13 +14863,17 @@ const today = new Date(istNow.toISOString().split('T')[0]+'T00:00:00.000Z');
   let fromDate, toDate, periodLabel;
 
   if(period==='today'){
-    // Changes that happened today (change_date = today)
-    fromDate=_fmtDate(today); toDate=_fmtDate(today);
-    periodLabel='Today\'s changes vs yesterday snapshot';
-  } else if(period==='yesterday'){
+    // Today = kal ka snapshot comparison (kyunki aaj ka abhi bana nahi)
     const yest=new Date(today); yest.setDate(yest.getDate()-1);
     fromDate=_fmtDate(yest); toDate=_fmtDate(yest);
-    periodLabel='Yesterday\'s changes';
+    periodLabel='Today\'s changes vs yesterday snapshot';
+  } else if(period==='yesterday'){
+    // Yesterday = parso ka snapshot comparison
+    const yest=new Date(today); yest.setDate(yest.getDate()-1);
+    const dayB4=new Date(today); dayB4.setDate(dayB4.getDate()-2);
+    fromDate=_fmtDate(dayB4); toDate=_fmtDate(dayB4);
+    periodLabel='Yesterday\'s changes vs day before';
+  }
   } else if(period==='7d'){
     const d=new Date(today); d.setDate(d.getDate()-7);
     fromDate=_fmtDate(d); toDate=_fmtDate(today);
