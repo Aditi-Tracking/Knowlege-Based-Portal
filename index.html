@@ -5996,7 +5996,7 @@ function switchDB(id, fromPopState){
   if(id==='marketing'){loadMarketingCounts();}
   if(id==='ims')      { loadIMSDashboard(); }
   if(id==='crm')      { loadCRMDashboard(); }
-  if(id==='finance')    { loadSimpleCNPanel('finance',    'Finance');    }
+  if(id==='finance')    { loadSimpleCNPanel('finance',    'Finance').then(() => _injectPurchaseCard()); }
   if(id==='compliance') { loadSimpleCNPanel('compliance', 'Compliance'); }
   if(id==='referral')   { loadSimpleCNPanel('referral',   'Referral');   }
   if(id==='announcements') { /* handled by override below */ }
@@ -21487,7 +21487,37 @@ function _vrCheckBtnAccess(){
   } else {
     btn.style.display='none';
   }
-}
+  _injectPurchaseCard();
+}  
+
+function _injectPurchaseCard() {
+  if (document.getElementById('purchase-request-card')) return;
+  const rawRole = String((CURRENT_USER && (CURRENT_USER.rawRole || CURRENT_USER.role)) || '').toLowerCase().trim();
+  const isMIS = (rawRole === 'mis' || rawRole === 'managing director' || rawRole === 'owner');
+  const hasVendorAccess = PERMISSIONS && PERMISSIONS.vendor_access === 'true';
+  if (!isMIS && !hasVendorAccess) return;
+  const gridEl = document.getElementById('finance-grid');
+  if (!gridEl) return;
+  const card = document.createElement('div');
+  card.id = 'purchase-request-card';
+  card.style.cssText = 'position:relative;';
+  card.innerHTML = `
+    <div class="home-card" style="--card-top:#f0a500;cursor:pointer;border-top:3px solid #f0a500;"
+      onclick="openVrDash()"
+      onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.3)';this.style.borderColor='#f0a500'"
+      onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
+      <div class="hc-icon" style="background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.3);color:#f0a500;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      </div>
+      <div class="hc-name">Purchase Request</div>
+      <div class="hc-desc" style="font-size:0.88rem;line-height:1.55;color:var(--muted);">Submit vendor payment requests, track approvals and manage purchase history.</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+        <span class="hc-status live" style="background:rgba(240,165,0,0.12);color:#f0a500;border:1px solid rgba(240,165,0,0.3);">💰 Vendor Payments</span>
+        <span style="font-size:0.78rem;font-weight:600;color:#f0a500;">Open →</span>
+      </div>
+    </div>`;
+  gridEl.insertBefore(card, gridEl.firstChild);
+}  
 
 // ── OPEN VENDOR DASHBOARD (called by Purchase Request button) ──
 function openVrDash(){
