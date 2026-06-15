@@ -21471,18 +21471,18 @@ function _vrRenderTable(){
 // Called after PERMISSIONS loads — shows Purchase Request button if allowed
 function _vrCheckBtnAccess(){
   const btn=document.getElementById('vendorPurchaseBtn');
-  if(!btn)return;
   const r=_vrRole();
-  // only mis is hardcoded — everyone else needs vendor_access toggled ON
   const alwaysAllow=r==='mis';
   const hasPermission=typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.vendor_access==='true';
-  if(alwaysAllow||hasPermission){
-    btn.style.display='flex';
-  } else {
-    btn.style.display='none';
+  if(btn){
+    if(alwaysAllow||hasPermission){
+      btn.style.display='flex';
+    } else {
+      btn.style.display='none';
+    }
   }
   _injectPurchaseCard();
-}  
+}
 
 function _injectPurchaseCard() {
   if (document.getElementById('purchase-request-card')) return;
