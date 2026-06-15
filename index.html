@@ -5990,7 +5990,7 @@ function switchDB(id, fromPopState){
   if(id==='marketing'){loadMarketingCounts();}
   if(id==='ims')      { loadIMSDashboard(); }
   if(id==='crm')      { loadCRMDashboard(); }
-  if(id==='finance')    { loadSimpleCNPanel('finance',    'Finance').then(() => _injectPurchaseCard()); }
+  if(id==='finance')    { loadSimpleCNPanel('finance',    'Finance').then(()=>_injectPurchaseCard()); }
   if(id==='compliance') { loadSimpleCNPanel('compliance', 'Compliance'); }
   if(id==='referral')   { loadSimpleCNPanel('referral',   'Referral');   }
   if(id==='announcements') { /* handled by override below */ }
@@ -21066,6 +21066,8 @@ function acpRender(users) {
 }
 
 async function acpSave(email, permission, value) {
+  if (!CURRENT_USER || !CURRENT_USER.email) { alert('❌ Session expired. Please logout and login again.'); return; }
+  if (!email) return;
   try {
     const res = await fetch(`${_PAPI}/api/admin/permissions`, {
       method: 'POST',
