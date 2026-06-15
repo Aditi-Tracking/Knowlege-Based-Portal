@@ -2098,11 +2098,16 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
     </button>
 
     <!-- Finance — Soon -->
-    <div class="mm-nav-item mm-disabled">
-      <span class="mm-icon" style="opacity:0.4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
-      <span class="mm-label">Finance</span>
-      <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
-    </div>
+    <button class="mm-nav-item" id="mm-finance" onclick="mobMenuGo('finance')" style="display:none;">
+  <span class="mm-icon">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23"/>
+      <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+    </svg>
+  </span>
+  <span class="mm-label">Finance</span>
+  <span class="mm-badge" style="margin-left:auto;background:rgba(0,212,170,0.18);color:#00d4aa;border:1px solid rgba(0,212,170,0.35);">Live</span>
+</button>
 
     <!-- Products -->
     <button class="mm-nav-item" id="mm-products" onclick="mobMenuGo('products')">
