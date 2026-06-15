@@ -4349,8 +4349,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     </div>
     <!-- Branch filter tabs -->
     <div id="holidayBranchTabs" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
-      <button class="hol-tab active" onclick="filterHolidayBranch('all')" data-branch="all">🌐 All Branches</button>
-      <button class="hol-tab" onclick="filterHolidayBranch('Mumbai')" data-branch="Mumbai">🏙️ Mumbai</button>
+      <button class="hol-tab active" onclick="filterHolidayBranch('Mumbai')" data-branch="Mumbai">🏙️ Mumbai</button>
       <button class="hol-tab" onclick="filterHolidayBranch('Goa')" data-branch="Goa">🏖️ Goa</button>
       <button class="hol-tab" onclick="filterHolidayBranch('Bangalore')" data-branch="Bangalore">🌆 Bangalore</button>
       <button class="hol-tab" onclick="filterHolidayBranch('Gujarat')" data-branch="Gujarat">🏛️ Gujarat</button>
@@ -12829,10 +12828,11 @@ let _holidayFetched = false;
 async function loadHolidayCard() {
   if (_holidayFetched) { renderHolidayCard(); return; }
   try {
-    const hdrs = SB_HDRS_AUTH(); // ✅ user JWT token use hoga — RLS pass hogi
+    // Holiday List RLS policy is on 'anon' role — always use anon key (not user JWT)
+    const anonHdrs = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' };
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/Holiday%20List?select=*&order=Date.asc`,
-      { headers: hdrs }
+      { headers: anonHdrs }
     );
     if (!res.ok) throw new Error('HTTP ' + res.status);
     _holidayAllData = await res.json();
@@ -12879,16 +12879,17 @@ function renderHolidayCard(branchFilter) {
   // Badge
   const badgeEl = document.getElementById('holidayBranchBadge');
   if (isOwner) {
-    const bf = branchFilter || 'all';
-    badgeEl.textContent = bf === 'all' ? '🌐 All Branches' : '📍 ' + bf;
+    const bf = branchFilter || 'Mumbai';
+    badgeEl.textContent = '📍 ' + bf;
   } else {
     badgeEl.textContent = '📍 ' + empLoc;
   }
 
   // Filter data
   let rows = _holidayAllData;
-  if (isOwner && branchFilter && branchFilter !== 'all') {
-    rows = rows.filter(r => _holNormLoc(r['Location']) === branchFilter);
+  if (isOwner) {
+    const bf = branchFilter || 'Mumbai';
+    rows = rows.filter(r => _holNormLoc(r['Location']) === bf);
   } else if (!isOwner) {
     // Employee: sirf apni location ke holidays
     rows = rows.filter(r => {
