@@ -9322,6 +9322,8 @@ function showPortal(){
   // IMS nav — sirf MIS, Managing Director, PC ke liye dikhao
   _applyIMSNavVisibility();
   _applyCRMNavVisibility();
+
+  _applyFinanceNavVisibility();
   // Activity Log nav — sirf MIS aur Managing Director ke liye
   _applyActLogNavVisibility();
   // Access Control nav — only for owner or MIS role
@@ -14662,6 +14664,17 @@ function _applyIMSNavVisibility() {
   const el   = document.getElementById('nav-ims');
   const mmEl = document.getElementById('mm-ims');
   if (el)   el.style.display   = show ? 'flex' : 'none';
+  if (mmEl) mmEl.style.display = show ? 'flex' : 'none';
+}
+  
+function _applyFinanceNavVisibility() {
+  const rawRole = String((CURRENT_USER && (CURRENT_USER.rawRole || CURRENT_USER.role)) || '').toLowerCase().trim();
+  const isSuperAdmin = (rawRole === 'mis' || rawRole === 'managing director' || rawRole === 'owner');
+  const hasVendorAccess = PERMISSIONS.vendor_access === 'true';
+  const show = isSuperAdmin || hasVendorAccess;
+  const el   = document.getElementById('nav-finance');
+  const mmEl = document.getElementById('mm-finance');
+  if (el)   el.style.display   = show ? '' : 'none';
   if (mmEl) mmEl.style.display = show ? 'flex' : 'none';
 }
 /* ═══════════════════════════════════════════════════
