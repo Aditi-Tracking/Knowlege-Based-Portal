@@ -7696,8 +7696,19 @@ function tRenderTable(){
       :isOngoing
       ?'<span class="badge" style="background:rgba(0,212,255,0.12);color:#00d4ff;border:1px solid rgba(0,212,255,0.25)">🔄 Ongoing</span>'
       :'<span class="badge" style="background:rgba(240,165,0,0.1);color:#f0a500;border:1px solid rgba(240,165,0,0.2)">⏳ Pending</span>';
+    const _undoBtn = (done && _canUndoTask())
+      ? `<button onclick="tUndoTask('${r['Task ID']||''}')"
+           title="Undo — Task wapas Pending kar do"
+           style="margin-top:4px;width:100%;background:rgba(255,92,124,0.10);border:1.5px solid rgba(255,92,124,0.35);color:#ff5c7c;border-radius:7px;padding:4px 6px;font-size:0.72rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;transition:all 0.18s;"
+           onmouseover="this.style.background='rgba(255,92,124,0.22)'" onmouseout="this.style.background='rgba(255,92,124,0.10)'">
+           ↩️ Undo
+         </button>`
+      : '';
     const actionCell=done
-      ?`<span style="color:#00d4aa;font-size:0.84rem;font-weight:700;display:flex;align-items:center;gap:4px;">✅ Done</span>`
+      ?`<div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <span style="color:#00d4aa;font-size:0.84rem;font-weight:700;display:flex;align-items:center;gap:4px;">✅ Done</span>
+          ${_undoBtn}
+        </div>`
       :`<button data-dept-tid="${r['Task ID']||''}" onclick="deptShowRemarksInput('${r['Task ID']||''}','${_src}')"
             style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:6px 8px;font-size:0.78rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 6px rgba(168,85,247,0.3);transition:all 0.18s;">
             ✅ Mark Done
@@ -8033,6 +8044,93 @@ function deptSubmitDone(taskId, src){
     ).then(res => {
       if(res.ok) setTimeout(()=>{ _tasksLastSync=0; tSilentRefresh(); }, 3000);
     }).catch(()=>{});
+  }
+}
+
+// ── Undo Access: Sirf MIS aur PC ko allowed ─────────────────────────────
+function _canUndoTask(){
+  if(typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
+  const r = String(CURRENT_USER.rawRole || '').toLowerCase().trim();
+  return r === 'mis' || r === 'pc' || r === 'executive assistant' || r === 'ea';
+}
+
+// ── Undo Done Task — Supabase mein actual_timestamp + remarks NULL karo ──
+function tUndoTask(taskId){
+  if(!_canUndoTask()){
+    showToast && showToast('⛔ Undo access sirf MIS aur PC ke liye hai.', 'error', 3000);
+    return;
+  }
+  const tid = String(taskId);
+  const row = tAllData.find(r => String(r['Task ID']) === tid);
+  if(!row){ return; }
+
+  // ─── Immediate local update ───────────────────────────────────────────
+  [tAllData, tFiltered].forEach(arr => {
+    arr.forEach(r => {
+      if(String(r['Task ID']) === tid){
+        r['Status']  = 'Pending';
+        r['Actual']  = '';
+        r['Remarks'] = '';
+      }
+    });
+  });
+
+  // Clear from localStorage done cache
+  try{
+    const saved = JSON.parse(localStorage.getItem('aditiDoneTasks') || '{}');
+    delete saved[tid];
+    localStorage.setItem('aditiDoneTasks', JSON.stringify(saved));
+  }catch(e){}
+
+  // ─── DOM: instantly flip row back to pending state ────────────────────
+  const actEl = document.getElementById('act_' + tid);
+  if(actEl){
+    actEl.innerHTML = `<button data-dept-tid="${tid}" onclick="deptShowRemarksInput('${tid}','${String(row['_source']||'').toLowerCase()}')"
+      style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:6px 8px;font-size:0.78rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 6px rgba(168,85,247,0.3);transition:all 0.18s;">
+      ✅ Mark Done
+    </button>`;
+    const tr = actEl.closest('tr');
+    if(tr){
+      // Actual column
+      const acTd = tr.cells[4];
+      if(acTd){ acTd.style.color = 'var(--muted)'; acTd.textContent = '—'; }
+      // Remarks column
+      const remTd = tr.cells[5];
+      if(remTd) remTd.innerHTML = '<span style="color:var(--muted);font-size:0.82rem">—</span>';
+      // Ongoing column — wapas button
+      const ongTd = tr.cells[7];
+      if(ongTd) ongTd.innerHTML = `<button id="ong_${tid}" onclick="tShowOngoing('${tid}','${String(row['_source']||'').toLowerCase()}')"
+        style="background:rgba(0,212,255,0.08);border:1.5px solid rgba(0,212,255,0.3);color:#00d4ff;border-radius:8px;padding:6px 8px;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;width:100%;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.18s;">🔄 Ongoing</button>`;
+    }
+  }
+
+  // Re-render KPIs + Charts immediately
+  tRenderKPIs();
+  tRenderCharts();
+  updateHomeTaskBanner && updateHomeTaskBanner();
+
+  // ─── Supabase PATCH: actual_timestamp + remarks = NULL ───────────────
+  const rowId = row['_id'];
+  if(rowId){
+    fetch(
+      `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
+      {
+        method: 'PATCH',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({ actual_timestamp: null, remarks: null })
+      }
+    ).then(res => {
+      if(res.ok){
+        showToast && showToast('↩️ Task undone & database updated!', 'success', 3000);
+        setTimeout(() => { _tasksLastSync = 0; tSilentRefresh(); }, 3000);
+      } else {
+        showToast && showToast('⚠️ UI updated but DB sync failed. Refresh karain.', 'error', 4000);
+      }
+    }).catch(() => {
+      showToast && showToast('⚠️ Network error — DB update failed.', 'error', 4000);
+    });
+  } else {
+    showToast && showToast('↩️ Task locally undone. (No DB row ID found)', 'warning', 3000);
   }
 }
 
@@ -21347,8 +21445,10 @@ function _vrRenderTable(){
     else if(_vrIsAccounts()&&status==='Approved'&&r.payment_status!=='Paid')actBtn=`<button class="vr-act" style="background:rgba(59,130,246,0.12);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);" onclick="openVrModal(${r.id})">Pay →</button>`;
     else actBtn=`<button class="vr-act" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="openVrModal(${r.id})">View</button>`;
     const canDelete=(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.vendor_delete==='true')||_vrIsEA()||(String(r.submitted_by||'').toLowerCase()===_vrMyEmail());
+    const canEdit=r.status==='On Hold'&&(_vrIsEA()||(String(r.submitted_by||'').toLowerCase()===_vrMyEmail()));
+    const editBtn=canEdit?`<button class="vr-act" style="background:rgba(78,154,241,0.12);color:#4e9af1;border:1px solid rgba(78,154,241,0.35);margin-left:5px;" onclick="openVendorEditForm(${r.id})" title="Edit request">✏️ Edit</button>`:'';
     const delBtn=canDelete?`<button class="vr-act" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);margin-left:5px;" onclick="vrDeleteRequest(${r.id},event)" title="Delete request">🗑</button>`:'';
-    return`<tr><td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${d}</td><td><div style="font-weight:700;font-size:0.85rem;color:var(--text);">${nameDisplay}</div></td><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'—'}</div></td><td style="text-align:center;">${r.qty||'—'}</td><td style="font-weight:700;white-space:nowrap;">₹${r.amount!=null?Number(r.amount).toLocaleString('en-IN'):'—'}</td><td style="font-size:0.82rem;">${r.location||'—'}</td><td>${_vrStatusBadge(status)}</td><td>${_vrPayBadge(r.payment_status)}</td><td style="white-space:nowrap;">${actBtn}${delBtn}</td></tr>`;
+    return`<tr><td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${d}</td><td><div style="font-weight:700;font-size:0.85rem;color:var(--text);">${nameDisplay}</div></td><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'—'}</div></td><td style="text-align:center;">${r.qty||'—'}</td><td style="font-weight:700;white-space:nowrap;">₹${r.amount!=null?Number(r.amount).toLocaleString('en-IN'):'—'}</td><td style="font-size:0.82rem;">${r.location||'—'}</td><td>${_vrStatusBadge(status)}</td><td>${_vrPayBadge(r.payment_status)}</td><td style="white-space:nowrap;">${actBtn}${editBtn}${delBtn}</td></tr>`;
   }).join('');
 }
 
@@ -21393,7 +21493,7 @@ async function openVendorForm(){
   await _vrLoadVendors();
   document.getElementById('vfOverlay').style.display='block';
 }
-function closeVendorForm(){document.getElementById('vfOverlay').style.display='none';}
+function closeVendorForm(){document.getElementById('vfOverlay').style.display='none'; _vrResetFormToNew && _vrResetFormToNew();}
 function vfToggleNewVendor(){
   const box=document.getElementById('vfNewVendorBox');
   box.style.display=box.style.display==='none'?'block':'none';
@@ -21470,7 +21570,137 @@ async function submitVendorRequest(){
   finally{btn.disabled=false;btn.textContent='🚀 Submit for Approval';}
 }
 
-// ── REVIEW MODAL ───────────────────────────────────
+// ── EDIT PURCHASE REQUEST ───────────────────────────────────────────────
+let _vrEditId = null;
+
+async function openVendorEditForm(id){
+  const r = _vrAll.find(x => x.id === id);
+  if(!r){ return; }
+  if(r.status !== 'On Hold'){
+    if(typeof showToast==='function') showToast('⚠️ Sirf "On Hold" requests edit ho sakti hain.','error',3000);
+    return;
+  }
+
+  _vrEditId = id;
+
+  // Load vendors first so dropdown is populated
+  await _vrLoadVendors();
+
+  // Switch form header to Edit mode
+  document.querySelector('#vfBox .vfh-title').textContent = '✏️ Edit Purchase Request';
+  document.querySelector('#vfBox .vfh-sub').textContent = 'Update the details and save changes';
+
+  // Pre-fill fields
+  const sel = document.getElementById('vfVendorSel');
+  sel.value = r.vendor_id ? String(r.vendor_id) : '';
+  // If vendor not in list (edge case), add a temporary option
+  if(sel.value === '' && r.vendor_name){
+    const opt = document.createElement('option');
+    opt.value = r.vendor_id || 'existing';
+    opt.textContent = r.vendor_name;
+    opt.dataset.name = r.vendor_name;
+    sel.appendChild(opt);
+    sel.value = opt.value;
+  }
+  document.getElementById('vfProduct').value  = r.product_name || '';
+  document.getElementById('vfQty').value      = r.qty != null ? r.qty : '';
+  document.getElementById('vfAmount').value   = r.amount != null ? r.amount : '';
+  document.getElementById('vfLocation').value = r.location || '';
+  document.getElementById('vfInvNo').value    = r.invoice_number || '';
+
+  // Reset file input (existing invoice link shown as info)
+  const fi = document.getElementById('vfInvFile'); if(fi) fi.value='';
+  const fnEl = document.getElementById('vfInvFileName');
+  if(fnEl) fnEl.textContent = r.invoice_link ? '📄 Existing file kept (upload to replace)' : 'No file chosen';
+
+  // Hide new vendor box
+  document.getElementById('vfNewVendorBox').style.display = 'none';
+  document.getElementById('vfErr').style.display = 'none';
+
+  // Swap submit button to update mode
+  const btn = document.getElementById('vfSubmitBtn');
+  btn.textContent = '💾 Save Changes';
+  btn.onclick = () => submitVendorEdit();
+
+  document.getElementById('vfOverlay').style.display = 'block';
+}
+
+async function submitVendorEdit(){
+  const errEl = document.getElementById('vfErr');
+  const btn   = document.getElementById('vfSubmitBtn');
+  errEl.style.display = 'none';
+
+  const sel       = document.getElementById('vfVendorSel');
+  const vendorId  = sel.value;
+  const vendorName= sel.options[sel.selectedIndex]?.dataset?.name || sel.options[sel.selectedIndex]?.textContent || '';
+  const product   = (document.getElementById('vfProduct').value || '').trim();
+  const amount    = document.getElementById('vfAmount').value;
+  const location  = document.getElementById('vfLocation').value;
+
+  if(!vendorId)   { errEl.textContent='⚠️ Please select a vendor.'; errEl.style.display='block'; return; }
+  if(!product)    { errEl.textContent='⚠️ Product / Service is required.'; errEl.style.display='block'; return; }
+  if(!amount || isNaN(Number(amount)) || Number(amount) <= 0){ errEl.textContent='⚠️ Please enter a valid amount.'; errEl.style.display='block'; return; }
+  if(!location)   { errEl.textContent='⚠️ Please select a location.'; errEl.style.display='block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try{
+    // Check if a new invoice file was chosen
+    let invoiceUrl = (_vrAll.find(x=>x.id===_vrEditId)||{}).invoice_link || null;
+    const invFile = document.getElementById('vfInvFile')?.files?.[0];
+    if(invFile){
+      btn.textContent = 'Uploading invoice…';
+      try{ invoiceUrl = await _vrUploadFile(invFile,'vendor-attachments','invoices'); }
+      catch(e){ console.warn('Invoice upload failed:', e.message); }
+    }
+
+    btn.textContent = 'Saving…';
+    const payload = {
+      vendor_id:       parseInt(vendorId) || null,
+      vendor_name:     vendorName,
+      product_name:    product,
+      qty:             parseInt(document.getElementById('vfQty').value) || null,
+      amount:          parseFloat(amount),
+      location,
+      invoice_number:  document.getElementById('vfInvNo').value.trim() || null,
+      invoice_link:    invoiceUrl
+    };
+
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/vendor_requests?id=eq.${_vrEditId}`,
+      { method:'PATCH', headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'}, body:JSON.stringify(payload) }
+    );
+    if(!res.ok){ const t = await res.text(); throw new Error(t); }
+
+    // Update local data
+    const idx = _vrAll.findIndex(x => x.id === _vrEditId);
+    if(idx !== -1) _vrAll[idx] = { ..._vrAll[idx], ...payload };
+
+    // Reset form to new-request mode
+    _vrResetFormToNew();
+    closeVendorForm();
+    if(typeof showToast==='function') showToast('✅ Request updated successfully!','success',3000);
+    _vrApplyFilter();
+    _vrRenderKPIs();
+  }catch(e){
+    errEl.textContent = '❌ ' + e.message;
+    errEl.style.display = 'block';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '💾 Save Changes';
+  }
+}
+
+function _vrResetFormToNew(){
+  _vrEditId = null;
+  const titleEl = document.querySelector('#vfBox .vfh-title');
+  const subEl   = document.querySelector('#vfBox .vfh-sub');
+  if(titleEl) titleEl.textContent = '📦 New Purchase Request';
+  if(subEl)   subEl.textContent   = 'Submit a vendor payment request for approval';
+  const btn = document.getElementById('vfSubmitBtn');
+  if(btn){ btn.textContent = '🚀 Submit for Approval'; btn.onclick = submitVendorRequest; }
+}
+
 function openVrModal(id){
   const r=_vrAll.find(x=>x.id===id);if(!r)return;
   _vrCurId=id;
