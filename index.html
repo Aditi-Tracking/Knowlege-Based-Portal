@@ -15256,8 +15256,8 @@ async function loadCustomerAlerts(){
         <div class="crm-alert-left">
           <div class="crm-alert-icon">⚠️</div>
           <div>
-            <div class="crm-alert-text">💎 <b>${r.company_name}</b> ka vehicle count <b>${r.pct_drop}%</b> gir gaya hai</div>
-            <div class="crm-alert-sub">${Math.round(r.baseline_avg)} (7-din average) → ${r.current_count} vehicles · ${r.alert_date}</div>
+            <div class="crm-alert-text">💎 <b>${r.company_name}</b>'s vehicle count dropped <b>${r.pct_drop}%</b></div>
+            <div class="crm-alert-sub">${Math.round(r.baseline_avg)} (7-day average) → ${r.current_count} vehicles · ${r.alert_date}</div>
           </div>
         </div>
         <button class="crm-alert-ack-btn" onclick="crmAcknowledgeAlert(${r.id})">Acknowledge</button>
