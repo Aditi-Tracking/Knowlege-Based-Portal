@@ -336,7 +336,70 @@ def all_users_permissions():
         "users":               result,
         "all_permission_keys": all_keys
     })
+    
+# ══════════════════════════════════════════════════════════════════
+# ENDPOINT 4: GET /api/vendor-kpis?email=someone@adititracking.com
+#
+# Called by the Vendor Purchase Approvals dashboard.
+# Returns total/approved/paid amount sums — full data for MIS/owner/EA
+# (or anyone with vendor_view_all permission), own data only for everyone else.
+# ══════════════════════════════════════════════════════════════════
+@app.route("/api/vendor-kpis", methods=["GET"])
+def vendor_kpis():
+    err = db_check()
+    if err:
+        return err
 
+    email = request.args.get("email", "").strip().lower()
+    if not email:
+        return jsonify({"error": "email is required"}), 400
+
+    # Same role lookup as /api/permissions — reusing existing helpers, nothing duplicated
+    try:
+        emp_res = sb.table("Employee_details") \
+            .select("Employee_Dept") \
+            .ilike("Email_Id", email) \
+            .limit(1) \
+            .execute()
+    except Exception as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+
+    raw_role = ""
+    if emp_res.data:
+        raw_role = str(emp_res.data[0].get("Employee_Dept", "")).strip().lower()
+    role = ROLE_MAP.get(raw_role, "employee")
+
+    permissions = get_permissions(email, role)
+    can_view_all = (
+        permissions.get("vendor_view_all") == "true"
+        or role in ("owner", "mis", "executive assistant")
+    )
+
+    try:
+        query = sb.table("vendor_requests").select("amount,status,payment_status,submitted_by")
+        if not can_view_all:
+            query = query.eq("submitted_by", email)
+        res = query.execute()
+        rows = res.data or []
+    except Exception as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+
+    total_amount    = 0
+    approved_amount = 0
+    paid_amount     = 0
+    for r in rows:
+        amount = r.get("amount") or 0
+        total_amount += amount
+        if r.get("status") == "Approved":
+            approved_amount += amount
+        if r.get("payment_status") == "Paid":
+            paid_amount += amount
+
+    return jsonify({
+        "total_amount":    total_amount,
+        "approved_amount": approved_amount,
+        "paid_amount":     paid_amount
+    })
 
 # ── Health check endpoint ───────────────────────────────────────
 # Visit /health in your browser to confirm the server is running.
