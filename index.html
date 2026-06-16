@@ -14970,13 +14970,14 @@ const now = new Date();
 const istOffset = 5*60+30; // minutes
 const istNow = new Date(now.getTime() + istOffset*60000);
 const today = new Date(istNow.toISOString().split('T')[0]+'T00:00:00.000Z');
-  let fromDate, toDate, periodLabel;
+  let fromDate, toDate, periodLabel, isLiveToday=false;
 
   if(period==='today'){
     // Today = kal ka snapshot comparison (kyunki aaj ka abhi bana nahi)
     const yest=new Date(today); yest.setDate(yest.getDate()-1);
     fromDate=_fmtDate(yest); toDate=_fmtDate(yest);
     periodLabel='Today\'s changes vs yesterday snapshot';
+    isLiveToday=true;
   } else if(period==='yesterday'){
     // Yesterday = parso ka snapshot comparison
     const yest=new Date(today); yest.setDate(yest.getDate()-1);
@@ -14999,7 +15000,7 @@ const today = new Date(istNow.toISOString().split('T')[0]+'T00:00:00.000Z');
   if(fi)fi.value=fromDate;
   if(ti)ti.value=toDate==='live'?_fmtDate(today):toDate;
 
-  crmChgLoad(fromDate, toDate, periodLabel);
+  crmChgLoad(fromDate, toDate, periodLabel, isLiveToday);
 }
 
 function crmChgCustom(){
@@ -15014,13 +15015,14 @@ function crmChgCustom(){
   const todayStr=_fmtDate(new Date());
   const toVal=to===todayStr?'live':to;
   const label=from+' 11:50PM → '+(toVal==='live'?'Now (live)':to+' 11:50PM');
-  crmChgLoad(from, toVal, label);
+  const isLiveToday=(from===to && to===todayStr);
+  crmChgLoad(from, toVal, label, isLiveToday);
 }
 
 // ── VEHICLE CHANGES — new logic using vehicle_changes table ──
 let _chgDetailType='added', _chgDetailData=[], _chgFromDate='', _chgToDate='';
 
-async function crmChgLoad(fromDate, toDate, periodLabel){
+async function crmChgLoad(fromDate, toDate, periodLabel, isLiveToday){
   const g=id=>document.getElementById(id);
   if(g('chg-added-count'))  g('chg-added-count').textContent='...';
   if(g('chg-removed-count'))g('chg-removed-count').textContent='...';
@@ -15033,7 +15035,7 @@ async function crmChgLoad(fromDate, toDate, periodLabel){
   _chgFromDate=fromDate; _chgToDate=toDate==='live'?_fmtDate(new Date()):toDate;
 
   // Also update KPI deltas to match selected date range
-  crmLoadKpiDeltas(fromDate, toDate==='live'?_fmtDate(new Date()):toDate);
+  crmLoadKpiDeltas(fromDate, toDate==='live'?_fmtDate(new Date()):toDate, isLiveToday);
 
   try{
     const hdrs={...SB_HDRS()};
@@ -15088,7 +15090,7 @@ async function crmChgLoad(fromDate, toDate, periodLabel){
     if(g('chg-removed-count')) g('chg-removed-count').textContent='—';
   }
 }
-async function crmLoadKpiDeltas(fromDate, toDate){
+async function crmLoadKpiDeltas(fromDate, toDate, isLiveToday){
   try{
     const hdrs={...SB_HDRS()};
     const g=id=>document.getElementById(id);
@@ -15147,22 +15149,52 @@ async function crmLoadKpiDeltas(fromDate, toDate){
     });
 
     const dates=Object.keys(byDate).sort();
+    if(!dates.length) return;
 
-    const baseDates=dates.filter(d=>d<=fromDate);
-    const baseDate=baseDates.length?baseDates[baseDates.length-1]:dates[0];
-    const base=byDate[baseDate];
-    if(!base) return;
+    // FIX (16-Jun-2026): earlier, "base" and "current" were BOTH resolved as
+    // "nearest snapshot <= date" using the same date whenever fromDate===toDate —
+    // which happens for BOTH "Today" and "Yesterday" quick filters by design.
+    // That made base accidentally equal current for "Yesterday" too, wrongly
+    // triggering the live-data fallback (meant ONLY for "Today") — comparing
+    // live-right-now numbers against a snapshot from several days back, which
+    // produced fake 700%+ jumps. Now each mode is resolved explicitly so base
+    // and current always land on the correct, distinct dates.
+    let current, baseDate;
 
-    const currDates=dates.filter(d=>d<=toDate);
-    const currDate=currDates.length?currDates[currDates.length-1]:null;
-    const snapshotCurrent=currDate?byDate[currDate]:null;
-    const current=(snapshotCurrent&&currDate!==baseDate)?snapshotCurrent:{
-      active:   parseInt((g('crm-s-active')?.textContent||'0').replace(/,/g,''))||0,
-      running:  parseInt((g('crm-s-run')?.textContent||'0').replace(/,/g,''))   ||0,
-      idle:     parseInt((g('crm-s-idle')?.textContent||'0').replace(/,/g,''))  ||0,
-      stop:     parseInt((g('crm-s-stop')?.textContent||'0').replace(/,/g,''))  ||0,
-      inactive: parseInt((g('crm-s-inac')?.textContent||'0').replace(/,/g,''))  ||0,
-    };
+    if(isLiveToday){
+      // "Today": current = LIVE right now, base = most recent snapshot on/before fromDate
+      current={
+        active:   parseInt((g('crm-s-active')?.textContent||'0').replace(/,/g,''))||0,
+        running:  parseInt((g('crm-s-run')?.textContent||'0').replace(/,/g,''))   ||0,
+        idle:     parseInt((g('crm-s-idle')?.textContent||'0').replace(/,/g,''))  ||0,
+        stop:     parseInt((g('crm-s-stop')?.textContent||'0').replace(/,/g,''))  ||0,
+        inactive: parseInt((g('crm-s-inac')?.textContent||'0').replace(/,/g,''))  ||0,
+      };
+      const baseDates=dates.filter(d=>d<=fromDate);
+      baseDate=baseDates.length?baseDates[baseDates.length-1]:dates[0];
+    } else if(fromDate===toDate){
+      // Single specific historical day (e.g. "Yesterday", or a custom single-day pick):
+      // current = that day's OWN snapshot, base = nearest snapshot STRICTLY BEFORE it
+      // (never the same date as current, even across a multi-day gap)
+      const currDates=dates.filter(d=>d<=toDate);
+      const currDate=currDates.length?currDates[currDates.length-1]:null;
+      if(!currDate) return;
+      current=byDate[currDate];
+      const baseDates=dates.filter(d=>d<currDate);
+      baseDate=baseDates.length?baseDates[baseDates.length-1]:null;
+      if(!baseDate) return;
+    } else {
+      // Multi-day range (Last 7/30 days, custom range)
+      const currDates=dates.filter(d=>d<=toDate);
+      const currDate=currDates.length?currDates[currDates.length-1]:null;
+      if(!currDate) return;
+      current=byDate[currDate];
+      const baseDates=dates.filter(d=>d<=fromDate);
+      baseDate=baseDates.length?baseDates[baseDates.length-1]:dates[0];
+    }
+
+    const base=baseDate?byDate[baseDate]:null;
+    if(!base||!current) return;
 
     const fields=[
       {key:'active',  elId:'crm-delta-active'},
