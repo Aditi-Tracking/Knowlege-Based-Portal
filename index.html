@@ -12774,13 +12774,24 @@ function openFileViewer(url, title){
     frame.src = embedUrl;
 
     var isGoogle = /drive\.google\.com|docs\.google\.com/.test(embedUrl);
+    // Safari detect karo
+    var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     if(isGoogle){
-      // 🔒 CLIP TOOLBAR: shift iframe UP by 64px so Google's toolbar is outside visible area.
-      //     Parent has overflow:hidden so the shifted-off part is invisible & unclickable.
-      frame.style.top    = '-64px';
-      frame.style.height = 'calc(100% + 128px)'; // extend bottom too to hide any bottom bar
-      if(mask)  mask.style.display  = 'block';   // backup mask in case clip fails
-      if(mask2) mask2.style.display = 'block';
+      if(isSafari){
+        // Safari fix: toolbar clip nahi karte — seedha normal size rakhte hain
+        // Safari mein calc(100% + 128px) scroll tod deta hai
+        frame.style.top    = '0';
+        frame.style.height = '100%';
+        if(mask)  mask.style.display  = 'none';
+        if(mask2) mask2.style.display = 'none';
+      } else {
+        // 🔒 CLIP TOOLBAR: shift iframe UP by 64px so Google's toolbar is outside visible area.
+        //     Parent has overflow:hidden so the shifted-off part is invisible & unclickable.
+        frame.style.top    = '-64px';
+        frame.style.height = 'calc(100% + 128px)'; // extend bottom too to hide any bottom bar
+        if(mask)  mask.style.display  = 'block';   // backup mask in case clip fails
+        if(mask2) mask2.style.display = 'block';
+      }
     } else {
       frame.style.top    = '0';
       frame.style.height = '100%';
@@ -22157,5 +22168,61 @@ async function submitRecurringRequest(){
   </div>
 </div>
 
+
+<script>
+// ============================================================
+// SCROLL FIX — MacBook / Desktop scroll restore safety net
+// Agar kisi modal ke baad body scroll band reh jaye toh yeh
+// automatically restore kar deta hai.
+// ============================================================
+(function() {
+  // Observe all fixed/overlay modals — jab bhi koi hide ho, scroll restore karo
+  const observer = new MutationObserver(function(mutations) {
+    // Check karo koi bhi visible modal hai ya nahi
+    const allModals = document.querySelectorAll(
+      '[id$="Modal"],[id$="Overlay"],[id$="modal"],[id$="overlay"],[id$="Panel"]'
+    );
+    let anyVisible = false;
+    allModals.forEach(function(m) {
+      const style = window.getComputedStyle(m);
+      if (style.display !== 'none' && style.visibility !== 'hidden') {
+        const pos = style.position;
+        if (pos === 'fixed' || pos === 'absolute') {
+          anyVisible = true;
+        }
+      }
+    });
+    if (!anyVisible) {
+      document.body.style.overflow = '';
+    }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
+
+  // ESC key se bhi scroll restore ho
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      setTimeout(function() {
+        const anyFixed = Array.from(document.querySelectorAll('*')).some(function(el) {
+          const s = el.style;
+          return s.position === 'fixed' && s.display === 'flex' && el.style.zIndex >= 999;
+        });
+        if (!anyFixed) {
+          document.body.style.overflow = '';
+        }
+      }, 150);
+    }
+  });
+
+  // Page switch (nav item click) pe bhi scroll restore karo
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.nav-item') || e.target.closest('.mob-nav-item')) {
+      setTimeout(function() {
+        document.body.style.overflow = '';
+      }, 100);
+    }
+  });
+})();
+</script>
 </body>
 </html>
