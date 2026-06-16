@@ -5139,6 +5139,16 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 #panel-crm .crm-t-gold.active{background:#f59e0b;color:#fff;}
 #panel-crm .crm-t-silv{background:var(--surface2);color:var(--muted);border-color:var(--border);}
 #panel-crm .crm-t-silv.active{background:var(--muted);color:#fff;}
+/* Customer churn alerts banner */
+#crm-alerts-banner{display:none;}
+.crm-alert-card{display:flex;align-items:center;justify-content:space-between;gap:14px;background:rgba(255,92,124,0.08);border:1px solid rgba(255,92,124,0.28);border-radius:10px;padding:12px 16px;margin-bottom:8px;}
+.crm-alert-left{display:flex;align-items:center;gap:10px;}
+.crm-alert-icon{font-size:1.05rem;}
+.crm-alert-text{font-size:0.84rem;color:var(--text);}
+.crm-alert-text b{color:var(--accent3);}
+.crm-alert-sub{font-size:0.71rem;color:var(--muted);margin-top:2px;}
+.crm-alert-ack-btn{font-size:0.72rem;font-weight:600;padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.crm-alert-ack-btn:hover{background:var(--accent3);color:#fff;border-color:var(--accent3);}
 /* Cards */
 #panel-crm .crm-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;padding:0 24px;}
 #panel-crm .crm-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
@@ -5243,6 +5253,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     <button class="crm-tier-btn crm-t-plat"       id="crm-tf-plat" onclick="crmSwitchTier('Platinum')">💎 Platinum</button>
     <button class="crm-tier-btn crm-t-gold"       id="crm-tf-gold" onclick="crmSwitchTier('Gold')">🥇 Gold</button>
     <button class="crm-tier-btn crm-t-silv"       id="crm-tf-silv" onclick="crmSwitchTier('Silver')">🥈 Silver</button>
+  </div>
+
+  <!-- Platinum customer vehicle-reduction alerts -->
+  <div id="crm-alerts-banner" style="padding:0 24px 16px;">
+    <div id="crm-alerts-list"></div>
   </div>
 
   <!-- KPI Cards: Customers | Total | Active | Running | Idle | Stop | Inactive -->
@@ -14800,6 +14815,7 @@ async function loadCRMDashboard(){
       const d7=new Date(); d7.setDate(d7.getDate()-7);
       setTimeout(()=>crmLoadKpiDeltas(_fmtDate(d7), todayStr), 1000);
     }
+    loadCustomerAlerts();
     crmApplyFilters();
   }catch(e){
     console.error('CRM load error:',e);
@@ -15216,6 +15232,58 @@ async function crmLoadKpiDeltas(fromDate, toDate, isLiveToday){
 
   }catch(e){
     console.error('KPI delta error:',e);
+  }
+}
+
+// ── PLATINUM CUSTOMER VEHICLE-REDUCTION ALERTS ──────────────────
+async function loadCustomerAlerts(){
+  const wrap=document.getElementById('crm-alerts-banner');
+  const list=document.getElementById('crm-alerts-list');
+  if(!wrap||!list) return;
+  try{
+    const hdrs={...SB_HDRS()};
+    const url=`${SUPABASE_URL}/rest/v1/customer_alerts?select=*&acknowledged=eq.false&order=pct_drop.desc&limit=20`;
+    const res=await fetch(url,{headers:hdrs});
+    const rows=await res.json();
+    if(!Array.isArray(rows)||!rows.length){
+      wrap.style.display='none';
+      list.innerHTML='';
+      return;
+    }
+    wrap.style.display='block';
+    list.innerHTML=rows.map(r=>`
+      <div class="crm-alert-card">
+        <div class="crm-alert-left">
+          <div class="crm-alert-icon">⚠️</div>
+          <div>
+            <div class="crm-alert-text">💎 <b>${r.company_name}</b> ka vehicle count <b>${r.pct_drop}%</b> gir gaya hai</div>
+            <div class="crm-alert-sub">${Math.round(r.baseline_avg)} (7-din average) → ${r.current_count} vehicles · ${r.alert_date}</div>
+          </div>
+        </div>
+        <button class="crm-alert-ack-btn" onclick="crmAcknowledgeAlert(${r.id})">Acknowledge</button>
+      </div>
+    `).join('');
+  }catch(e){
+    console.error('Customer alerts load error:',e);
+  }
+}
+
+async function crmAcknowledgeAlert(id){
+  try{
+    const hdrs={...SB_HDRS_MIN()};
+    const url=`${SUPABASE_URL}/rest/v1/customer_alerts?id=eq.${id}`;
+    await fetch(url,{
+      method:'PATCH',
+      headers:hdrs,
+      body:JSON.stringify({
+        acknowledged: true,
+        acknowledged_by: (typeof CURRENT_USER!=='undefined'&&CURRENT_USER&&CURRENT_USER.name)||'Unknown',
+        acknowledged_at: new Date().toISOString()
+      })
+    });
+    loadCustomerAlerts();
+  }catch(e){
+    console.error('Acknowledge alert error:',e);
   }
 }
 
