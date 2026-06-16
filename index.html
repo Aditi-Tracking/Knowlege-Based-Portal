@@ -21483,6 +21483,24 @@ async function loadVendorRequests(force){
     if(!vrRes.ok)throw new Error('HTTP '+vrRes.status);
     _vrAll=await vrRes.json();
     _vrRenderKPIs();
+    _vrLoadAmountKPIs();
+async function _vrLoadAmountKPIs(){
+  try{
+    const url=`https://knowlege-based-portal-production.up.railway.app/api/vendor-kpis?email=${encodeURIComponent(_vrMyEmail())}`;
+    const res=await fetch(url);
+    if(!res.ok)return;
+    const data=await res.json();
+    const amountKpis=[
+      {label:'Total Requested (₹)',val:data.total_amount,color:'#4e9af1',icon:'💰'},
+      {label:'Approved Amount (₹)',val:data.approved_amount,color:'#22c55e',icon:'✅'},
+      {label:'Paid Amount (₹)',val:data.paid_amount,color:'#a855f7',icon:'💳'},
+    ];
+    const html=amountKpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:14px 16px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:1.2rem;margin-bottom:5px;">${k.icon}</div><div style="font-size:1.5rem;font-weight:900;color:${k.color};line-height:1;">₹${Number(k.val||0).toLocaleString('en-IN')}</div><div style="font-size:0.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;">${k.label}</div></div>`).join('');
+    document.getElementById('vrKpiRow').insertAdjacentHTML('beforeend', html);
+  }catch(e){
+    console.error('Amount KPI load error:',e);
+  }
+}
     _vrApplyFilter();
   }catch(e){
     if(ldg)ldg.innerHTML=`<div style="color:#ef4444;font-size:0.84rem;">❌ ${e.message}</div>`;
