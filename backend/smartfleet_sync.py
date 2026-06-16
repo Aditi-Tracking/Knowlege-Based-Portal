@@ -282,7 +282,17 @@ def save_daily_stats(server_name, vehicles):
     _snapshotted_today.add(stats_key)
 
 def save_vehicle_changes(server_name, vehicles):
-    """Compare today vs yesterday snapshot — save added/removed vehicles"""
+    """
+    Compare today vs the MOST RECENT AVAILABLE previous snapshot — save added/removed vehicles.
+
+    FIX (16-Jun-2026): earlier this only checked literal "yesterday". If Railway was down
+    during the 11:50PM window on any day, that day's snapshot never got created — and then
+    on the NEXT day, "yesterday" would be missing, so this function bailed out completely
+    and silently lost that day's change data. Now it walks back to whatever the last real
+    snapshot was (1 day back, or 3 days back after an outage) so a gap never causes a total
+    blackout — it just bundles the missed days' worth of changes into one entry, which is
+    the correct, honest behavior.
+    """
     if not should_take_snapshot():
         return
 
@@ -293,21 +303,43 @@ def save_vehicle_changes(server_name, vehicles):
 
     print(f"  [{server_name}] 🔄 Detecting vehicle changes for {today}...")
 
-    # Fetch yesterday's snapshot
-    yesterday = (get_ist_now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    # Step 1: find the most recent snapshot date strictly BEFORE today (not hardcoded "yesterday")
+    try:
+        date_res = supabase.table("vehicle_daily_snapshot") \
+            .select("snapshot_date") \
+            .eq("region", server_name) \
+            .lt("snapshot_date", today) \
+            .order("snapshot_date", desc=True) \
+            .limit(1) \
+            .execute()
+        prev_dates = date_res.data or []
+    except Exception as e:
+        print(f"  [{server_name}] Error finding previous snapshot date: {e}")
+        return
+
+    if not prev_dates:
+        print(f"  [{server_name}] No previous snapshot found at all — skipping change detection (first-ever snapshot)")
+        return
+
+    prev_date = prev_dates[0]["snapshot_date"]
+    gap_days = (datetime.strptime(today, '%Y-%m-%d') - datetime.strptime(prev_date, '%Y-%m-%d')).days
+    if gap_days > 1:
+        print(f"  [{server_name}] ⚠️ Snapshot gap detected ({gap_days} days) — comparing against {prev_date} instead of yesterday")
+
+    # Step 2: fetch the full vehicle list for that previous date
     try:
         prev_res = supabase.table("vehicle_daily_snapshot") \
             .select("imeino,vehicle_no,vehicle_name,company,tier,region") \
-            .eq("snapshot_date", yesterday) \
+            .eq("snapshot_date", prev_date) \
             .eq("region", server_name) \
             .execute()
         prev_rows = prev_res.data or []
     except Exception as e:
-        print(f"  [{server_name}] Error fetching yesterday snapshot: {e}")
+        print(f"  [{server_name}] Error fetching previous snapshot: {e}")
         return
 
     if not prev_rows:
-        print(f"  [{server_name}] No yesterday snapshot found — skipping change detection")
+        print(f"  [{server_name}] Previous snapshot ({prev_date}) was empty — skipping")
         return
 
     # Build maps
@@ -332,7 +364,7 @@ def save_vehicle_changes(server_name, vehicles):
 
     changes = []
 
-    # Added = in today but not in yesterday
+    # Added = in today but not in previous available snapshot
     for imei, v in today_map.items():
         if imei not in prev_map:
             changes.append({
@@ -346,7 +378,7 @@ def save_vehicle_changes(server_name, vehicles):
                 "region":      server_name,
             })
 
-    # Removed = in yesterday but not in today
+    # Removed = in previous available snapshot but not in today
     for imei, r in prev_map.items():
         if imei not in today_map:
             changes.append({
@@ -361,7 +393,7 @@ def save_vehicle_changes(server_name, vehicles):
             })
 
     if not changes:
-        print(f"  [{server_name}] No vehicle changes today")
+        print(f"  [{server_name}] No vehicle changes since {prev_date}")
         _snapshotted_today.add(changes_key)
         return
 
@@ -378,7 +410,7 @@ def save_vehicle_changes(server_name, vehicles):
 
     added_count   = sum(1 for c in changes if c["change_type"] == "added")
     removed_count = sum(1 for c in changes if c["change_type"] == "removed")
-    print(f"  [{server_name}] ✅ Changes saved — +{added_count} added, -{removed_count} removed")
+    print(f"  [{server_name}] ✅ Changes saved (vs {prev_date}) — +{added_count} added, -{removed_count} removed")
     _snapshotted_today.add(changes_key)
 
 def cleanup_old_snapshots(server_name):
@@ -462,7 +494,7 @@ def sync_server(server):
 
     # 11:50 PM jobs — order matters!
     save_daily_snapshot(server["name"], vehicles)   # 1. Save full snapshot
-    save_vehicle_changes(server["name"], vehicles)  # 2. Detect changes (needs yesterday's snapshot)
+    save_vehicle_changes(server["name"], vehicles)  # 2. Detect changes (gap-resilient now)
     save_daily_stats(server["name"], vehicles)      # 3. Save aggregated stats
     cleanup_old_snapshots(server["name"])           # 4. Clean old data
 
