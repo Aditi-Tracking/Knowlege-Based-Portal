@@ -464,6 +464,106 @@ def reset_snapshot_tracker():
     _snapshotted_today = set()
     print(f"  🔄 Snapshot tracker reset ({get_snapshot_date()})")
 
+def check_platinum_churn_alerts():
+    """
+    Compare each Platinum-tier company's vehicle count TODAY against their
+    average count over the previous 7 days. If it dropped 5% or more, save
+    an alert row to customer_alerts (shown on the CRM Vehicle dashboard).
+    Uses the 7-day average (not just yesterday) so a one-off device/network
+    blip doesn't trigger a false alert — only a sustained drop does.
+    Runs once per day, after all servers' snapshots for today are saved.
+    """
+    if not should_take_snapshot():
+        return
+
+    today = get_snapshot_date()
+    alert_key = f"churn_check_{today}"
+    if alert_key in _snapshotted_today:
+        return
+
+    print(f"  🔔 Checking Platinum customer vehicle reduction for {today}...")
+
+    try:
+        start_date = (get_ist_now() - timedelta(days=7)).strftime('%Y-%m-%d')
+        res = supabase.table("vehicle_daily_snapshot") \
+            .select("company,snapshot_date") \
+            .eq("tier", "Platinum") \
+            .gte("snapshot_date", start_date) \
+            .lte("snapshot_date", today) \
+            .limit(50000) \
+            .execute()
+        rows = res.data or []
+    except Exception as e:
+        print(f"  ⚠️ Churn check — error fetching snapshot data: {e}")
+        return
+
+    if not rows:
+        print(f"  Churn check — no Platinum snapshot data found")
+        _snapshotted_today.add(alert_key)
+        return
+
+    # Count vehicles per company per date
+    counts = {}  # {company: {date: count}}
+    for r in rows:
+        company = r.get("company") or "Unknown"
+        date = r.get("snapshot_date")
+        counts.setdefault(company, {})
+        counts[company][date] = counts[company].get(date, 0) + 1
+
+    alerts_created = 0
+    for company, by_date in counts.items():
+        today_count = by_date.get(today)
+        if today_count is None:
+            continue  # no data for today yet for this company, skip
+
+        prior_dates = [d for d in by_date if d != today]
+        if not prior_dates:
+            continue  # not enough history yet to compute a baseline
+
+        baseline_avg = sum(by_date[d] for d in prior_dates) / len(prior_dates)
+        if baseline_avg <= 0:
+            continue
+
+        pct_drop = ((baseline_avg - today_count) / baseline_avg) * 100
+        if pct_drop < 5:
+            continue
+
+        # Skip if there's already an unacknowledged alert for this company
+        # in the last 5 days (avoid spamming the same ongoing decline)
+        try:
+            recent_cutoff = (get_ist_now() - timedelta(days=5)).strftime('%Y-%m-%d')
+            existing = supabase.table("customer_alerts") \
+                .select("id") \
+                .eq("company_name", company) \
+                .eq("acknowledged", False) \
+                .gte("alert_date", recent_cutoff) \
+                .limit(1) \
+                .execute()
+            if existing.data:
+                continue
+        except Exception as e:
+            print(f"  ⚠️ Churn check — error checking existing alerts for {company}: {e}")
+            continue
+
+        try:
+            supabase.table("customer_alerts").upsert({
+                "company_name":  company,
+                "tier":          "Platinum",
+                "alert_type":    "vehicle_reduction",
+                "baseline_avg":  round(baseline_avg, 1),
+                "current_count": today_count,
+                "pct_drop":      round(pct_drop, 1),
+                "alert_date":    today,
+                "acknowledged":  False,
+            }, on_conflict="company_name,alert_date").execute()
+            alerts_created += 1
+            print(f"  🚨 ALERT — {company}: {baseline_avg:.0f} → {today_count} ({pct_drop:.1f}% drop)")
+        except Exception as e:
+            print(f"  ⚠️ Churn check — error saving alert for {company}: {e}")
+
+    print(f"  🔔 Churn check done — {alerts_created} new alert(s) created")
+    _snapshotted_today.add(alert_key)
+
 def sync_server(server):
     sync_time = datetime.now(timezone.utc).isoformat()
     print(f"\n  [{server['name']}] Syncing...")
@@ -542,6 +642,8 @@ def sync_all():
         print("\n  CRM updated")
     except Exception as e:
         print(f"\n  CRM error: {e}")
+
+    check_platinum_churn_alerts()
 
     print(f"\nNext sync in {SYNC_EVERY_MINUTES} minutes\n")
 
