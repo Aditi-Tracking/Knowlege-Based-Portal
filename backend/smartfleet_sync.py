@@ -38,6 +38,7 @@ SERVERS = [
 ]
 
 _snapshotted_today = set()
+_tier_map_cache = {}
 
 TIER_MAP = {
     "platinum": "Platinum",
@@ -142,10 +143,37 @@ def map_vehicle(v, region, sync_time):
         "ibutton_rfid": v.get("Ibutton/RFID", ""), "course": str(v.get("course", ""))
     }
 
+def refresh_tier_map():
+    """
+    Fetch company_name -> tier mapping from customer_crm table.
+    FIX (16-Jun-2026): SmartFleet's live API does NOT return a Tier/tier/customer_tier
+    field at all — that's why every vehicle was falling back to "Other" before.
+    The actual tier (Platinum/Gold/Silver) lives in Supabase's customer_crm table,
+    keyed by company_name. This refreshes a cached lookup once per sync_all() cycle
+    (every 10 min) instead of querying it per-vehicle.
+    """
+    global _tier_map_cache
+    try:
+        res = supabase.table("customer_crm").select("company_name,tier").execute()
+        rows = res.data or []
+        new_map = {}
+        for r in rows:
+            name = str(r.get("company_name", "")).strip().lower()
+            tier = str(r.get("tier", "")).strip()
+            if name and tier:
+                new_map[name] = tier
+        _tier_map_cache = new_map
+        print(f"  📋 Tier map refreshed — {len(_tier_map_cache)} companies loaded")
+    except Exception as e:
+        print(f"  ⚠️ Tier map refresh error: {e} — keeping previous cache ({len(_tier_map_cache)} companies)")
+
 def get_tier(v):
-    """Extract tier from vehicle data"""
-    tier_raw = str(v.get("Tier", "") or v.get("tier", "") or v.get("customer_tier", "")).strip().lower()
-    return TIER_MAP.get(tier_raw, "Other")
+    """Look up tier via company name in the cached customer_crm map"""
+    company = str(v.get("Company", "")).strip().lower()
+    tier = _tier_map_cache.get(company)
+    if tier in ("Platinum", "Gold", "Silver"):
+        return tier
+    return "Other"
 
 def save_daily_snapshot(server_name, vehicles):
     """Save full vehicle list snapshot — used for change detection"""
@@ -503,6 +531,8 @@ def sync_all():
     print(f"\n{'='*50}")
     print(f"Sync — {now_ist.strftime('%Y-%m-%d %H:%M:%S')} IST")
     print(f"{'='*50}")
+
+    refresh_tier_map()
 
     for server in SERVERS:
         sync_server(server)
