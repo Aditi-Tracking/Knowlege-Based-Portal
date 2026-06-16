@@ -21189,7 +21189,8 @@ async function acpSave(email, permission, value) {
 .vr-fbtn:hover{border-color:#f0a500;color:#f0a500;}
 .vr-fbtn.active{background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.45);color:#f0a500;}
 #vrTbody tr:hover td{background:var(--surface2);}
-#vrTbody td{padding:11px 14px;font-size:0.84rem;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle;}
+#vrTbody td{padding:8px 14px;font-size:0.83rem;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle;}
+#vrTbody tr:nth-child(even) td{background:var(--border);}
 #vrTbody tr:last-child td{border-bottom:none;}
 .vr-badge{display:inline-block;font-size:0.70rem;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;}
 .vr-act{padding:5px 12px;border-radius:7px;border:none;font-size:0.76rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;}
@@ -21273,8 +21274,7 @@ async function acpSave(email, permission, value) {
   <!-- Body -->
   <div style="padding:24px 28px;">
     <!-- KPIs -->
-    <div id="vrKpiRow" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;"></div>
-    <!-- Search -->
+<div id="vrKpiRow" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;"></div>    <!-- Search -->
     <div style="position:relative;margin-bottom:16px;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="vrSearch" placeholder="Search vendor, product, employee…" oninput="vrApplyFilter()" style="width:100%;padding:10px 13px 10px 34px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:0.84rem;font-family:inherit;outline:none;box-sizing:border-box;">
@@ -21293,8 +21293,8 @@ async function acpSave(email, permission, value) {
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Requested By</th>
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Vendor</th>
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Product / Service</th>
-              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Qty</th>
-              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Amount (₹)</th>
+              <th style="padding:8px 14px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Qty</th>
+              <th style="padding:8px 14px;text-align:right;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Amount (₹)</th>
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Location</th>
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Status</th>
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Payment</th>
@@ -21495,8 +21495,7 @@ async function _vrLoadAmountKPIs(){
       {label:'Approved Amount (₹)',val:data.approved_amount,color:'#22c55e',icon:'✅'},
       {label:'Paid Amount (₹)',val:data.paid_amount,color:'#a855f7',icon:'💳'},
     ];
-    const html=amountKpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:14px 16px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:1.2rem;margin-bottom:5px;">${k.icon}</div><div style="font-size:1.5rem;font-weight:900;color:${k.color};line-height:1;">₹${Number(k.val||0).toLocaleString('en-IN')}</div><div style="font-size:0.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;">${k.label}</div></div>`).join('');
-    document.getElementById('vrKpiRow').insertAdjacentHTML('beforeend', html);
+const html=amountKpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:0.95rem;margin-bottom:3px;">${k.icon}</div><div style="font-size:1.3rem;font-weight:900;color:${k.color};line-height:1;">₹${Number(k.val||0).toLocaleString('en-IN',{maximumFractionDigits:0})}</div><div style="font-size:0.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;">${k.label}</div></div>`).join('');    document.getElementById('vrKpiRow').insertAdjacentHTML('beforeend', html);
   }catch(e){
     console.error('Amount KPI load error:',e);
   }
@@ -21533,8 +21532,7 @@ function _vrRenderKPIs(){
     {label:'Approved',val:_vrAll.filter(r=>r.status==='Approved').length,color:'#22c55e',icon:'✅'},
     {label:'Paid',val:_vrAll.filter(r=>r.payment_status==='Paid').length,color:'#a855f7',icon:'💳'},
   ];
-  document.getElementById('vrKpiRow').innerHTML=kpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:14px 16px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:1.2rem;margin-bottom:5px;">${k.icon}</div><div style="font-size:1.7rem;font-weight:900;color:${k.color};line-height:1;">${k.val}</div><div style="font-size:0.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;">${k.label}</div></div>`).join('');
-}
+document.getElementById('vrKpiRow').innerHTML=kpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:0.95rem;margin-bottom:3px;">${k.icon}</div><div style="font-size:1.3rem;font-weight:900;color:${k.color};line-height:1;">${k.val}</div><div style="font-size:0.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;">${k.label}</div></div>`).join('');}
 
 // ── FILTER ─────────────────────────────────────────
 function vrSetFilter(mode,btn){
@@ -21583,7 +21581,7 @@ function _vrRenderTable(){
     const editBtn=canEdit?`<button class="vr-act" style="background:rgba(78,154,241,0.12);color:#4e9af1;border:1px solid rgba(78,154,241,0.35);margin-left:5px;" onclick="openVendorEditForm(${r.id})" title="Edit request">✏️ Edit</button>`:'';
     const delBtn=canDelete?`<button class="vr-act" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);margin-left:5px;" onclick="vrDeleteRequest(${r.id},event)" title="Delete request">🗑</button>`:'';
     const recurBtn=`<button class="vr-act" style="background:rgba(0,212,170,0.10);color:#00d4aa;border:1px solid rgba(0,212,170,0.3);margin-left:5px;" onclick="openRecurringModal(${r.id})" title="Repeat this request with new amount">🔁</button>`;
-    return`<tr><td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${d}</td><td><div style="font-weight:700;font-size:0.85rem;color:var(--text);">${nameDisplay}</div></td><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'—'}</div></td><td style="text-align:center;">${r.qty||'—'}</td><td style="font-weight:700;white-space:nowrap;">₹${r.amount!=null?Number(r.amount).toLocaleString('en-IN'):'—'}</td><td style="font-size:0.82rem;">${r.location||'—'}</td><td>${_vrStatusBadge(status)}</td><td>${_vrPayBadge(r.payment_status)}</td><td style="white-space:nowrap;">${actBtn}${editBtn}${recurBtn}${delBtn}</td></tr>`;
+    return`<tr><td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${d}</td><td><div style="font-weight:700;font-size:0.85rem;color:var(--text);">${nameDisplay}</div></td><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'—'}</div></td><td style="text-align:center;">${r.qty||'—'}</td><td style="font-weight:700;white-space:nowrap;text-align:right;">₹${r.amount!=null?Number(r.amount).toLocaleString('en-IN',{maximumFractionDigits:0}):'—'}</td><td style="font-size:0.82rem;">${r.location||'—'}</td><td>${_vrStatusBadge(status)}</td><td>${_vrPayBadge(r.payment_status)}</td><td style="white-space:nowrap;">${actBtn}${editBtn}${recurBtn}${delBtn}</td></tr>`;
   }).join('');
 }
 
