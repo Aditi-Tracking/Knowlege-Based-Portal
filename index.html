@@ -21450,8 +21450,7 @@ let _vrAll=[], _vrFiltered=[], _vrFilterMode='all', _vrCurId=null, _vrNameMap={}
 // ── ROLE HELPERS ───────────────────────────────────
 function _vrRole(){return(typeof CURRENT_USER!=='undefined'&&CURRENT_USER)?String(CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim():'';}
 function _vrCanViewAll(){if(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.vendor_view_all==='true')return true;const r=_vrRole();return r==='owner'||r==='mis'||r==='executive assistant'||r==='ea';}
-function _vrIsEA(){const r=_vrRole();return r==='executive assistant'||r==='ea'||r==='owner'||r==='mis';}
-function _vrIsAccounts(){
+function _vrIsEA(){if(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.vendor_review==='true')return true;const r=_vrRole();return r==='executive assistant'||r==='ea'||r==='owner'||r==='mis';}function _vrIsAccounts(){
   // Uses vendor_pay permission — set via Access Control panel for Ashish sir specifically
   // This is role-independent so any employee given this permission gets PAID button access
   if(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.vendor_pay==='true')return true;
