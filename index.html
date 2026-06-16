@@ -21492,7 +21492,9 @@ async function loadVendorRequests(force){
 }
 
 async function _vrLoadVendors(){
-  const res=await fetch(`${SUPABASE_URL}/rest/v1/vendors?select=id,vendor_name&order=vendor_name.asc`,{headers:SB_HDRS()});
+  let vUrl=`${SUPABASE_URL}/rest/v1/vendors?select=id,vendor_name&order=vendor_name.asc`;
+  if(!_vrCanViewAll())vUrl+=`&created_by=eq.${encodeURIComponent(_vrMyEmail())}`;
+  const res=await fetch(vUrl,{headers:SB_HDRS()});
   _vrVendors=res.ok?await res.json():[];
   _vrPopulateVendorDropdown();
 }
@@ -21652,8 +21654,7 @@ async function saveNewVendor(){
   if(!name){errEl.textContent='⚠️ Vendor name is required.';errEl.style.display='block';return;}
   btn.disabled=true;btn.textContent='Saving…';
   try{
-    const payload={vendor_name:name,contact:document.getElementById('nvContact').value.trim()||null,notes:document.getElementById('nvNotes').value.trim()||null};
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/vendors`,{method:'POST',headers:{...SB_HDRS_JSON(),'Prefer':'return=representation','Content-Type':'application/json'},body:JSON.stringify(payload)});
+const payload={vendor_name:name,contact:document.getElementById('nvContact').value.trim()||null,notes:document.getElementById('nvNotes').value.trim()||null,created_by:_vrMyEmail()};    const res=await fetch(`${SUPABASE_URL}/rest/v1/vendors`,{method:'POST',headers:{...SB_HDRS_JSON(),'Prefer':'return=representation','Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!res.ok){const t=await res.text();throw new Error(t);}
     const newVendors=await res.json();
     const newV=newVendors[0];
