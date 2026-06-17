@@ -21483,22 +21483,7 @@ async function loadVendorRequests(force){
     _vrAll=await vrRes.json();
     _vrRenderKPIs();
     _vrLoadAmountKPIs();
-async function _vrLoadAmountKPIs(){
-  try{
-    const url=`https://knowlege-based-portal-production.up.railway.app/api/vendor-kpis?email=${encodeURIComponent(_vrMyEmail())}`;
-    const res=await fetch(url);
-    if(!res.ok)return;
-    const data=await res.json();
-    const amountKpis=[
-      {label:'Total Requested (₹)',val:data.total_amount,color:'#4e9af1',icon:'💰'},
-      {label:'Approved Amount (₹)',val:data.approved_amount,color:'#22c55e',icon:'✅'},
-      {label:'Paid Amount (₹)',val:data.paid_amount,color:'#a855f7',icon:'💳'},
-    ];
-const html=amountKpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:0.95rem;margin-bottom:3px;">${k.icon}</div><div style="font-size:1.3rem;font-weight:900;color:${k.color};line-height:1;">₹${Number(k.val||0).toLocaleString('en-IN',{maximumFractionDigits:0})}</div><div style="font-size:0.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;">${k.label}</div></div>`).join('');    document.getElementById('vrKpiRow').insertAdjacentHTML('beforeend', html);
-  }catch(e){
-    console.error('Amount KPI load error:',e);
-  }
-}
+
     _vrApplyFilter();
   }catch(e){
     if(ldg)ldg.innerHTML=`<div style="color:#ef4444;font-size:0.84rem;">❌ ${e.message}</div>`;
@@ -21532,7 +21517,23 @@ function _vrRenderKPIs(){
     {label:'Paid',val:_vrAll.filter(r=>r.payment_status==='Paid').length,color:'#a855f7',icon:'💳'},
   ];
 document.getElementById('vrKpiRow').innerHTML=kpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:0.95rem;margin-bottom:3px;">${k.icon}</div><div style="font-size:1.3rem;font-weight:900;color:${k.color};line-height:1;">${k.val}</div><div style="font-size:0.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;">${k.label}</div></div>`).join('');}
-
+async function _vrLoadAmountKPIs(){
+  try{
+    const url=`https://knowlege-based-portal-production.up.railway.app/api/vendor-kpis?email=${encodeURIComponent(_vrMyEmail())}`;
+    const res=await fetch(url);
+    if(!res.ok)return;
+    const data=await res.json();
+    const amountKpis=[
+      {label:'Total Requested (₹)',val:data.total_amount,color:'#4e9af1',icon:'💰'},
+      {label:'Approved Amount (₹)',val:data.approved_amount,color:'#22c55e',icon:'✅'},
+      {label:'Paid Amount (₹)',val:data.paid_amount,color:'#a855f7',icon:'💳'},
+    ];
+    const html=amountKpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:0.95rem;margin-bottom:3px;">${k.icon}</div><div style="font-size:1.3rem;font-weight:900;color:${k.color};line-height:1;">₹${Number(k.val||0).toLocaleString('en-IN',{maximumFractionDigits:0})}</div><div style="font-size:0.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;">${k.label}</div></div>`).join('');
+    document.getElementById('vrKpiRow').insertAdjacentHTML('beforeend', html);
+  }catch(e){
+    console.error('Amount KPI load error:',e);
+  }
+}
 // ── FILTER ─────────────────────────────────────────
 function vrSetFilter(mode,btn){
   _vrFilterMode=mode;
@@ -21843,6 +21844,7 @@ async function submitVendorEdit(){
     if(typeof showToast==='function') showToast('✅ Request updated successfully!','success',3000);
     _vrApplyFilter();
     _vrRenderKPIs();
+    _vrLoadAmountKPIs();
   }catch(e){
     errEl.textContent = '❌ ' + e.message;
     errEl.style.display = 'block';
@@ -21921,7 +21923,7 @@ async function vrSaveDecision(){
     if(!res.ok){const t=await res.text();throw new Error(t);}
     const idx=_vrAll.findIndex(x=>x.id===_vrCurId);if(idx!==-1)_vrAll[idx]={..._vrAll[idx],...payload};
     msgEl.style.cssText='display:block;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:9px;color:#22c55e;padding:10px;';msgEl.textContent='✅ Decision saved!';
-    _vrRenderKPIs();_vrApplyFilter();
+    _vrRenderKPIs();_vrLoadAmountKPIs();_vrApplyFilter();
     if(typeof showToast==='function')showToast('✅ Decision saved!','success',2500);
     setTimeout(closeVrModal,1200);
   }catch(e){msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';msgEl.textContent='❌ '+e.message;}
@@ -21958,7 +21960,7 @@ async function vrMarkPaid(){
     const idx=_vrAll.findIndex(x=>x.id===_vrCurId);if(idx!==-1)_vrAll[idx]={..._vrAll[idx],...payload};
     msgEl.style.cssText='display:block;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:9px;color:#a855f7;padding:10px;';
     msgEl.textContent='💳 Marked as PAID!';
-    _vrRenderKPIs();_vrApplyFilter();
+    _vrRenderKPIs();_vrLoadAmountKPIs();_vrApplyFilter();
     if(typeof showToast==='function')showToast('💳 Payment recorded!','success',2500);
     setTimeout(closeVrModal,1200);
   }catch(e){
@@ -22014,6 +22016,7 @@ async function vrDeleteRequest(id, event){
     // Remove from local state
     _vrAll=_vrAll.filter(x=>x.id!==id);
     _vrRenderKPIs();
+    _vrLoadAmountKPIs();
     _vrApplyFilter();
     if(typeof showToast==='function')showToast('🗑 Request deleted','success',2000);
   }catch(e){
