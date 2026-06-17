@@ -46,6 +46,26 @@ TIER_MAP = {
     "silver":   "Silver",
 }
 
+def fetch_all_rows(table_name, select_cols, filters=None, page_size=1000):
+    """
+    Supabase/PostgREST har REST response ko project ke "Max Rows" setting
+    (default 1000) tak cap karta hai jab tak .range() se pagination na ho.
+    Yeh function .range() se loop karke poora result set guarantee karta hai.
+    """
+    all_rows = []
+    start = 0
+    while True:
+        q = supabase.table(table_name).select(select_cols)
+        for col, val in (filters or {}).items():
+            q = q.eq(col, val)
+        res = q.range(start, start + page_size - 1).execute()
+        rows = res.data or []
+        all_rows.extend(rows)
+        if len(rows) < page_size:
+            break
+        start += page_size
+    return all_rows
+
 def get_ist_now():
     if HAS_PYTZ:
         return datetime.now(IST)
@@ -154,8 +174,7 @@ def refresh_tier_map():
     """
     global _tier_map_cache
     try:
-        res = supabase.table("customer_crm").select("company_name,tier").execute()
-        rows = res.data or []
+        rows = fetch_all_rows("customer_crm", "company_name,tier")
         new_map = {}
         for r in rows:
             name = str(r.get("company_name", "")).strip().lower()
@@ -332,17 +351,15 @@ def save_vehicle_changes(server_name, vehicles):
     print(f"  [{server_name}] 🔄 Detecting vehicle changes for {today}...")
 
     # Step 1: find the most recent snapshot date strictly BEFORE today (not hardcoded "yesterday")
+    # Step 2: fetch the full vehicle list for that previous date
     try:
-        date_res = supabase.table("vehicle_daily_snapshot") \
-            .select("snapshot_date") \
-            .eq("region", server_name) \
-            .lt("snapshot_date", today) \
-            .order("snapshot_date", desc=True) \
-            .limit(1) \
-            .execute()
-        prev_dates = date_res.data or []
+        prev_rows = fetch_all_rows(
+            "vehicle_daily_snapshot",
+            "imeino,vehicle_no,vehicle_name,company,tier,region",
+            {"snapshot_date": prev_date, "region": server_name}
+        )
     except Exception as e:
-        print(f"  [{server_name}] Error finding previous snapshot date: {e}")
+        print(f"  [{server_name}] Error fetching previous snapshot: {e}")
         return
 
     if not prev_dates:
