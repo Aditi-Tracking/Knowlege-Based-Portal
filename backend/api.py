@@ -398,7 +398,8 @@ def vendor_kpis():
     return jsonify({
         "total_amount":    total_amount,
         "approved_amount": approved_amount,
-        "paid_amount":     paid_amount
+        "paid_amount":     paid_amount,
+        "unpaid_amount":   total_amount - paid_amount
     })
 
 # ── Health check endpoint ───────────────────────────────────────
