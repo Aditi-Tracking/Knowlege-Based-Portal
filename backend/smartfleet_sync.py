@@ -331,14 +331,8 @@ def save_daily_stats(server_name, vehicles):
 def save_vehicle_changes(server_name, vehicles):
     """
     Compare today vs the MOST RECENT AVAILABLE previous snapshot — save added/removed vehicles.
-
-    FIX (16-Jun-2026): earlier this only checked literal "yesterday". If Railway was down
-    during the 11:50PM window on any day, that day's snapshot never got created — and then
-    on the NEXT day, "yesterday" would be missing, so this function bailed out completely
-    and silently lost that day's change data. Now it walks back to whatever the last real
-    snapshot was (1 day back, or 3 days back after an outage) so a gap never causes a total
-    blackout — it just bundles the missed days' worth of changes into one entry, which is
-    the correct, honest behavior.
+    Gap-resilient: walks back to whatever the last real snapshot was (1 day back, or N days
+    back after an outage) so a missing day never causes a total blackout.
     """
     if not should_take_snapshot():
         return
@@ -350,16 +344,18 @@ def save_vehicle_changes(server_name, vehicles):
 
     print(f"  [{server_name}] 🔄 Detecting vehicle changes for {today}...")
 
-    # Step 1: find the most recent snapshot date strictly BEFORE today (not hardcoded "yesterday")
-    # Step 2: fetch the full vehicle list for that previous date
+    # Step 1: find the most recent snapshot date strictly BEFORE today
     try:
-        prev_rows = fetch_all_rows(
-            "vehicle_daily_snapshot",
-            "imeino,vehicle_no,vehicle_name,company,tier,region",
-            {"snapshot_date": prev_date, "region": server_name}
-        )
+        prev_dates_res = supabase.table("vehicle_daily_snapshot") \
+            .select("snapshot_date") \
+            .eq("region", server_name) \
+            .lt("snapshot_date", today) \
+            .order("snapshot_date", desc=True) \
+            .limit(1) \
+            .execute()
+        prev_dates = prev_dates_res.data or []
     except Exception as e:
-        print(f"  [{server_name}] Error fetching previous snapshot: {e}")
+        print(f"  [{server_name}] Error finding previous snapshot date: {e}")
         return
 
     if not prev_dates:
@@ -373,12 +369,11 @@ def save_vehicle_changes(server_name, vehicles):
 
     # Step 2: fetch the full vehicle list for that previous date
     try:
-        prev_res = supabase.table("vehicle_daily_snapshot") \
-            .select("imeino,vehicle_no,vehicle_name,company,tier,region") \
-            .eq("snapshot_date", prev_date) \
-            .eq("region", server_name) \
-            .execute()
-        prev_rows = prev_res.data or []
+        prev_rows = fetch_all_rows(
+            "vehicle_daily_snapshot",
+            "imeino,vehicle_no,vehicle_name,company,tier,region",
+            {"snapshot_date": prev_date, "region": server_name}
+        )
     except Exception as e:
         print(f"  [{server_name}] Error fetching previous snapshot: {e}")
         return
