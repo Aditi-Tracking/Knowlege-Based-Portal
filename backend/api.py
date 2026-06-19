@@ -402,6 +402,161 @@ def vendor_kpis():
         "unpaid_amount":   total_amount - paid_amount
     })
 
+# ══════════════════════════════════════════════════════════════════
+# ENDPOINT 5: GET /api/mapping-regions?emp_id=23
+#
+# Called by Customer Mapping tool in portal.
+# Returns list of regions this employee is allowed to see.
+# ══════════════════════════════════════════════════════════════════
+@app.route("/api/mapping-regions", methods=["GET"])
+def get_mapping_regions():
+    err = db_check()
+    if err:
+        return err
+
+    emp_id = request.args.get("emp_id", "").strip()
+    if not emp_id:
+        return jsonify([])
+
+    try:
+        res = sb.table("mapping_region_access") \
+            .select("region") \
+            .eq("emp_id", emp_id) \
+            .execute()
+        regions = [r["region"] for r in (res.data or [])]
+        if "All" in regions:
+            return jsonify(["HeadOffice", "Goa", "Bangalore", "Gujarat"])
+        return jsonify(regions)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ══════════════════════════════════════════════════════════════════
+# ENDPOINT 6: GET /api/mapping-data?region=Goa
+#
+# Returns GPS companies + their current mapping status for a region.
+# ══════════════════════════════════════════════════════════════════
+@app.route("/api/mapping-data", methods=["GET"])
+def get_mapping_data():
+    err = db_check()
+    if err:
+        return err
+
+    region = request.args.get("region", "").strip()
+
+    try:
+        # Region filter ke saath GPS aliases fetch karo
+        q = sb.table("customer_gps_aliases").select("id,gps_name,region,customer_id")
+        if region and region != "All":
+            q = q.eq("region", region)
+        gps_res = q.order("gps_name").execute()
+        gps_rows = gps_res.data or []
+
+        # customer_crm se vehicle counts fetch karo
+        crm_res = sb.table("customer_crm") \
+            .select("company_name,tier,total_vehicles") \
+            .execute()
+        crm_map = {r["company_name"]: r for r in (crm_res.data or [])}
+
+        # customer_master se mapped info fetch karo
+        master_res = sb.table("customer_master").select("*").execute()
+        master_map = {r["customer_id"]: r for r in (master_res.data or [])}
+
+        result = []
+        for g in gps_rows:
+            crm = crm_map.get(g["gps_name"], {})
+            master = master_map.get(g["customer_id"], {}) if g["customer_id"] else {}
+            result.append({
+                "gps_alias_id":  g["id"],
+                "gps_name":      g["gps_name"],
+                "region":        g["region"],
+                "customer_id":   g["customer_id"],
+                "canonical_name":master.get("canonical_name", ""),
+                "tier":          crm.get("tier", ""),
+                "total_vehicles":crm.get("total_vehicles", 0),
+                "is_mapped":     g["customer_id"] is not None,
+            })
+
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ══════════════════════════════════════════════════════════════════
+# ENDPOINT 7: GET /api/odoo-search?q=sai ganesh
+#
+# Search Odoo customer names from customer_odoo_aliases table.
+# ══════════════════════════════════════════════════════════════════
+@app.route("/api/odoo-search", methods=["GET"])
+def odoo_search():
+    err = db_check()
+    if err:
+        return err
+
+    query = request.args.get("q", "").strip()
+    if not query:
+        return jsonify([])
+
+    try:
+        res = sb.table("customer_odoo_aliases") \
+            .select("id,odoo_name,customer_id") \
+            .ilike("odoo_name", f"%{query}%") \
+            .limit(10) \
+            .execute()
+        return jsonify(res.data or [])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ══════════════════════════════════════════════════════════════════
+# ENDPOINT 8: POST /api/save-mapping
+#
+# Save GPS company → Odoo customer mapping.
+# Creates customer_master entry if needed.
+# ══════════════════════════════════════════════════════════════════
+@app.route("/api/save-mapping", methods=["POST"])
+def save_mapping():
+    err = db_check()
+    if err:
+        return err
+
+    caller_email = request.headers.get("X-User-Email", "").strip().lower()
+    body = request.get_json() or {}
+
+    gps_alias_id   = body.get("gps_alias_id")
+    gps_name       = body.get("gps_name", "").strip()
+    odoo_alias_ids = body.get("odoo_alias_ids", [])  # list of odoo alias IDs
+    canonical_name = body.get("canonical_name", "").strip()
+    tier           = body.get("tier", "").strip()
+
+    if not gps_name or not canonical_name:
+        return jsonify({"error": "gps_name and canonical_name required"}), 400
+
+    try:
+        # Step 1: customer_master mein insert/update karo
+        master_res = sb.table("customer_master").upsert({
+            "canonical_name": canonical_name,
+            "tier":           tier,
+            "mapped_by":      caller_email,
+        }, on_conflict="canonical_name").execute()
+
+        customer_id = master_res.data[0]["customer_id"]
+
+        # Step 2: GPS alias ko customer_id se link karo
+        sb.table("customer_gps_aliases").update({
+            "customer_id": customer_id
+        }).eq("id", gps_alias_id).execute()
+
+        # Step 3: Odoo aliases ko customer_id se link karo
+        for odoo_id in odoo_alias_ids:
+            sb.table("customer_odoo_aliases").update({
+                "customer_id": customer_id
+            }).eq("id", odoo_id).execute()
+
+        return jsonify({"ok": True, "customer_id": customer_id})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+        
 # ── Health check endpoint ───────────────────────────────────────
 # Visit /health in your browser to confirm the server is running.
 # Also shows whether the database is connected.
