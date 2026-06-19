@@ -443,27 +443,38 @@ def get_mapping_data():
         return err
 
     region = request.args.get("region", "").strip()
+    page_size = 1000
 
     try:
-        # Region filter ke saath GPS aliases fetch karo
-        q = sb.table("customer_gps_aliases").select("id,gps_name,region,customer_id")
-        if region and region != "All":
-            q = q.eq("region", region)
-        gps_res = q.order("gps_name").execute()
-        gps_rows = gps_res.data or []
+        all_gps_rows = []
+        start = 0
+        while True:
+            q = sb.table("customer_gps_aliases").select("id,gps_name,region,customer_id")
+            if region and region != "All":
+                q = q.eq("region", region)
+            res = q.order("gps_name").range(start, start + page_size - 1).execute()
+            rows = res.data or []
+            all_gps_rows.extend(rows)
+            if len(rows) < page_size:
+                break
+            start += page_size
 
-        # customer_crm se vehicle counts fetch karo
-        crm_res = sb.table("customer_crm") \
-            .select("company_name,tier,total_vehicles") \
-            .execute()
-        crm_map = {r["company_name"]: r for r in (crm_res.data or [])}
+        crm_all = []
+        start = 0
+        while True:
+            res = sb.table("customer_crm").select("company_name,tier,total_vehicles").range(start, start+page_size-1).execute()
+            rows = res.data or []
+            crm_all.extend(rows)
+            if len(rows) < page_size:
+                break
+            start += page_size
+        crm_map = {r["company_name"]: r for r in crm_all}
 
-        # customer_master se mapped info fetch karo
         master_res = sb.table("customer_master").select("*").execute()
         master_map = {r["customer_id"]: r for r in (master_res.data or [])}
 
         result = []
-        for g in gps_rows:
+        for g in all_gps_rows:
             crm = crm_map.get(g["gps_name"], {})
             master = master_map.get(g["customer_id"], {}) if g["customer_id"] else {}
             result.append({
