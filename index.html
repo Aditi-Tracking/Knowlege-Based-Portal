@@ -15721,7 +15721,7 @@ function mpRenderTable(){
     if(_mpStatus==='unmapped' &&  r.is_mapped) return false;
     if(search && !r.gps_name.toLowerCase().includes(search)) return false;
     return true;
-  });
+  }).sort((a,b)=>(b.total_vehicles||0)-(a.total_vehicles||0));
 
   const tbody = document.getElementById('mp-tbody');
   const empty = document.getElementById('mp-empty');
