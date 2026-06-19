@@ -5618,8 +5618,24 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 #panel-mapping .mp-mapped-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;}
 #panel-mapping .mp-mapped-yes{background:rgba(16,185,129,0.15);color:#10b981;}
 #panel-mapping .mp-mapped-no{background:rgba(239,68,68,0.12);color:#ef4444;}
-#panel-mapping .mp-inline-search{width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:12px;box-sizing:border-box;}
-#panel-mapping .mp-inline-search:focus{outline:none;border-color:#6366f1;}
+#panel-mapping .mp-inline-search{width:100%;padding:5px 8px;border:none;background:transparent;color:var(--text);font-size:12px;box-sizing:border-box;}
+#panel-mapping .mp-inline-search:focus{outline:none;}
+#panel-mapping .mp-kpi-row{display:flex;gap:16px;padding:16px 24px 0;flex-wrap:wrap;}
+#panel-mapping .mp-kpi{flex:1;min-width:140px;padding:16px 20px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:all .18s;position:relative;overflow:hidden;}
+#panel-mapping .mp-kpi:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.1);}
+#panel-mapping .mp-kpi.active{border-width:2px;}
+#panel-mapping .mp-kpi-label{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+#panel-mapping .mp-kpi-val{font-size:1.8rem;font-weight:800;line-height:1;}
+#panel-mapping .mp-kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+#panel-mapping .mp-kpi-bar{position:absolute;bottom:0;left:0;height:3px;border-radius:0 0 12px 12px;}
+#panel-mapping .mp-search-wrap{position:relative;display:flex;align-items:center;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:0 12px;gap:8px;min-width:220px;}
+#panel-mapping .mp-search-wrap:focus-within{border-color:#10b981;}
+#panel-mapping .mp-search-wrap input{flex:1;padding:8px 0;border:none;background:transparent;color:var(--text);font-size:13px;}
+#panel-mapping .mp-search-wrap input:focus{outline:none;}
+#panel-mapping table.mp-tbl tr:nth-child(even) td{background:rgba(0,0,0,0.02);}
+#panel-mapping table.mp-tbl tr:hover td{background:rgba(99,102,241,0.06)!important;}
+#panel-mapping .mp-veh-badge{display:inline-flex;align-items:center;justify-content:center;min-width:36px;padding:3px 8px;border-radius:20px;font-size:12px;font-weight:700;background:rgba(16,185,129,0.12);color:#10b981;}
+#panel-mapping .mp-veh-zero{background:rgba(107,114,128,0.1);color:var(--muted);}
 </style>
 
 <div class="mp-header">
@@ -5627,16 +5643,43 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     <div class="mp-title">🗺️ Customer Mapping</div>
     <div style="font-size:0.8rem;color:var(--muted);margin-top:2px;">GPS Portal ↔ Odoo customer name mapping</div>
   </div>
-  <div class="mp-progress" id="mp-progress-badge">Loading...</div>
 </div>
 
-<div class="mp-filters">
+<!-- KPI Cards -->
+<div class="mp-kpi-row">
+  <div class="mp-kpi" id="mp-kpi-total" onclick="mpFilterStatus('all')" style="border-color:#6366f1;">
+    <div class="mp-kpi-label">Total Customers</div>
+    <div class="mp-kpi-val" style="color:#6366f1;" id="mp-kpi-total-val">—</div>
+    <div class="mp-kpi-sub">GPS Portal</div>
+    <div class="mp-kpi-bar" style="background:#6366f1;width:100%;"></div>
+  </div>
+  <div class="mp-kpi" id="mp-kpi-mapped" onclick="mpFilterStatus('mapped')" style="border-color:#10b981;">
+    <div class="mp-kpi-label">✅ Mapped</div>
+    <div class="mp-kpi-val" style="color:#10b981;" id="mp-kpi-mapped-val">—</div>
+    <div class="mp-kpi-sub" id="mp-kpi-mapped-pct">0% complete</div>
+    <div class="mp-kpi-bar" id="mp-kpi-mapped-bar" style="background:#10b981;width:0%;"></div>
+  </div>
+  <div class="mp-kpi" id="mp-kpi-unmapped" onclick="mpFilterStatus('unmapped')" style="border-color:#ef4444;">
+    <div class="mp-kpi-label">❌ Unmapped</div>
+    <div class="mp-kpi-val" style="color:#ef4444;" id="mp-kpi-unmapped-val">—</div>
+    <div class="mp-kpi-sub" id="mp-kpi-unmapped-pct">0% remaining</div>
+    <div class="mp-kpi-bar" id="mp-kpi-unmapped-bar" style="background:#ef4444;width:100%;"></div>
+  </div>
+  <div class="mp-kpi" style="border-color:#f59e0b;cursor:default;">
+    <div class="mp-kpi-label">🚗 Total Vehicles</div>
+    <div class="mp-kpi-val" style="color:#f59e0b;" id="mp-kpi-vehicles-val">—</div>
+    <div class="mp-kpi-sub">Mapped customers</div>
+    <div class="mp-kpi-bar" style="background:#f59e0b;width:100%;"></div>
+  </div>
+</div>
+
+<div class="mp-filters" style="margin-top:16px;">
   <div id="mp-region-btns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
   <div style="width:1px;height:20px;background:var(--border);margin:0 4px;"></div>
-  <button class="mp-status-btn active" onclick="mpFilterStatus('all')" id="mp-st-all">All</button>
-  <button class="mp-status-btn" onclick="mpFilterStatus('mapped')" id="mp-st-mapped">✅ Mapped</button>
-  <button class="mp-status-btn" onclick="mpFilterStatus('unmapped')" id="mp-st-unmapped">❌ Unmapped</button>
-  <input class="mp-search" type="text" id="mp-search-input" placeholder="🔍 Search GPS company..." oninput="mpRenderTable()">
+  <div class="mp-search-wrap">
+    <span style="color:var(--muted);font-size:14px;">🔍</span>
+    <input type="text" id="mp-search-input" placeholder="Search GPS company..." oninput="mpRenderTable()">
+  </div>
 </div>
 
 <div class="mp-table-wrap">
@@ -5656,7 +5699,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </table>
   <div id="mp-loading" style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">⏳ Loading customers...</div>
   <div id="mp-empty" style="display:none;text-align:center;padding:40px;color:var(--muted);font-size:14px;">No customers found.</div>
-</div>
 </div><!-- end panel-mapping -->
 
 <!-- ACCESS CONTROL PANEL — inside main-area so sidebar margin applies correctly -->
@@ -15641,11 +15683,34 @@ function mpFilterStatus(status){
 }
 
 function mpUpdateProgress(){
-  const total  = _mpData.length;
-  const mapped = _mpData.filter(r=>r.is_mapped).length;
-  const pct    = total ? Math.round(mapped/total*100) : 0;
-  const el     = document.getElementById('mp-progress-badge');
-  if(el) el.textContent = `✅ ${mapped}/${total} mapped (${pct}%)`;
+  const total    = _mpData.length;
+  const mapped   = _mpData.filter(r=>r.is_mapped).length;
+  const unmapped = total - mapped;
+  const pct      = total ? Math.round(mapped/total*100) : 0;
+  const unpct    = total ? Math.round(unmapped/total*100) : 0;
+  const vehicles = _mpData.filter(r=>r.is_mapped).reduce((s,r)=>s+(r.total_vehicles||0),0);
+
+  const set = (id,val) => { const e=document.getElementById(id); if(e) e.textContent=val; };
+  set('mp-kpi-total-val',   total.toLocaleString());
+  set('mp-kpi-mapped-val',  mapped.toLocaleString());
+  set('mp-kpi-unmapped-val',unmapped.toLocaleString());
+  set('mp-kpi-vehicles-val',vehicles.toLocaleString());
+  set('mp-kpi-mapped-pct',  `${pct}% complete`);
+  set('mp-kpi-unmapped-pct',`${unpct}% remaining`);
+
+  const mb = document.getElementById('mp-kpi-mapped-bar');
+  const ub = document.getElementById('mp-kpi-unmapped-bar');
+  if(mb) mb.style.width = `${pct}%`;
+  if(ub) ub.style.width = `${unpct}%`;
+
+  // Active KPI highlight
+  ['mp-kpi-total','mp-kpi-mapped','mp-kpi-unmapped'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.remove('active');
+  });
+  const activeMap = {all:'mp-kpi-total', mapped:'mp-kpi-mapped', unmapped:'mp-kpi-unmapped'};
+  const activeEl  = document.getElementById(activeMap[_mpStatus]);
+  if(activeEl) activeEl.classList.add('active');
 }
 
 function mpRenderTable(){
