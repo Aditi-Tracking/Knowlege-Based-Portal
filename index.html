@@ -15917,7 +15917,7 @@ function mpInlineBlur(input, idx){
 }
 
 // Close dropdowns on outside click
-document.addEventListener('click', function(e){
+window.addEventListener('click', function(e){
   if(!e.target.classList.contains('mp-inline-search')){
     document.querySelectorAll('[id^="mp-dd-"]').forEach(d=>d.style.display='none');
   }
