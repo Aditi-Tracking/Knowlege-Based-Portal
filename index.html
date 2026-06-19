@@ -6281,7 +6281,12 @@ function switchDB(id, fromPopState){
   if(id==='marketing'){loadMarketingCounts();}
   if(id==='ims')      { loadIMSDashboard(); }
   if(id==='crm')      { loadCRMDashboard(); }
-  if(id==='mapping')  { loadMappingDashboard(); }
+  if(id==='mapping')   { loadMappingDashboard(); }
+if(id==='adminperms'){ 
+  var ap=document.getElementById('panel-adminperms');
+  if(ap) ap.style.display='block';
+  if(typeof loadAdminPermissions==='function') loadAdminPermissions();
+}
   if(id==='finance')    { loadSimpleCNPanel('finance',    'Finance').then(()=>_injectPurchaseCard()); }
   if(id==='compliance') { loadSimpleCNPanel('compliance', 'Compliance'); }
   if(id==='referral')   { initReferralProgramme(); }
