@@ -2151,12 +2151,12 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <span class="mm-badge" style="margin-left:auto;background:rgba(20,184,166,0.18);color:#14b8a6;border:1px solid rgba(20,184,166,0.35);">Docs</span>
     </button>
 
-    <!-- Referral — Soon -->
-    <div class="mm-nav-item mm-disabled">
-      <span class="mm-icon" style="opacity:0.4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span>
+    <!-- Referral -->
+    <button class="mm-nav-item" id="mm-referral" onclick="mobMenuGo('referral')">
+      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span>
       <span class="mm-label">Referral</span>
-      <span class="mm-badge mm-badge-soon" style="margin-left:auto;">Soon</span>
-    </div>
+      <span class="mm-badge" style="margin-left:auto;background:rgba(240,165,0,0.18);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">₹2K</span>
+    </button>
 
   </div>
 </div>
@@ -4867,32 +4867,199 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
 <!-- REFERRAL PANEL -->
 <div class="dashboard-panel" id="panel-referral">
+
+  <!-- Referral Programme CSS (scoped inside panel) -->
+  <style>
+    #panel-referral .ref-banner{display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:linear-gradient(135deg,rgba(240,165,0,0.10),rgba(0,212,170,0.06));border:1px solid var(--border);border-radius:16px;padding:18px 22px;margin-bottom:22px;}
+    #panel-referral .ref-banner-amt{font-size:1.9rem;font-weight:800;color:var(--accent);line-height:1;}
+    #panel-referral .ref-banner-sub{font-size:0.78rem;color:var(--muted);margin-top:2px;}
+    #panel-referral .ref-banner-rules{display:flex;gap:18px;flex-wrap:wrap;margin-left:auto;}
+    #panel-referral .ref-rule{font-size:0.78rem;color:var(--text2);display:flex;align-items:center;gap:6px;}
+    #panel-referral .ref-subnav{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;}
+    #panel-referral .ref-subnav button{padding:9px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;}
+    #panel-referral .ref-subnav button:hover{color:var(--text);border-color:var(--accent2);}
+    #panel-referral .ref-subnav button.active{border-color:rgba(0,212,170,0.45);background:rgba(0,212,170,0.10);color:var(--accent2);}
+    #panel-referral .ref-tab{display:none;}
+    #panel-referral .ref-tab.active{display:block;}
+    #panel-referral .ref-filter-row{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+    #panel-referral .ref-filter-row select{padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.83rem;font-family:inherit;outline:none;}
+    #panel-referral .ref-opening-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;}
+    #panel-referral .ref-opening-meta{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;}
+    #panel-referral .ref-chip{font-size:0.70rem;font-weight:700;padding:3px 9px;border-radius:7px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted);}
+    #panel-referral .ref-card-actions{display:flex;gap:8px;margin-top:6px;}
+    #panel-referral .ref-btn{flex:1;padding:9px 12px;border-radius:9px;border:none;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;text-align:center;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;}
+    #panel-referral .ref-btn-primary{background:var(--accent2);color:#04221c;}
+    #panel-referral .ref-btn-primary:hover{filter:brightness(1.08);}
+    #panel-referral .ref-btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--text2);}
+    #panel-referral .ref-btn-ghost:hover{border-color:var(--accent2);color:var(--accent2);}
+    #panel-referral .ref-mine-row{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+    #panel-referral .ref-mine-main{flex:1;min-width:200px;}
+    #panel-referral .ref-mine-cand{font-weight:700;color:var(--text);font-size:0.92rem;}
+    #panel-referral .ref-mine-role{font-size:0.8rem;color:var(--muted);margin-top:2px;}
+    #panel-referral .ref-stage-badge{font-size:0.74rem;font-weight:700;padding:4px 11px;border-radius:8px;white-space:nowrap;}
+    #panel-referral .ref-pipe-row{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;}
+    #panel-referral .ref-pipe-top{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:space-between;}
+    #panel-referral .ref-pipe-cand{font-weight:700;color:var(--text);font-size:0.96rem;}
+    #panel-referral .ref-pipe-role{font-size:0.8rem;color:var(--accent2);font-weight:600;margin-top:2px;}
+    #panel-referral .ref-pipe-meta{font-size:0.78rem;color:var(--muted);margin-top:8px;line-height:1.6;}
+    #panel-referral .ref-pipe-meta a{color:var(--accent2);text-decoration:none;}
+    #panel-referral .ref-pipe-note{font-size:0.8rem;color:var(--text2);margin-top:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;}
+    #panel-referral .ref-pipe-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+    #panel-referral .ref-pipe-controls select,#panel-referral .ref-pipe-controls input{padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.82rem;font-family:inherit;outline:none;}
+    #panel-referral .ref-pipe-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:14px;}
+    #panel-referral .ref-pipe-block{background:var(--surface2);border-radius:10px;padding:12px 14px;}
+    #panel-referral .ref-pipe-block-title{font-size:0.72rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+    #panel-referral .ref-pipe-block div{font-size:0.84rem;color:var(--text2);margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+    #panel-referral .ref-pipe-block a{color:var(--accent2);text-decoration:none;}
+    @media (max-width:640px){ #panel-referral .ref-pipe-cols{grid-template-columns:1fr;} }
+    #panel-referral .ref-pipe-controls label{font-size:0.74rem;color:var(--muted);font-weight:600;margin-right:4px;}
+    #panel-referral .ref-pipe-save{padding:7px 14px;border-radius:8px;border:none;background:var(--accent2);color:#08110d;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;}
+    #panel-referral .ref-form label{font-size:0.82rem;font-weight:600;color:var(--muted);display:block;margin-bottom:6px;}
+    #panel-referral .ref-form input, #panel-referral .ref-form select, #panel-referral .ref-form textarea{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.9rem;font-family:inherit;outline:none;box-sizing:border-box;}
+    #panel-referral .ref-form .ref-field{margin-bottom:16px;}
+    #panel-referral .ref-form-row{display:flex;gap:14px;}
+    #panel-referral .ref-form-row .ref-field{flex:1;}
+
+    /* Refer-a-Friend modal form */
+    #referModal .refm-field{margin-bottom:16px;}
+    #referModal .refm-row{display:flex;gap:14px;}
+    #referModal .refm-row .refm-field{flex:1;min-width:0;}
+    #referModal label{font-size:0.78rem;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;letter-spacing:0.2px;}
+    #referModal input[type="text"],
+    #referModal input[type="tel"],
+    #referModal input[type="email"]{
+      width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid var(--border);
+      background:var(--surface2);color:var(--text);font-size:0.92rem;font-family:inherit;
+      outline:none;box-sizing:border-box;transition:border-color 0.15s, box-shadow 0.15s;
+    }
+    #referModal input[type="text"]:focus,
+    #referModal input[type="tel"]:focus,
+    #referModal input[type="email"]:focus{
+      border-color:var(--accent2);box-shadow:0 0 0 3px rgba(0,212,170,0.15);
+    }
+    #referModal input::placeholder{color:var(--muted);opacity:0.75;}
+    #referModal .refm-file{
+      display:flex;align-items:center;gap:10px;border:1.5px dashed var(--border);
+      border-radius:10px;padding:10px 14px;background:var(--surface2);
+    }
+    #referModal .refm-file input[type="file"]{
+      flex:1;font-size:0.82rem;color:var(--text2);font-family:inherit;
+    }
+    #referModal .refm-file input[type="file"]::-webkit-file-upload-button{
+      background:var(--surface);border:1px solid var(--border);color:var(--text);
+      padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;
+      font-family:inherit;cursor:pointer;margin-right:10px;
+    }
+    #referModal .refm-hint{font-size:0.74rem;color:var(--muted);margin-top:6px;}
+  </style>
+
   <div class="db-header">
     <div>
       <div class="db-title"><span>aditi</span> Referral</div>
       <div class="db-breadcrumb">Home › Referral</div>
     </div>
     <div class="header-right">
-      <button onclick="openUploadModal('Referral')"
-        style="display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;"
-        onmouseover="this.style.background='rgba(0,212,170,0.18)'" onmouseout="this.style.background='rgba(0,212,170,0.08)'">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Upload
-      </button>
     </div>
   </div>
+
   <div class="db-content">
-    <div class="section-title">Referral Documents</div>
-    <div id="referral-loading" style="text-align:center;padding:40px 0;color:var(--muted);">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-      <div style="font-size:0.88rem;">Loading…</div>
+
+    <!-- Programme banner -->
+    <div class="ref-banner">
+      <div>
+        <div class="ref-banner-amt">₹2,000</div>
+        <div class="ref-banner-sub">per successful referral</div>
+      </div>
+      <div class="ref-banner-rules">
+        <div class="ref-rule">✅ Friends only — not family</div>
+        <div class="ref-rule">⏱️ Paid after the referred friend completes <strong style="color:var(--text)">90 days</strong></div>
+        <div class="ref-rule">♾️ Unlimited referrals per employee</div>
+      </div>
     </div>
-    <div id="referral-grid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-bottom:2rem;"></div>
-    <div id="referral-empty" style="display:none;text-align:center;padding:48px 16px;color:var(--muted);">
-      <div style="font-size:2.5rem;margin-bottom:10px;">🤝</div>
-      <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:6px;">No Referral Documents Yet</div>
-      <div style="font-size:0.84rem;">Click <strong>Upload</strong> to add the first document.</div>
+
+    <!-- Sub-tabs -->
+    <div class="ref-subnav">
+      <button id="refTabBtn-roles" class="active" onclick="switchReferralTab('roles')">📋 Open Roles</button>
+      <button id="refTabBtn-mine" onclick="switchReferralTab('mine')">🧾 My Referrals</button>
+      <button id="refTabBtn-pipeline" style="display:none;" onclick="switchReferralTab('pipeline')">📊 Pipeline</button>
+      <button id="refTabBtn-post" style="display:none;" onclick="switchReferralTab('post')">➕ Post a Role</button>
     </div>
+
+    <!-- TAB: OPEN ROLES -->
+    <div class="ref-tab active" id="refTab-roles">
+      <div class="ref-filter-row">
+        <select id="refFilterLoc" onchange="renderReferralOpenings()"><option value="">All Locations</option></select>
+        <select id="refFilterDept" onchange="renderReferralOpenings()"><option value="">All Departments</option></select>
+      </div>
+      <div id="refOpenings-loading" style="text-align:center;padding:40px 0;color:var(--muted);">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <div style="font-size:0.88rem;">Loading open roles…</div>
+      </div>
+      <div id="refOpenings-grid" class="ref-opening-grid" style="display:none;"></div>
+      <div id="refOpenings-empty" style="display:none;text-align:center;padding:48px 16px;color:var(--muted);">
+        <div style="font-size:2.5rem;margin-bottom:10px;">💼</div>
+        <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:6px;">No Open Roles Right Now</div>
+        <div style="font-size:0.84rem;">Check back soon, or browse every live role on the <a href="https://erp.adititracking.com/jobs" target="_blank" style="color:var(--accent2);">careers page</a>.</div>
+      </div>
+    </div>
+
+    <!-- TAB: MY REFERRALS -->
+    <div class="ref-tab" id="refTab-mine">
+      <div id="refMine-loading" style="text-align:center;padding:40px 0;color:var(--muted);">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <div style="font-size:0.88rem;">Loading your referrals…</div>
+      </div>
+      <div id="refMine-list" style="display:none;"></div>
+      <div id="refMine-empty" style="display:none;text-align:center;padding:48px 16px;color:var(--muted);">
+        <div style="font-size:2.5rem;margin-bottom:10px;">🙋</div>
+        <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:6px;">You Haven't Referred Anyone Yet</div>
+        <div style="font-size:0.84rem;">Go to <strong>Open Roles</strong> and refer a friend to earn ₹2,000.</div>
+      </div>
+    </div>
+
+    <!-- TAB: PIPELINE (HR / MIS only — every referral, with status control) -->
+    <div class="ref-tab" id="refTab-pipeline">
+      <div class="section-title" style="margin-bottom:18px;">All Referrals — Pipeline View</div>
+      <div id="refPipeline-loading" style="text-align:center;padding:40px 0;color:var(--muted);">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <div style="font-size:0.88rem;">Loading all referrals…</div>
+      </div>
+      <div id="refPipeline-list" style="display:none;"></div>
+      <div id="refPipeline-empty" style="display:none;text-align:center;padding:48px 16px;color:var(--muted);">
+        <div style="font-size:2.5rem;margin-bottom:10px;">📭</div>
+        <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:6px;">No Referrals Yet</div>
+        <div style="font-size:0.84rem;">Once employees start referring friends, they'll show up here.</div>
+      </div>
+    </div>
+
+    <!-- TAB: POST A ROLE (HR / MIS only) -->
+    <div class="ref-tab" id="refTab-post">
+      <div class="section-title" style="margin-bottom:18px;">Post a New Opening</div>
+      <div class="ref-form" style="max-width:640px;">
+        <div class="ref-form-row">
+          <div class="ref-field"><label>Role Title</label><input id="refNewTitle" type="text" placeholder="e.g. Inside Sales Executive"></div>
+          <div class="ref-field"><label>No. of Openings</label><input id="refNewCount" type="number" min="1" value="1"></div>
+        </div>
+        <div class="ref-form-row">
+          <div class="ref-field"><label>Department</label><input id="refNewDept" type="text" placeholder="e.g. Sales"></div>
+          <div class="ref-field"><label>Location</label><input id="refNewLoc" type="text" placeholder="e.g. Mumbai"></div>
+        </div>
+        <div class="ref-field">
+          <label>Short Job Description</label>
+          <textarea id="refNewJD" rows="4" placeholder="Key responsibilities, requirements..."></textarea>
+        </div>
+        <div class="ref-field">
+          <label>Link to Full JD (optional)</label>
+          <input id="refNewJdUrl" type="text" placeholder="https://erp.adititracking.com/jobs/...">
+        </div>
+        <button class="ref-btn ref-btn-primary" style="width:100%;padding:12px;" onclick="submitNewOpening()">Post Opening</button>
+        <div id="refNewStatus" style="display:none;margin-top:14px;padding:10px 14px;border-radius:10px;font-size:0.85rem;font-weight:600;text-align:center;"></div>
+      </div>
+
+      <div class="section-title" style="margin:28px 0 18px;">Manage Existing Openings</div>
+      <div id="refAdminList"></div>
+    </div>
+
   </div>
 </div>
 
@@ -5996,7 +6163,7 @@ function switchDB(id, fromPopState){
   if(id==='crm')      { loadCRMDashboard(); }
   if(id==='finance')    { loadSimpleCNPanel('finance',    'Finance').then(()=>_injectPurchaseCard()); }
   if(id==='compliance') { loadSimpleCNPanel('compliance', 'Compliance'); }
-  if(id==='referral')   { loadSimpleCNPanel('referral',   'Referral');   }
+  if(id==='referral')   { initReferralProgramme(); }
   if(id==='announcements') { /* handled by override below */ }
   if(id==='activitylog') { loadActivityLog(); }
   if(id==='itadmin')    { loadSimpleCNPanel('itadmin',    'IT Admin');   }
@@ -8897,18 +9064,20 @@ async function tSilentRefresh(){
 
     const _notOwner = !isOwner;
     if(CURRENT_USER && _notOwner){
-      // Dashboards Tasks se independent — PERMISSIONS se control hoga
+      const hasTasks = tAllData.length > 0;
+      // Dashboards visible if user has ANY of: CRM/Leads/Collection/FMS/IMS permission, OR has tasks assigned (Task Checklist)
       const hasDashAccess=
         PERMISSIONS.can_view_crm==='true'||
         PERMISSIONS.can_view_leads==='true'||
         PERMISSIONS.can_view_collection==='true'||
         PERMISSIONS.can_view_fms==='true'||
-        PERMISSIONS.can_view_ims==='true';
+        PERMISSIONS.can_view_ims==='true'||
+        hasTasks;
       const navDash=document.getElementById('nav-dashboards-trigger');
       if(navDash)navDash.style.display=hasDashAccess?'':'none';
       const dashGroup=document.getElementById('dashboardSubGroup');
       if(dashGroup)dashGroup.style.display=hasDashAccess?'':'none';
-      if(tAllData.length===0){
+      if(!hasTasks){
         const navTasks=document.getElementById('nav-tasks');
         if(navTasks)navTasks.style.display='none';
         document.querySelectorAll('#panel-home .home-card').forEach(card=>{
@@ -9056,6 +9225,10 @@ function _buildFallbackPermissions(rawRole) {
     can_upload_quiz:        String(isMIS),
     can_download_video:     String(isOwner || isMIS),
     checklist_scope:        hasAll ? 'all' : 'own',
+    can_view_open_roles:        'true',
+    can_view_my_referrals:      'true',
+    can_view_referral_pipeline: String(isOwner || isMIS),
+    can_post_referral_role:     String(isOwner || isMIS),
   };
 }
 
@@ -9368,6 +9541,9 @@ function restrictEmployee(){
   });
 
   if (CURRENT_USER) window.EMPLOYEE_EMAIL = CURRENT_USER.email;
+
+  // Referral Programme nav item — hide entirely if user has none of the 4 referral permissions
+  if (typeof _applyReferralNavVisibility === 'function') _applyReferralNavVisibility();
 }
 
 // ── Upload & Delete button visibility — controlled by PERMISSIONS ──────────
@@ -12093,6 +12269,573 @@ async function loadSimpleCNPanel(panelKey, sectionName) {
     if (loadingEl) loadingEl.style.display = 'none';
     if (emptyEl)   { emptyEl.style.display = 'block'; emptyEl.textContent = '⚠️ ' + e.message; }
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+// REFERRAL PROGRAMME — "Refer & Earn" (₹2,000 per successful referral)
+// Tables (Supabase): job_openings, referrals
+// See /referral_programme_schema.sql for table + RLS + storage setup
+// ═══════════════════════════════════════════════════════════
+let _refOpenings        = [];
+let _myReferrals        = [];
+let _refOpeningsLoaded  = false;
+let _myReferralsLoaded  = false;
+
+function _isReferralAdmin(){
+  if (!CURRENT_USER) return false;
+  if (CURRENT_USER.role === 'owner') return true;
+  const r = String(CURRENT_USER.rawRole || '').toLowerCase().trim();
+  return r === 'hr' || r === 'mis';
+}
+
+// Access Control toggle wins if set; otherwise fall back to legacy HR/MIS/owner check
+function _canSeeReferralPipeline(){
+  return PERMISSIONS.can_view_referral_pipeline === 'true' || _isReferralAdmin();
+}
+function _canPostReferralRole(){
+  return PERMISSIONS.can_post_referral_role === 'true' || _isReferralAdmin();
+}
+
+// Nav item + tab visibility for Referral Programme — runs at login and again on tab open
+function _applyReferralNavVisibility(){
+  const canRoles = PERMISSIONS.can_view_open_roles        !== 'false';
+  const canMine  = PERMISSIONS.can_view_my_referrals      !== 'false';
+  const canPipe  = _canSeeReferralPipeline();
+  const canPost  = _canPostReferralRole();
+  const anyTab   = canRoles || canMine || canPipe || canPost;
+
+  const refNav = document.getElementById('nav-referral');
+  const refMM  = document.getElementById('mm-referral');
+  if (refNav) refNav.style.display = anyTab ? '' : 'none';
+  if (refMM)  refMM.style.display  = anyTab ? '' : 'none';
+
+  return { canRoles, canMine, canPipe, canPost };
+}
+
+function initReferralProgramme(){
+  const rolesBtn = document.getElementById('refTabBtn-roles');
+  const mineBtn  = document.getElementById('refTabBtn-mine');
+  const postBtn  = document.getElementById('refTabBtn-post');
+  const pipeBtn  = document.getElementById('refTabBtn-pipeline');
+
+  // Each tab controlled by its own permission key from Access Control.
+  // Open Roles / My Referrals default to visible (everyone can refer a friend)
+  // unless an admin explicitly switches them off for a person.
+  const { canRoles, canMine, canPipe, canPost } = _applyReferralNavVisibility();
+
+  if (rolesBtn) rolesBtn.style.display = canRoles ? '' : 'none';
+  if (mineBtn)  mineBtn.style.display  = canMine  ? '' : 'none';
+  if (postBtn)  postBtn.style.display  = canPost  ? '' : 'none';
+  if (pipeBtn)  pipeBtn.style.display  = canPipe  ? '' : 'none';
+
+  // If the currently-active tab just got hidden, jump to the first visible one
+  const order = [['roles',canRoles],['mine',canMine],['pipeline',canPipe],['post',canPost]];
+  const activeBtn = document.querySelector('#panel-referral .ref-subnav button.active');
+  const activeTab = activeBtn ? activeBtn.id.replace('refTabBtn-','') : 'roles';
+  const activeStillVisible = order.some(([t,v]) => t === activeTab && v);
+  if (!activeStillVisible) {
+    const fallback = order.find(([,v]) => v);
+    if (fallback) switchReferralTab(fallback[0]);
+  }
+
+  loadReferralOpenings();
+  loadMyReferrals();
+}
+
+function switchReferralTab(tab){
+  ['roles','mine','pipeline','post'].forEach(t=>{
+    const tabEl = document.getElementById('refTab-' + t);
+    const btnEl = document.getElementById('refTabBtn-' + t);
+    if (tabEl) tabEl.classList.toggle('active', t === tab);
+    if (btnEl) btnEl.classList.toggle('active', t === tab);
+  });
+  if (tab === 'mine' && !_myReferralsLoaded) loadMyReferrals();
+  if (tab === 'pipeline' && _canSeeReferralPipeline()) loadReferralPipeline();
+  if (tab === 'post' && _canPostReferralRole())  loadAdminOpeningsList();
+}
+
+// ── Open Roles ───────────────────────────────────────────────
+async function loadReferralOpenings(){
+  const loadingEl = document.getElementById('refOpenings-loading');
+  const gridEl    = document.getElementById('refOpenings-grid');
+  const emptyEl   = document.getElementById('refOpenings-empty');
+  try{
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/job_openings?select=*&status=eq.Open&order=posted_date.desc`,
+      { headers: SB_HDRS() }
+    );
+    if (!res.ok) throw new Error('Could not load openings (' + res.status + ')');
+    _refOpenings = await res.json();
+    _refOpeningsLoaded = true;
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (!_refOpenings.length) { if (emptyEl) emptyEl.style.display = 'block'; return; }
+    _populateReferralFilters();
+    renderReferralOpenings();
+  } catch(e){
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (emptyEl) {
+      emptyEl.style.display = 'block';
+      emptyEl.innerHTML = '⚠️ Could not load openings.<br><span style="font-size:0.78rem;">' + e.message + ' — has the job_openings table been created in Supabase?</span>';
+    }
+  }
+}
+
+function _populateReferralFilters(){
+  const locSel  = document.getElementById('refFilterLoc');
+  const deptSel = document.getElementById('refFilterDept');
+  if (!locSel || !deptSel) return;
+  const curLoc  = locSel.value, curDept = deptSel.value;
+  const locs    = [...new Set(_refOpenings.map(o=>o.location).filter(Boolean))].sort();
+  const depts   = [...new Set(_refOpenings.map(o=>o.department).filter(Boolean))].sort();
+  locSel.innerHTML  = '<option value="">All Locations</option>'  + locs.map(l=>`<option value="${l}">${l}</option>`).join('');
+  deptSel.innerHTML = '<option value="">All Departments</option>' + depts.map(d=>`<option value="${d}">${d}</option>`).join('');
+  locSel.value  = curLoc;
+  deptSel.value = curDept;
+}
+
+function renderReferralOpenings(){
+  const gridEl  = document.getElementById('refOpenings-grid');
+  const emptyEl = document.getElementById('refOpenings-empty');
+  if (!gridEl) return;
+  const locF  = document.getElementById('refFilterLoc')  ? document.getElementById('refFilterLoc').value  : '';
+  const deptF = document.getElementById('refFilterDept') ? document.getElementById('refFilterDept').value : '';
+  const rows  = _refOpenings.filter(o => (!locF || o.location === locF) && (!deptF || o.department === deptF));
+
+  if (!rows.length){
+    gridEl.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+  gridEl.style.display = 'grid';
+
+  const colors = ['#f0a500','#00d4aa','#4e9af1','#a78bfa','#ff5c7c'];
+  gridEl.innerHTML = rows.map((o,i)=>{
+    const c = colors[i % colors.length];
+    const safeTitle = String(o.role_title || 'Role').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const jdPreview = (o.jd_text || 'See the full JD for details.').slice(0,140);
+    const jdMore    = (o.jd_text || '').length > 140 ? '…' : '';
+    return `
+      <div class="home-card" style="--card-top:${c};cursor:default;">
+        <div class="hc-icon" style="color:${c};border-color:${c}40;background:${c}1a;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <div class="hc-name">${o.role_title || 'Role'}</div>
+        <div class="ref-opening-meta">
+          <span class="ref-chip">📍 ${o.location || '—'}</span>
+          ${o.department ? `<span class="ref-chip">${o.department}</span>` : ''}
+          <span class="ref-chip">${o.openings_count || 1} opening${(o.openings_count||1)===1?'':'s'}</span>
+        </div>
+        <div class="hc-desc" style="font-size:0.84rem;min-height:40px;">${jdPreview}${jdMore}</div>
+        <div class="ref-card-actions">
+          <button class="ref-btn ref-btn-primary" onclick="openReferModal(${o.id},'${safeTitle}')">🤝 Refer a Friend</button>
+          ${o.jd_url ? `<a class="ref-btn ref-btn-ghost" href="${o.jd_url}" target="_blank">Full JD</a>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Refer a Friend modal ─────────────────────────────────────
+function openReferModal(openingId, openingTitle){
+  if (!CURRENT_USER){ alert('Please log in first.'); return; }
+  document.getElementById('referOpeningId').value       = openingId;
+  document.getElementById('referOpeningTitle').textContent = openingTitle;
+  document.getElementById('referCandName').value    = '';
+  document.getElementById('referCandMobile').value  = '';
+  document.getElementById('referCandEmail').value   = '';
+  document.getElementById('referCandCity').value     = '';
+  document.getElementById('referResume').value      = '';
+  document.getElementById('referModalStatus').style.display = 'none';
+  document.getElementById('referSubmitBtn').disabled = false;
+  document.getElementById('referModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+function closeReferModal(){
+  document.getElementById('referModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function _refMsg(text, color){
+  const el = document.getElementById('referModalStatus');
+  el.style.display    = 'block';
+  el.style.background = color + '1f';
+  el.style.color      = color;
+  el.textContent      = text;
+}
+
+async function submitReferralForm(){
+  const openingId    = document.getElementById('referOpeningId').value;
+  const openingTitle = document.getElementById('referOpeningTitle').textContent;
+  const name     = document.getElementById('referCandName').value.trim();
+  const mobile   = document.getElementById('referCandMobile').value.trim();
+  const email    = document.getElementById('referCandEmail').value.trim();
+  const city     = document.getElementById('referCandCity').value.trim();
+  const fileInput = document.getElementById('referResume');
+
+  if (!name || !mobile || !email || !city) { _refMsg('⚠️ Please fill in all fields.', '#ff5c7c'); return; }
+  if (!/^[0-9]{10}$/.test(mobile.replace(/\D/g,''))) { _refMsg('⚠️ Please enter a valid 10-digit mobile number.', '#ff5c7c'); return; }
+  if (!/^\S+@\S+\.\S+$/.test(email)) { _refMsg('⚠️ Please enter a valid email address.', '#ff5c7c'); return; }
+  if (!fileInput.files || !fileInput.files[0]) { _refMsg('⚠️ Please attach the candidate\'s resume.', '#ff5c7c'); return; }
+  if (!CURRENT_USER) { _refMsg('⚠️ Please log in again.', '#ff5c7c'); return; }
+  if (!CURRENT_USER.empId) { _refMsg('⚠️ Could not find your Employee ID. Please refresh the page and try again.', '#ff5c7c'); return; }
+
+  document.getElementById('referSubmitBtn').disabled = true;
+  _refMsg('⏳ Submitting referral…', '#f0a500');
+
+  let resumeUploadError = null;
+  try{
+    let resumeUrl = null;
+    if (fileInput.files && fileInput.files[0]){
+      const file     = fileInput.files[0];
+      const ext      = (file.name.split('.').pop() || 'pdf').toLowerCase();
+      const safeName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const filePath = `${openingId}/${Date.now()}_${safeName}.${ext}`;
+      const bucket   = 'referral_resumes';
+      _refMsg('⏳ Uploading resume…', '#f0a500');
+      const upRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${filePath}`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON,
+          'Authorization': `Bearer ${_currentToken}`,
+          'Content-Type': file.type || 'application/octet-stream',
+          'x-upsert': 'true'
+        },
+        body: file
+      });
+      if (upRes.ok) {
+        resumeUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${filePath}`;
+      } else {
+        const errText = await upRes.text();
+        resumeUploadError = errText || ('Resume upload failed (' + upRes.status + ')');
+        console.warn('Resume upload failed:', resumeUploadError);
+      }
+    }
+    _refMsg('⏳ Submitting referral…', '#f0a500');
+
+    const payload = {
+      opening_id:        openingId ? Number(openingId) : null,
+      opening_title:      openingTitle,
+      referrer_emp_id:     CURRENT_USER.empId,
+      referrer_name:       CURRENT_USER.name    || '',
+      referrer_email:      CURRENT_USER.email   || '',
+      referrer_dept:       CURRENT_USER.rawRole || '',
+      referrer_branch:     CURRENT_USER.location || '',
+      candidate_name:      name,
+      candidate_mobile:    mobile,
+      candidate_email:     email,
+      candidate_city:      city,
+      resume_url:          resumeUrl,
+      is_friend_declared:  true,
+      status:              'Submitted'
+    };
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/referrals`, {
+      method: 'POST',
+      headers: { ...SB_HDRS(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) { const t = await res.text(); throw new Error(t || ('Could not save referral (' + res.status + ')')); }
+
+    if (resumeUploadError) {
+      _refMsg('⚠️ Referral submitted, but resume upload failed: ' + resumeUploadError, '#f0a500');
+    } else {
+      _refMsg('✅ Referral submitted! You will be notified as it progresses.', '#00d4aa');
+    }
+    _myReferralsLoaded = false;
+    loadMyReferrals();
+    setTimeout(closeReferModal, resumeUploadError ? 3500 : 1400);
+  } catch(e){
+    _refMsg('❌ ' + e.message, '#ff5c7c');
+    document.getElementById('referSubmitBtn').disabled = false;
+  }
+}
+
+// ── My Referrals ─────────────────────────────────────────────
+function _refStageColor(status){
+  const map = {
+    'Submitted':              '#4e9af1',
+    'Under Review':           '#f0a500',
+    'Shortlisted/Interview':  '#f0a500',
+    'Selected/Offered':       '#a78bfa',
+    'Joined':                 '#a78bfa',
+    '90-Day Completed':       '#00d4aa',
+    'Incentive Paid':         '#00d4aa',
+    'Closed-Not Eligible':    '#ff5c7c'
+  };
+  return map[status] || '#b0b8cc';
+}
+
+function _refStageDesc(status){
+  const map = {
+    'Submitted':             'HR has received your referral and will review it shortly.',
+    'Under Review':          'HR is screening the candidate.',
+    'Shortlisted/Interview': 'Candidate is progressing through the interview process.',
+    'Selected/Offered':      'An offer has been extended to the candidate.',
+    'Joined':                'Candidate has joined — the 90-day clock has started.',
+    '90-Day Completed':      'Candidate completed 90 days — incentive eligible, payout pending.',
+    'Incentive Paid':        'Your ₹2,000 incentive has been released.',
+    'Closed-Not Eligible':   'Not eligible for incentive (did not join, exited early, or duplicate).'
+  };
+  return map[status] || '';
+}
+
+async function loadMyReferrals(){
+  if (!CURRENT_USER || !CURRENT_USER.email) return;
+  const loadingEl = document.getElementById('refMine-loading');
+  const listEl    = document.getElementById('refMine-list');
+  const emptyEl   = document.getElementById('refMine-empty');
+  try{
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/referrals?select=*&referrer_email=ilike.${encodeURIComponent(CURRENT_USER.email)}&order=submitted_at.desc`,
+      { headers: SB_HDRS() }
+    );
+    if (!res.ok) throw new Error('Could not load your referrals (' + res.status + ')');
+    _myReferrals = await res.json();
+    _myReferralsLoaded = true;
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (!_myReferrals.length) { if (emptyEl) emptyEl.style.display = 'block'; return; }
+    if (emptyEl) emptyEl.style.display = 'none';
+    listEl.style.display = 'block';
+    listEl.innerHTML = _myReferrals.map(r=>{
+      const c = _refStageColor(r.status);
+      let extra = '';
+      if (r.status === 'Joined' && r.ninety_day_date){
+        extra = `<div style="font-size:0.76rem;color:var(--muted);margin-top:4px;">Eligible on ${new Date(r.ninety_day_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>`;
+      } else if (r.status === 'Incentive Paid' && r.paid_date){
+        extra = `<div style="font-size:0.76rem;color:var(--won);margin-top:4px;">Paid on ${new Date(r.paid_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})} · ₹${r.paid_amount || 2000}</div>`;
+      } else {
+        const desc = _refStageDesc(r.status);
+        if (desc) extra = `<div style="font-size:0.76rem;color:var(--muted);margin-top:4px;">${desc}</div>`;
+      }
+      return `
+        <div class="ref-mine-row">
+          <div class="ref-mine-main">
+            <div class="ref-mine-cand">${r.candidate_name}</div>
+            <div class="ref-mine-role">for ${r.opening_title || '—'}</div>
+            ${extra}
+          </div>
+          <span class="ref-stage-badge" style="background:${c}1f;color:${c};border:1px solid ${c}40;">${r.status}</span>
+        </div>`;
+    }).join('');
+  } catch(e){
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.innerHTML = '⚠️ ' + e.message; }
+  }
+}
+
+// ── HR / MIS: Pipeline — every referral with full details + status control ──
+const REF_STATUS_OPTIONS = [
+  'Submitted','Under Review','Shortlisted/Interview','Selected/Offered',
+  'Joined','90-Day Completed','Incentive Paid','Closed-Not Eligible'
+];
+
+async function loadReferralPipeline(){
+  if (!_canSeeReferralPipeline()) return;
+  const loadingEl = document.getElementById('refPipeline-loading');
+  const listEl    = document.getElementById('refPipeline-list');
+  const emptyEl   = document.getElementById('refPipeline-empty');
+  loadingEl.style.display = 'block'; listEl.style.display = 'none'; emptyEl.style.display = 'none';
+  try{
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/referrals?select=*&order=submitted_at.desc`,
+      { headers: SB_HDRS() }
+    );
+    if (!res.ok) throw new Error('Could not load referrals (' + res.status + ')');
+    const rows = await res.json();
+    loadingEl.style.display = 'none';
+    if (!rows.length){ emptyEl.style.display = 'block'; return; }
+    listEl.style.display = 'block';
+    listEl.innerHTML = rows.map(r => _renderPipelineRow(r)).join('');
+  } catch(e){
+    loadingEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    emptyEl.innerHTML = '⚠️ ' + e.message;
+  }
+}
+
+function _renderPipelineRow(r){
+  const c = _refStageColor(r.status);
+  const submitted = r.submitted_at ? new Date(r.submitted_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—';
+  const statusOpts = REF_STATUS_OPTIONS.map(s => `<option value="${s}" ${s===r.status?'selected':''}>${s}</option>`).join('');
+  const showJoining = (r.status === 'Joined' || r.status === '90-Day Completed' || r.status === 'Incentive Paid');
+  const showPayout  = (r.status === 'Incentive Paid' || r.status === '90-Day Completed');
+  return `
+    <div class="ref-pipe-row" id="refPipeRow-${r.id}">
+      <div class="ref-pipe-top">
+        <div>
+          <div class="ref-pipe-cand">${r.candidate_name}</div>
+          <div class="ref-pipe-role">for ${r.opening_title || '—'}</div>
+        </div>
+        <span class="ref-stage-badge" style="background:${c}1f;color:${c};border:1px solid ${c}40;">${r.status}</span>
+      </div>
+
+      <div class="ref-pipe-cols">
+        <div class="ref-pipe-block">
+          <div class="ref-pipe-block-title">Candidate</div>
+          <div>🙋 ${r.candidate_name}</div>
+          <div>📱 ${r.candidate_mobile}</div>
+          ${r.candidate_email ? `<div>✉️ <a href="mailto:${r.candidate_email}">${r.candidate_email}</a></div>` : ''}
+          ${r.candidate_city ? `<div>📍 ${r.candidate_city}</div>` : ''}
+          ${r.resume_url ? `<div><a href="${r.resume_url}" target="_blank">📎 View Resume</a></div>` : ''}
+        </div>
+        <div class="ref-pipe-block">
+          <div class="ref-pipe-block-title">Referred By</div>
+          <div>👤 ${r.referrer_name}</div>
+          <div>📍 ${r.referrer_branch || r.referrer_dept || '—'}</div>
+          <div>🗓️ Submitted ${submitted}</div>
+        </div>
+      </div>
+
+      ${r.note ? `<div class="ref-pipe-note">📝 ${r.note}</div>` : ''}
+      <div class="ref-pipe-controls">
+        <label>Status</label>
+        <select id="refPipeStatus-${r.id}" onchange="_refPipeToggleFields(${r.id})">${statusOpts}</select>
+        <span id="refPipeJoinWrap-${r.id}" style="display:${showJoining ? 'inline-flex' : 'none'};align-items:center;gap:6px;">
+          <label>Joining Date</label>
+          <input type="date" id="refPipeJoinDate-${r.id}" value="${r.joining_date || ''}">
+        </span>
+        <span id="refPipePayWrap-${r.id}" style="display:${showPayout ? 'inline-flex' : 'none'};align-items:center;gap:6px;">
+          <label>Paid ₹</label>
+          <input type="number" id="refPipePaidAmt-${r.id}" value="${r.paid_amount || 2000}" style="width:80px;">
+          <label>Paid Date</label>
+          <input type="date" id="refPipePaidDate-${r.id}" value="${r.paid_date || ''}">
+        </span>
+        <button class="ref-pipe-save" onclick="saveReferralPipelineRow(${r.id})">Save</button>
+        <span id="refPipeMsg-${r.id}" style="font-size:0.76rem;font-weight:600;"></span>
+      </div>
+    </div>`;
+}
+
+function _refPipeToggleFields(id){
+  const status   = document.getElementById('refPipeStatus-' + id).value;
+  const joinWrap = document.getElementById('refPipeJoinWrap-' + id);
+  const payWrap  = document.getElementById('refPipePayWrap-' + id);
+  if (joinWrap) joinWrap.style.display = (status === 'Joined' || status === '90-Day Completed' || status === 'Incentive Paid') ? 'inline-flex' : 'none';
+  if (payWrap)  payWrap.style.display  = (status === 'Incentive Paid' || status === '90-Day Completed') ? 'inline-flex' : 'none';
+}
+
+async function saveReferralPipelineRow(id){
+  const msgEl   = document.getElementById('refPipeMsg-' + id);
+  const status  = document.getElementById('refPipeStatus-' + id).value;
+  const joinEl  = document.getElementById('refPipeJoinDate-' + id);
+  const paidAmtEl  = document.getElementById('refPipePaidAmt-' + id);
+  const paidDateEl = document.getElementById('refPipePaidDate-' + id);
+
+  const patch = { status };
+  if (joinEl && joinEl.value) patch.joining_date = joinEl.value;
+  if (status === 'Incentive Paid'){
+    patch.paid_flag = true;
+    if (paidAmtEl  && paidAmtEl.value)  patch.paid_amount = Number(paidAmtEl.value);
+    if (paidDateEl && paidDateEl.value) patch.paid_date   = paidDateEl.value;
+  }
+  if (status === '90-Day Completed') patch.eligible_flag = true;
+
+  msgEl.style.color = 'var(--accent)'; msgEl.textContent = 'Saving…';
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/referrals?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { ...SB_HDRS(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(patch)
+    });
+    if (!res.ok) { const t = await res.text(); throw new Error(t || ('Failed (' + res.status + ')')); }
+    msgEl.style.color = 'var(--won)'; msgEl.textContent = '✅ Saved';
+    setTimeout(()=>{ if (msgEl) msgEl.textContent = ''; }, 2500);
+  } catch(e){
+    msgEl.style.color = '#ff5c7c'; msgEl.textContent = '⚠️ ' + e.message;
+  }
+}
+
+// ── HR / MIS: Post & manage openings ──────────────────────────
+async function submitNewOpening(){
+  if (!_canPostReferralRole()) { alert('⛔ You do not have permission to post a role.'); return; }
+  const title  = document.getElementById('refNewTitle').value.trim();
+  const count  = parseInt(document.getElementById('refNewCount').value) || 1;
+  const dept   = document.getElementById('refNewDept').value.trim();
+  const loc    = document.getElementById('refNewLoc').value.trim();
+  const jd     = document.getElementById('refNewJD').value.trim();
+  const jdUrl  = document.getElementById('refNewJdUrl').value.trim();
+  const statusEl = document.getElementById('refNewStatus');
+
+  if (!title || !loc){
+    statusEl.style.display = 'block'; statusEl.style.background = '#ff5c7c1f'; statusEl.style.color = '#ff5c7c';
+    statusEl.textContent = '⚠️ Role title and location are required.';
+    return;
+  }
+  statusEl.style.display = 'block'; statusEl.style.background = '#f0a5001f'; statusEl.style.color = '#f0a500';
+  statusEl.textContent = '⏳ Posting…';
+
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/job_openings`, {
+      method: 'POST',
+      headers: { ...SB_HDRS(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({
+        role_title: title, department: dept || null, location: loc, openings_count: count,
+        jd_text: jd || null, jd_url: jdUrl || null, status: 'Open'
+      })
+    });
+    if (!res.ok) { const t = await res.text(); throw new Error(t || ('Failed (' + res.status + ')')); }
+    statusEl.style.background = '#00d4aa1f'; statusEl.style.color = '#00d4aa';
+    statusEl.textContent = '✅ Opening posted!';
+    ['refNewTitle','refNewDept','refNewLoc','refNewJD','refNewJdUrl'].forEach(id=>{ const el=document.getElementById(id); if (el) el.value=''; });
+    document.getElementById('refNewCount').value = 1;
+    _refOpeningsLoaded = false;
+    loadReferralOpenings();
+    loadAdminOpeningsList();
+  } catch(e){
+    statusEl.style.background = '#ff5c7c1f'; statusEl.style.color = '#ff5c7c';
+    statusEl.textContent = '❌ ' + e.message;
+  }
+}
+
+async function loadAdminOpeningsList(){
+  if (!_canPostReferralRole()) return;
+  const wrap = document.getElementById('refAdminList');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;">Loading…</div>';
+  try{
+    const res  = await fetch(`${SUPABASE_URL}/rest/v1/job_openings?select=*&order=posted_date.desc`, { headers: SB_HDRS() });
+    const rows = await res.json();
+    if (!rows.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;">No openings posted yet.</div>'; return; }
+    wrap.innerHTML = rows.map(o=>`
+      <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;background:var(--surface);flex-wrap:wrap;">
+        <div style="flex:1;min-width:180px;">
+          <div style="font-weight:700;font-size:0.9rem;color:var(--text);">${o.role_title}</div>
+          <div style="font-size:0.78rem;color:var(--muted);">${o.location || '—'} · ${o.department || '—'} · ${o.openings_count || 1} opening${(o.openings_count||1)===1?'':'s'}</div>
+        </div>
+        <span class="badge ${o.status === 'Open' ? 'badge-won' : 'badge-open'}">${o.status}</span>
+        <button onclick="deleteOpening(${o.id},'${(o.role_title||'').replace(/'/g,"\\'")}')" style="padding:7px 12px;border-radius:8px;border:1.5px solid rgba(255,92,124,0.4);background:rgba(255,92,124,0.08);color:#ff5c7c;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;">
+          Delete
+        </button>
+      </div>`).join('');
+  } catch(e){
+    wrap.innerHTML = '⚠️ ' + e.message;
+  }
+}
+
+async function toggleOpeningStatus(id, newStatus){
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/job_openings?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { ...SB_HDRS(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    _refOpeningsLoaded = false;
+    loadReferralOpenings();
+    loadAdminOpeningsList();
+  } catch(e){ alert('Could not update: ' + e.message); }
+}
+
+async function deleteOpening(id, title){
+  if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/job_openings?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { ...SB_HDRS(), 'Prefer': 'return=minimal' }
+    });
+    if (!res.ok) { const t = await res.text(); throw new Error(t || ('Failed (' + res.status + ')')); }
+    _refOpeningsLoaded = false;
+    loadReferralOpenings();
+    loadAdminOpeningsList();
+  } catch(e){ alert('Could not delete: ' + e.message); }
 }
 
 async function loadProducts() {
@@ -16021,6 +16764,58 @@ function _imsShowError(msg) {
       style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#00d4aa,#4e9af1);color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.18s;">
       Upload File
     </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     REFER A FRIEND MODAL (Employee Referral Programme)
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="referModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10100;overflow-y:auto;padding:16px;">
+  <div style="max-width:480px;margin:40px auto;background:var(--surface);border-radius:20px;padding:28px;position:relative;border:1px solid var(--border);box-shadow:0 24px 70px rgba(0,0,0,0.45);">
+    <button onclick="closeReferModal()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--text);display:flex;align-items:center;justify-content:center;">✕</button>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
+      <div style="width:44px;height:44px;border-radius:12px;background:rgba(240,165,0,0.12);border:1px solid rgba(240,165,0,0.3);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">🤝</div>
+      <div>
+        <div style="font-weight:800;font-size:1.05rem;color:var(--text);">Refer a Friend</div>
+        <div style="font-size:0.82rem;color:var(--muted);margin-top:2px;">for <span id="referOpeningTitle" style="color:var(--accent);font-weight:700;"></span></div>
+      </div>
+    </div>
+
+    <input type="hidden" id="referOpeningId" value="" />
+
+    <div class="refm-field">
+      <label>Candidate Name *</label>
+      <input type="text" id="referCandName" placeholder="Full name" required />
+    </div>
+    <div class="refm-row">
+      <div class="refm-field">
+        <label>Mobile Number *</label>
+        <input type="tel" id="referCandMobile" placeholder="10-digit mobile" maxlength="10" required />
+      </div>
+      <div class="refm-field">
+        <label>Email *</label>
+        <input type="email" id="referCandEmail" placeholder="candidate@email.com" required />
+      </div>
+    </div>
+    <div class="refm-field">
+      <label>City *</label>
+      <input type="text" id="referCandCity" placeholder="e.g. Mumbai" required />
+    </div>
+    <div class="refm-field" style="margin-bottom:18px;">
+      <label>Resume — PDF/DOC *</label>
+      <div class="refm-file">
+        <input type="file" id="referResume" accept=".pdf,.doc,.docx" required />
+      </div>
+    </div>
+
+    <div id="referModalStatus" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:10px;font-size:0.85rem;font-weight:600;text-align:center;"></div>
+
+    <button id="referSubmitBtn" onclick="submitReferralForm()"
+      style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#08110d;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0.2px;">
+      Submit Referral
+    </button>
+    <div class="refm-hint" style="text-align:center;">₹2,000 incentive on successful joining + 90 days · No duplicate candidates</div>
   </div>
 </div>
 
@@ -21076,6 +21871,10 @@ const _permLabels = {
   can_upload_quiz:        '🎯 Create & Manage Quizzes',
   can_download_video:     '⬇️ Download Training Videos',
   checklist_scope:        '✅ Task Checklist Scope',
+  can_view_open_roles:        '📋 Referral — Open Roles',
+  can_view_my_referrals:      '🧾 Referral — My Referrals',
+  can_view_referral_pipeline: '📊 Referral — Pipeline (HR)',
+  can_post_referral_role:     '➕ Referral — Post a Role (HR)',
 };
 
 async function loadAdminPermsPanel() {
