@@ -328,11 +328,11 @@ def save_daily_stats(server_name, vehicles):
     print(f"  [{server_name}] ✅ Stats saved — {len(rows)} tier rows")
     _snapshotted_today.add(stats_key)
 
-def save_vehicle_changes(server_name, vehicles):
+def save_vehicle_changes(server_name):
     """
-    Compare today vs the MOST RECENT AVAILABLE previous snapshot — save added/removed vehicles.
-    Gap-resilient: walks back to whatever the last real snapshot was (1 day back, or N days
-    back after an outage) so a missing day never causes a total blackout.
+    Compare today's snapshot vs previous snapshot — purely from DB.
+    Live vehicles list use nahi karta — isliye multiple sync cycles
+    mein bhi consistent result milta hai.
     """
     if not should_take_snapshot():
         return
@@ -344,7 +344,6 @@ def save_vehicle_changes(server_name, vehicles):
 
     print(f"  [{server_name}] 🔄 Detecting vehicle changes for {today}...")
 
-    # Step 1: find the most recent snapshot date strictly BEFORE today
     try:
         prev_dates_res = supabase.table("vehicle_daily_snapshot") \
             .select("snapshot_date") \
@@ -359,15 +358,31 @@ def save_vehicle_changes(server_name, vehicles):
         return
 
     if not prev_dates:
-        print(f"  [{server_name}] No previous snapshot found at all — skipping change detection (first-ever snapshot)")
+        print(f"  [{server_name}] No previous snapshot — skipping")
         return
 
     prev_date = prev_dates[0]["snapshot_date"]
     gap_days = (datetime.strptime(today, '%Y-%m-%d') - datetime.strptime(prev_date, '%Y-%m-%d')).days
-    if gap_days > 1:
-        print(f"  [{server_name}] ⚠️ Snapshot gap detected ({gap_days} days) — comparing against {prev_date} instead of yesterday")
+    if gap_days > 3:
+        print(f"  [{server_name}] ⚠️ Gap {gap_days} days — skipping")
+        _snapshotted_today.add(changes_key)
+        return
 
-    # Step 2: fetch the full vehicle list for that previous date
+    # TODAY ka snapshot DB se fetch karo
+    try:
+        today_rows = fetch_all_rows(
+            "vehicle_daily_snapshot",
+            "imeino,vehicle_no,vehicle_name,company,tier,region",
+            {"snapshot_date": today, "region": server_name}
+        )
+    except Exception as e:
+        print(f"  [{server_name}] Error fetching today snapshot: {e}")
+        return
+
+    if not today_rows:
+        print(f"  [{server_name}] Today snapshot empty — skipping")
+        return
+
     try:
         prev_rows = fetch_all_rows(
             "vehicle_daily_snapshot",
@@ -379,57 +394,47 @@ def save_vehicle_changes(server_name, vehicles):
         return
 
     if not prev_rows:
-        print(f"  [{server_name}] Previous snapshot ({prev_date}) was empty — skipping")
+        print(f"  [{server_name}] Previous snapshot empty — skipping")
         return
 
-    # Build maps
-    prev_map = {r["imeino"]: r for r in prev_rows}
-    today_map = {}
-    for v in vehicles:
-        imei = str(v.get("Imeino", "")).strip()
-        if not imei or imei.lower() == "null":
-            continue
-        today_map[imei] = v
+    today_map = {r["imeino"]: r for r in today_rows}
+    prev_map  = {r["imeino"]: r for r in prev_rows}
 
-    # ── SANITY CHECK ──────────────────────────────────────────────
     overlap = sum(1 for imei in today_map if imei in prev_map)
     total   = max(len(prev_map), len(today_map), 1)
     pct     = overlap / total
     print(f"  [{server_name}] Overlap: {overlap}/{total} ({pct:.0%})")
-    if pct < 0.50:
-        print(f"  [{server_name}] ⚠️ Low overlap ({pct:.0%}) — skipping changes to avoid false positives")
+    if pct < 0.70:
+        print(f"  [{server_name}] ⚠️ Low overlap ({pct:.0%}) — skipping")
         _snapshotted_today.add(changes_key)
         return
-    # ──────────────────────────────────────────────────────────────
 
     changes = []
 
-    # Added = in today but not in previous available snapshot
-    for imei, v in today_map.items():
+    for imei, r in today_map.items():
         if imei not in prev_map:
             changes.append({
-                "change_date": today,
-                "change_type": "added",
-                "imeino":      imei,
-                "vehicle_no":  v.get("Vehicle_No", ""),
-                "vehicle_name":v.get("Vehicle_Name", ""),
-                "company":     v.get("Company", ""),
-                "tier":        get_tier(v),
-                "region":      server_name,
+                "change_date":  today,
+                "change_type":  "added",
+                "imeino":       imei,
+                "vehicle_no":   r.get("vehicle_no", ""),
+                "vehicle_name": r.get("vehicle_name", ""),
+                "company":      r.get("company", ""),
+                "tier":         r.get("tier", "Other"),
+                "region":       server_name,
             })
 
-    # Removed = in previous available snapshot but not in today
     for imei, r in prev_map.items():
         if imei not in today_map:
             changes.append({
-                "change_date": today,
-                "change_type": "removed",
-                "imeino":      imei,
-                "vehicle_no":  r.get("vehicle_no", ""),
-                "vehicle_name":r.get("vehicle_name", ""),
-                "company":     r.get("company", ""),
-                "tier":        r.get("tier", "Other"),
-                "region":      server_name,
+                "change_date":  today,
+                "change_type":  "removed",
+                "imeino":       imei,
+                "vehicle_no":   r.get("vehicle_no", ""),
+                "vehicle_name": r.get("vehicle_name", ""),
+                "company":      r.get("company", ""),
+                "tier":         r.get("tier", "Other"),
+                "region":       server_name,
             })
 
     if not changes:
@@ -634,7 +639,7 @@ def sync_server(server):
 
     # 11:50 PM jobs — order matters!
     save_daily_snapshot(server["name"], vehicles)   # 1. Save full snapshot
-    save_vehicle_changes(server["name"], vehicles)  # 2. Detect changes (gap-resilient now)
+    save_vehicle_changes(server["name"])  # 2. Detect changes (gap-resilient now)
     save_daily_stats(server["name"], vehicles)      # 3. Save aggregated stats
     cleanup_old_snapshots(server["name"])           # 4. Clean old data
 
