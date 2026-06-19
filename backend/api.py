@@ -402,36 +402,7 @@ def vendor_kpis():
     })
 
 # ══════════════════════════════════════════════════════════════════
-# ENDPOINT 5: GET /api/mapping-regions?emp_id=23
-#
-# Called by Customer Mapping tool in portal.
-# Returns list of regions this employee is allowed to see.
-# ══════════════════════════════════════════════════════════════════
-@app.route("/api/mapping-regions", methods=["GET"])
-def get_mapping_regions():
-    err = db_check()
-    if err:
-        return err
-
-    emp_id = request.args.get("emp_id", "").strip()
-    if not emp_id:
-        return jsonify([])
-
-    try:
-        res = sb.table("mapping_region_access") \
-            .select("region") \
-            .eq("emp_id", emp_id) \
-            .execute()
-        regions = [r["region"] for r in (res.data or [])]
-        if "All" in regions:
-            return jsonify(["HeadOffice", "Goa", "Bangalore", "Gujarat"])
-        return jsonify(regions)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-# ══════════════════════════════════════════════════════════════════
-# ENDPOINT 6: GET /api/mapping-data?region=Goa
+# ENDPOINT 5: GET /api/mapping-data?region=Goa
 #
 # Returns GPS companies + their current mapping status for a region.
 # ══════════════════════════════════════════════════════════════════
@@ -493,7 +464,7 @@ def get_mapping_data():
 
 
 # ══════════════════════════════════════════════════════════════════
-# ENDPOINT 7: GET /api/odoo-search?q=sai ganesh
+# ENDPOINT 6: GET /api/odoo-search?q=sai ganesh
 #
 # Search Odoo customer names from customer_odoo_aliases table.
 # ══════════════════════════════════════════════════════════════════
@@ -519,7 +490,7 @@ def odoo_search():
 
 
 # ══════════════════════════════════════════════════════════════════
-# ENDPOINT 8: POST /api/save-mapping
+# ENDPOINT 7: POST /api/save-mapping
 #
 # Save GPS company → Odoo customer mapping.
 # Creates customer_master entry if needed.
@@ -568,7 +539,7 @@ def save_mapping():
         return jsonify({"error": str(e)}), 500
 
 # ══════════════════════════════════════════════════════════════════
-# ENDPOINT 9: POST /api/clear-mapping
+# ENDPOINT 8: POST /api/clear-mapping
 # Removes customer_id link from GPS alias (clears mapping)
 # ══════════════════════════════════════════════════════════════════
 @app.route("/api/clear-mapping", methods=["POST"])
