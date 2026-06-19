@@ -23264,9 +23264,12 @@ async function vrDeleteRequest(id, event){
 }
 
 // ── CLOSE ON BACKDROP CLICK ─────────────────────────────────────────────────────────
-document.getElementById('vfOverlay').addEventListener('click',function(e){if(e.target===this)closeVendorForm();});
-document.getElementById('vrModal').addEventListener('click',function(e){if(e.target===this)closeVrModal();});
-document.getElementById('vrRecurModal').addEventListener('click',function(e){if(e.target===this)closeRecurringModal();});
+const _vfOv = document.getElementById('vfOverlay');
+const _vrMo = document.getElementById('vrModal');
+const _vrRe = document.getElementById('vrRecurModal');
+if(_vfOv) _vfOv.addEventListener('click',function(e){if(e.target===this)closeVendorForm();});
+if(_vrMo) _vrMo.addEventListener('click',function(e){if(e.target===this)closeVrModal();});
+if(_vrRe) _vrRe.addEventListener('click',function(e){if(e.target===this)closeRecurringModal();});
 
 // ── RECURRING REQUEST ───────────────────────────────────────────────────────────────
 
