@@ -2,7 +2,6 @@
 # api.py — Aditi Portal Permission API
 # A Flask web server that handles all permission-related requests
 # from the frontend (index.html).
-#
 # Three endpoints:
 #   GET  /api/permissions                  — called on login
 #   POST /api/admin/permissions            — called when admin flips a toggle
@@ -567,7 +566,29 @@ def save_mapping():
         return jsonify({"ok": True, "customer_id": customer_id})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-        
+
+# ══════════════════════════════════════════════════════════════════
+# ENDPOINT 9: POST /api/clear-mapping
+# Removes customer_id link from GPS alias (clears mapping)
+# ══════════════════════════════════════════════════════════════════
+@app.route("/api/clear-mapping", methods=["POST"])
+def clear_mapping():
+    err = db_check()
+    if err:
+        return err
+    body         = request.get_json() or {}
+    gps_alias_id = body.get("gps_alias_id")
+    if not gps_alias_id:
+        return jsonify({"error": "gps_alias_id required"}), 400
+    try:
+        sb.table("customer_gps_aliases").update({
+            "customer_id": None
+        }).eq("id", gps_alias_id).execute()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Health check endpoint ───────────────────────────────────────
 # Visit /health in your browser to confirm the server is running.
 # Also shows whether the database is connected.
