@@ -7508,10 +7508,59 @@ function tProcessData(){
   }, 0);
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// MANDATORY ATTACHMENT TASKS (Akshay More checklist — Attachment col mein *)
+// Agar employee in tasks ke liye attachment upload nahi karta, task
+// "Done" nahi banega aur KPI/Charts mein bhi count nahi hoga — chahe wo
+// "Mark Done" dabaye ya na dabaye. Spelling DB ke 'task_name' se exact
+// match honi chahiye (case/extra-space ignore hoti hai).
+// ══════════════════════════════════════════════════════════════════════
+const MANDATORY_ATTACHMENT_TASKS = [
+  'open tickets less than 24 hours',
+  'open tickets more than 24 hours',
+  'open tickets more than 48 hours',
+  'open tickets more than 96 hours',
+  'checkin pending activity',
+  'checkout pending activity',
+  'training videos creation',
+  '1 1 meetings with l1 team',
+  '1 1 meetings with l2 team',
+  'l1 team utilization',
+  'un read emails',
+  'missed calls response',
+  'un read whatsapp',
+  // ↓ Sakshi Tupe / Vinit Singh / Chirag Gupta checklist ke extra * wale tasks
+  'escalations',
+  'ims status check'
+];
+
+function tNormTaskName(s){
+  return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+}
+
+function tTaskRequiresAttachment(taskName){
+  const norm = tNormTaskName(taskName);
+  if(!norm) return false;
+  return MANDATORY_ATTACHMENT_TASKS.indexOf(norm) !== -1;
+}
+
+// Attachment exists for this row? — Supabase 'upload' column OR localStorage backup
+function tHasAttachment(r){
+  if(!r) return false;
+  if(r['_upload_url']) return true;
+  const tid = String(r['Task ID']||'');
+  return tGetUploadCount(tid) > 0;
+}
+
 function tIsDone(r){
   const s=String(r['Status']||'').toLowerCase().trim();
   const actual=String(r['Actual']||'').trim();
-  return s==='done'||s==='yes'||s==='1'||s==='complete'||s==='completed'||actual!=='';
+  const markedDone = s==='done'||s==='yes'||s==='1'||s==='complete'||s==='completed'||actual!=='';
+  if(!markedDone) return false;
+  // ── Mandatory-attachment check: * wale task ke liye attachment zaroori hai,
+  // warna chahe DB mein "actual_timestamp" set ho, hum use Pending hi maanenge ──
+  if(tTaskRequiresAttachment(r['Task']) && !tHasAttachment(r)) return false;
+  return true;
 }
 
 /* ══ HOME TASK ALERT BANNER — shows pending task count on home page ══ */
@@ -7995,11 +8044,20 @@ function tRenderTable(){
            ↩️ Undo
          </button>`
       : '';
+    // ── Mandatory attachment check — agar * wala task hai aur abhi file upload nahi hui ──
+    const _needsAttach   = tTaskRequiresAttachment(r['Task']);
+    const _attachMissing = _needsAttach && !tHasAttachment(r);
     const actionCell=done
       ?`<div style="display:flex;flex-direction:column;align-items:flex-start;">
           <span style="color:#00d4aa;font-size:0.84rem;font-weight:700;display:flex;align-items:center;gap:4px;">✅ Done</span>
           ${_undoBtn}
         </div>`
+      :_attachMissing
+      ?`<button data-dept-tid="${r['Task ID']||''}" onclick="tBlockedMarkDone('${r['Task ID']||''}')"
+            title="First Upload📎the document"
+            style="background:rgba(255,92,124,0.10);color:#ff5c7c;border:1.5px dashed rgba(255,92,124,0.5);border-radius:8px;padding:6px 8px;font-size:0.76rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;transition:all 0.18s;">
+            📎 Upload Required
+          </button>`
       :`<button data-dept-tid="${r['Task ID']||''}" onclick="deptShowRemarksInput('${r['Task ID']||''}','${_src}')"
             style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:6px 8px;font-size:0.78rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 6px rgba(168,85,247,0.3);transition:all 0.18s;">
             ✅ Mark Done
@@ -8034,19 +8092,19 @@ function tRenderTable(){
                       border-radius:8px;text-decoration:none;font-size:1rem;cursor:pointer;transition:all 0.18s;"
                onmouseover="this.style.background='rgba(0,212,170,0.25)'"
                onmouseout="this.style.background='rgba(0,212,170,0.12)'">📄</a>`
-          : `<button id="tfu_btn_${r['Task ID']||''}" title="Upload file"
+          : `<button id="tfu_btn_${r['Task ID']||''}" title="${_attachMissing?'Mandatory — File/PDF':'Upload file'}"
                onclick="document.getElementById('tfu_${r['Task ID']||''}').click()"
-               style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;
-                      background:rgba(168,85,247,0.08);border:1.5px solid rgba(168,85,247,0.3);
-                      border-radius:8px;font-size:1rem;cursor:pointer;transition:all 0.18s;color:#a855f7;"
-               onmouseover="this.style.background='rgba(168,85,247,0.22)'"
-               onmouseout="this.style.background='rgba(168,85,247,0.08)'">📎</button>`
+               style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;
+                      background:${_attachMissing?'rgba(255,92,124,0.10)':'rgba(168,85,247,0.08)'};border:1.5px solid ${_attachMissing?'rgba(255,92,124,0.5)':'rgba(168,85,247,0.3)'};
+                      border-radius:8px;font-size:1rem;cursor:pointer;transition:all 0.18s;color:${_attachMissing?'#ff5c7c':'#a855f7'};"
+               onmouseover="this.style.background='${_attachMissing?'rgba(255,92,124,0.22)':'rgba(168,85,247,0.22)'}'"
+               onmouseout="this.style.background='${_attachMissing?'rgba(255,92,124,0.10)':'rgba(168,85,247,0.08)'}'">📎${_needsAttach?'<span style="position:absolute;top:-2px;right:-2px;color:#ff5c7c;font-weight:900;font-size:0.95rem;">*</span>':''}</button>`
         }
       </div>`;
     return `<tr>
-      <td style="padding:8px 8px;"><div style="font-weight:600;font-size:0.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r['Name']||''}">${r['Name']||'—'}</div></td>
+      <td style="padding:8px 8px;"><div style="font-weight:600;font-size:0.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Name']||'')}">${r['Name']||'—'}</div></td>
       <td style="padding:8px 5px;font-size:0.82rem;color:var(--muted);text-align:center;font-weight:600">${r['Task ID']||'—'}</td>
-      <td style="padding:8px 8px;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Task']||'').replace(/"/g,'')}">${r['Task']||'—'}</td>
+      <td style="padding:8px 8px;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Task']||'').replace(/"/g,'')}${_needsAttach?' (Attachment Mandatory)':''}">${r['Task']||'—'}${_needsAttach?'<span title="Attachment Mandatory" style="color:#ff5c7c;font-weight:900;margin-left:3px;">*</span>':''}</td>
       <td style="padding:9px 6px;font-size:0.82rem;color:${isOngoing?'#00d4ff':'var(--muted)'}">
         ${isOngoing && r['_expected_date']
           ? `<div style="display:flex;flex-direction:column;gap:1px;">
@@ -8230,6 +8288,20 @@ function tGetDateFiltered(){
 
 
 
+// ── Mandatory attachment missing — Mark Done block karo, upload ki taraf guide karo ──
+function tBlockedMarkDone(taskId){
+  const tid = String(taskId);
+  showToast && showToast('📎 Yeh task mandatory attachment ke bina Done nahi ho sakta! Pehle 📎 column se file/PDF upload karo.', 'error', 4000);
+  // Upload button ko highlight karo taaki employee ko pata chale kahan click karna hai
+  const upBtn = document.getElementById('tfu_btn_' + tid);
+  if(upBtn){
+    upBtn.style.transition = 'box-shadow 0.3s';
+    upBtn.style.boxShadow  = '0 0 0 4px rgba(255,92,124,0.35)';
+    setTimeout(()=>{ if(upBtn) upBtn.style.boxShadow = ''; }, 1400);
+    upBtn.scrollIntoView({behavior:'smooth', block:'center', inline:'center'});
+  }
+}
+
 // ── All Departments: Inline Remarks Input ───────────────────────────
 
 function deptShowRemarksInput(taskId, src){
@@ -8273,6 +8345,15 @@ function deptShowRemarksInput(taskId, src){
 
 function deptSubmitDone(taskId, src){
   const tid = String(taskId);
+
+  // ── Safety net: mandatory attachment wale task ko bina file ke Done mat hone do ──
+  const _row = tAllData.find(r => String(r['Task ID']) === tid);
+  if(_row && tTaskRequiresAttachment(_row['Task']) && !tHasAttachment(_row)){
+    showToast && showToast('📎 Yeh task mandatory attachment ke bina Done nahi ho sakta! Pehle 📎 column se file/PDF upload karo.', 'error', 4000);
+    tRenderTable();
+    return;
+  }
+
   const inp = document.getElementById('dept_rem_'+tid);
   const remarks = (inp ? inp.value : '').trim();
 
@@ -8744,13 +8825,56 @@ function tRenderAllUploads(list){
 }
 
 
+// ── File select hote hi turant "uploaded" dikhao + Mark Done unlock karo ──
+// (asli cloud upload background mein chalta rehta hai, baad mein silently real URL se update ho jata hai)
+function tUnlockMarkDoneIfReady(taskId){
+  const tid = String(taskId);
+  const _rowRef = tAllData.find(r=>String(r['Task ID'])===tid);
+  if(_rowRef && tTaskRequiresAttachment(_rowRef['Task']) && !tIsDone(_rowRef)){
+    const _actTd = document.getElementById('act_'+tid);
+    if(_actTd){
+      const _srcVal = String(_rowRef['_source']||'').toLowerCase();
+      _actTd.innerHTML = `<button data-dept-tid="${tid}" onclick="deptShowRemarksInput('${tid}','${_srcVal}')"
+        style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:6px 8px;font-size:0.78rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 6px rgba(168,85,247,0.3);transition:all 0.18s;">
+        ✅ Mark Done
+      </button>`;
+    }
+  }
+}
+
 async function tDirectUpload(input, taskId){
   const file = input.files[0];
   if(!file) return;
   const tid = String(taskId);
 
   const btn = document.getElementById('tfu_btn_'+tid);
-  if(btn){ btn.textContent='⏳'; btn.style.opacity='0.7'; btn.disabled=true; }
+  const td  = btn ? btn.closest('td') : null;
+
+  // ══ INSTANT FEEDBACK — file select karte hi turant dikhao "file daal di" ══
+  let _localPreviewUrl = null;
+  try{ _localPreviewUrl = URL.createObjectURL(file); }catch(e){}
+
+  if(td){
+    td.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;">
+        <a href="${_localPreviewUrl||'#'}" target="_blank" rel="noopener" title="${file.name} — cloud par sync ho raha hai…"
+           style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;
+                  background:rgba(0,212,170,0.12);border:1.5px solid rgba(0,212,170,0.4);
+                  border-radius:8px;text-decoration:none;font-size:1rem;">📄<span style="position:absolute;bottom:-3px;right:-3px;font-size:0.6rem;">⏳</span></a>
+      </div>`;
+  }
+
+  const _now0 = new Date();
+  const _uploadedAt0 = `${String(_now0.getDate()).padStart(2,'0')}/${String(_now0.getMonth()+1).padStart(2,'0')}/${_now0.getFullYear()} ${String(_now0.getHours()).padStart(2,'0')}:${String(_now0.getMinutes()).padStart(2,'0')}`;
+  // localStorage mein turant save — isse tHasAttachment() abhi se TRUE ho jaata hai
+  try{
+    const _saved0 = JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}');
+    _saved0[tid] = [{ name: file.name, url: _localPreviewUrl, uploadedAt: _uploadedAt0, size: file.size, _pendingSync: true }];
+    localStorage.setItem('aditiTaskUploads', JSON.stringify(_saved0));
+  }catch(e){}
+
+  // Mandatory task ho aur abhi Done nahi hua to "Mark Done" turant unlock karo
+  tUnlockMarkDoneIfReady(tid);
 
   try{
     const ts       = Date.now();
@@ -8791,15 +8915,14 @@ async function tDirectUpload(input, taskId){
       });
     }
 
-    // localStorage backup (offline fallback)
-    const now2 = new Date();
-    const uploadedAt = `${String(now2.getDate()).padStart(2,'0')}/${String(now2.getMonth()+1).padStart(2,'0')}/${now2.getFullYear()} ${String(now2.getHours()).padStart(2,'0')}:${String(now2.getMinutes()).padStart(2,'0')}`;
-    const saved2 = JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}');
-    saved2[tid] = [{ name: file.name, url: fileUrl, uploadedAt, size: file.size }];
-    localStorage.setItem('aditiTaskUploads', JSON.stringify(saved2));
+    // localStorage ko ab real (final) value se overwrite karo — pending hata do
+    try{
+      const saved2 = JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}');
+      saved2[tid] = [{ name: file.name, url: fileUrl, uploadedAt: _uploadedAt0, size: file.size }];
+      localStorage.setItem('aditiTaskUploads', JSON.stringify(saved2));
+    }catch(e){}
 
-    // Icon update — 📄 green if URL received, orange if only filename saved
-    const td = btn ? btn.closest('td') : null;
+    // Icon ko silently real cloud URL se refresh karo — 📄 green if URL received, orange if filename only
     if(td){
       const isCloud = !!fileUrl;
       td.innerHTML = `
@@ -8812,24 +8935,40 @@ async function tDirectUpload(input, taskId){
         </div>`;
     }
 
+    tUnlockMarkDoneIfReady(tid);
+    if(isCloudUploadDone(fileUrl) && _localPreviewUrl){ try{ URL.revokeObjectURL(_localPreviewUrl); }catch(e){} }
+
   }catch(err){
-    // On error show 📎 again — do not show ❌
-    const btx = document.getElementById('tfu_btn_'+tid);
-    const tdx = btx ? btx.closest('td') : null;
+    // Network/exception fail — file already locally save ho chuki hai (filename ke saath),
+    // isliye "gayab" jaisa na dikhao — sirf filename-only (local) state mein rakho.
+    try{
+      const rowId = (tAllData.find(r=>String(r['Task ID'])===tid)||{})['_id'];
+      if(rowId){
+        fetch(
+          `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
+          { method:'PATCH', headers:SB_HDRS_JSON(), body:JSON.stringify({ upload: file.name }) }
+        ).catch(()=>{});
+        [tAllData, tFiltered].forEach(arr=>{
+          arr.forEach(r=>{ if(String(r['Task ID'])===tid) r['_upload_url']=file.name; });
+        });
+      }
+    }catch(e2){}
+    const tdx = document.getElementById('tfu_btn_'+tid) ? document.getElementById('tfu_btn_'+tid).closest('td') : td;
     if(tdx){
       tdx.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:center;">
-          <input type="file" id="tfu_${tid}" style="display:none;" accept="*/*" onchange="tDirectUpload(this,'${tid}')">
-          <button id="tfu_btn_${tid}" title="Retry upload" onclick="document.getElementById('tfu_${tid}').click()"
-            style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;
-                   background:rgba(168,85,247,0.08);border:1.5px solid rgba(168,85,247,0.3);
-                   border-radius:8px;font-size:1rem;cursor:pointer;">📎</button>
+          <a href="#" rel="noopener" title="${file.name} (cloud sync failed — local copy saved)"
+             style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;
+                    background:rgba(240,165,0,0.12);border:1.5px solid rgba(240,165,0,0.4);
+                    border-radius:8px;text-decoration:none;font-size:1rem;">📄</a>
         </div>`;
     }
+    tUnlockMarkDoneIfReady(tid);
     console.error('Upload error:', err);
   }
   input.value='';
 }
+function isCloudUploadDone(u){ return !!u; }
 
 let _taskUploadId   = null;
 let _taskUploadName = '';
@@ -15721,7 +15860,7 @@ function mpRenderTable(){
     if(_mpStatus==='unmapped' &&  r.is_mapped) return false;
     if(search && !r.gps_name.toLowerCase().includes(search)) return false;
     return true;
-  }).sort((a,b)=>(b.total_vehicles||0)-(a.total_vehicles||0));
+  });
 
   const tbody = document.getElementById('mp-tbody');
   const empty = document.getElementById('mp-empty');
@@ -22536,6 +22675,7 @@ async function acpSave(email, permission, value) {
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Location</th>
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Status</th>
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Payment</th>
+              <th style="padding:10px 14px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Attachment</th>
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Action</th>
             </tr>
           </thead>
@@ -22595,6 +22735,7 @@ async function acpSave(email, permission, value) {
           </select>
         </div>
         <div><label class="vf-lbl">Invoice Number</label><input class="vf-inp" id="vfInvNo" placeholder="INV-0001"></div>
+        <div><label class="vf-lbl">PO No. (Odoo)</label><input class="vf-inp" id="vfPoNo" placeholder="e.g. P00123"></div>
         <div class="vf-full">
           <label class="vf-lbl">Invoice / Quotation <span style="color:var(--muted);font-weight:400;text-transform:none;">(optional)</span></label>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -22820,7 +22961,10 @@ function _vrRenderTable(){
     const editBtn=canEdit?`<button class="vr-act" style="background:rgba(78,154,241,0.12);color:#4e9af1;border:1px solid rgba(78,154,241,0.35);margin-left:5px;" onclick="openVendorEditForm(${r.id})" title="Edit request">✏️ Edit</button>`:'';
     const delBtn=canDelete?`<button class="vr-act" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);margin-left:5px;" onclick="vrDeleteRequest(${r.id},event)" title="Delete request">🗑</button>`:'';
     const recurBtn=`<button class="vr-act" style="background:rgba(0,212,170,0.10);color:#00d4aa;border:1px solid rgba(0,212,170,0.3);margin-left:5px;" onclick="openRecurringModal(${r.id})" title="Repeat this request with new amount">🔁</button>`;
-    return`<tr><td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${d}</td><td><div style="font-weight:700;font-size:0.85rem;color:var(--text);">${nameDisplay}</div></td><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'—'}</div></td><td style="text-align:center;">${r.qty||'—'}</td><td style="font-weight:700;white-space:nowrap;text-align:right;">₹${r.amount!=null?Number(r.amount).toLocaleString('en-IN',{maximumFractionDigits:0}):'—'}</td><td style="font-size:0.82rem;">${r.location||'—'}</td><td>${_vrStatusBadge(status)}</td><td>${_vrPayBadge(r.payment_status)}</td><td style="white-space:nowrap;">${actBtn}${editBtn}${recurBtn}${delBtn}</td></tr>`;
+    const attachCell=r.invoice_link
+      ?`<a href="${r.invoice_link}" target="_blank" title="View uploaded invoice / quotation" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;background:rgba(78,154,241,0.12);border:1px solid rgba(78,154,241,0.3);color:#4e9af1;text-decoration:none;font-size:0.95rem;">📎</a>`
+      :`<span style="color:var(--muted);font-size:0.8rem;">—</span>`;
+    return`<tr><td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${d}</td><td><div style="font-weight:700;font-size:0.85rem;color:var(--text);">${nameDisplay}</div></td><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'—'}</div></td><td style="text-align:center;">${r.qty||'—'}</td><td style="font-weight:700;white-space:nowrap;text-align:right;">₹${r.amount!=null?Number(r.amount).toLocaleString('en-IN',{maximumFractionDigits:0}):'—'}</td><td style="font-size:0.82rem;">${r.location||'—'}</td><td>${_vrStatusBadge(status)}</td><td>${_vrPayBadge(r.payment_status)}</td><td style="text-align:center;">${attachCell}</td><td style="white-space:nowrap;">${actBtn}${editBtn}${recurBtn}${delBtn}</td></tr>`;
   }).join('');
 }
 
@@ -22884,7 +23028,7 @@ function closeVrDash(){
 // ── SUBMIT FORM ────────────────────────────────────
 async function openVendorForm(){
   document.getElementById('vfErr').style.display='none';
-  ['vfProduct','vfQty','vfAmount','vfInvNo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['vfProduct','vfQty','vfAmount','vfInvNo','vfPoNo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('vfLocation').value='';
   document.getElementById('vfVendorSel').value='';
   document.getElementById('vfNewVendorBox').style.display='none';
@@ -22961,7 +23105,7 @@ async function submitVendorRequest(){
       const empRows=empLookup.ok?await empLookup.json():[];
       if(empRows&&empRows[0])empId=empRows[0].Emp_id||null;
     }catch(e){ /* non-fatal, submit anyway */ }
-    const payload={submitted_by:_vrMyEmail(),submitted_by_emp_id:empId,vendor_id:parseInt(vendorId),vendor_name:vendorName,product_name:product,qty:parseInt(document.getElementById('vfQty').value)||null,amount:parseFloat(amount),location,invoice_number:document.getElementById('vfInvNo').value.trim()||null,invoice_link:invoiceUrl,status:'On Hold',payment_status:'Unpaid'};
+    const payload={submitted_by:_vrMyEmail(),submitted_by_emp_id:empId,vendor_id:parseInt(vendorId),vendor_name:vendorName,product_name:product,qty:parseInt(document.getElementById('vfQty').value)||null,amount:parseFloat(amount),location,invoice_number:document.getElementById('vfInvNo').value.trim()||null,po_number:document.getElementById('vfPoNo').value.trim()||null,invoice_link:invoiceUrl,status:'On Hold',payment_status:'Unpaid'};
     const res=await fetch(`${SUPABASE_URL}/rest/v1/vendor_requests`,{method:'POST',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
     if(!res.ok){const t=await res.text();throw new Error(t);}
     closeVendorForm();
@@ -23008,6 +23152,7 @@ async function openVendorEditForm(id){
   document.getElementById('vfAmount').value   = r.amount != null ? r.amount : '';
   document.getElementById('vfLocation').value = r.location || '';
   document.getElementById('vfInvNo').value    = r.invoice_number || '';
+  document.getElementById('vfPoNo').value     = r.po_number || '';
 
   // Reset file input (existing invoice link shown as info)
   const fi = document.getElementById('vfInvFile'); if(fi) fi.value='';
@@ -23064,6 +23209,7 @@ async function submitVendorEdit(){
       amount:          parseFloat(amount),
       location,
       invoice_number:  document.getElementById('vfInvNo').value.trim() || null,
+      po_number:       document.getElementById('vfPoNo').value.trim() || null,
       invoice_link:    invoiceUrl
     };
 
@@ -23110,7 +23256,7 @@ function openVrModal(id){
   document.getElementById('vrmProduct').textContent=r.product_name||'—';
   const nameDisplay=_vrNameMap[String(r.submitted_by||'').toLowerCase()]||r.submitted_by||'—';
   const d=r.created_at?new Date(r.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
-  const details=[['Requested By',nameDisplay],['Date',d],['Amount',r.amount!=null?'₹'+Number(r.amount).toLocaleString('en-IN'):'—'],['Quantity',r.qty||'—'],['Location',r.location||'—'],['Invoice #',r.invoice_number||'—'],['Status',r.status||'On Hold'],['Payment',r.payment_status||'Unpaid'],...(r.remarks?[['Remarks',r.remarks]]:[]),...(r.reviewed_by?[['Reviewed By',_vrNameMap[String(r.reviewed_by||'').toLowerCase()]||r.reviewed_by]]:[]),...(r.utr_number?[['UTR Number',r.utr_number]]:[]),...(r.paid_by?[['Paid By',_vrNameMap[String(r.paid_by||'').toLowerCase()]||r.paid_by]]:[])];
+  const details=[['Requested By',nameDisplay],['Date',d],['Amount',r.amount!=null?'₹'+Number(r.amount).toLocaleString('en-IN'):'—'],['Quantity',r.qty||'—'],['Location',r.location||'—'],['Invoice #',r.invoice_number||'—'],['PO No. (Odoo)',r.po_number||'—'],['Status',r.status||'On Hold'],['Payment',r.payment_status||'Unpaid'],...(r.remarks?[['Remarks',r.remarks]]:[]),...(r.reviewed_by?[['Reviewed By',_vrNameMap[String(r.reviewed_by||'').toLowerCase()]||r.reviewed_by]]:[]),...(r.utr_number?[['UTR Number',r.utr_number]]:[]),...(r.paid_by?[['Paid By',_vrNameMap[String(r.paid_by||'').toLowerCase()]||r.paid_by]]:[])];
   document.getElementById('vrmDetailsGrid').innerHTML=details.map(([l,v])=>`<div class="vrm-item"><div class="vrm-lbl">${l}</div><div class="vrm-val">${v}</div></div>`).join('');
   // Invoice attachment
   const invLinkWrap=document.getElementById('vrmInvLinkWrap');
