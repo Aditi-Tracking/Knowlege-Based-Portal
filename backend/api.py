@@ -482,9 +482,14 @@ def odoo_search():
         res = sb.table("customer_odoo_aliases") \
             .select("id,odoo_name,customer_id") \
             .ilike("odoo_name", f"%{query}%") \
-            .limit(10) \
+            .order("odoo_name") \
+            .limit(25) \
             .execute()
-        return jsonify(res.data or [])
+        rows = res.data or []
+        # Names jo query se SHURU hote hain unhe top par lao (zyada relevant)
+        q_lower = query.lower()
+        rows.sort(key=lambda r: 0 if str(r.get("odoo_name","")).lower().startswith(q_lower) else 1)
+        return jsonify(rows[:15])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
