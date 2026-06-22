@@ -4778,10 +4778,15 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <span class="table-title">All Tasks</span>
         <span id="tLastSyncBadge" style="font-size:0.72rem;color:var(--muted);margin-left:4px;"></span>
         <span class="table-count" id="tTblCnt" style="margin-left:auto">—</span>
+        <button id="tDeleteBtn" onclick="tDeleteSelected()"
+          style="display:none;background:rgba(255,92,124,0.12);border:1.5px solid rgba(255,92,124,0.4);color:#ff5c7c;border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:700;cursor:pointer;align-items:center;gap:6px;">
+          🗑️ Delete Selected (<span id="tDelCount">0</span>)
+        </button>
       </div>
       <div class="table-scroll" style="overflow-x:hidden">
         <table style="width:100%;table-layout:fixed;">
           <colgroup>
+            <col style="width:36px">
             <col style="width:10%">
             <col style="width:6%">
             <col style="width:17%">
