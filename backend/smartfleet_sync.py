@@ -504,12 +504,6 @@ def sync_all():
     for server in SERVERS:
         sync_server(server)
 
-    try:
-        supabase.rpc("refresh_customer_crm").execute()
-        print("\n  CRM updated")
-    except Exception as e:
-        print(f"\n  CRM error: {e}")
-
     check_platinum_churn_alerts()
 
     print(f"\nNext sync in {SYNC_EVERY_MINUTES} minutes\n")
