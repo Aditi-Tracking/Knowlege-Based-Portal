@@ -7464,7 +7464,7 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
     _tcErr.style.display='block';
     _tcErr.style.opacity='1';
     _tcErr.style.pointerEvents='';
-    document.getElementById('tTblBody').innerHTML=`<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--hot)">❌ ${e.message}</td></tr>`;
+    document.getElementById('tTblBody').innerHTML=`<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--hot)">❌ ${e.message}</td></tr>`;
   }
 }
 
@@ -8102,6 +8102,7 @@ function tRenderTable(){
         }
       </div>`;
     return `<tr>
+      <td style="padding:4px 8px;text-align:center;"><input type="checkbox" class="t-row-cb" data-id="${r['_id']}" onchange="tOnCheckChange()" style="width:15px;height:15px;cursor:pointer;"></td>
       <td style="padding:8px 8px;"><div style="font-weight:600;font-size:0.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Name']||'')}">${r['Name']||'—'}</div></td>
       <td style="padding:8px 5px;font-size:0.82rem;color:var(--muted);text-align:center;font-weight:600">${r['Task ID']||'—'}</td>
       <td style="padding:8px 8px;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Task']||'').replace(/"/g,'')}${_needsAttach?' (Attachment Mandatory)':''}">${r['Task']||'—'}${_needsAttach?'<span title="Attachment Mandatory" style="color:#ff5c7c;font-weight:900;margin-left:3px;">*</span>':''}</td>
@@ -8129,6 +8130,73 @@ function tRenderTable(){
   h+=`<button class="page-btn" onclick="tGoPage(${tPage+1})" ${tPage===tp?'disabled':''}>›</button>`;
   document.getElementById('tPagBar').innerHTML=h;
 }
+
+// ── Task Delete Functions ──────────────────────────────────────
+let _tSelectedIds = new Set();
+
+function tOnCheckChange(){
+  _tSelectedIds = new Set();
+  document.querySelectorAll('.t-row-cb:checked').forEach(cb => {
+    _tSelectedIds.add(Number(cb.dataset.id));
+  });
+  const btn = document.getElementById('tDeleteBtn');
+  const cnt = document.getElementById('tDelCount');
+  const all = document.getElementById('tSelectAll');
+  if(btn) btn.style.display = _tSelectedIds.size > 0 ? 'inline-flex' : 'none';
+  if(cnt) cnt.textContent = _tSelectedIds.size;
+  const total = document.querySelectorAll('.t-row-cb').length;
+  if(all) all.indeterminate = _tSelectedIds.size > 0 && _tSelectedIds.size < total;
+  if(all) all.checked = _tSelectedIds.size === total && total > 0;
+}
+
+function tToggleSelectAll(checked){
+  _tSelectedIds = new Set();
+  document.querySelectorAll('.t-row-cb').forEach(cb => {
+    cb.checked = checked;
+    if(checked) _tSelectedIds.add(Number(cb.dataset.id));
+  });
+  const btn = document.getElementById('tDeleteBtn');
+  const cnt = document.getElementById('tDelCount');
+  if(btn) btn.style.display = _tSelectedIds.size > 0 ? 'inline-flex' : 'none';
+  if(cnt) cnt.textContent = _tSelectedIds.size;
+}
+
+async function tDeleteSelected(){
+  if(PERMISSIONS.can_delete_tasks !== 'true'){
+    alert('❌ You do not have permission to delete tasks.');
+    return;
+  }
+  if(_tSelectedIds.size === 0) return;
+  const confirmed = confirm(`⚠️ Are you sure you want to delete ${_tSelectedIds.size} task(s)? This cannot be undone.`);
+  if(!confirmed) return;
+
+  const ids = [..._tSelectedIds];
+  let deleted = 0;
+  let failed  = 0;
+
+  for(const id of ids){
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${id}`,
+        { method: 'DELETE', headers: SB_HDRS() }
+      );
+      if(res.ok) deleted++;
+      else failed++;
+    } catch(e){
+      failed++;
+    }
+  }
+
+  _tSelectedIds = new Set();
+  const btn = document.getElementById('tDeleteBtn');
+  const all = document.getElementById('tSelectAll');
+  if(btn) btn.style.display = 'none';
+  if(all) all.checked = false;
+
+  await tFetchTasks();
+
+  if(failed > 0) alert(`✅ ${deleted} deleted, ❌ ${failed} failed.`);
+}  
 
 function tGoPage(p){
   const tp=Math.ceil((tFiltered.length||1)/T_PER_PAGE);
@@ -22460,6 +22528,7 @@ const _permLabels = {
   can_upload_quiz:        '🎯 Create & Manage Quizzes',
   can_download_video:     '⬇️ Download Training Videos',
   checklist_scope:        '✅ Task Checklist Scope',
+  can_delete_tasks:       '🗑️ Task Checklist — Delete Tasks',
   can_view_open_roles:        '📋 Referral — Open Roles',
   can_view_my_referrals:      '🧾 Referral — My Referrals',
   can_view_referral_pipeline: '📊 Referral — Pipeline (HR)',
