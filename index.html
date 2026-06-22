@@ -8177,17 +8177,16 @@ async function tDeleteSelected(){
   let deleted = 0;
   let failed  = 0;
 
-  for(const id of ids){
-    try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${id}`,
-        { method: 'DELETE', headers: SB_HDRS() }
-      );
-      if(res.ok) deleted++;
-      else failed++;
-    } catch(e){
-      failed++;
-    }
+ try {
+    const idList = ids.join(',');
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/employee_checklists?id=in.(${idList})`,
+      { method: 'DELETE', headers: SB_HDRS() }
+    );
+    if(res.ok) deleted = ids.length;
+    else failed = ids.length;
+  } catch(e){
+    failed = ids.length;
   }
 
   _tSelectedIds = new Set();
