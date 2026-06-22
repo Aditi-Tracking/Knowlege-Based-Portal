@@ -4787,8 +4787,8 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <table style="width:100%;table-layout:fixed;">
           <colgroup>
             <col style="width:30px">
-            <col style="width:12%">
-            <col style="width:18%">
+            <col style="width:10%">
+            <col style="width:20%">
             <col style="width:9%">
             <col style="width:8%">
             <col style="width:7%">
@@ -8106,7 +8106,7 @@ function tRenderTable(){
         }
       </div>`;
     return `<tr>
-      <td style="padding:4px 8px;text-align:center;"><input type="checkbox" class="t-row-cb" data-id="${r['_id']}" onchange="tOnCheckChange()" style="width:13px;height:13px;cursor:pointer;margin:0;"></td>
+      <td style="padding:0;width:30px;text-align:center;"><input type="checkbox" class="t-row-cb" data-id="${r['_id']}" onchange="tOnCheckChange()" style="width:13px;height:13px;cursor:pointer;margin:0;"></td>
       <td style="padding:8px 8px;"><div style="font-weight:600;font-size:0.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Name']||'')}">${r['Name']||'—'}</div></td>
       <td style="padding:8px 8px;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Task']||'').replace(/"/g,'')}${_needsAttach?' (Attachment Mandatory)':''}">${r['Task']||'—'}${_needsAttach?'<span title="Attachment Mandatory" style="color:#ff5c7c;font-weight:900;margin-left:3px;">*</span>':''}</td>
       <td style="padding:9px 6px;font-size:0.82rem;color:${isOngoing?'#00d4ff':'var(--muted)'}">
