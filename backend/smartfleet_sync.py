@@ -328,24 +328,6 @@ def save_daily_stats(server_name, vehicles):
     print(f"  [{server_name}] ✅ Stats saved — {len(rows)} tier rows")
     _snapshotted_today.add(stats_key)
 
-def cleanup_old_snapshots(server_name):
-    """Delete snapshots older than 30 days"""
-    if not should_take_snapshot():
-        return
-    cleanup_key = f"cleanup_{server_name}_{get_snapshot_date()}"
-    if cleanup_key in _snapshotted_today:
-        return
-    try:
-        cutoff = (get_ist_now() - timedelta(days=30)).strftime('%Y-%m-%d')
-        supabase.table("vehicle_daily_snapshot") \
-            .delete() \
-            .lt("snapshot_date", cutoff) \
-            .execute()
-        print(f"  [{server_name}] 🗑️ Old snapshots cleaned (before {cutoff})")
-        _snapshotted_today.add(cleanup_key)
-    except Exception as e:
-        print(f"  [{server_name}] Cleanup error: {e}")
-
 def reset_snapshot_tracker():
     global _snapshotted_today
     _snapshotted_today = set()
@@ -510,7 +492,6 @@ def sync_server(server):
     # 11:50 PM jobs — order matters!
     save_daily_snapshot(server["name"], vehicles)   # 1. Save full snapshot
     save_daily_stats(server["name"], vehicles)      # 3. Save aggregated stats
-    cleanup_old_snapshots(server["name"])           # 4. Clean old data
 
 def sync_all():
     now_ist = get_ist_now()
