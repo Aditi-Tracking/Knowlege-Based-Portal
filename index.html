@@ -23234,7 +23234,12 @@ function _injectPurchaseCard() {
       </div>
     </div>`;
   gridEl.insertBefore(card, gridEl.firstChild);
-}  
+  gridEl.style.display = 'grid';
+  const loadingEl = document.getElementById('finance-loading');
+  if (loadingEl) loadingEl.style.display = 'none';
+  const emptyEl = document.getElementById('finance-empty');
+  if (emptyEl) emptyEl.style.display = 'none';
+}
 
 // ── OPEN VENDOR DASHBOARD (called by Purchase Request button) ──
 function openVrDash(){
