@@ -342,8 +342,9 @@ def reset_snapshot_tracker():
     _snapshotted_today = set()
     print(f"  🔄 Snapshot tracker reset ({get_snapshot_date()})")
 
-def sync_server(server):
-    sync_time = datetime.now(timezone.utc).isoformat()
+def sync_server(server, sync_time=None):
+    if sync_time is None:
+        sync_time = datetime.now(timezone.utc).isoformat()
     print(f"\n  [{server['name']}] Syncing...")
 
     session = get_session(server["ip"])
@@ -410,8 +411,12 @@ def sync_all():
 
     refresh_tier_map()
 
+    premium_sync_time = datetime.now(timezone.utc).isoformat()
     for server in SERVERS:
-        sync_server(server)
+        if server["name"] == "Premium Server":
+            sync_server(server, sync_time=premium_sync_time)
+        else:
+            sync_server(server)
     print(f"\nNext sync in {SYNC_EVERY_MINUTES} minutes\n")
 
 
