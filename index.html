@@ -22801,7 +22801,6 @@ async function acpSave(email, permission, value) {
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <button class="vr-fbtn active" id="vrf-all"      onclick="vrSetFilter('all',this)">All</button>
-      <button id="vrBulkPayBtn" onclick="vrBulkPay()" style="display:none;padding:6px 16px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;border:none;font-size:0.78rem;font-weight:700;cursor:pointer;margin-left:10px;">💳 Pay Selected</button>
       <button class="vr-fbtn"        id="vrf-onhold"   onclick="vrSetFilter('On Hold',this)">🔒 On Hold</button>
       <button class="vr-fbtn"        id="vrf-approved" onclick="vrSetFilter('Approved',this)">✅ Approved</button>
       <button class="vr-fbtn"        id="vrf-declined" onclick="vrSetFilter('Declined',this)">❌ Declined</button>
@@ -22834,7 +22833,6 @@ async function acpSave(email, permission, value) {
         <table style="width:100%;border-collapse:collapse;">
           <thead>
             <tr style="background:var(--surface2);">
-              <th style="padding:10px 14px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);width:36px;"><input type="checkbox" id="vrSelectAll" title="Select All" style="width:15px;height:15px;cursor:pointer;accent-color:#3b82f6;" onclick="vrToggleAllCheckboxes(this)"></th>
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Date</th>
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Requested By</th>
               <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Vendor</th>
@@ -22870,11 +22868,9 @@ async function acpSave(email, permission, value) {
         <div class="vf-full">
           <label class="vf-lbl">Vendor *</label>
           <div class="vf-vendor-row">
-            <div style="position:relative;">
-              <input class="vf-inp" id="vfVendorSearch" placeholder="🔍 Search vendor..." autocomplete="off" oninput="_vrFilterVendorDrop()" onfocus="_vrShowVendorDrop()" style="cursor:text;">
-              <div id="vfVendorDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.3);margin-top:3px;"></div>
-              <input type="hidden" id="vfVendorSel" value="">
-            </div>
+            <select class="vf-inp" id="vfVendorSel">
+              <option value="">— Select Vendor —</option>
+            </select>
             <button class="vf-new-vendor-btn" onclick="vfToggleNewVendor()">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               New Vendor
@@ -22905,8 +22901,8 @@ async function acpSave(email, permission, value) {
             <option value="Gujarat">Gujarat</option>
           </select>
         </div>
-        <div><label class="vf-lbl">Invoice Number *</label><input class="vf-inp" id="vfInvNo" placeholder="INV-0001"></div>
-        <div><label class="vf-lbl">PO No. (Odoo) *</label><input class="vf-inp" id="vfPoNo" placeholder="e.g. P00123"></div>
+        <div><label class="vf-lbl">Invoice Number</label><input class="vf-inp" id="vfInvNo" placeholder="INV-0001"></div>
+        <div><label class="vf-lbl">PO No. (Odoo)</label><input class="vf-inp" id="vfPoNo" placeholder="e.g. P00123"></div>
         <div class="vf-full">
           <label class="vf-lbl">Invoice / Quotation <span style="color:var(--muted);font-weight:400;text-transform:none;">(optional)</span></label>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -22973,7 +22969,7 @@ async function acpSave(email, permission, value) {
       <div id="vrmAcctSection" style="display:none;">
         <div class="vrm-section-title">💳 Payment Details <span style="font-size:0.65rem;font-weight:400;color:var(--muted);">(Accounts)</span></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-          <div><label class="vf-lbl" style="margin-bottom:5px;">UTR Number <span style="color:var(--muted);font-weight:400;">(optional)</span></label><input class="vf-inp" id="vrmUTR" placeholder="UTR / Transaction ref"></div>
+          <div><label class="vf-lbl" style="margin-bottom:5px;">UTR Number *</label><input class="vf-inp" id="vrmUTR" placeholder="UTR / Transaction ref"></div>
           <div>
             <label class="vf-lbl" style="margin-bottom:5px;">Payment Proof</label>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -23044,6 +23040,7 @@ async function loadVendorRequests(force){
 
 async function _vrLoadVendors(){
   let vUrl=`${SUPABASE_URL}/rest/v1/vendors?select=id,vendor_name&order=vendor_name.asc`;
+  if(!_vrCanViewAll())vUrl+=`&created_by=eq.${encodeURIComponent(_vrMyEmail())}`;
   const res=await fetch(vUrl,{headers:SB_HDRS()});
   _vrVendors=res.ok?await res.json():[];
   _vrPopulateVendorDropdown();
@@ -23084,25 +23081,6 @@ async function _vrLoadAmountKPIs(){
     console.error('Amount KPI load error:',e);
   }
 }
-
-// ── BULK PAY ───────────────────────────────────────
-async function vrBulkPay(){
-  const checked=[...document.querySelectorAll('.vr-pay-cb:checked')];
-  if(!checked.length){if(typeof showToast==='function')showToast('⚠️ Koi row select nahi ki.','warning',2000);return;}
-  if(!confirm(`${checked.length} request(s) Paid mark karna chahte ho?`))return;
-  let success=0,fail=0;
-  for(const cb of checked){
-    const id=parseInt(cb.dataset.id);
-    try{
-      const payload={payment_status:'Paid',paid_by:_vrMyEmail(),paid_at:new Date().toISOString()};
-      const res=await fetch(`${SUPABASE_URL}/rest/v1/vendor_requests?id=eq.${id}`,{method:'PATCH',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
-      if(res.ok){const idx=_vrAll.findIndex(x=>x.id===id);if(idx!==-1)_vrAll[idx]={..._vrAll[idx],...payload};success++;}
-      else fail++;
-    }catch(e){fail++;}
-  }
-  _vrRenderKPIs();_vrLoadAmountKPIs();_vrApplyFilter();
-  if(typeof showToast==='function')showToast(`💳 ${success} paid${fail?' | '+fail+' failed':''}!`,fail?'warning':'success',3000);
-}  
 // ── FILTER ─────────────────────────────────────────
 function vrSetFilter(mode,btn){
   _vrFilterMode=mode;
@@ -23153,42 +23131,9 @@ function _vrRenderTable(){
     const attachCell=r.invoice_link
       ?`<a href="${r.invoice_link}" target="_blank" title="View uploaded invoice / quotation" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;background:rgba(78,154,241,0.12);border:1px solid rgba(78,154,241,0.3);color:#4e9af1;text-decoration:none;font-size:0.95rem;">📎</a>`
       :`<span style="color:var(--muted);font-size:0.8rem;">—</span>`;
-    const showCheckbox=_vrIsAccounts()&&status==='Approved'&&r.payment_status!=='Paid';
-    const checkboxCell=showCheckbox?`<td><input type="checkbox" class="vr-pay-cb" data-id="${r.id}" style="width:16px;height:16px;cursor:pointer;accent-color:#3b82f6;"></td>`:`<td></td>`;
-    return`<tr>${checkboxCell}<td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${d}</td><td><div style="font-weight:700;font-size:0.85rem;color:var(--text);">${nameDisplay}</div></td><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'—'}</div></td><td style="text-align:center;">${r.qty||'—'}</td><td style="font-weight:700;white-space:nowrap;text-align:right;">₹${r.amount!=null?Number(r.amount).toLocaleString('en-IN',{maximumFractionDigits:0}):'—'}</td><td style="font-size:0.82rem;">${r.location||'—'}</td><td>${_vrStatusBadge(status)}</td><td>${_vrPayBadge(r.payment_status)}</td><td style="text-align:center;">${attachCell}</td><td style="white-space:nowrap;">${actBtn}${editBtn}${recurBtn}${delBtn}</td></tr>`;
+    return`<tr><td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${d}</td><td><div style="font-weight:700;font-size:0.85rem;color:var(--text);">${nameDisplay}</div></td><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'—'}</div></td><td style="text-align:center;">${r.qty||'—'}</td><td style="font-weight:700;white-space:nowrap;text-align:right;">₹${r.amount!=null?Number(r.amount).toLocaleString('en-IN',{maximumFractionDigits:0}):'—'}</td><td style="font-size:0.82rem;">${r.location||'—'}</td><td>${_vrStatusBadge(status)}</td><td>${_vrPayBadge(r.payment_status)}</td><td style="text-align:center;">${attachCell}</td><td style="white-space:nowrap;">${actBtn}${editBtn}${recurBtn}${delBtn}</td></tr>`;
   }).join('');
-
-  // Show/hide bulk pay button based on checkboxes
-  tbody.addEventListener('change',function(){
-    const anyChecked=tbody.querySelectorAll('.vr-pay-cb:checked').length>0;
-    const btn=document.getElementById('vrBulkPayBtn');
-    if(btn&&_vrIsAccounts())btn.style.display=anyChecked?'inline-block':'none';
-  });
 }
-
-// ── VENDOR SEARCH DROPDOWN ──────────────────────────
-function _vrShowVendorDrop(){
-  _vrFilterVendorDrop();
-  document.getElementById('vfVendorDropdown').style.display='block';
-}
-function _vrFilterVendorDrop(){
-  const q=(document.getElementById('vfVendorSearch')?.value||'').toLowerCase();
-  const drop=document.getElementById('vfVendorDropdown');
-  if(!drop)return;
-  const filtered=q?_vrVendors.filter(v=>v.vendor_name.toLowerCase().includes(q)):_vrVendors;
-  drop.innerHTML=filtered.length?filtered.map(v=>`<div onclick="_vrSelectVendor(${v.id},'${v.vendor_name.replace(/'/g,"\\'")}' )" style="padding:10px 14px;cursor:pointer;font-size:0.85rem;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">${v.vendor_name}</div>`).join(''):'<div style="padding:10px 14px;color:var(--muted);font-size:0.82rem;">No vendors found</div>';
-  drop.style.display='block';
-}
-function _vrSelectVendor(id,name){
-  document.getElementById('vfVendorSel').value=id;
-  document.getElementById('vfVendorSearch').value=name;
-  document.getElementById('vfVendorDropdown').style.display='none';
-}
-document.addEventListener('click',function(e){
-  if(!e.target.closest('#vfVendorSearch')&&!e.target.closest('#vfVendorDropdown')){
-    const d=document.getElementById('vfVendorDropdown');if(d)d.style.display='none';
-  }
-});  
 
 // ── VENDOR BUTTON VISIBILITY ───────────────────────
 // Called after PERMISSIONS loads — shows Purchase Request button if allowed
@@ -23234,12 +23179,7 @@ function _injectPurchaseCard() {
       </div>
     </div>`;
   gridEl.insertBefore(card, gridEl.firstChild);
-  gridEl.style.display = 'grid';
-  const loadingEl = document.getElementById('finance-loading');
-  if (loadingEl) loadingEl.style.display = 'none';
-  const emptyEl = document.getElementById('finance-empty');
-  if (emptyEl) emptyEl.style.display = 'none';
-}
+}  
 
 // ── OPEN VENDOR DASHBOARD (called by Purchase Request button) ──
 function openVrDash(){
@@ -23300,7 +23240,7 @@ async function submitVendorRequest(){
   errEl.style.display='none';
   const sel=document.getElementById('vfVendorSel');
   const vendorId=sel.value;
-  const vendorName=document.getElementById('vfVendorSearch')?.value||'';
+  const vendorName=sel.options[sel.selectedIndex]?.dataset?.name||'';
   const product=(document.getElementById('vfProduct').value||'').trim();
   const amount=document.getElementById('vfAmount').value;
   const location=document.getElementById('vfLocation').value;
@@ -23308,16 +23248,8 @@ async function submitVendorRequest(){
   if(!product){errEl.textContent='⚠️ Product / Service is required.';errEl.style.display='block';return;}
   if(!amount||isNaN(Number(amount))||Number(amount)<=0){errEl.textContent='⚠️ Please enter a valid amount.';errEl.style.display='block';return;}
   if(!location){errEl.textContent='⚠️ Please select a location.';errEl.style.display='block';return;}
-  const invNo=(document.getElementById('vfInvNo').value||'').trim();
-  const poNo=(document.getElementById('vfPoNo').value||'').trim();
-  if(!invNo){errEl.textContent='⚠️ Invoice Number is required.';errEl.style.display='block';return;}
-  if(!poNo){errEl.textContent='⚠️ PO Number (Odoo) is required.';errEl.style.display='block';return;}
   btn.disabled=true;btn.textContent='Submitting…';
   try{
-    // Duplicate invoice check for same vendor
-    const dupCheck=await fetch(`${SUPABASE_URL}/rest/v1/vendor_requests?select=id&vendor_id=eq.${vendorId}&invoice_number=eq.${encodeURIComponent(invNo)}`,{headers:SB_HDRS()});
-    const dupRows=dupCheck.ok?await dupCheck.json():[];
-    if(dupRows.length>0){errEl.textContent='⚠️ This Invoice Number already exists for this vendor. Please use a unique invoice number.';errEl.style.display='block';btn.disabled=false;btn.textContent='🚀 Submit for Approval';return;}
     let invoiceUrl=null;
     const invFile=document.getElementById('vfInvFile')?.files?.[0];
     if(invFile){
@@ -23554,7 +23486,10 @@ async function vrMarkPaid(){
   if(!_vrCurId)return;
   const msgEl=document.getElementById('vrmMsg');msgEl.style.display='none';
   const utr=(document.getElementById('vrmUTR').value||'').trim();
-  // UTR is optional — removed mandatory check
+  if(!utr){
+    msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';
+    msgEl.textContent='⚠️ UTR Number is required before marking as Paid.';
+    return;
   }
   try{
     let attachUrl=null;
