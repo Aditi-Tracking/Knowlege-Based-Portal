@@ -23295,7 +23295,7 @@ async function submitVendorRequest(){
   errEl.style.display='none';
   const sel=document.getElementById('vfVendorSel');
   const vendorId=sel.value;
-  const vendorName=sel.options[sel.selectedIndex]?.dataset?.name||'';
+  const vendorName=document.getElementById('vfVendorSearch')?.value||'';
   const product=(document.getElementById('vfProduct').value||'').trim();
   const amount=document.getElementById('vfAmount').value;
   const location=document.getElementById('vfLocation').value;
