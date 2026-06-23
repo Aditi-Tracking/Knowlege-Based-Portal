@@ -16,6 +16,12 @@ SUPABASE_URL       = os.environ.get("SUPABASE_URL",       "")
 SUPABASE_KEY       = os.environ.get("SUPABASE_KEY",       "")
 PREMIUM_USERNAME   = os.environ.get("PREMIUM_USERNAME",   "")
 PREMIUM_PASSWORD   = os.environ.get("PREMIUM_PASSWORD",   "")
+PREMIUM2_USERNAME  = os.environ.get("PREMIUM2_USERNAME",  "")
+PREMIUM2_PASSWORD  = os.environ.get("PREMIUM2_PASSWORD",  "")
+PREMIUM3_USERNAME  = os.environ.get("PREMIUM3_USERNAME",  "")
+PREMIUM3_PASSWORD  = os.environ.get("PREMIUM3_PASSWORD",  "")
+PREMIUM4_USERNAME  = os.environ.get("PREMIUM4_USERNAME",  "")
+PREMIUM4_PASSWORD  = os.environ.get("PREMIUM4_PASSWORD",  "")
 PRO_USERNAME       = os.environ.get("PRO_USERNAME",       "")
 PRO_PASSWORD       = os.environ.get("PRO_PASSWORD",       "")
 GOA_USERNAME       = os.environ.get("GOA_USERNAME",       "")
@@ -31,6 +37,9 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 SERVERS = [
     {"name": "Premium Server",   "username": PREMIUM_USERNAME,   "password": PREMIUM_PASSWORD,   "ip": "13.126.244.90",  "project_id": "37"},
+    {"name": "Premium Server",   "username": PREMIUM2_USERNAME,  "password": PREMIUM2_PASSWORD,  "ip": "13.126.244.90",  "project_id": "37"},
+    {"name": "Premium Server",   "username": PREMIUM3_USERNAME,  "password": PREMIUM3_PASSWORD,  "ip": "13.126.244.90",  "project_id": "37"},
+    {"name": "Premium Server",   "username": PREMIUM4_USERNAME,  "password": PREMIUM4_PASSWORD,  "ip": "13.126.244.90",  "project_id": "37"},
     {"name": "PRO Server",       "username": PRO_USERNAME,       "password": PRO_PASSWORD,       "ip": "43.204.188.112", "project_id": "16"},
     {"name": "Goa Server",       "username": GOA_USERNAME,       "password": GOA_PASSWORD,       "ip": "3.7.238.246",    "project_id": "37"},
     {"name": "Bangalore Server", "username": BANGALORE_USERNAME, "password": BANGALORE_PASSWORD, "ip": "13.126.244.90",  "project_id": "37"},
