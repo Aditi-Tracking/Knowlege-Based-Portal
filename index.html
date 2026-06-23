@@ -555,6 +555,8 @@
   }
   .potm-name{font-family:'Playfair Display',serif;font-size:0.92rem;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.2;}
   .potm-dept{font-size:0.72rem;font-weight:600;padding:3px 9px;border-radius:20px;display:inline-block;}
+  .potm-location{font-size:0.70rem;font-weight:500;color:var(--muted);margin-top:5px;display:inline-flex;align-items:center;gap:3px;}
+  .nj-card{width:150px;}
   .potm-trophy{font-size:1rem;margin-bottom:6px;}
   .hc-icon{font-size:1.7rem;margin-bottom:12px;display:flex;align-items:center;justify-content:center;width:44px;height:44px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;margin-bottom:24px;}.hc-icon svg{width:22px!important;height:22px!important;}
   .hc-name{font-family:'Playfair Display',serif;font-weight:700;font-size:1.00rem;margin-bottom:5px;color:var(--text);}
@@ -2230,24 +2232,36 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
         </div>
       </div>
 
-    <!-- ══ PERFORMER OF THE MONTH ══ -->
+    <!-- ══ SPOTLIGHT OF THE MONTH ══ -->
     <div class="hp-card" style="margin-bottom:16px;position:relative;overflow:hidden;">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#f0a500,#ffcc44,#f0a500);background-size:200%;animation:shimmer2 3s linear infinite;"></div>
       
       <div class="hp-card-header">
         <span class="hp-card-icon">🏆</span>
-        <span class="hp-card-title">Performer of the Month</span>
-        <span style="font-size:0.73rem;color:var(--accent);margin-left:auto;font-weight:600;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.25);padding:3px 10px;border-radius:20px;">April 2026</span>
+        <span class="hp-card-title">Spotlight of the Month</span>
+        <span style="font-size:0.73rem;color:var(--accent);margin-left:auto;font-weight:600;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.25);padding:3px 10px;border-radius:20px;">June 2026</span>
       </div>
-      <!-- Single Performer — Krishna -->
+      <!-- Single Performer — Soloni Raut -->
       <div id="potmGrid" style="display:flex;justify-content:center;margin-top:8px;">
-        <div class="potm-card" id="krishnaCard" style="width:200px;">
+        <div class="potm-card" id="soloniCard" style="width:200px;">
           <div class="potm-card-bar" style="background:#4e9af1;opacity:0.8;"></div>
           <div class="potm-trophy">🥇</div>
-          <div class="potm-shimmer" id="krishna-img-slot"></div>
-          <div class="potm-name">Krishna</div>
-          <div class="potm-dept" style="background:rgba(78,154,241,0.12);color:#4e9af1;border:1px solid rgba(78,154,241,0.3);">🏢 MIS</div>
+          <div class="potm-shimmer" id="soloni-img-slot"></div>
+          <div class="potm-name">Soloni Raut</div>
+          <div class="potm-dept" style="background:rgba(78,154,241,0.12);color:#4e9af1;border:1px solid rgba(78,154,241,0.3);">🏢 Support</div>
         </div>
+      </div>
+    </div>
+
+    <!-- ══ NEW JOINERS ══ -->
+    <div class="hp-card" style="margin-bottom:16px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#00d4aa,#4e9af1,#00d4aa);background-size:200%;animation:shimmer2 3s linear infinite;"></div>
+      <div class="hp-card-header">
+        <span class="hp-card-icon">🌱</span>
+        <span class="hp-card-title">New Joiners</span>
+      </div>
+      <div id="newJoinersGrid" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:10px;">
+        <div style="color:var(--muted);font-size:0.84rem;padding:10px 0;">Loading new joiners…</div>
       </div>
     </div>
 
@@ -9839,6 +9853,8 @@ function showPortal(){
   fetchUserProfilePhoto();
   // Performer of the Month cards load karo
   loadPerformers();
+  // New Joiners cards load karo
+  loadNewJoiners();
   // Pre-fetch all dashboard data in background
   setTimeout(prefetchAllData, 0);
 }
@@ -11683,43 +11699,123 @@ function _showPhotoPlaceholder(el, name) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// PERFORMER OF THE MONTH — Krishna (MIS)
+// SPOTLIGHT OF THE MONTH — Soloni Raut (Support)
 // ═══════════════════════════════════════════════════════════
-const POTM_NAMES = ['Krishna']; // kept for any reference, not used below
+const POTM_NAMES = ['Soloni Raut']; // kept for any reference, not used below
 
 
 
 async function loadPerformers() {
-  const slot = document.getElementById('krishna-img-slot');
+  const slot = document.getElementById('soloni-img-slot');
   if (!slot) return;
   try {
-    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Link&Employee_name=ilike.Krishna&limit=1`;
+    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=avatar_url,Link&Emp_id=eq.7&limit=1`;
     const res = await fetch(url, { headers: SB_HDRS() });
     const rows = await res.json();
-    const link = Array.isArray(rows) && rows[0] ? rows[0]['Link'] : null;
+    const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+    const link = row ? (row['avatar_url'] || row['Link']) : null;
     if (link) {
       const img = document.createElement('img');
       img.className = 'potm-photo';
-      img.alt = 'Krishna';
+      img.alt = 'Soloni Raut';
       img.src = link;
       img.onerror = function() {
         const av = document.createElement('div');
         av.className = 'potm-avatar';
-        av.textContent = 'K';
+        av.textContent = 'S';
         img.replaceWith(av);
       };
       slot.replaceWith(img);
     } else {
       const av = document.createElement('div');
       av.className = 'potm-avatar';
-      av.textContent = 'K';
+      av.textContent = 'S';
       slot.replaceWith(av);
     }
   } catch(e) {
     const av = document.createElement('div');
     av.className = 'potm-avatar';
-    av.textContent = 'K';
+    av.textContent = 'S';
     if (slot) slot.replaceWith(av);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// NEW JOINERS — Emp_id 66 to 77
+// ═══════════════════════════════════════════════════════════
+async function loadNewJoiners() {
+  const grid = document.getElementById('newJoinersGrid');
+  if (!grid) return;
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id,Employee_name,Employee_Dept,Location,avatar_url,Link&Emp_id=gte.66&Emp_id=lte.77&order=Emp_id.asc`;
+    const res = await fetch(url, { headers: SB_HDRS() });
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) {
+      grid.innerHTML = '<div style="color:var(--muted);font-size:0.84rem;padding:10px 0;">No new joiners to show right now.</div>';
+      return;
+    }
+    grid.innerHTML = '';
+    rows.forEach(row => {
+      const name = row['Employee_name'] || 'New Joiner';
+      const dept = row['Employee_Dept'] || '';
+      const loc = row['Location'] || '';
+      const photo = row['avatar_url'] || row['Link'] || null;
+      const initial = (name || 'N')[0].toUpperCase();
+
+      const card = document.createElement('div');
+      card.className = 'potm-card nj-card';
+
+      const bar = document.createElement('div');
+      bar.className = 'potm-card-bar';
+      bar.style.background = '#00d4aa';
+      bar.style.opacity = '0.8';
+      card.appendChild(bar);
+
+      if (photo) {
+        const img = document.createElement('img');
+        img.className = 'potm-photo';
+        img.alt = name;
+        img.src = photo;
+        img.onerror = function() {
+          const av = document.createElement('div');
+          av.className = 'potm-avatar';
+          av.textContent = initial;
+          img.replaceWith(av);
+        };
+        card.appendChild(img);
+      } else {
+        const av = document.createElement('div');
+        av.className = 'potm-avatar';
+        av.textContent = initial;
+        card.appendChild(av);
+      }
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'potm-name';
+      nameEl.textContent = name;
+      card.appendChild(nameEl);
+
+      if (dept) {
+        const deptEl = document.createElement('div');
+        deptEl.className = 'potm-dept';
+        deptEl.style.background = 'rgba(0,212,170,0.12)';
+        deptEl.style.color = '#00d4aa';
+        deptEl.style.border = '1px solid rgba(0,212,170,0.3)';
+        deptEl.textContent = '🏢 ' + dept;
+        card.appendChild(deptEl);
+      }
+
+      if (loc) {
+        const locEl = document.createElement('div');
+        locEl.className = 'potm-location';
+        locEl.textContent = '📍 ' + loc;
+        card.appendChild(locEl);
+      }
+
+      grid.appendChild(card);
+    });
+  } catch(e) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:0.84rem;padding:10px 0;">Couldn\'t load new joiners.</div>';
   }
 }
 
