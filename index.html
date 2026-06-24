@@ -22815,6 +22815,7 @@ async function acpSave(email, permission, value) {
       <button class="vr-fbtn"        id="vrf-approved" onclick="vrSetFilter('Approved',this)">✅ Approved</button>
       <button class="vr-fbtn"        id="vrf-declined" onclick="vrSetFilter('Declined',this)">❌ Declined</button>
       <button class="vr-fbtn"        id="vrf-paid"     onclick="vrSetFilter('Paid',this)">💳 Paid</button>
+      <button id="vrBulkPayBtn" onclick="vrBulkPay()" style="display:none;padding:6px 13px;border-radius:8px;border:1px solid rgba(59,130,246,0.4);background:rgba(59,130,246,0.12);color:#3b82f6;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;">💳 Pay Selected</button>
       <button onclick="loadVendorRequests(true)" style="padding:6px 13px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
         Refresh
@@ -23172,7 +23173,7 @@ function _vrRenderTable(){
     const status=r.status||'On Hold';
     let actBtn='';
     if(_vrIsEA())actBtn=`<button class="vr-act" style="background:rgba(240,165,0,0.12);color:#f0a500;border:1px solid rgba(240,165,0,0.3);" onclick="openVrModal(${r.id})">Review →</button>`;
-    else if(_vrIsAccounts()&&status==='Approved'&&r.payment_status!=='Paid')actBtn=`<button class="vr-act" style="background:rgba(59,130,246,0.12);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);" onclick="openVrModal(${r.id})">Pay →</button>`;
+    else if(_vrIsAccounts()&&status==='Approved'&&r.payment_status!=='Paid')actBtn=`<input type="checkbox" class="vr-row-cb" data-id="${r.id}" onchange="vrUpdateBulkBtn()" style="width:16px;height:16px;cursor:pointer;accent-color:#3b82f6;"> <button class="vr-act" style="background:rgba(59,130,246,0.12);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);" onclick="openVrModal(${r.id})">Pay →</button>`;
     else actBtn=`<button class="vr-act" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="openVrModal(${r.id})">View</button>`;
     const canDelete=(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.vendor_delete==='true')||_vrIsEA()||(String(r.submitted_by||'').toLowerCase()===_vrMyEmail());
     const canEdit=r.status==='On Hold'&&(_vrIsEA()||(String(r.submitted_by||'').toLowerCase()===_vrMyEmail()));
@@ -23557,11 +23558,6 @@ async function vrMarkPaid(){
   if(!_vrCurId)return;
   const msgEl=document.getElementById('vrmMsg');msgEl.style.display='none';
   const utr=(document.getElementById('vrmUTR').value||'').trim();
-  if(!utr){
-    msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';
-    msgEl.textContent='⚠️ UTR Number is required before marking as Paid.';
-    return;
-  }
   try{
     let attachUrl=null;
     const attachFile=document.getElementById('vrmAttachFile')?.files?.[0];
@@ -23591,6 +23587,36 @@ async function vrMarkPaid(){
     msgEl.textContent='❌ '+e.message;
   }
 }
+
+// ── BULK PAY ───────────────────────────────────────
+async function vrBulkPay(){
+  const checked=[...document.querySelectorAll('.vr-row-cb:checked')];
+  if(!checked.length){if(typeof showToast==='function')showToast('⚠️ Koi row select nahi hai','error',2000);return;}
+  if(!confirm(`${checked.length} row(s) ko Paid mark karna hai?`))return;
+  const ids=checked.map(cb=>parseInt(cb.dataset.id));
+  const payload={payment_status:'Paid',utr_number:'',paid_by:_vrMyEmail(),paid_at:new Date().toISOString()};
+  let ok=0,fail=0;
+  for(const id of ids){
+    try{
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/vendor_requests?id=eq.${id}`,{method:'PATCH',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+      if(!res.ok)throw new Error();
+      const idx=_vrAll.findIndex(x=>x.id===id);if(idx!==-1)_vrAll[idx]={..._vrAll[idx],...payload};
+      ok++;
+    }catch{fail++;}
+  }
+  _vrRenderKPIs();_vrLoadAmountKPIs();_vrApplyFilter();
+  if(typeof showToast==='function')showToast(`💳 ${ok} paid, ${fail} failed`,'success',3000);
+}  
+
+// ── BULK PAY ───────────────────────────────────────
+async function vrBulkPay(){
+  ...
+}
+
+function vrUpdateBulkBtn(){
+  const any=document.querySelector('.vr-row-cb:checked');
+  document.getElementById('vrBulkPayBtn').style.display=any?'':'none';
+}  
 
 // ── FILE HELPERS ───────────────────────────────────
 function vfInvFileChosen(input){
