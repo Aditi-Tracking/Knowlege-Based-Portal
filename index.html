@@ -8056,7 +8056,7 @@ function tRenderTable(){
       :'<span class="badge" style="background:rgba(240,165,0,0.1);color:#f0a500;border:1px solid rgba(240,165,0,0.2)">⏳ Pending</span>';
     const _undoBtn = (done && _canUndoTask())
       ? `<button onclick="tUndoTask('${r['Task ID']||''}')"
-           title="Undo — Task wapas Pending kar do"
+           title="Undo — Set task back to Pending"
            style="margin-top:4px;width:100%;background:rgba(255,92,124,0.10);border:1.5px solid rgba(255,92,124,0.35);color:#ff5c7c;border-radius:7px;padding:4px 6px;font-size:0.72rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;transition:all 0.18s;"
            onmouseover="this.style.background='rgba(255,92,124,0.22)'" onmouseout="this.style.background='rgba(255,92,124,0.10)'">
            ↩️ Undo
@@ -8375,8 +8375,8 @@ function tGetDateFiltered(){
 // ── Mandatory attachment missing — Mark Done block karo, upload ki taraf guide karo ──
 function tBlockedMarkDone(taskId){
   const tid = String(taskId);
-  showToast && showToast('📎 Yeh task mandatory attachment ke bina Done nahi ho sakta! Pehle 📎 column se file/PDF upload karo.', 'error', 4000);
-  // Upload button ko highlight karo taaki employee ko pata chale kahan click karna hai
+  showToast && showToast('📎 This task cannot be marked Done without the mandatory attachment! Please upload a file/PDF in the 📎 column first.', 'error', 4000);
+  // Highlight the upload button so the employee knows where to click
   const upBtn = document.getElementById('tfu_btn_' + tid);
   if(upBtn){
     upBtn.style.transition = 'box-shadow 0.3s';
@@ -8433,7 +8433,7 @@ function deptSubmitDone(taskId, src){
   // ── Safety net: mandatory attachment wale task ko bina file ke Done mat hone do ──
   const _row = tAllData.find(r => String(r['Task ID']) === tid);
   if(_row && tTaskRequiresAttachment(_row['Task']) && !tHasAttachment(_row)){
-    showToast && showToast('📎 Yeh task mandatory attachment ke bina Done nahi ho sakta! Pehle 📎 column se file/PDF upload karo.', 'error', 4000);
+    showToast && showToast('📎 This task cannot be marked Done without the mandatory attachment! Please upload a file/PDF in the 📎 column first.', 'error', 4000);
     tRenderTable();
     return;
   }
@@ -8513,7 +8513,7 @@ function _canUndoTask(){
 // ── Undo Done Task — Supabase mein actual_timestamp + remarks NULL karo ──
 function tUndoTask(taskId){
   if(!_canUndoTask()){
-    showToast && showToast('⛔ Undo access sirf MIS aur PC ke liye hai.', 'error', 3000);
+    showToast && showToast('⛔ Undo access is restricted to MIS and PC only.', 'error', 3000);
     return;
   }
   const tid = String(taskId);
@@ -8941,7 +8941,7 @@ async function tDirectUpload(input, taskId){
   if(td){
     td.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:center;">
-        <a href="${_localPreviewUrl||'#'}" target="_blank" rel="noopener" title="${file.name} — cloud par sync ho raha hai…"
+        <a href="${_localPreviewUrl||'#'}" target="_blank" rel="noopener" title="${file.name} — syncing to cloud…"
            style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;
                   background:rgba(0,212,170,0.12);border:1.5px solid rgba(0,212,170,0.4);
                   border-radius:8px;text-decoration:none;font-size:1rem;">📄<span style="position:absolute;bottom:-3px;right:-3px;font-size:0.6rem;">⏳</span></a>
@@ -12189,7 +12189,7 @@ function triggerMediclaimUpload() {
   const pwd = prompt('Enter HR password to upload:');
   if (pwd === null) return;  // User cancelled
   if (pwd !== MEDICLAIM_UPLOAD_PASSWORD) {
-    alert('Galat password. Upload cancelled.');
+    alert('Incorrect password. Upload cancelled.');
     return;
   }
   // Trigger file picker
@@ -14936,7 +14936,7 @@ async function _submitYoutubeLink(ytUrl, displayName, newCardName, submitBtn) {
 async function confirmDeleteCard(nodeId, cardName) {
   const _role = CURRENT_USER ? String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim() : '';
   if (_role !== 'mis') { alert('⛔ Delete access is restricted to MIS users only.'); return; }
-  if (!confirm(`⚠️ "${cardName}" aur uske saare files permanently delete ho jaayenge.\nKya aap sure hain?`)) return;
+  if (!confirm(`⚠️ "${cardName}" and all its files will be permanently deleted.\nAre you sure?`)) return;
   await _doDeleteCard(nodeId, cardName);
 }
 
@@ -15048,7 +15048,7 @@ async function _doDeleteCard(nodeId, cardName) {
     else if (panelId === 'panel-products')   { prodLoaded=false; loadProducts(); }
     else if (panelId === 'panel-training')   { trainingDynLoaded=false; loadTrainingSection(); }
 
-    alert(`✅ "${cardName}" aur uske saare files delete ho gaye!`);
+    alert(`✅ "${cardName}" and all its files have been deleted!`);
 
   } catch(e) {
     alert('❌ Error: ' + e.message);
@@ -15058,7 +15058,7 @@ async function _doDeleteCard(nodeId, cardName) {
 async function confirmDeleteFile(fileId, fileUrl) {
   const _role = CURRENT_USER ? String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim() : '';
   if (_role !== 'mis') { alert('⛔ Delete access is restricted to MIS users only.'); return; }
-  if (!confirm('⚠️ Yeh file permanently delete ho jaayegi. Kya aap sure hain?')) return;
+  if (!confirm('⚠️ This file will be permanently deleted. Are you sure?')) return;
   await _doDeleteFile(fileId, fileUrl);
 }
 
@@ -15482,16 +15482,16 @@ async function actLogTestConnection() {
       // Check if new columns exist
       const hasNewCols = d.length === 0 || ('page_name' in d[0]);
       if (hasNewCols) {
-        if (res_el) res_el.innerHTML = '<span style="color:#00d4aa;">✅ Connected! New columns bhi exist karti hain. Data aana chahiye.</span>';
+        if (res_el) res_el.innerHTML = '<span style="color:#00d4aa;">✅ Connected! New columns also exist. Data should come through.</span>';
         document.getElementById('actlog-sql-banner').style.display = 'none';
       } else {
-        if (res_el) res_el.innerHTML = '<span style="color:#f0a500;">⚠️ Connected, lekin nayi columns nahi hain. Upar SQL run karo.</span>';
+        if (res_el) res_el.innerHTML = '<span style="color:#f0a500;">⚠️ Connected, but new columns are missing. Run the SQL above.</span>';
         document.getElementById('actlog-sql-banner').style.display = 'block';
       }
     } else {
       const err = await r.text();
       if (r.status === 401 || r.status === 403) {
-        if (res_el) res_el.innerHTML = '<span style="color:#ff5c7c;">❌ RLS block kar raha hai! Supabase mein RLS policy add karo (upar SQL dekho).</span>';
+        if (res_el) res_el.innerHTML = '<span style="color:#ff5c7c;">❌ RLS is blocking this! Add an RLS policy in Supabase (see the SQL above).</span>';
         document.getElementById('actlog-sql-banner').style.display = 'block';
       } else {
         if (res_el) res_el.innerHTML = `<span style="color:#ff5c7c;">❌ Error ${r.status}: ${err.substring(0,80)}</span>`;
@@ -15514,7 +15514,7 @@ async function actLogSendTestEvent() {
     const r1 = await fetch(`${SUPABASE_URL}/rest/v1/activity_logs`, { method:'POST', headers:hdrs, body:JSON.stringify(fullP) });
 
     if (r1.ok || r1.status === 201) {
-      if (res_el) res_el.innerHTML = '<span style="color:#00d4aa;">✅ Test log sent! Refresh karo — data dikhna chahiye.</span>';
+      if (res_el) res_el.innerHTML = '<span style="color:#00d4aa;">✅ Test log sent! Refresh — data should show up.</span>';
       document.getElementById('actlog-sql-banner').style.display = 'none';
     } else {
       const errText = await r1.text();
@@ -15523,12 +15523,12 @@ async function actLogSendTestEvent() {
         event_detail: 'Test | page:activitylog | card:Test Card | dur:5s', session_id: _ACT_SESSION_ID, device: 'desktop' };
       const r2 = await fetch(`${SUPABASE_URL}/rest/v1/activity_logs`, { method:'POST', headers:hdrs, body:JSON.stringify(basicP) });
       if (r2.ok || r2.status === 201) {
-        if (res_el) res_el.innerHTML = '<span style="color:#f0a500;">⚠️ Basic log saved (nayi columns nahi hain). Upar SQL run karo full data ke liye. Refresh karo!</span>';
+        if (res_el) res_el.innerHTML = '<span style="color:#f0a500;">⚠️ Basic log saved (new columns are missing). Run the SQL above for full data. Refresh!</span>';
         document.getElementById('actlog-sql-banner').style.display = 'block';
       } else {
         const err2 = await r2.text();
         if (r2.status === 401 || r2.status === 403) {
-          if (res_el) res_el.innerHTML = '<span style="color:#ff5c7c;">❌ RLS policy block kar rahi hai INSERT. Supabase mein INSERT policy add karo!</span>';
+          if (res_el) res_el.innerHTML = '<span style="color:#ff5c7c;">❌ RLS policy is blocking the INSERT. Add an INSERT policy in Supabase!</span>';
         } else {
           if (res_el) res_el.innerHTML = `<span style="color:#ff5c7c;">❌ Failed ${r2.status}: ${err2.substring(0,100)}</span>`;
         }
@@ -15720,9 +15720,9 @@ function renderActLogTable() {
       const dtFrom = document.getElementById('actlog-filter-date-from')?.value || '';
       const dtTo   = document.getElementById('actlog-filter-date-to')?.value   || '';
       const dateMsg = (dtFrom || dtTo)
-        ? `<div style="font-size:0.85rem;color:var(--muted);margin-top:6px;">Selected date: <b>${dtFrom}${dtTo && dtTo!==dtFrom?' → '+dtTo:''}</b> ke liye koi activity nahi mili.</div><div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">Date filter change karein past data dekhne ke liye.</div>`
+        ? `<div style="font-size:0.85rem;color:var(--muted);margin-top:6px;">No activity found for the selected date: <b>${dtFrom}${dtTo && dtTo!==dtFrom?' → '+dtTo:''}</b>.</div><div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">Change the date filter to view past data.</div>`
         : '';
-      empty.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted);"><div style="font-size:2.5rem;margin-bottom:10px;">🗒️</div><div>Koi records nahi mile.</div>' + dateMsg + '</div>';
+      empty.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted);"><div style="font-size:2.5rem;margin-bottom:10px;">🗒️</div><div>No records found.</div>' + dateMsg + '</div>';
     }
     if (pgEl)  pgEl.style.display = 'none';
     return;
@@ -16183,7 +16183,7 @@ async function mpInlineSelect(idx, odooId, odooName){
 async function mpClearMapping(idx){
   const row = _mpFiltered[idx];
   if(!row || !row.customer_id) return;
-  if(!confirm(`"${row.gps_name}" ki mapping clear karein?`)) return;
+  if(!confirm(`Clear the mapping for "${row.gps_name}"?`)) return;
 
   try {
     // GPS alias se customer_id remove karo
@@ -18821,7 +18821,7 @@ async function sendWish() {
   if (!_celebCurrentPerson) return;
 
   // Disable button
-  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '⏳ Bhej rahe hain...'; }
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '⏳ Sending...'; }
 
   // Detect wish type from popup title
   const titleEl   = document.getElementById('celebTitle');
@@ -18895,17 +18895,17 @@ async function sendWish() {
 
     } else {
       const errText = await res.text();
-      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '🎉 Wish Bhejo!'; }
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '🎉 Send Wish!'; }
       if (wishBox) {
         const e = document.createElement('div');
         e.style.cssText = 'font-size:0.80rem;color:#ff5c7c;margin-top:6px;padding:8px;border-radius:8px;background:rgba(255,92,124,0.1);border:1px solid rgba(255,92,124,0.25);';
-        e.textContent = '⚠️ Error: ' + (errText.length < 120 ? errText : 'Table create nahi hua. Neeche SQL run karo.');
+        e.textContent = '⚠️ Error: ' + (errText.length < 120 ? errText : 'Table was not created. Run the SQL below.');
         wishBox.appendChild(e);
         setTimeout(() => e.remove(), 5000);
       }
     }
   } catch(e) {
-    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '🎉 Wish Bhejo!'; }
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '🎉 Send Wish!'; }
   }
 }
 
@@ -22295,7 +22295,7 @@ function openPostUpdateModal() {
 function editPortalUpdate(id) {
   if (!CURRENT_USER || PERMISSIONS.can_post_announcements !== 'true') return;
   const ann = _annDrwUpdates.find(a => a.id === id);
-  if (!ann) { alert('Update nahi mila.'); return; }
+  if (!ann) { alert('Update not found.'); return; }
   _editingAnnId = id;
   document.getElementById('postUpdateTitle').value = ann.title || '';
   document.getElementById('postUpdateBody').value  = ann.body  || '';
@@ -22376,7 +22376,7 @@ async function submitPortalUpdate() {
 
     if (!isEditing) {
       // ── Push sirf new post pe ──
-      osSendPush('New Announcement', title + '\nPortal kholein aur dekhein — learn.adititracking.com');
+      osSendPush('New Announcement', title + '\nOpen the portal to view — learn.adititracking.com');
     }
   } catch(e) {
     errEl.textContent = '❌ Error: ' + (e.message || 'Please try again.');
@@ -22390,7 +22390,7 @@ async function submitPortalUpdate() {
 /* ══ DELETE PORTAL UPDATE ══ */
 async function deletePortalUpdate(id) {
   if (!CURRENT_USER || CURRENT_USER.rawRole !== 'mis') return;
-  if (!confirm('Kya aap is update ko delete karna chahte hain?')) return;
+  if (!confirm('Are you sure you want to delete this update?')) return;
 
   // Card turant fade karo
   const card = document.getElementById('ann-card-' + id);
@@ -22829,10 +22829,24 @@ async function acpSave(email, permission, value) {
   <!-- Body -->
   <div style="padding:16px 28px 24px;">
     <!-- KPIs -->
-<div id="vrKpiRow" style="display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin-bottom:14px;"></div>   <!-- Search -->
-    <div style="position:relative;margin-bottom:16px;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="vrSearch" placeholder="Search vendor, product, employee…" oninput="vrApplyFilter()" style="width:100%;padding:10px 13px 10px 34px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:0.84rem;font-family:inherit;outline:none;box-sizing:border-box;">
+<div id="vrKpiRow" style="display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin-bottom:14px;"></div>   <!-- Search + Filters -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="position:relative;flex:1;min-width:220px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="vrSearch" placeholder="Search vendor, product, employee…" oninput="vrApplyFilter()" style="width:100%;padding:10px 13px 10px 34px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:0.84rem;font-family:inherit;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="position:relative;width:220px;">
+        <input id="vrVendorFilterInput" placeholder="🔽 Filter by vendor…" autocomplete="off"
+          oninput="_vrVendorFilterType()" onfocus="_vrVendorFilterOpenFn()" onblur="_vrVendorFilterBlur()"
+          style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:0.84rem;font-family:inherit;outline:none;box-sizing:border-box;">
+        <div id="vrVendorFilterDropdown" class="vf-vendor-dropdown"></div>
+      </div>
+      <div style="position:relative;width:220px;">
+        <input id="vrReqFilterInput" placeholder="🔽 Filter by requested by…" autocomplete="off"
+          oninput="_vrReqFilterType()" onfocus="_vrReqFilterOpenFn()" onblur="_vrReqFilterBlur()"
+          style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:0.84rem;font-family:inherit;outline:none;box-sizing:border-box;">
+        <div id="vrReqFilterDropdown" class="vf-vendor-dropdown"></div>
+      </div>
     </div>
     <!-- Table -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
@@ -22983,7 +22997,7 @@ async function acpSave(email, permission, value) {
       <div id="vrmAcctSection" style="display:none;">
         <div class="vrm-section-title">💳 Payment Details <span style="font-size:0.65rem;font-weight:400;color:var(--muted);">(Accounts)</span></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-          <div><label class="vf-lbl" style="margin-bottom:5px;">UTR Number *</label><input class="vf-inp" id="vrmUTR" placeholder="UTR / Transaction ref"></div>
+          <div><label class="vf-lbl" style="margin-bottom:5px;">UTR Number</label><input class="vf-inp" id="vrmUTR" placeholder="UTR / Transaction ref"></div>
           <div>
             <label class="vf-lbl" style="margin-bottom:5px;">Payment Proof</label>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -22996,7 +23010,6 @@ async function acpSave(email, permission, value) {
             </div>
           </div>
         </div>
-        <button class="vrm-submit" onclick="vrMarkPaid()" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;">💳 Mark as PAID</button>
       </div>
       <div id="vrmMsg" style="display:none;margin-top:12px;text-align:center;font-size:0.84rem;padding:10px;border-radius:9px;"></div>
     </div>
@@ -23006,6 +23019,7 @@ async function acpSave(email, permission, value) {
 <script>
 // ── STATE ──────────────────────────────────────────
 let _vrAll=[], _vrFiltered=[], _vrFilterMode='all', _vrCurId=null, _vrNameMap={}, _vrVendors=[], _vrLoaded=false, _vrRecurSourceId=null;
+let _vrFilterVendor='', _vrFilterRequester='', _vrVendorFilterList=[], _vrRequesterFilterList=[];
 
 // ── ROLE HELPERS ───────────────────────────────────
 function _vrRole(){return(typeof CURRENT_USER!=='undefined'&&CURRENT_USER)?String(CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim():'';}
@@ -23041,6 +23055,7 @@ async function loadVendorRequests(force){
     const vrRes=await fetch(url,{headers:SB_HDRS()});
     if(!vrRes.ok)throw new Error('HTTP '+vrRes.status);
     _vrAll=await vrRes.json();
+    _vrBuildFilterOptions();
     _vrRenderKPIs();
     _vrLoadAmountKPIs();
 
@@ -23107,33 +23122,84 @@ function _vfVendorSelect(id,name){
 }
 
 // ── KPIs ───────────────────────────────────────────
+// KPIs are now computed from _vrFiltered so they update live with search/filters/row selection,
+// instead of always reflecting the full unfiltered dataset.
 function _vrRenderKPIs(){
+  const rows=_vrFiltered;
   const kpis=[
-    {label:'Total',val:_vrAll.length,color:'#4e9af1',icon:'📋'},
-    {label:'On Hold',val:_vrAll.filter(r=>r.status==='On Hold').length,color:'#f59e0b',icon:'🔒'},
-    {label:'Approved',val:_vrAll.filter(r=>r.status==='Approved').length,color:'#22c55e',icon:'✅'},
-    {label:'Paid',val:_vrAll.filter(r=>r.payment_status==='Paid').length,color:'#a855f7',icon:'💳'},
+    {label:'Total',val:rows.length,color:'#4e9af1',icon:'📋'},
+    {label:'On Hold',val:rows.filter(r=>r.status==='On Hold').length,color:'#f59e0b',icon:'🔒'},
+    {label:'Approved',val:rows.filter(r=>r.status==='Approved').length,color:'#22c55e',icon:'✅'},
+    {label:'Paid',val:rows.filter(r=>r.payment_status==='Paid').length,color:'#a855f7',icon:'💳'},
   ];
 document.getElementById('vrKpiRow').innerHTML=kpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 12px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:0.95rem;margin-bottom:3px;">${k.icon}</div><div style="font-size:1.3rem;font-weight:900;color:${k.color};line-height:1;">${k.val}</div><div style="font-size:0.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;">${k.label}</div></div>`).join('');}
 async function _vrLoadAmountKPIs(){
   try{
-    const url=`https://knowlege-based-portal-production.up.railway.app/api/vendor-kpis?email=${encodeURIComponent(_vrMyEmail())}`;
-    const res=await fetch(url);
-    if(!res.ok)return;
-    const data=await res.json();
+    const rows=_vrFiltered;
+    const sum=(list)=>list.reduce((s,r)=>s+(Number(r.amount)||0),0);
+    const totalAmt=sum(rows);
+    const approvedAmt=sum(rows.filter(r=>r.status==='Approved'));
+    const paidAmt=sum(rows.filter(r=>r.payment_status==='Paid'));
+    const unpaidAmt=totalAmt-paidAmt;
     const amountKpis=[
-      {label:'Total Requested (₹)',val:data.total_amount,color:'#4e9af1',icon:'💰'},
-      {label:'Approved Amount (₹)',val:data.approved_amount,color:'#22c55e',icon:'✅'},
-      {label:'Paid Amount (₹)',val:data.paid_amount,color:'#a855f7',icon:'💳'},
-      {label:'Unpaid Amount (₹)',val:data.unpaid_amount,color:'#ef4444',icon:'⏳'},
+      {label:'Total Requested (₹)',val:totalAmt,color:'#4e9af1',icon:'💰'},
+      {label:'Approved Amount (₹)',val:approvedAmt,color:'#22c55e',icon:'✅'},
+      {label:'Paid Amount (₹)',val:paidAmt,color:'#a855f7',icon:'💳'},
+      {label:'Unpaid Amount (₹)',val:unpaidAmt,color:'#ef4444',icon:'⏳'},
     ];
     const html=amountKpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 12px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:0.95rem;margin-bottom:3px;">${k.icon}</div><div style="font-size:1.3rem;font-weight:900;color:${k.color};line-height:1;">₹${Number(k.val||0).toLocaleString('en-IN',{maximumFractionDigits:0})}</div><div style="font-size:0.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;">${k.label}</div></div>`).join('');
     document.getElementById('vrKpiRow').insertAdjacentHTML('beforeend', html);
   }catch(e){
-    console.error('Amount KPI load error:',e);
+    console.error('Amount KPI render error:',e);
   }
 }
 // ── FILTER ─────────────────────────────────────────
+function _vrBuildFilterOptions(){
+  // Unique vendor names actually present in the loaded requests
+  _vrVendorFilterList=[...new Set(_vrAll.map(r=>r.vendor_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  // Unique requesters (by email) actually present in the loaded requests, displayed via name map
+  const reqMap={};
+  _vrAll.forEach(r=>{
+    const email=String(r.submitted_by||'').toLowerCase().trim();
+    if(!email||reqMap[email])return;
+    reqMap[email]={email,name:_vrNameMap[email]||r.submitted_by};
+  });
+  _vrRequesterFilterList=Object.values(reqMap).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+}
+function _vrVendorFilterRender(q){
+  const dd=document.getElementById('vrVendorFilterDropdown');if(!dd)return;
+  const list=q?_vrVendorFilterList.filter(v=>v.toLowerCase().includes(q)):_vrVendorFilterList;
+  let html=`<div class="vf-vendor-option" onmousedown="_vrVendorFilterSelect('')" style="font-weight:700;color:var(--muted);">— All Vendors —</div>`;
+  html+=list.slice(0,100).map(v=>`<div class="vf-vendor-option" onmousedown="_vrVendorFilterSelect('${v.replace(/'/g,"\\'")}')">${v}</div>`).join('');
+  dd.innerHTML=html;
+  dd.style.display='block';
+}
+function _vrVendorFilterType(){_vrVendorFilterRender((document.getElementById('vrVendorFilterInput').value||'').toLowerCase());}
+function _vrVendorFilterOpenFn(){_vrVendorFilterRender((document.getElementById('vrVendorFilterInput').value||'').toLowerCase());}
+function _vrVendorFilterBlur(){setTimeout(()=>{const dd=document.getElementById('vrVendorFilterDropdown');if(dd)dd.style.display='none';},180);}
+function _vrVendorFilterSelect(v){
+  _vrFilterVendor=v;
+  document.getElementById('vrVendorFilterInput').value=v;
+  document.getElementById('vrVendorFilterDropdown').style.display='none';
+  _vrApplyFilter();
+}
+function _vrReqFilterRender(q){
+  const dd=document.getElementById('vrReqFilterDropdown');if(!dd)return;
+  const list=q?_vrRequesterFilterList.filter(p=>String(p.name).toLowerCase().includes(q)):_vrRequesterFilterList;
+  let html=`<div class="vf-vendor-option" onmousedown="_vrReqFilterSelect('','')" style="font-weight:700;color:var(--muted);">— All People —</div>`;
+  html+=list.slice(0,100).map(p=>`<div class="vf-vendor-option" onmousedown="_vrReqFilterSelect('${p.email}','${String(p.name).replace(/'/g,"\\'")}')">${p.name}</div>`).join('');
+  dd.innerHTML=html;
+  dd.style.display='block';
+}
+function _vrReqFilterType(){_vrReqFilterRender((document.getElementById('vrReqFilterInput').value||'').toLowerCase());}
+function _vrReqFilterOpenFn(){_vrReqFilterRender((document.getElementById('vrReqFilterInput').value||'').toLowerCase());}
+function _vrReqFilterBlur(){setTimeout(()=>{const dd=document.getElementById('vrReqFilterDropdown');if(dd)dd.style.display='none';},180);}
+function _vrReqFilterSelect(email,name){
+  _vrFilterRequester=email;
+  document.getElementById('vrReqFilterInput').value=name;
+  document.getElementById('vrReqFilterDropdown').style.display='none';
+  _vrApplyFilter();
+}
 function vrSetFilter(mode,btn){
   _vrFilterMode=mode;
   document.querySelectorAll('.vr-fbtn').forEach(b=>b.classList.remove('active'));
@@ -23148,10 +23214,14 @@ function _vrApplyFilter(){
     if(_vrFilterMode==='Approved'&&r.status!=='Approved')return false;
     if(_vrFilterMode==='Declined'&&r.status!=='Declined')return false;
     if(_vrFilterMode==='Paid'&&r.payment_status!=='Paid')return false;
+    if(_vrFilterVendor&&r.vendor_name!==_vrFilterVendor)return false;
+    if(_vrFilterRequester&&String(r.submitted_by||'').toLowerCase().trim()!==_vrFilterRequester)return false;
     if(q){const name=(_vrNameMap[String(r.submitted_by||'').toLowerCase()]||r.submitted_by||'').toLowerCase();const hay=[r.vendor_name,r.product_name,r.location,r.submitted_by,name,String(r.amount||'')].join(' ').toLowerCase();if(!hay.includes(q))return false;}
     return true;
   });
   _vrRenderTable();
+  _vrRenderKPIs();
+  _vrLoadAmountKPIs();
 }
 
 // ── BADGES ─────────────────────────────────────────
@@ -23171,19 +23241,19 @@ function _vrRenderTable(){
     const d=r.created_at?new Date(r.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
     const nameDisplay=_vrNameMap[String(r.submitted_by||'').toLowerCase()]||r.submitted_by||'—';
     const status=r.status||'On Hold';
-    let actBtn='';
-    if(_vrIsEA())actBtn=`<button class="vr-act" style="background:rgba(240,165,0,0.12);color:#f0a500;border:1px solid rgba(240,165,0,0.3);" onclick="openVrModal(${r.id})">Review →</button>`;
-    else if(_vrIsAccounts()&&status==='Approved'&&r.payment_status!=='Paid')actBtn=`<input type="checkbox" class="vr-row-cb" data-id="${r.id}" onchange="vrUpdateBulkBtn()" style="width:16px;height:16px;cursor:pointer;accent-color:#3b82f6;"> <button class="vr-act" style="background:rgba(59,130,246,0.12);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);" onclick="openVrModal(${r.id})">Pay →</button>`;
-    else actBtn=`<button class="vr-act" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="openVrModal(${r.id})">View</button>`;
+    // Row is selectable for bulk "Mark as Paid" if the viewer has EA or Accounts rights
+    // and the request is Approved + still Unpaid. (Previously this checkbox only ever
+    // appeared for non-EA accounts users, which is why it never showed up for EA/owner roles.)
+    const canPay=(_vrIsAccounts()||_vrIsEA())&&status==='Approved'&&r.payment_status!=='Paid';
+    const payCb=canPay?`<input type="checkbox" class="vr-row-cb" data-id="${r.id}" onclick="event.stopPropagation()" onchange="vrUpdateBulkBtn()" title="Select to mark as Paid" style="width:16px;height:16px;cursor:pointer;accent-color:#3b82f6;margin-right:6px;vertical-align:middle;">`:'';
     const canDelete=(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.vendor_delete==='true')||_vrIsEA()||(String(r.submitted_by||'').toLowerCase()===_vrMyEmail());
     const canEdit=r.status==='On Hold'&&(_vrIsEA()||(String(r.submitted_by||'').toLowerCase()===_vrMyEmail()));
-    const editBtn=canEdit?`<button class="vr-act" style="background:rgba(78,154,241,0.12);color:#4e9af1;border:1px solid rgba(78,154,241,0.35);margin-left:5px;" onclick="openVendorEditForm(${r.id})" title="Edit request">✏️ Edit</button>`:'';
+    const editBtn=canEdit?`<button class="vr-act" style="background:rgba(78,154,241,0.12);color:#4e9af1;border:1px solid rgba(78,154,241,0.35);margin-left:5px;" onclick="event.stopPropagation();openVendorEditForm(${r.id})" title="Edit request">✏️ Edit</button>`:'';
     const delBtn=canDelete?`<button class="vr-act" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);margin-left:5px;" onclick="vrDeleteRequest(${r.id},event)" title="Delete request">🗑</button>`:'';
-    const recurBtn=`<button class="vr-act" style="background:rgba(0,212,170,0.10);color:#00d4aa;border:1px solid rgba(0,212,170,0.3);margin-left:5px;" onclick="openRecurringModal(${r.id})" title="Repeat this request with new amount">🔁</button>`;
     const attachCell=r.invoice_link
-      ?`<a href="${r.invoice_link}" target="_blank" title="View uploaded invoice / quotation" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;background:rgba(78,154,241,0.12);border:1px solid rgba(78,154,241,0.3);color:#4e9af1;text-decoration:none;font-size:0.95rem;">📎</a>`
+      ?`<a href="${r.invoice_link}" target="_blank" onclick="event.stopPropagation()" title="View uploaded invoice / quotation" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;background:rgba(78,154,241,0.12);border:1px solid rgba(78,154,241,0.3);color:#4e9af1;text-decoration:none;font-size:0.95rem;">📎</a>`
       :`<span style="color:var(--muted);font-size:0.8rem;">—</span>`;
-    return`<tr><td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${d}</td><td><div style="font-weight:700;font-size:0.85rem;color:var(--text);">${nameDisplay}</div></td><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'—'}</div></td><td style="text-align:center;">${r.qty||'—'}</td><td style="font-weight:700;white-space:nowrap;text-align:right;">₹${r.amount!=null?Number(r.amount).toLocaleString('en-IN',{maximumFractionDigits:0}):'—'}</td><td style="font-size:0.82rem;">${r.location||'—'}</td><td>${_vrStatusBadge(status)}</td><td>${_vrPayBadge(r.payment_status)}</td><td style="text-align:center;">${attachCell}</td><td style="white-space:nowrap;">${actBtn}${editBtn}${delBtn}</td></tr>`;
+    return`<tr onclick="openVrModal(${r.id})" title="Click row to view details" style="cursor:pointer;"><td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${d}</td><td><div style="font-weight:700;font-size:0.85rem;color:var(--text);">${nameDisplay}</div></td><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'—'}</div></td><td style="text-align:center;">${r.qty||'—'}</td><td style="font-weight:700;white-space:nowrap;text-align:right;">₹${r.amount!=null?Number(r.amount).toLocaleString('en-IN',{maximumFractionDigits:0}):'—'}</td><td style="font-size:0.82rem;">${r.location||'—'}</td><td>${_vrStatusBadge(status)}</td><td>${_vrPayBadge(r.payment_status)}</td><td style="text-align:center;">${attachCell}</td><td style="white-space:nowrap;">${payCb}${editBtn}${delBtn}</td></tr>`;
   }).join('');
 }
 
@@ -23359,7 +23429,7 @@ async function openVendorEditForm(id){
   const r = _vrAll.find(x => x.id === id);
   if(!r){ return; }
   if(r.status !== 'On Hold'){
-    if(typeof showToast==='function') showToast('⚠️ Sirf "On Hold" requests edit ho sakti hain.','error',3000);
+    if(typeof showToast==='function') showToast('⚠️ Only "On Hold" requests can be edited.','error',3000);
     return;
   }
 
@@ -23528,7 +23598,6 @@ function openVrModal(id){
     document.getElementById('vrmUTR').value=r.utr_number||'';
     const paf=document.getElementById('vrmAttachFile');if(paf)paf.value='';
     document.getElementById('vrmAttachName').textContent='No file chosen';
-
   }
   document.getElementById('vrmMsg').style.display='none';
   const modal=document.getElementById('vrModal');modal.style.display='flex';document.body.style.overflow='hidden';
@@ -23591,8 +23660,8 @@ async function vrMarkPaid(){
 // ── BULK PAY ───────────────────────────────────────
 async function vrBulkPay(){
   const checked=[...document.querySelectorAll('.vr-row-cb:checked')];
-  if(!checked.length){if(typeof showToast==='function')showToast('⚠️ Koi row select nahi hai','error',2000);return;}
-  if(!confirm(`${checked.length} row(s) ko Paid mark karna hai?`))return;
+  if(!checked.length){if(typeof showToast==='function')showToast('⚠️ No row selected','error',2000);return;}
+  if(!confirm(`Mark ${checked.length} row(s) as Paid?`))return;
   const ids=checked.map(cb=>parseInt(cb.dataset.id));
   const payload={payment_status:'Paid',utr_number:'',paid_by:_vrMyEmail(),paid_at:new Date().toISOString()};
   let ok=0,fail=0;
