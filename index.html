@@ -23607,12 +23607,6 @@ async function vrBulkPay(){
   _vrRenderKPIs();_vrLoadAmountKPIs();_vrApplyFilter();
   if(typeof showToast==='function')showToast(`💳 ${ok} paid, ${fail} failed`,'success',3000);
 }  
-
-// ── BULK PAY ───────────────────────────────────────
-async function vrBulkPay(){
-  ...
-}
-
 function vrUpdateBulkBtn(){
   const any=document.querySelector('.vr-row-cb:checked');
   document.getElementById('vrBulkPayBtn').style.display=any?'':'none';
