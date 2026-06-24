@@ -23305,7 +23305,15 @@ async function submitVendorRequest(){
     closeVendorForm();
     if(typeof showToast==='function')showToast('✅ Purchase request submitted!','success',3000);
     _vrLoaded=false;await loadVendorRequests(true);
-  }catch(e){errEl.textContent='❌ '+e.message;errEl.style.display='block';}
+  }catch(e){
+  const msg=e.message||'';
+  if(msg.includes('23505')||msg.includes('unique_vendor_invoice')){
+    errEl.textContent='⚠️ This invoice number is already submitted for this vendor. Please check for duplicates.';
+  } else {
+    errEl.textContent='❌ '+msg;
+  }
+  errEl.style.display='block';
+}
   finally{btn.disabled=false;btn.textContent='🚀 Submit for Approval';}
 }
 
