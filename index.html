@@ -22762,9 +22762,14 @@ async function acpSave(email, permission, value) {
 .vf-vendor-search-wrap input{width:100%;box-sizing:border-box;}
 .vf-vendor-dropdown{position:absolute;top:100%;left:0;right:0;max-height:220px;overflow-y:auto;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;z-index:9999;margin-top:3px;display:none;box-shadow:0 6px 24px rgba(0,0,0,0.18);}
 .vf-vendor-option{padding:9px 13px;cursor:pointer;font-size:0.84rem;color:var(--text);}
-.vf-vendor-option:hover,.vf-vendor-option.active{background:rgba(78,154,241,0.13);}  
+.vf-vendor-option:hover,.vf-vendor-option.active{background:rgba(78,154,241,0.13);}
 .vf-new-vendor-btn{padding:9px 13px;border-radius:9px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all 0.18s;flex-shrink:0;}
 .vf-new-vendor-btn:hover{background:rgba(0,212,170,0.18);}
+.vf-vendor-search-wrap{flex:1;position:relative;}
+.vf-vendor-search-wrap input{width:100%;box-sizing:border-box;}
+.vf-vendor-dropdown{position:absolute;top:100%;left:0;right:0;max-height:220px;overflow-y:auto;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;z-index:9999;margin-top:3px;display:none;box-shadow:0 6px 24px rgba(0,0,0,0.18);}
+.vf-vendor-option{padding:9px 13px;cursor:pointer;font-size:0.84rem;color:var(--text);}
+.vf-vendor-option:hover,.vf-vendor-option.active{background:rgba(78,154,241,0.13);}  
 #vfNewVendorBox{display:none;background:rgba(0,212,170,0.06);border:1.5px solid rgba(0,212,170,0.25);border-radius:12px;padding:16px;margin-top:10px;}
 .vf-nv-title{font-size:0.78rem;font-weight:700;color:#00d4aa;margin-bottom:12px;}
 .vf-nv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -23078,6 +23083,27 @@ function _vfVendorSelect(id,name){
   document.getElementById('vfVendorSel').value=id;
   document.getElementById('vfVendorDropdown').style.display='none';
 }
+function _vfVendorFilter(){
+  const q=(document.getElementById('vfVendorSearch').value||'').toLowerCase();
+  _vfVendorRenderList(q);
+  document.getElementById('vfVendorDropdown').style.display='block';
+}
+function _vfVendorOpen(){
+  const q=(document.getElementById('vfVendorSearch').value||'').toLowerCase();
+  _vfVendorRenderList(q);
+  document.getElementById('vfVendorDropdown').style.display='block';
+}
+function _vfVendorBlur(){setTimeout(()=>{document.getElementById('vfVendorDropdown').style.display='none';},180);}
+function _vfVendorRenderList(q){
+  const dd=document.getElementById('vfVendorDropdown');
+  const filtered=q?_vrVendors.filter(v=>v.vendor_name.toLowerCase().includes(q)):_vrVendors;
+  dd.innerHTML=filtered.slice(0,100).map(v=>`<div class="vf-vendor-option" onmousedown="_vfVendorSelect(${v.id},'${v.vendor_name.replace(/'/g,"\\'")}')">${v.vendor_name}</div>`).join('');
+}
+function _vfVendorSelect(id,name){
+  document.getElementById('vfVendorSearch').value=name;
+  document.getElementById('vfVendorSel').value=id;
+  document.getElementById('vfVendorDropdown').style.display='none';
+}
 
 // ── KPIs ───────────────────────────────────────────
 function _vrRenderKPIs(){
@@ -23224,6 +23250,7 @@ async function openVendorForm(){
   document.getElementById('vfLocation').value='';
   document.getElementById('vfVendorSel').value='';
   document.getElementById('vfVendorSearch').value='';
+  document.getElementById('vfVendorSearch').value='';
   document.getElementById('vfNewVendorBox').style.display='none';
   const fi=document.getElementById('vfInvFile');if(fi)fi.value='';
   document.getElementById('vfInvFileName').textContent='No file chosen';
@@ -23253,6 +23280,7 @@ const payload={vendor_name:name,contact:document.getElementById('nvContact').val
     _vrVendors.push(newV);_vrVendors.sort((a,b)=>a.vendor_name.localeCompare(b.vendor_name));
     _vrPopulateVendorDropdown();
     document.getElementById('vfVendorSel').value=newV.id;
+    document.getElementById('vfVendorSearch').value=newV.vendor_name;
     document.getElementById('vfVendorSearch').value=newV.vendor_name;
     document.getElementById('vfNewVendorBox').style.display='none';
     if(typeof showToast==='function')showToast('✅ Vendor added!','success',2000);
@@ -23346,6 +23374,7 @@ async function openVendorEditForm(id){
   // Pre-fill fields
   const sel = document.getElementById('vfVendorSel');
   sel.value = r.vendor_id ? String(r.vendor_id) : '';
+  document.getElementById('vfVendorSearch').value = r.vendor_name || '';
   // If vendor not in list (edge case), add a temporary option
   if(sel.value === '' && r.vendor_name){
     const opt = document.createElement('option');
