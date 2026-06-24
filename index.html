@@ -23275,6 +23275,12 @@ async function submitVendorRequest(){
   if(!product){errEl.textContent='⚠️ Product / Service is required.';errEl.style.display='block';return;}
   if(!amount||isNaN(Number(amount))||Number(amount)<=0){errEl.textContent='⚠️ Please enter a valid amount.';errEl.style.display='block';return;}
   if(!location){errEl.textContent='⚠️ Please select a location.';errEl.style.display='block';return;}
+  const invNo=(document.getElementById('vfInvNo').value||'').trim();
+  const poNo=(document.getElementById('vfPoNo').value||'').trim();
+  const invFile=document.getElementById('vfInvFile')?.files?.[0];
+  if(!invNo){errEl.textContent='⚠️ Invoice Number is required.';errEl.style.display='block';return;}
+  if(!poNo){errEl.textContent='⚠️ PO Number is required.';errEl.style.display='block';return;}
+  if(!invFile){errEl.textContent='⚠️ Please upload an Invoice / Quotation file.';errEl.style.display='block';return;}
   btn.disabled=true;btn.textContent='Submitting…';
   try{
     let invoiceUrl=null;
