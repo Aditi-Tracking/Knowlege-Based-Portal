@@ -9805,7 +9805,7 @@ _sbAuth.auth.onAuthStateChange(async (event, session) => {
 // Cache for pre-fetched user list
 let CURRENT_USER = null;
 let PERMISSIONS  = {};   // populated from Python backend after login
-
+const _PAPI = 'https://knowlege-based-portal-production.up.railway.app';
 function warmupAPIs(){
   // Warm-up ping to Google Apps Scripts (fire & forget)
   [L_URL,C_URL,FMS_API].forEach(url=>{
