@@ -22087,6 +22087,7 @@ async function saveQuizToDB() {
 let _goAllQuizzes   = [];   // all quiz rows
 let _goAllAttempts  = [];   // all attempt rows
 let _goAllQuestions = {};   // quizId → questions[]
+let _goGradedMap    = {};   // attemptId → true (fully graded) / false (has ungraded descriptive answer) / undefined (no descriptive answers)
 let _goActiveFilter = null; // null = all, quizId = filtered
 let _goActiveNameFilter = null; // null = all, name string = filtered
 
@@ -22103,7 +22104,7 @@ function closeGradeOverlay() {
 }
 
 function goGradeRefresh() {
-  _goAllQuizzes = []; _goAllAttempts = []; _goAllQuestions = {};
+  _goAllQuizzes = []; _goAllAttempts = []; _goAllQuestions = {}; _goGradedMap = {};
   _goActiveFilter = null; _goActiveNameFilter = null;
   const ns = document.getElementById('go-filter-name');
   const qs = document.getElementById('go-filter-quiz');
@@ -22136,6 +22137,24 @@ async function goLoadAll() {
       );
       const allQs = await qqRes.json();
       _goAllQuizzes.forEach(q => { _goAllQuestions[q.id] = allQs.filter(qq => qq.quiz_id === q.id); });
+    }
+
+    // Determine per-attempt grading completeness for descriptive questions.
+    // A descriptive answer is "graded" once marks_awarded is NOT NULL —
+    // an awarded score of 0 still counts as graded, it should NOT show as Pending.
+    if (_goAllAttempts.length) {
+      const attemptIds = _goAllAttempts.map(a => a.id).join(',');
+      const ansRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/answers?select=attempt_id,marks_awarded,questions(question_type)&attempt_id=in.(${attemptIds})`,
+        { headers: QZ_HDRS() }
+      );
+      const allAnswersForGrading = await ansRes.json();
+      allAnswersForGrading.forEach(ans => {
+        const qType = (ans.questions?.question_type || '').toLowerCase();
+        if (qType !== 'descriptive') return;
+        if (!(ans.attempt_id in _goGradedMap)) _goGradedMap[ans.attempt_id] = true;
+        if (ans.marks_awarded == null) _goGradedMap[ans.attempt_id] = false;
+      });
     }
 
     // Populate Employee dropdown
@@ -22209,16 +22228,17 @@ async function goRenderList() {
         ? new Date(a.started_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
         : '—';
     const hasDesc   = (_goAllQuestions[a.quiz_id] || []).some(q => (q.question_type||'').toLowerCase() === 'descriptive');
+    const isPending = sub && hasDesc && (score === 0 || _goGradedMap[a.id] === false);
     const borderCol = !sub ? '#f0a500'
-                    : hasDesc && !ok && (score === 0 || score < total) ? '#f97316'  // pending grading
+                    : isPending ? '#f97316'  // pending grading
                     : ok ? '#22c55e' : '#ef4444';
 
     const statusBg  = !sub               ? 'rgba(240,165,0,0.1)'
-                    : hasDesc && !ok && (score === 0 || score < total) ? 'rgba(249,115,22,0.1)'
+                    : isPending ? 'rgba(249,115,22,0.1)'
                     : ok                  ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
 
     const statusTxt = !sub               ? '🔄 In Progress'
-                    : hasDesc && !ok && (score === 0 || score < total) ? '⏳ Pending'
+                    : isPending ? '⏳ Pending'
                     : ok                  ? '✅ Pass' : '❌ Fail';
 
     // Always show quiz label (no tabs anymore)
@@ -22237,10 +22257,10 @@ async function goRenderList() {
             <div style="font-size:0.72rem;color:var(--muted);">${dept} · Attempt #${a.attempt_number||1} · 📅 ${date}</div>
           </div>
           <div style="text-align:center;min-width:70px;">
-            <div style="font-size:1.1rem;font-weight:900;color:${borderCol};">${sub ? pct+'%' : '—'}</div>
-            <div style="font-size:0.68rem;color:var(--muted);">${score}/${total} pts</div>
+            <div id="go-pct-${a.id}" style="font-size:1.1rem;font-weight:900;color:${borderCol};">${sub ? pct+'%' : '—'}</div>
+            <div id="go-pts-${a.id}" style="font-size:0.68rem;color:var(--muted);">${score}/${total} pts</div>
           </div>
-          <div style="font-size:0.75rem;font-weight:800;padding:4px 13px;border-radius:20px;
+          <div id="go-status-${a.id}" style="font-size:0.75rem;font-weight:800;padding:4px 13px;border-radius:20px;
             background:${statusBg};color:${borderCol};">
             ${statusTxt}
           </div>
@@ -22395,6 +22415,50 @@ async function goLoadAllAnswers(attemptId) {
   }
 }
 
+// Update just ONE row's score%/status badge in place — does NOT touch the
+// expanded detail panel, so reviewer can keep grading Q1, Q2, Q3... without
+// the window jumping back to the closed list view after every Save.
+function goUpdateRowDisplay(attemptId) {
+  const a = _goAllAttempts.find(x => x.id === attemptId);
+  if (!a) return;
+
+  const quizMap = {};
+  _goAllQuizzes.forEach(q => quizMap[q.id] = q);
+  const quiz    = quizMap[a.quiz_id] || {};
+  const pass    = quiz.passing_score || 60;
+  const score   = a.score ?? 0;
+  const total   = a.total_marks || 0;
+  const pct     = total > 0 ? Math.round((score / total) * 100) : 0;
+  const sub     = !!a.submitted_at;
+  const ok      = sub && pct >= pass;
+  const hasDesc   = (_goAllQuestions[a.quiz_id] || []).some(q => (q.question_type||'').toLowerCase() === 'descriptive');
+  const isPending = sub && hasDesc && (score === 0 || _goGradedMap[a.id] === false);
+
+  const borderCol = !sub ? '#f0a500'
+                  : isPending ? '#f97316'
+                  : ok ? '#22c55e' : '#ef4444';
+  const statusBg  = !sub               ? 'rgba(240,165,0,0.1)'
+                  : isPending ? 'rgba(249,115,22,0.1)'
+                  : ok                  ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
+  const statusTxt = !sub               ? '🔄 In Progress'
+                  : isPending ? '⏳ Pending'
+                  : ok                  ? '✅ Pass' : '❌ Fail';
+
+  const rowEl    = document.getElementById(`go-row-${attemptId}`);
+  const pctEl    = document.getElementById(`go-pct-${attemptId}`);
+  const ptsEl    = document.getElementById(`go-pts-${attemptId}`);
+  const statusEl = document.getElementById(`go-status-${attemptId}`);
+
+  if (rowEl)    rowEl.style.borderLeft = `3px solid ${borderCol}`;
+  if (pctEl)    { pctEl.style.color = borderCol; pctEl.textContent = sub ? pct + '%' : '—'; }
+  if (ptsEl)    ptsEl.textContent = `${score}/${total} pts`;
+  if (statusEl) {
+    statusEl.style.background = statusBg;
+    statusEl.style.color      = borderCol;
+    statusEl.textContent      = statusTxt;
+  }
+}
+
 async function goSaveMark(answerId, attemptId, maxMark) {
   if (!_canUploadQuiz()) { alert('⛔ Only MIS members can grade.'); return; }
   const input   = document.getElementById(`go-marks-${answerId}`);
@@ -22439,9 +22503,19 @@ async function goSaveMark(answerId, attemptId, maxMark) {
       body: JSON.stringify({ score: newScore })
     });
 
+    // 3b. Recompute whether ALL descriptive answers for this attempt are now graded
+    //     (marks_awarded not null — a saved 0 counts as graded, not pending)
+    const stillUngraded = allAns.some(a => {
+      const qType = (a.questions?.question_type || '').toLowerCase();
+      if (qType !== 'descriptive') return false;
+      const isThisOne = a.id === answerId;
+      return isThisOne ? false : (a.marks_awarded == null);
+    });
+    _goGradedMap[attemptId] = !stillUngraded;
+
     const cached = _goAllAttempts.find(a => a.id === attemptId);
     if (cached) cached.score = newScore;
-    if (savedEl) { savedEl.style.display = 'inline'; setTimeout(() => { savedEl.style.display = 'none'; goRenderList(); }, 1500); }
+    if (savedEl) { savedEl.style.display = 'inline'; goUpdateRowDisplay(attemptId); setTimeout(() => { savedEl.style.display = 'none'; }, 1500); }
   } catch(e) {
     alert('Error saving: ' + e.message);
   }
