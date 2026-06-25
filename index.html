@@ -21457,6 +21457,8 @@ function confirmQuitQuiz() {
 // MY RESULTS
 // ══════════════════════════════════════════════════════════════
 let _mqrAllRows = [];
+let _mqrGradedMap   = {};   // attemptId → true (fully graded) / false (has ungraded descriptive answer)
+let _mqrQuizHasDesc = {};   // quizId → true if quiz has any descriptive question
 
 async function openMyQuizResults(nodeId) {
   const overlay = document.getElementById('my-quiz-results-overlay');
@@ -21514,6 +21516,36 @@ async function openMyQuizResults(nodeId) {
     _mqrAllRows = await res.json();
     loadEl.style.display = 'none';
 
+    // ── Determine which quizzes have descriptive questions, and which
+    //    attempts have fully-graded descriptive answers (0 marks counts as
+    //    graded — only an actual NULL marks_awarded means still pending) ──
+    _mqrGradedMap = {}; _mqrQuizHasDesc = {};
+    const mqrQuizIds = [...new Set(_mqrAllRows.map(r => r.quiz_id).filter(Boolean))];
+    if (mqrQuizIds.length) {
+      const qqRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/questions?select=quiz_id,question_type&quiz_id=in.(${mqrQuizIds.join(',')})`,
+        { headers: QZ_HDRS() }
+      );
+      const mqrQs = await qqRes.json();
+      mqrQs.forEach(q => {
+        if ((q.question_type || '').toLowerCase() === 'descriptive') _mqrQuizHasDesc[q.quiz_id] = true;
+      });
+    }
+    const mqrAttemptIds = _mqrAllRows.map(r => r.id);
+    if (mqrAttemptIds.length) {
+      const ansRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/answers?select=attempt_id,marks_awarded,questions(question_type)&attempt_id=in.(${mqrAttemptIds.join(',')})`,
+        { headers: QZ_HDRS() }
+      );
+      const mqrAnswers = await ansRes.json();
+      mqrAnswers.forEach(ans => {
+        const qType = (ans.questions?.question_type || '').toLowerCase();
+        if (qType !== 'descriptive') return;
+        if (!(ans.attempt_id in _mqrGradedMap)) _mqrGradedMap[ans.attempt_id] = true;
+        if (ans.marks_awarded == null) _mqrGradedMap[ans.attempt_id] = false;
+      });
+    }
+
     // ── Quiz filter populate ──
     if (filterEl) {
       const quizMap = {};
@@ -21567,13 +21599,17 @@ function mqrRenderStats(rows) {
   const statsEl = document.getElementById('mqr-stats');
   if (!statsEl) return;
   const sub     = rows.filter(r => r.submitted_at);
-  const pending = sub.filter(r => (r.score??0) < (r.total_marks??0) && r.total_marks > 0);
+  const isMqrPending = r => {
+    const hasDesc = !!_mqrQuizHasDesc[r.quiz_id];
+    return hasDesc && ((r.score??0) === 0 || _mqrGradedMap[r.id] === false);
+  };
+  const pending = sub.filter(isMqrPending);
   const passed  = sub.filter(r => {
-    if ((r.score??0) < (r.total_marks??0) && r.total_marks > 0) return false;
+    if (isMqrPending(r)) return false;
     return r.total_marks>0 ? Math.round((r.score/r.total_marks)*100) >= (r.quizzes?.passing_score||60) : false;
   });
   const failed  = sub.filter(r => {
-    if ((r.score??0) < (r.total_marks??0) && r.total_marks > 0) return false;
+    if (isMqrPending(r)) return false;
     return r.total_marks>0 ? Math.round((r.score/r.total_marks)*100) < (r.quizzes?.passing_score||60) : false;
   });
   const cards = [
@@ -21602,7 +21638,8 @@ function mqrRenderList(rows) {
     const pct       = r.total_marks>0 ? Math.round((r.score/r.total_marks)*100) : 0;
     const passScore = r.quizzes?.passing_score || 60;
     const inProg    = !r.submitted_at;
-    const isPending = !inProg && (r.score??0) < (r.total_marks??0) && r.total_marks > 0;
+    const hasDesc   = !!_mqrQuizHasDesc[r.quiz_id];
+    const isPending = !inProg && hasDesc && ((r.score??0) === 0 || _mqrGradedMap[r.id] === false);
     const passed    = !inProg && !isPending && pct >= passScore;
     const borderCol = inProg?'#f0a500':isPending?'#f97316':passed?'#22c55e':'#ef4444';
     const statusBg  = inProg?'rgba(240,165,0,0.1)':isPending?'rgba(249,115,22,0.1)':passed?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.08)';
