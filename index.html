@@ -1,4 +1,30 @@
 <!DOCTYPE html>
+<!-- ╔══════════════════════════════════════════════════════════════════════════════╗
+     ║                    ADITI PORTAL — index.html                               ║
+     ║                  MASTER FILE — COMPLETE STRUCTURE MAP                      ║
+     ╠══════════════════════════════════════════════════════════════════════════════╣
+     ║  QUICK FIND GUIDE — Ctrl+F se dhundho:                                     ║
+     ║                                                                            ║
+     ║  ► [HEAD]         — Line ~3    — Fonts, CDN scripts, OneSignal push        ║
+     ║  ► [CSS START]    — Line ~106  — Sab portal CSS / design tokens            ║
+     ║  ► [LOGIN PAGE]   — Line ~1550 — Login form HTML                           ║
+     ║  ► [SIDEBAR]      — Line ~1659 — Left nav panel (desktop)                  ║
+     ║  ► [MOBILE NAV]   — Line ~1875 — Mobile top header + bottom nav            ║
+     ║  ► [PANEL HOME]   — Line ~2177 — Home page content                         ║
+     ║  ► [PANEL ANNOUNCEMENTS] — Line ~2590                                      ║
+     ║  ► [PANEL ABOUT]  — Line ~2961 — About Organisation                        ║
+     ║  ► [PANEL LEADS]  — Line ~3576 — Sales CRM Leads dashboard                 ║
+     ║  ► [PANEL TASKS]  — Line ~4702 — Employee Task Checklist                   ║
+     ║  ► [PANEL IMS]    — Line ~5096 — IMS module                                ║
+     ║  ► [PANEL CRM]    — Line ~5297 — CRM Vehicle Dashboard                     ║
+     ║  ► [PANEL MAPPING]— Line ~5613 — Customer Mapping                          ║
+     ║  ► [JS MAIN]      — Line ~5894 — All JavaScript starts here                ║
+     ║  ► [AUTH/LOGIN JS]— Line ~9502 — Supabase Auth, doLogin, doLogout          ║
+     ║  ► [TASKS JS]     — Line ~7308 — Task checklist logic                      ║
+     ║  ► [VENDOR MODULE]— Line ~22727 — Vendor Purchase Approval                 ║
+     ║  ► [QUIZ SYSTEM]  — Line ~20306 — Training quizzes                         ║
+     ║  ► [CELEBRATIONS] — Line ~17874 — Birthday/Anniversary system              ║
+     ╚══════════════════════════════════════════════════════════════════════════════╝ -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -16,10 +42,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
-<!-- ══ Supabase JS SDK ══ -->
+<!-- ══ Supabase JS SDK ══ — Yeh library portal ka database connection handle karti hai (DO NOT REMOVE) ══ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-<!-- ══ OneSignal Web Push ══ -->
+<!-- ══ OneSignal Web Push ══ — Mobile push notifications ke liye (bell icon wala feature) ══ -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   const OS_APP_ID = '5b1d05e6-49bb-4b53-b3de-c57e83b4e229';
@@ -104,7 +130,12 @@
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap');
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║                    [CSS START] — PORTAL CSS                           ║
+   ║  Yahan se portal ka saara design/styling code hai                     ║
+   ║  :root ke andar color variables hain — accent colors, fonts etc       ║
+   ║  Koi bhi color ya font change karna ho toh yahan karo                 ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
   :root {
     --bg:#060810;--surface:#0e1117;--surface2:#141820;--border:rgba(255,255,255,0.07);
     --border2:rgba(255,255,255,0.04);
@@ -1545,8 +1576,18 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 </head>
 <body>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════
+     ║  [LOGIN PAGE STYLES] — Login page ka styling
+     ║  Login form ka background, animation, button, input sab yahan hai
+     ║  Login ke baad yeh page hide ho jata hai, mainPortal show hota hai
+     ╚═══════════════════════════════════════════════════════════════════ -->
 <!-- ═══════ LOGIN PAGE STYLES ═══════ -->
 
+<!-- ╔═══════════════════════════════════════════════════════════════════
+     ║  [LOGIN PAGE] — Yeh screen pehle dikhti hai jab tak login na ho
+     ║  Email + Password field, Login button sab yahan hai
+     ║  doLogin() function call hota hai button click pe (JS mein ~line 9502)
+     ╚═══════════════════════════════════════════════════════════════════ -->
 <!-- ═══════ LOGIN PAGE ═══════ -->
 <div id="loginPage">
   <button id="loginThemeBtn" onclick="toggleTheme()">🌙 Dark</button>
@@ -1654,8 +1695,25 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════════
+     ║  [MAIN PORTAL] — Login ke baad yeh div show hoti hai (display:none → block)
+     ║  Iske andar hai:
+     ║    1. Desktop Sidebar (left nav panel)
+     ║    2. Mobile Top Header
+     ║    3. Mobile Bottom Nav
+     ║    4. User Bottom Sheet (mobile profile popup)
+     ║    5. Mobile Menu Overlay (hamburger se khulta hai)
+     ║    6. Main Content Area — saare dashboard panels
+     ╚═══════════════════════════════════════════════════════════════════════════ -->
 <!-- ═══════ MAIN PORTAL ═══════ -->
 <div id="mainPortal" style="display:none">
+
+<!-- ╔═══════════════════════════════════════════════════════════════
+     ║  [SIDEBAR] — Desktop left navigation panel
+     ║  Isme sab nav items hain: Home, Dashboards, HR, Sales etc.
+     ║  Mobile pe yeh hide hota hai (CSS se), mobile mein bottom nav hai
+     ║  Naya nav item add karna ho toh yahan add karo + mobile menu (~line 2090) mein bhi
+     ╚═══════════════════════════════════════════════════════════════ -->
 <div class="sidebar">
   <div class="sidebar-logo">
     <div class="sidebar-logo-img">
@@ -1872,6 +1930,11 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════
+     ║  [MOBILE TOP HEADER] — Mobile pe upar dikhne wala header bar
+     ║  Logo + hamburger menu button hota hai yahan
+     ║  Desktop pe yeh hide hota hai
+     ╚═══════════════════════════════════════════════════════════════ -->
 <!-- MOBILE TOP HEADER -->
 <div class="mob-top-header" id="mobTopHeader">
   <div class="mob-top-logo">
@@ -1884,6 +1947,11 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   <button class="mob-theme-btn" onclick="toggleTheme()" id="mobThemeBtn">🌙 Dark</button>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════
+     ║  [MOBILE BOTTOM NAV] — Mobile pe neeche 3 buttons: Home, Menu, Profile
+     ║  Sirf mobile pe dikhta hai, desktop pe hidden
+     ║  Profile button → User Bottom Sheet open karta hai
+     ╚═══════════════════════════════════════════════════════════════ -->
 <!-- MOBILE BOTTOM NAV — 3 items only -->
 <div class="bottom-nav" id="bottomNav">
   <!-- Home -->
@@ -1905,6 +1973,11 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════
+     ║  [USER BOTTOM SHEET] — Mobile pe profile button se khulne wala popup
+     ║  User name, role, Profile Details, Dark/Light mode, Logout buttons yahan hain
+     ║  JS function: openUserSheet() / closeUserSheet() (~line 6005)
+     ╚═══════════════════════════════════════════════════════════════ -->
 <!-- USER BOTTOM SHEET -->
 <div id="userSheetOverlay" onclick="closeUserSheet()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1100;"></div>
 <div id="userSheet" style="
@@ -1957,6 +2030,11 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════
+     ║  [PROFILE DETAILS MODAL] — "My Profile" popup
+     ║  Employee photo, name, designation, phone, joining date sab yahan show hota hai
+     ║  Photo upload bhi yahan se hota hai (handleProfilePhotoUpload JS function)
+     ╚═══════════════════════════════════════════════════════════════ -->
 <!-- PROFILE DETAILS MODAL -->
 <div id="profileModalOverlay" onclick="closeProfileModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1200;backdrop-filter:blur(4px);"></div>
 <div id="profileModal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1201;width:min(400px,92vw);max-height:88vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.55);">
@@ -2016,6 +2094,12 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════
+     ║  [MOBILE MENU OVERLAY] — Hamburger button se khulne wala full-screen menu
+     ║  Mobile pe sidebar nahi dikhta, yeh uska replacement hai
+     ║  Saare nav items yahan repeat hain (sidebar ke same items)
+     ║  Naya section add karo toh SIDEBAR + IS MENU DONO mein add karo
+     ╚═══════════════════════════════════════════════════════════════ -->
 <!-- MOBILE MENU OVERLAY (slide-up) -->
 <div id="mobMenuOverlay" onclick="closeMobMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:490;"></div>
 <div id="mobMenuSheet" style="
@@ -2173,6 +2257,13 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 
 <div class="main-area">
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL HOME] — Home page — Portal mein login ke baad pehli screen
+     ║  Isme hai: Welcome message, Task alert banner, Celebrations banner,
+     ║  Employee profile card, CEO video, Spotlight of Month, New Joiners,
+     ║  How to Use guide, Emergency Contacts, FAQ accordion
+     ║  JS: loadHome() / celebrationHomeBanner etc. (~line 18000)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- HOME -->
 <div class="dashboard-panel active" id="panel-home">
 
@@ -2584,6 +2675,13 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL ANNOUNCEMENTS] — Announcements & Celebrations feed
+     ║  3 tabs: All, Portal Updates, Celebrations (birthdays + anniversaries)
+     ║  Celebrations tab mein WhatsApp-style chat/wish system bhi hai
+     ║  Drawer se bhi khulta hai (annDrawer) — home pe bell icon se
+     ║  JS: loadAnnouncements() (~line 19890)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════
      ANNOUNCEMENTS PANEL
      ═══════════════════════════════════════════════════════════ -->
@@ -2622,6 +2720,14 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 </div>
 
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [ANNOUNCEMENTS DRAWER] — Right side slide-in drawer
+     ║  Home page pe bell 🔔 icon click karne se khulta hai
+     ║  2 tabs: Updates (portal news) + Celebrations (wishes)
+     ║  Celebrations tab mein WhatsApp-style chat input box bhi hai
+     ║  Emoji picker bhi hai chat input mein
+     ║  JS: openAnnOverlay() / closeAnnOverlay() se control hota hai
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════════════════
      ANNOUNCEMENT OVERLAY — Right Slide-In Drawer
      Opens from bell button on Home panel top-right
@@ -2740,7 +2846,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 
 <!-- ══ POST UPDATE MODAL ══ -->
 <div id="postUpdateBackdrop" onclick="closePostUpdateModal()"
-  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1200;backdrop-filter:blur(4px);"></div>
+  style="display:none;position:fixed;inset:0;background:rgba(0, 0, 0, 0.568);z-index:1200;backdrop-filter:blur(4px);"></div>
 <div id="postUpdateModal"
   style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(460px,94vw);background:var(--surface);border-radius:18px;border:1px solid var(--border);z-index:1201;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
@@ -2804,6 +2910,12 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL ACTIVITY LOG] — Sirf MIS aur Managing Director ke liye visible
+     ║  Har employee kya dekh raha hai, kab login/logout hua sab track hota hai
+     ║  Table mein: name, page, card, video, file, time sab columns hain
+     ║  JS: loadActivityLog() function
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ACTIVITY LOG PANEL — MIS & Managing Director only -->
 <div class="dashboard-panel" id="panel-activitylog">
   <div class="db-header">
@@ -2957,6 +3069,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL ABOUT ORGANISATION] — Company info page
+     ║  Tabs: Overview, Our Team, Locations, Milestones, Certifications, Brand
+     ║  Org chart, leadership cards, office locations, timeline sab yahan hai
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ABOUT ORGANISATION PANEL -->
 <div class="dashboard-panel" id="panel-about">
   <div class="db-header">
@@ -3572,6 +3689,13 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL LEADS] — Sales Lead Tracking Dashboard
+     ║  Sirf Managing Director (owner) ko dikhta hai
+     ║  KPI cards, charts (lead type, source, solution), leaderboard, table sab hai
+     ║  Data Odoo se aata hai via Flask API (L_URL)
+     ║  JS: loadLeads() / refreshLeads() (~line 6423)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- LEAD TRACKING PANEL -->
 <div class="dashboard-panel" id="panel-leads">
   <div class="db-header">
@@ -3634,6 +3758,13 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL COLLECTION] — Payment Collection / Revenue Tracker Dashboard
+     ║  Sirf Managing Director (owner) ko dikhta hai
+     ║  KPI cards, charts, person filter, table with pagination
+     ║  Data Odoo se aata hai via Flask API (C_URL)
+     ║  JS: loadColl() (~line 6602)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- COLLECTION PANEL -->
 <div class="dashboard-panel" id="panel-collection">
   <div class="db-header">
@@ -3715,6 +3846,12 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL FMS] — FMS O2D Installation Tracker
+     ║  Field Management System — device installation orders track karta hai
+     ║  Table with filters, date range, search, mark-done modal
+     ║  JS: fmsLoadData() (~line 6909)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- FMS O2D PANEL -->
 <div class="dashboard-panel" id="panel-fms">
   <div class="db-header">
@@ -3900,6 +4037,12 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL RESOURCES / DOCUMENTS] — Company documents & files panel
+     ║  2 views: Main view (categories grid) + Company Docs (5 sub-cards)
+     ║  File upload/download, sub-category cards, Supabase storage se files
+     ║  JS: content_nodes system, openFileOverlay() (~line 11508)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- DIRECTORY PANEL -->
 <!-- RESOURCES PANEL -->
 <div class="dashboard-panel" id="panel-resources">
@@ -4048,6 +4191,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL IT & ADMIN] — IT & Admin section
+     ║  Software guides, admin tools, IT-related documents
+     ║  content_nodes system se cards render hote hain
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- IT & ADMIN PANEL -->
 <div class="dashboard-panel" id="panel-itadmin">
   <div class="db-header">
@@ -4079,6 +4227,14 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL TRAINING] — Training Videos + Quiz Assessment
+     ║  2 tabs: Videos tab (YouTube embedded) + Assessment tab (quiz system)
+     ║  MIS can create/manage quizzes, employees take quizzes
+     ║  Quiz overlays: Preview → Take Quiz → Result → My Results
+     ║  Grade Overlay: MIS descriptive answer grading ke liye
+     ║  JS: loadTrainingQuizzes() (~line 20386), switchTrainingTab() (~line 20458)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- TRAINING VIDEOS PANEL -->
 <div class="dashboard-panel" id="panel-training">
   <div class="db-header">
@@ -4136,6 +4292,12 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL HR] — HR Policy & Documents section
+     ║  Leave policy, salary structure, HR forms, offer letters etc. yahan hain
+     ║  content_nodes system se cards render hote hain
+     ║  Upload button: MIS/owner ko files upload karne ka option
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- HR PANEL -->
 <div class="dashboard-panel" id="panel-hr">
   <div class="db-header">
@@ -4421,6 +4583,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL SALES] — Sales SOP & resources
+     ║  Sales process documents, pitch decks, product info for sales team
+     ║  content_nodes system se cards render hote hain
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- SALES PANEL -->
 <div class="dashboard-panel" id="panel-sales">
   <div class="db-header">
@@ -4474,6 +4641,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL AFTER SALES] — After Sales support & SOP documents
+     ║  Service process, complaint handling, technical support guides
+     ║  content_nodes system se cards render hote hain
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- AFTER SALES PANEL -->
 <div class="dashboard-panel" id="panel-aftersales">
   <div class="db-header">
@@ -4528,6 +4700,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL MARKETING] — Marketing assets & documents
+     ║  Brochures, creatives, campaign materials, brand assets
+     ║  content_nodes system se cards + training video split overlay bhi hai
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- MARKETING PANEL -->
 <div class="dashboard-panel" id="panel-marketing">
   <div class="db-header">
@@ -4670,6 +4847,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL PRODUCTS] — Product catalogue & specifications
+     ║  GPS devices, trackers, product manuals, spec sheets
+     ║  content_nodes system se cards render hote hain
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- PRODUCTS PANEL -->
 <div class="dashboard-panel" id="panel-products">
   <div class="db-header">
@@ -4698,6 +4880,15 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL TASKS] — Employee Task Checklist Dashboard
+     ║  Daily/weekly tasks for all departments, mark done with remarks
+     ║  File upload support for tasks that need proof/document
+     ║  MIS can see all employees' tasks (checklist_scope = 'all')
+     ║  Others see only their own tasks
+     ║  KPI cards: Total, Done, Pending, Overdue
+     ║  JS: loadTasks() (~line 7308), markTaskDone() (~line 7250)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- TASK CHECKLIST PANEL -->
 <div class="dashboard-panel" id="panel-tasks">
   <div class="db-header">
@@ -4829,6 +5020,10 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL FINANCE] — Finance documents (marked "Soon" — coming soon)
+     ║  Invoices, expense reports, financial docs yahan aayenge
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- FINANCE PANEL -->
 <div class="dashboard-panel" id="panel-finance">
   <div class="db-header">
@@ -4860,6 +5055,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL COMPLIANCE] — Compliance documents section
+     ║  Legal compliance, regulatory docs, certificates
+     ║  content_nodes system se cards render hote hain
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- COMPLIANCE PANEL -->
 <div class="dashboard-panel" id="panel-compliance">
   <div class="db-header">
@@ -4891,6 +5091,12 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL REFERRAL] — Employee Referral Programme
+     ║  Tabs: Open Positions + My Referrals
+     ║  Employees refer candidates for open job positions
+     ║  Referral bonus amount shown in banner
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- REFERRAL PANEL -->
 <div class="dashboard-panel" id="panel-referral">
 
@@ -5089,6 +5295,12 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL IMS] — IMS Dashboard (Inventory Management System)
+     ║  Access: MIS, Managing Director, PC only (restricted)
+     ║  Stock levels, inventory tracking, product movement
+     ║  JS: loadIMS() (~line 16903)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════
      IMS DASHBOARD PANEL
      Access: MIS · Managing Director · PC only
@@ -5293,6 +5505,15 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL CRM] — CRM Vehicle Dashboard (most complex panel)
+     ║  GPS fleet data — live vehicle counts per server
+     ║  5 servers: Premium, PRO, Goa, Gujarat, Bangalore
+     ║  Sections: KPI cards, Vehicle Changes (added/removed), Customer table
+     ║  Data: smartfleet_sync.py → Supabase → yahan display
+     ║  Per-server permission keys control access
+     ║  JS: loadCRM() / switchServer() (~line 16400+)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ════════ CRM VEHICLE DASHBOARD PANEL ════════ -->
 <div class="dashboard-panel" id="panel-crm">
 <style>
@@ -5607,6 +5828,14 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
 </div><!-- end panel-crm -->
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL CUSTOMER MAPPING] — GPS vs Odoo CRM name reconciliation tool
+     ║  GPS portal company names ↔ Odoo CRM names match/map karna
+     ║  Tables: customer_master, customer_gps_aliases, customer_odoo_aliases
+     ║  Filter by region: Premium, PRO, Goa, Gujarat, Bangalore
+     ║  Status: Mapped / Unmapped
+     ║  JS: loadMapping() (~line 16000+)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- CUSTOMER MAPPING PANEL                                      -->
 <!-- ═══════════════════════════════════════════════════════════ -->
@@ -5720,6 +5949,13 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 </div><!-- end mp-table-wrap -->
 </div><!-- end panel-mapping -->
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL ACCESS CONTROL] — Permission management (MIS ONLY)
+     ║  Toggle switches: kaunsa employee kya dekh sakta hai
+     ║  user_permissions table → Supabase se permissions load/save hote hain
+     ║  Flask API /api/permissions endpoint se bhi sync hota hai
+     ║  JS: loadAdminPermsPanel() (~line 22786), acpSave() (~line 22709)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ACCESS CONTROL PANEL — inside main-area so sidebar margin applies correctly -->
 <div class="dashboard-panel" id="panel-adminperms">
   <div class="db-header">
@@ -5892,6 +6128,35 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 <script>
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║              [JS MAIN] — PORTAL JAVASCRIPT STARTS HERE                      ║
+// ║  Yeh poora portal ka brain hai — sab logic/functions yahan hain             ║
+// ║                                                                              ║
+// ║  SECTIONS IN ORDER:                                                          ║
+// ║  1. NAVIGATION       (~line 6123) — panel switching, prefetch               ║
+// ║  2. USER SHEET       (~line 6161) — profile popup, sync UI                  ║
+// ║  3. PROFILE MODAL    (~line 6202) — profile details fetch/fill              ║
+// ║  4. PROFILE PHOTO    (~line 6322) — photo upload to Supabase storage        ║
+// ║  5. VIDEO SECTION    (~line 6375) — switchDB, initHistory, panel routing    ║
+// ║  6. SUPABASE SETUP   (~line 6560) — URL, ANON key, SB_HDRS helpers         ║
+// ║  7. LEADS DASHBOARD  (~line 6600) — loadLeads, charts, filters, table       ║
+// ║  8. COLLECTION DASH  (~line 6780) — loadColl, charts, filters               ║
+// ║  9. FMS O2D          (~line 7087) — fmsLoadData, filters, table             ║
+// ║  10. TASKS CHECKLIST (~line 7477) — loadTasks, markTaskDone, upload         ║
+// ║  11. CONTENT NODES   (~line 11470) — CN system, file overlays               ║
+// ║  12. DEPT PANELS     (~line 11830) — HR, Sales, After Sales etc.            ║
+// ║  13. CRM VEHICLE     (~line 16600) — loadCRM, server switch, vehicle data   ║
+// ║  14. IMS DASHBOARD   (~line 17100) — loadIMS, stock tables                  ║
+// ║  15. CELEBRATIONS    (~line 18100) — birthday/anniversary system            ║
+// ║  16. REFERRAL SYSTEM (~line 19200) — loadReferral, openings, applications   ║
+// ║  17. ANNOUNCEMENTS   (~line 19890) — loadAnnouncements, wish system         ║
+// ║  18. QUIZ SYSTEM     (~line 20460) — quizzes, timer, result, grading        ║
+// ║  19. PORTAL UPDATES  (~line 22490) — MIS post/edit/delete updates           ║
+// ║  20. AUTH / LOGIN    (~line 9700)  — doLogin, doLogout, Supabase Auth       ║
+// ║  21. PERMISSIONS     (~line 10150) — PERMISSIONS object, per-user control   ║
+// ║  22. VENDOR MODULE   (~line 23220) — purchase approval, pay, bulk-pay       ║
+// ║  23. IDLE TIMEOUT    (~line 22640) — auto-logout after inactivity           ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
 // ═══════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════
@@ -6330,6 +6595,14 @@ function initHistory(){
   history.replaceState({panel:'home'},'','');
 }
 
+// ╔══════════════════════════════════════════════════════════════════════════
+// ║  [SUPABASE SETUP] — Database connection constants
+// ║  SUPABASE_URL  = Supabase project ka URL (kabhi change mat karo)
+// ║  SUPABASE_ANON = Public anon key (safe to expose — RLS protect karta hai)
+// ║  _currentToken = Login ke baad user's JWT replace karta hai anon key ko
+// ║  SB_HDRS()     = Har API call mein yahi headers lagao
+// ║  IMPORTANT: Agar Supabase project change karo toh DONO URL + ANON update karo
+// ╚══════════════════════════════════════════════════════════════════════════
 // ── Supabase constants + header helpers (defined early — used throughout) ──
 const SUPABASE_URL  = 'https://rramdtpabwjsndgkohbi.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyYW1kdHBhYndqc25kZ2tvaGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDQ4ODUsImV4cCI6MjA5MTQ4MDg4NX0.hpdTOkhRrbqmbPM6VJWEtz2oEjkeXAjYJQS9rgzheec';
@@ -9494,6 +9767,15 @@ setInterval(function(){
 // ============================================================
 
 
+// ╔══════════════════════════════════════════════════════════════════════════
+// ║  [AUTH / LOGIN JS] — Login, logout, session management
+// ║  doLogin()    = Email+password se Supabase Auth se login karo
+// ║  doLogout()   = Session clear karo, login page dikhao
+// ║  _currentToken = Login ke baad user JWT yahan store hota hai
+// ║  CURRENT_USER  = Logged-in user ka object (name, email, role etc.)
+// ║  PERMISSIONS   = User ki permissions ka object (loaded after login)
+// ║  Agar login na ho raha ho: Supabase Auth > Users check karo
+// ╚══════════════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════
 // LOGIN SYSTEM
 // ═══════════════════════════════════
@@ -11248,6 +11530,17 @@ window.addEventListener('beforeunload', () => {
   }).catch(()=>{});
 });
 
+// ╔══════════════════════════════════════════════════════════════════════════
+// ║  [CONTENT NODES SYSTEM] — Universal CMS for all department panels
+// ║  Yeh system HR, Sales, After Sales, Products, IT Admin, Resources etc.
+// ║  sab ke cards/files manage karta hai
+// ║  Tables:
+// ║    content_nodes : sections aur categories (id, name, type, parent_id)
+// ║    files         : uploaded files (id, node_id FK, name, url)
+// ║  CN object = central data store + loading logic
+// ║  Naya section ya category add karna ho toh Supabase mein content_nodes
+// ║  table mein row add karo — code automatically pick kar lega
+// ╚══════════════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════════════
 // CONTENT NODES — Universal CMS (content_nodes + files tables)
 // Tables:
@@ -17568,6 +17861,11 @@ function _imsShowError(msg) {
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [BIRTHDAY / ANNIVERSARY POPUP] — Celebration popup overlay
+     ║  Confetti animation, wish input, "See Your Wishes" button
+     ║  openCelebPopup() se khulta hai — home banner pe naam click karne se
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════════
      BIRTHDAY / ANNIVERSARY POPUP OVERLAY
      ═══════════════════════════════════════════════════════════════ -->
@@ -17871,6 +18169,19 @@ function _imsShowError(msg) {
 </style>
 
 <script>
+// ╔══════════════════════════════════════════════════════════════════════════
+// ║  [CELEBRATIONS JS] — Birthday & Anniversary system
+// ║  Home page pe banner dikhata hai jab kisi ka birthday/anniversary ho
+// ║  Wish popup: text likh ke send karo, birthday wala dekh sakta hai
+// ║  "See Your Wishes" button: birthday person apne wishes dekhe
+// ║  Reply to all wishers: ek saath sab ko reply bhejo
+// ║  Tables used: Employee_details (DOB/DOJ), employee_wishes (Supabase)
+// ║  Key functions:
+// ║    loadCelebrations()    = Home pe banner load karo
+// ║    openCelebPopup()      = Wish popup open karo
+// ║    sendWish()            = Wish Supabase mein save karo
+// ║    openMyWishesModal()   = Birthday person ke liye wish viewer
+// ╚══════════════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════
 // BIRTHDAY & ANNIVERSARY SYSTEM
 // ═══════════════════════════════════════════════════════════════
@@ -20303,6 +20614,22 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [QUIZ SYSTEM JS] — Complete quiz engine
+     ║  Overlays controlled here:
+     ║    Quiz Preview popup → Quiz Taking overlay → Result overlay → My Results
+     ║  Admin features (MIS only):
+     ║    Quiz Admin Modal — create/edit/delete quizzes
+     ║    Grade Overlay — manually grade descriptive answers
+     ║  Key functions:
+     ║    loadTrainingQuizzes()  = Training section mein list load
+     ║    openQuizPreview()      = Quiz info popup open
+     ║    startDBQuiz()          = Quiz start karo
+     ║    submitDBQuiz()         = Quiz submit + score calculate
+     ║    openMyQuizResults()    = My past attempts dekho
+     ║    openGradeOverlay()     = MIS: grade descriptive answers
+     ║    saveQuizToDB()         = Admin: naya quiz save karo
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════
      QUIZ SYSTEM JAVASCRIPT
 ═══════════════════════════════════════════════════════════ -->
@@ -22417,6 +22744,13 @@ async function deletePortalUpdate(id) {
 </script>
 
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [IDLE TIMEOUT] — Auto-logout after inactivity
+     ║  3 hours koi activity nahi → auto logout
+     ║  5 minutes pehle warning popup dikhata hai
+     ║  Timer reset hota hai: click, keydown, scroll, touch se
+     ║  Timing change karna ho toh: IDLE_LIMIT aur WARN_BEFORE edit karo
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════════════
      IDLE SESSION TIMEOUT — 3 Hours Auto-Logout
      No activity for 3 hours → auto logout.
@@ -22496,6 +22830,13 @@ async function deletePortalUpdate(id) {
   }, 10000);
 })();
 </script>
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [TASK UPLOAD MODAL] — File upload popup for tasks
+     ║  Tasks jo document proof maangti hain unke liye
+     ║  Drag & drop ya file browse se upload karo
+     ║  Supabase Storage bucket mein save hota hai
+     ║  JS: tHandleTaskFileSelect(), tUploadTaskFile() (~line 9148+)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ═══════ TASK DOCUMENT UPLOAD MODAL ═══════ -->
 <div id="taskUploadModal" style="
   display:none;position:fixed;inset:0;z-index:9999;
@@ -22559,6 +22900,12 @@ async function deletePortalUpdate(id) {
     </div>
   </div>
 </div>
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [UPLOADED FILES VIEWER MODAL] — MIS/owner ke liye file log
+     ║  Kaun employee ne kaunsi task pe kya file upload ki — sab yahan dikhta hai
+     ║  Filter: employee name, department, date range, search
+     ║  JS: tShowAllUploads() (~line 8984)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ══ UPLOADED FILES VIEWER MODAL ══ -->
 <div id="taskAllUploadsModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);align-items:center;justify-content:center;padding:16px;">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;width:100%;max-width:700px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.45);overflow:hidden;">
@@ -22598,7 +22945,17 @@ async function deletePortalUpdate(id) {
 </div>
 
 <script>
-const _PAPI = 'https://knowlege-based-portal-production.up.railway.app';
+// ╔══════════════════════════════════════════════════════════════════════════
+// ║  [ACCESS CONTROL JS] — Permission panel logic (MIS ONLY)
+// ║  _PAPI = Flask API URL on Railway (for /api/permissions endpoint)
+// ║  _permLabels = Har permission key ka display name
+// ║  loadAdminPermsPanel() = Supabase se sab users + permissions load karo
+// ║  acpSave()             = Toggle change hone pe save karo
+// ║  Agar naya permission add karna ho:
+// ║    1. Supabase user_permissions table mein column add karo
+// ║    2. _permLabels object mein label add karo yahan
+// ║    3. Flask api.py mein bhi update karo
+// ╚══════════════════════════════════════════════════════════════════════════
 let _acpUsers = [], _acpAllKeys = [], _acpLoaded = false;
 
 const _permLabels = {
@@ -22724,6 +23081,17 @@ async function acpSave(email, permission, value) {
 </script>
 
 
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [VENDOR PURCHASE APPROVAL MODULE] — Full module: CSS + HTML + JS
+     ║  Yahan se vendor module ka SABA kuch hai:
+     ║    - CSS styles (vr-, vf- prefix classes)
+     ║    - Vendor Dashboard HTML (vrDash overlay)
+     ║    - Purchase Request Form HTML (vfOverlay)
+     ║    - Review/Action Modal HTML (vrModal)
+     ║    - Recurring Request Modal HTML
+     ║    - All JS functions (loadVendorRequests, submitVendorRequest etc.)
+     ║  Agar vendor module mein kuch change karna hai toh YAHAN AANA
+     ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════════════════════
      VENDOR PURCHASE APPROVAL MODULE
      CSS + Modals + JavaScript
@@ -23017,6 +23385,22 @@ async function acpSave(email, permission, value) {
 </div>
 
 <script>
+// ╔══════════════════════════════════════════════════════════════════════════
+// ║  [VENDOR MODULE JS] — Purchase Approval System logic
+// ║  Tables used: vendors, vendor_requests (Supabase)
+// ║  Key roles:
+// ║    _vrIsEA()       = Hetal Ma'am — approve/decline decisions
+// ║    _vrIsAccounts() = Ashish Sir (vendor_pay permission) — mark paid
+// ║    _vrCanViewAll() = MIS/owner — all requests dekh sakte hain
+// ║  Key functions:
+// ║    loadVendorRequests() = Dashboard data load karo
+// ║    submitVendorRequest() = Naya purchase request submit karo
+// ║    vrSaveDecision()    = EA approve/decline kare
+// ║    vrMarkPaid()        = Accounts mark as paid kare
+// ║    vrBulkPay()         = Multiple checked rows ek saath pay karo
+// ║    vrDeleteRequest()   = Request delete karo
+// ║  _vrAll = All requests array (local cache)
+// ╚══════════════════════════════════════════════════════════════════════════
 // ── STATE ──────────────────────────────────────────
 let _vrAll=[], _vrFiltered=[], _vrFilterMode='all', _vrCurId=null, _vrNameMap={}, _vrVendors=[], _vrLoaded=false, _vrRecurSourceId=null;
 let _vrFilterVendor='', _vrFilterRequester='', _vrVendorFilterList=[], _vrRequesterFilterList=[];
