@@ -3965,7 +3965,12 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     <!-- FILTERS ROW -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.75rem 1rem;margin-bottom:14px;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
       <input type="text" id="fmsSearch" placeholder="🔍 Search SO, client, ticket..." oninput="fmsApplyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.9rem;color:var(--text);font-size:0.88rem;flex:1;min-width:180px;">
-      <select id="fmsCreatedByFilter" onchange="fmsApplyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.88rem;" id="fmsCreatedByFilter">
+      <select id="fmsClientTypeFilter" onchange="fmsApplyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.88rem;">
+        <option value="">All Clients</option>
+        <option value="nbd">🆕 NBD Only</option>
+        <option value="existing">👤 Existing Only</option>
+      </select>
+      <select id="fmsCreatedByFilter" onchange="fmsApplyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.88rem;">
         <option value="">All Created By</option>
       </select>
       <select id="fmsLocationFilter" onchange="fmsApplyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.88rem;">
@@ -4026,10 +4031,21 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
 
-      <!-- Client -->
+      <!-- Client Type + Name -->
       <div class="fms-form-group" style="grid-column:1/-1;">
-        <label class="fms-form-label">Client Name * <span style="color:var(--muted);font-weight:400;">(Odoo Name)</span></label>
-        <input type="text" id="fmsClientSearch" class="fms-form-input" placeholder="Enter client name as in Odoo..." autocomplete="off">
+        <label class="fms-form-label">Client Type *</label>
+        <div style="display:flex;gap:10px;margin-bottom:0.75rem;">
+          <label style="display:flex;align-items:center;gap:8px;padding:0.5rem 1.2rem;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:0.88rem;font-weight:600;color:var(--text);flex:1;justify-content:center;transition:all 0.15s;" id="fmsNBDLabel" onclick="fmsSetClientType('nbd')">
+            <input type="radio" name="fmsClientType" value="nbd" id="fmsClientTypeNBD" style="accent-color:#f0a500;width:15px;height:15px;">
+            🆕 NBD <span style="font-size:0.75rem;font-weight:400;color:var(--muted);">(New Business)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;padding:0.5rem 1.2rem;border-radius:10px;border:2px solid var(--border);cursor:pointer;font-size:0.88rem;font-weight:600;color:var(--text);flex:1;justify-content:center;transition:all 0.15s;" id="fmsExistingLabel" onclick="fmsSetClientType('existing')">
+            <input type="radio" name="fmsClientType" value="existing" id="fmsClientTypeExisting" style="accent-color:#4e9af1;width:15px;height:15px;">
+            👤 Existing Client
+          </label>
+        </div>
+        <label class="fms-form-label">Client Name * <span style="color:var(--muted);font-weight:400;" id="fmsClientNameHint">(Odoo Name)</span></label>
+        <input type="text" id="fmsClientSearch" class="fms-form-input" placeholder="Enter client name..." autocomplete="off">
         <input type="hidden" id="fmsClientId">
         <input type="hidden" id="fmsIsNewClient" value="false">
       </div>
@@ -4071,8 +4087,27 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
       <!-- Payment Proof -->
       <div class="fms-form-group" style="grid-column:1/-1;">
-        <label class="fms-form-label">Payment Proof (Upload)</label>
-        <input type="file" id="fmsPaymentProof" class="fms-form-input" accept=".pdf,.jpg,.jpeg,.png" style="padding:0.4rem;">
+        <label class="fms-form-label">Payment Proof
+          <span style="color:var(--muted);font-weight:400;font-size:0.75rem;"> — Upload, drag & drop, or Ctrl+V to paste screenshot</span>
+        </label>
+        <div id="fmsProofDropzone" onclick="document.getElementById('fmsPaymentProof').click()"
+          style="border:2px dashed var(--border);border-radius:10px;padding:0.85rem 1rem;cursor:pointer;transition:border-color 0.2s;display:flex;align-items:center;gap:10px;background:var(--bg);"
+          onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+          ondragleave="this.style.borderColor='var(--border)'"
+          ondrop="event.preventDefault();fmsHandleProofFile(event.dataTransfer.files[0])">
+          <span style="font-size:1.3rem;">📎</span>
+          <div>
+            <div style="font-size:0.84rem;color:var(--text);font-weight:600;">Click to upload or drag & drop</div>
+            <div style="font-size:0.74rem;color:var(--muted);">Also supports Ctrl+V to paste screenshot directly</div>
+          </div>
+        </div>
+        <input type="file" id="fmsPaymentProof" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="fmsHandleProofFile(this.files[0])">
+        <div id="fmsProofPreview" style="display:none;margin-top:8px;position:relative;">
+          <img id="fmsProofPreviewImg" style="max-height:120px;max-width:100%;border-radius:8px;border:1px solid var(--border);">
+          <div id="fmsProofFileName" style="font-size:0.75rem;color:var(--muted);margin-top:4px;"></div>
+          <button onclick="fmsClearProof()" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:0.7rem;">✕</button>
+        </div>
         <div id="fmsProofStatus" style="font-size:0.8rem;color:var(--muted);margin-top:4px;"></div>
       </div>
 
@@ -4308,6 +4343,56 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         💾 Update Installation
       </button>
       <button onclick="fmsCloseInstallUpdateOverlay()" style="padding:0.65rem 1rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FMS OVERLAY 7 — UPDATE PAYMENT (CRM/Sales)
+══════════════════════════════════════════════════════ -->
+<div class="fms-overlay-backdrop" id="fmsUpdatePaymentOverlay">
+  <div class="fms-overlay-box" style="max-width:420px;">
+    <button onclick="fmsCloseUpdatePayment()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:#00d4aa;margin-bottom:0.9rem;">💰 Update Payment</div>
+    <div id="fmsUpdatePaymentInfo" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.9rem;margin-bottom:0.9rem;font-size:0.84rem;color:var(--text);line-height:1.8;"></div>
+
+    <div class="fms-form-group">
+      <label class="fms-form-label">Amount Received (₹) *</label>
+      <input type="number" id="fmsUpdateAmtReceived" class="fms-form-input" placeholder="0" min="0">
+    </div>
+    <div class="fms-form-group">
+      <label class="fms-form-label">Tentative Date <span style="color:var(--muted);font-weight:400;">(if still pending)</span></label>
+      <input type="date" id="fmsUpdateTentDate" class="fms-form-input">
+    </div>
+    <div class="fms-form-group">
+      <label class="fms-form-label">Payment Proof
+        <span style="color:var(--muted);font-weight:400;font-size:0.72rem;"> — Upload or Ctrl+V paste</span>
+      </label>
+      <div id="fmsUpdateProofDropzone" onclick="document.getElementById('fmsUpdateProofFile').click()"
+        style="border:2px dashed var(--border);border-radius:10px;padding:0.7rem 0.9rem;cursor:pointer;transition:border-color 0.2s;display:flex;align-items:center;gap:8px;background:var(--bg);"
+        onmouseover="this.style.borderColor='#00d4aa'" onmouseout="this.style.borderColor='var(--border)'"
+        ondragover="event.preventDefault();this.style.borderColor='#00d4aa'"
+        ondragleave="this.style.borderColor='var(--border)'"
+        ondrop="event.preventDefault();fmsHandleUpdateProofFile(event.dataTransfer.files[0])">
+        <span style="font-size:1.1rem;">📎</span>
+        <div style="font-size:0.82rem;color:var(--text);">Click, drag & drop, or <strong>Ctrl+V</strong> to paste</div>
+      </div>
+      <input type="file" id="fmsUpdateProofFile" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="fmsHandleUpdateProofFile(this.files[0])">
+      <div id="fmsUpdateProofPreview" style="display:none;margin-top:6px;position:relative;">
+        <img id="fmsUpdateProofPreviewImg" style="max-height:100px;max-width:100%;border-radius:8px;border:1px solid var(--border);">
+        <div id="fmsUpdateProofFileName" style="font-size:0.72rem;color:var(--muted);margin-top:3px;"></div>
+        <button onclick="fmsClearUpdateProof()" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:0.65rem;">✕</button>
+      </div>
+      <div id="fmsUpdateProofStatus" style="font-size:0.78rem;color:var(--muted);margin-top:4px;"></div>
+    </div>
+
+    <div style="background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:8px;padding:0.65rem 0.85rem;margin-bottom:0.85rem;font-size:0.82rem;" id="fmsUpdatePendingPreview"></div>
+
+    <div style="display:flex;gap:0.75rem;">
+      <button onclick="fmsSubmitUpdatePayment()" style="flex:1;padding:0.6rem;border-radius:10px;border:none;background:#00d4aa;color:#000;font-weight:700;cursor:pointer;font-family:inherit;">
+        💾 Update Payment
+      </button>
+      <button onclick="fmsCloseUpdatePayment()" style="padding:0.6rem 1rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">Cancel</button>
     </div>
   </div>
 </div>
@@ -7591,7 +7676,8 @@ function fmsFilterStatus(status){
 
 function fmsApplyFilters(){
   const search    = (document.getElementById('fmsSearch')?.value || '').toLowerCase();
-  const createdBy = document.getElementById('fmsCreatedByFilter')?.value || '';
+  const createdBy    = document.getElementById('fmsCreatedByFilter')?.value || '';
+  const clientType   = document.getElementById('fmsClientTypeFilter')?.value || '';
   const location  = document.getElementById('fmsLocationFilter')?.value || '';
   const dateFrom  = document.getElementById('fmsDateFrom')?.value || '';
   const dateTo    = document.getElementById('fmsDateTo')?.value || '';
@@ -7604,6 +7690,7 @@ function fmsApplyFilters(){
 
     if(search && !clientName.includes(search) && !so.includes(search) && !ticket.includes(search)) return false;
     if(createdBy && (o.created_by||'').toLowerCase() !== createdBy.toLowerCase()) return false;
+    if(clientType && (o.client_type||'existing') !== clientType) return false;
     if(location && loc !== location) return false;
     if(dateFrom && o.created_at < dateFrom) return false;
     if(dateTo && o.created_at.slice(0,10) > dateTo) return false;
@@ -7776,6 +7863,13 @@ function fmsRenderTable(){
         <button onclick="event.stopPropagation();fmsDeleteOrder(${o.id})" style="flex:1;padding:2px 6px;border-radius:6px;border:1px solid rgba(255,92,124,0.3);background:transparent;color:#ff5c7c;font-size:0.7rem;cursor:pointer;font-family:inherit;" title="Delete Order">🗑️</button>
       </div>` : '';
 
+    // Update Payment button — CRM can update their own orders' payment
+    const canUpdatePayment = myEmail === (o.created_by||'').toLowerCase().trim();
+    const updatePaymentBtn = canUpdatePayment ? `
+      <div style="margin-top:4px;">
+        <button onclick="event.stopPropagation();fmsOpenUpdatePayment(${o.id})" style="width:100%;padding:2px 6px;border-radius:6px;border:1px solid rgba(0,212,170,0.35);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.7rem;cursor:pointer;font-family:inherit;" title="Update Payment">💰 Payment</button>
+      </div>` : '';
+
     return `<tr onclick="fmsOpenTimeline(${o.id})" style="cursor:pointer;">
       <td style="padding:0.28rem 0.75rem;border-left:3px solid transparent;vertical-align:middle;">
         <div style="display:flex;align-items:center;gap:5px;">
@@ -7785,13 +7879,17 @@ function fmsRenderTable(){
         <div style="font-size:0.65rem;color:var(--muted);">${created} · <strong>${o.quantity||0}</strong> units</div>
       </td>
       <td style="padding:0.28rem 0.75rem;vertical-align:middle;">
-        <div style="font-weight:600;font-size:0.82rem;color:var(--text);max-width:115px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.client_name||'—'}</div>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span style="font-weight:600;font-size:0.82rem;color:var(--text);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.client_name||'—'}</span>
+          ${o.client_type==='nbd'?`<span style="font-size:0.58rem;font-weight:700;background:rgba(240,165,0,0.15);color:#f0a500;border:1px solid rgba(240,165,0,0.3);border-radius:20px;padding:1px 5px;flex-shrink:0;">NBD</span>`:''}
+        </div>
         <div style="font-size:0.65rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:115px;">${locName} · ${fmsEmpName(o.assigned_to_support)}</div>
       </td>
       ${pipeline.join('')}
       <td style="padding:0.28rem 0.5rem;text-align:center;vertical-align:middle;border-left:1px solid var(--border2);" onclick="event.stopPropagation()">
         ${actionBtn}
         ${editDeleteBtns}
+        ${updatePaymentBtn}
       </td>
     </tr>`;
   }).join('');
@@ -7914,11 +8012,16 @@ async function fmsOpenNewOrder(){
   });
   document.getElementById('fmsClientSearch').value = '';
   document.getElementById('fmsClientId').value = '';
+  // Reset client type to Existing (default)
+  fmsSetClientType('existing');
   document.getElementById('fmsLocationManual').style.display = 'none';
   document.getElementById('fmsProofStatus').textContent = '';
   // Reset file input
   const proofInput = document.getElementById('fmsPaymentProof');
   if(proofInput) proofInput.value = '';
+  _fmsProofFile = null;
+  const pp = document.getElementById('fmsProofPreview');
+  if(pp) pp.style.display = 'none';
   _fmsSelectedLocation = null;
 
   document.getElementById('fmsNewOrderOverlay').classList.add('open');
@@ -8054,7 +8157,7 @@ async function fmsSubmitNewOrder(){
 
   // Upload payment proof if any
   let proofUrl = null;
-  const proofFile = document.getElementById('fmsPaymentProof').files[0];
+  const proofFile = _fmsProofFile || document.getElementById('fmsPaymentProof').files[0];
   if(proofFile){
     proofUrl = await fmsUploadProof(proofFile);
   }
@@ -8070,6 +8173,7 @@ async function fmsSubmitNewOrder(){
     client_id:          finalClientId,
     client_name:        finalClientName,
     is_new_client:      isNewClient,
+    client_type:        (document.querySelector('input[name="fmsClientType"]:checked')?.value || 'existing'),
     so_number:          soNumber,
     ticket_no:          ticketNo || null,
     product_ids:        productIds,
@@ -8157,6 +8261,95 @@ async function fmsSubmitNewOrder(){
     _fmsSubmitting = false;
   }
 }
+
+// ── Proof file state ──────────────────────────────────────────────────────
+let _fmsProofFile = null;
+let _fmsUpdateProofFile = null;
+
+// Handle proof file — new order form
+function fmsHandleProofFile(file){
+  if(!file) return;
+  _fmsProofFile = file;
+  const preview = document.getElementById('fmsProofPreview');
+  const previewImg = document.getElementById('fmsProofPreviewImg');
+  const fileName = document.getElementById('fmsProofFileName');
+  if(preview && previewImg){
+    if(file.type.startsWith('image/')){
+      const reader = new FileReader();
+      reader.onload = e => { previewImg.src = e.target.result; preview.style.display='block'; };
+      reader.readAsDataURL(file);
+    } else {
+      previewImg.src = '';
+      previewImg.style.display = 'none';
+      preview.style.display = 'block';
+    }
+    if(fileName) fileName.textContent = `📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+  }
+}
+
+function fmsClearProof(){
+  _fmsProofFile = null;
+  document.getElementById('fmsPaymentProof').value = '';
+  document.getElementById('fmsProofPreview').style.display = 'none';
+  document.getElementById('fmsProofStatus').textContent = '';
+}
+
+// Handle proof file — update payment modal
+function fmsHandleUpdateProofFile(file){
+  if(!file) return;
+  _fmsUpdateProofFile = file;
+  const preview = document.getElementById('fmsUpdateProofPreview');
+  const previewImg = document.getElementById('fmsUpdateProofPreviewImg');
+  const fileName = document.getElementById('fmsUpdateProofFileName');
+  if(preview && previewImg){
+    if(file.type.startsWith('image/')){
+      const reader = new FileReader();
+      reader.onload = e => { previewImg.src = e.target.result; previewImg.style.display='block'; preview.style.display='block'; };
+      reader.readAsDataURL(file);
+    } else {
+      previewImg.style.display = 'none';
+      preview.style.display = 'block';
+    }
+    if(fileName) fileName.textContent = `📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+  }
+}
+
+function fmsClearUpdateProof(){
+  _fmsUpdateProofFile = null;
+  document.getElementById('fmsUpdateProofFile').value = '';
+  document.getElementById('fmsUpdateProofPreview').style.display = 'none';
+  document.getElementById('fmsUpdateProofStatus').textContent = '';
+  _fmsUpdateProofFile = null;
+  const upp = document.getElementById('fmsUpdateProofPreview');
+  if(upp) upp.style.display = 'none';
+}
+
+// ── Global Ctrl+V paste listener ──────────────────────────────────────────
+document.addEventListener('paste', function(e){
+  const newOrderOpen   = document.getElementById('fmsNewOrderOverlay')?.classList.contains('open');
+  const updatePmtOpen  = document.getElementById('fmsUpdatePaymentOverlay')?.classList.contains('open');
+  if(!newOrderOpen && !updatePmtOpen) return;
+
+  const items = e.clipboardData?.items;
+  if(!items) return;
+  for(let item of items){
+    if(item.type.startsWith('image/')){
+      const file = item.getAsFile();
+      if(!file) continue;
+      // Convert to named file
+      const namedFile = new File([file], `screenshot_${Date.now()}.png`, { type: 'image/png' });
+      if(newOrderOpen){
+        fmsHandleProofFile(namedFile);
+        fmsToast('📋 Screenshot pasted!');
+      } else if(updatePmtOpen){
+        fmsHandleUpdateProofFile(namedFile);
+        fmsToast('📋 Screenshot pasted!');
+      }
+      e.preventDefault();
+      break;
+    }
+  }
+});
 
 async function fmsUploadProof(file){
   try{
@@ -8692,11 +8885,21 @@ async function fmsOpenTimeline(orderId){
   // Edit/Delete — MIS/Owner only
   const tlActions = document.getElementById('fmsTimelineActions');
   const _isMISOwner = CURRENT_USER?.rawRole==='mis' || CURRENT_USER?.rawRole==='managing director';
+  const _myEmailLower = (CURRENT_USER?.email||'').toLowerCase().trim();
+  const _isOrderCreator = _myEmailLower === (o.created_by||'').toLowerCase().trim();
+
   if(tlActions){
-    tlActions.innerHTML = _isMISOwner ? `
-      <button onclick="fmsEditOrder(${orderId})" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">✏️ Edit</button>
-      <button onclick="fmsDeleteOrder(${orderId})" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(255,92,124,0.4);background:rgba(255,92,124,0.08);color:#ff5c7c;font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">🗑️ Delete</button>
-    ` : '';
+    let btns = '';
+    // Payment update — CRM/order creator can update
+    if(_isOrderCreator || _isMISOwner){
+      btns += `<button onclick="fmsCloseTimeline();fmsOpenUpdatePayment(${orderId})" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">💰 Payment</button>`;
+    }
+    // Edit/Delete — MIS/Owner only
+    if(_isMISOwner){
+      btns += `<button onclick="fmsEditOrder(${orderId})" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">✏️ Edit</button>`;
+      btns += `<button onclick="fmsDeleteOrder(${orderId})" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(255,92,124,0.4);background:rgba(255,92,124,0.08);color:#ff5c7c;font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">🗑️ Delete</button>`;
+    }
+    tlActions.innerHTML = btns;
   }
 
   // Load data
@@ -8993,8 +9196,107 @@ This cannot be undone.`)) return;
   }
 }
 
+// ── fmsSetClientType — NBD vs Existing ───────────────────────────────────
+function fmsSetClientType(type){
+  document.querySelectorAll('input[name="fmsClientType"]').forEach(r => r.checked = r.value === type);
+  const nbd  = document.getElementById('fmsNBDLabel');
+  const exist = document.getElementById('fmsExistingLabel');
+  const hint  = document.getElementById('fmsClientNameHint');
+  const input = document.getElementById('fmsClientSearch');
+  if(type === 'nbd'){
+    if(nbd)  nbd.style.borderColor  = '#f0a500';
+    if(exist) exist.style.borderColor = 'var(--border)';
+    if(hint)  hint.textContent = '(New Business — type company name)';
+    if(input) input.placeholder = 'Enter new client company name...';
+  } else {
+    if(nbd)  nbd.style.borderColor  = 'var(--border)';
+    if(exist) exist.style.borderColor = '#4e9af1';
+    if(hint)  hint.textContent = '(Odoo Name)';
+    if(input) input.placeholder = 'Enter client name as in Odoo...';
+  }
+}
+
+// ── fmsOpenUpdatePayment ──────────────────────────────────────────────────
+function fmsOpenUpdatePayment(orderId){
+  _fmsCurrentOrder = _fmsOrders.find(o => o.id === orderId);
+  if(!_fmsCurrentOrder) return;
+  const o = _fmsCurrentOrder;
+  const pendAmt = (parseFloat(o.order_amount)||0) - (parseFloat(o.amount_received)||0);
+
+  document.getElementById('fmsUpdatePaymentInfo').innerHTML = `
+    <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Client:</strong> ${o.client_name||'—'}</div>
+    <div><strong>Order Amt:</strong> ₹${(o.order_amount||0).toLocaleString('en-IN')} &nbsp;|&nbsp; <strong>Received:</strong> ₹${(o.amount_received||0).toLocaleString('en-IN')}</div>
+  `;
+  document.getElementById('fmsUpdateAmtReceived').value = o.amount_received || '';
+  document.getElementById('fmsUpdateTentDate').value    = o.tentative_date || '';
+  document.getElementById('fmsUpdateProofStatus').textContent = '';
+  document.getElementById('fmsUpdateProofFile').value = '';
+  document.getElementById('fmsUpdatePendingPreview').innerHTML =
+    `Pending: <strong style="color:${pendAmt>0?'#ff5c7c':'#00d4aa'};">₹${pendAmt.toLocaleString('en-IN')}</strong>`;
+
+  // Live pending preview on input
+  document.getElementById('fmsUpdateAmtReceived').oninput = function(){
+    const newReceived = parseFloat(this.value) || 0;
+    const newPending  = (parseFloat(o.order_amount)||0) - newReceived;
+    document.getElementById('fmsUpdatePendingPreview').innerHTML =
+      `Pending after update: <strong style="color:${newPending>0?'#ff5c7c':'#00d4aa'};">₹${newPending.toLocaleString('en-IN')}</strong>`;
+  };
+
+  document.getElementById('fmsUpdatePaymentOverlay').classList.add('open');
+}
+
+function fmsCloseUpdatePayment(){
+  document.getElementById('fmsUpdatePaymentOverlay').classList.remove('open');
+}
+
+async function fmsSubmitUpdatePayment(){
+  if(!_fmsCurrentOrder) return;
+  const btn = document.querySelector('#fmsUpdatePaymentOverlay button[onclick="fmsSubmitUpdatePayment()"]');
+  fmsBtnLoading(btn, '⏳ Saving...');
+
+  const amtReceived = parseFloat(document.getElementById('fmsUpdateAmtReceived').value) || 0;
+  const tentDate    = document.getElementById('fmsUpdateTentDate').value || null;
+  const proofFile   = _fmsUpdateProofFile || document.getElementById('fmsUpdateProofFile').files[0];
+
+  // Upload proof if new file selected
+  let proofUrl = _fmsCurrentOrder.payment_proof_url || null;
+  if(proofFile){
+    const ext = proofFile.name.split('.').pop().toLowerCase();
+    const path = `fms-proofs/${Date.now()}_${Math.random().toString(36).slice(2,6)}.${ext}`;
+    document.getElementById('fmsUpdateProofStatus').textContent = '⏳ Uploading...';
+    const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/fms-documents/${path}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${_currentToken || SUPABASE_ANON}`, 'Content-Type': proofFile.type, 'x-upsert': 'true' },
+      body: proofFile
+    });
+    if(uploadRes.ok){
+      proofUrl = `${SUPABASE_URL}/storage/v1/object/public/fms-documents/${path}`;
+      document.getElementById('fmsUpdateProofStatus').innerHTML = `✅ Uploaded — <a href="${proofUrl}" target="_blank" style="color:#4e9af1;">View</a>`;
+    }
+  }
+
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${_fmsCurrentOrder.id}`, {
+      method: 'PATCH',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({
+        amount_received:   amtReceived,
+        tentative_date:    tentDate,
+        payment_proof_url: proofUrl
+      })
+    });
+    if(!res.ok) throw new Error(await res.text());
+    fmsToast('✅ Payment updated!');
+    fmsBtnSuccess(btn, '✅ Updated!', 'fmsUpdatePaymentOverlay');
+    setTimeout(() => fmsLoadOrders(), 950);
+  } catch(e){
+    fmsBtnReset(btn);
+    fmsToast('❌ Error: ' + e.message);
+  }
+}
+
 // Close overlays on backdrop click
-['fmsNewOrderOverlay','fmsSupportOverlay','fmsConfigOverlay','fmsEngineerOverlay','fmsInstallUpdateOverlay','fmsTimelineOverlay'].forEach(id => {
+['fmsNewOrderOverlay','fmsSupportOverlay','fmsConfigOverlay','fmsEngineerOverlay','fmsInstallUpdateOverlay','fmsTimelineOverlay','fmsUpdatePaymentOverlay'].forEach(id => {
   const el = document.getElementById(id);
   if(el) el.addEventListener('click', function(e){ if(e.target === this) this.classList.remove('open'); });
 });
