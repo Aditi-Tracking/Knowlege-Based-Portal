@@ -855,19 +855,58 @@
   .date-pill.active{background:rgba(240,165,0,0.1);border-color:var(--accent);color:var(--accent);font-weight:600;}
   .date-pill:hover{border-color:var(--accent);color:var(--accent);}
 
-  /* FMS O2D */
-  .fms-chip{padding:0.26rem 0.82rem;border-radius:20px;font-size:0.80rem;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.2s;}
-  .fms-chip.active{background:#00d4ff;color:#000;border-color:#00d4ff;}
-  .fms-chip:hover:not(.active){border-color:#00d4ff;color:#00d4ff;}
-  .fms-form-btn{display:inline-flex;align-items:center;gap:0.3rem;padding:0.25rem 0.65rem;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:6px;color:#00d4ff;text-decoration:none;font-size:0.82rem;font-weight:600;transition:all 0.2s;cursor:pointer;}
-  .fms-form-btn:hover{background:rgba(0,212,255,0.25);}
-  .fms-badge-yes{display:inline-block;padding:0.18rem 0.55rem;border-radius:20px;font-size:0.79rem;font-weight:700;background:rgba(0,212,170,0.15);color:#00d4aa;}
-  .fms-badge-no{display:inline-block;padding:0.18rem 0.55rem;border-radius:20px;font-size:0.79rem;font-weight:700;background:rgba(255,92,124,0.15);color:#ff5c7c;}
-  #panel-fms table{width:100%;border-collapse:collapse;}
-  #panel-fms thead th{background:var(--surface2);padding:0.65rem 1rem;text-align:left;font-size:0.79rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;}
-  #panel-fms tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;cursor:pointer;}
-  #panel-fms tbody tr:hover{background:var(--surface2);}
-  #panel-fms tbody td{padding:0.7rem 1rem;font-size:0.89rem;white-space:nowrap;}
+  /* ═══════════════════════════════
+     NEW FMS MODULE CSS
+  ═══════════════════════════════ */
+  .fms-status{display:inline-flex;align-items:center;gap:5px;padding:0.22rem 0.75rem;border-radius:20px;font-size:0.78rem;font-weight:700;white-space:nowrap;}
+  .fms-status.pending-support{background:rgba(240,165,0,0.15);color:#f0a500;border:1px solid rgba(240,165,0,0.3);}
+  .fms-status.pending-config{background:rgba(251,146,60,0.15);color:#fb923c;border:1px solid rgba(251,146,60,0.3);}
+  .fms-status.configuring{background:rgba(78,154,241,0.15);color:#4e9af1;border:1px solid rgba(78,154,241,0.3);}
+  .fms-status.pending-engineer{background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3);}
+  .fms-status.installing{background:rgba(6,182,212,0.15);color:#06b6d4;border:1px solid rgba(6,182,212,0.3);}
+  .fms-status.completed{background:rgba(0,212,170,0.15);color:#00d4aa;border:1px solid rgba(0,212,170,0.3);}
+  .fms-table{width:100%;border-collapse:collapse;}
+  .fms-table thead th{background:var(--surface2);padding:0.65rem 1rem;text-align:left;font-size:0.79rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);white-space:nowrap;}
+  .fms-table tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;cursor:pointer;}
+  .fms-table tbody tr:hover{background:var(--surface2);}
+  .fms-table tbody td{padding:0.7rem 1rem;font-size:0.88rem;color:var(--text);}
+  .fms-action-btn{padding:0.3rem 0.85rem;border-radius:8px;border:none;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;}
+  .fms-action-btn.primary{background:#f0a500;color:#000;}
+  .fms-action-btn.primary:hover{background:#d4920a;}
+  .fms-action-btn.success{background:#00d4aa;color:#000;}
+  .fms-action-btn.info{background:#4e9af1;color:#000;}
+  .fms-action-btn.purple{background:#a855f7;color:#fff;}
+  .fms-overlay-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1200;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .fms-overlay-backdrop.open{display:flex;}
+  .fms-overlay-box{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.6rem;width:90%;max-width:600px;max-height:90vh;overflow-y:auto;position:relative;}
+  .fms-overlay-box.wide{max-width:780px;}
+  .fms-form-group{margin-bottom:1rem;}
+  .fms-form-label{font-size:0.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;display:block;}
+  .fms-form-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:0.6rem 0.9rem;color:var(--text);font-size:0.91rem;font-family:inherit;box-sizing:border-box;}
+  .fms-form-input:focus{outline:none;border-color:var(--accent);}
+  .fms-product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;max-height:260px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:0.75rem;}
+  .fms-product-item{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:7px;cursor:pointer;font-size:0.87rem;color:var(--text);transition:background 0.15s;}
+  .fms-product-item:hover{background:var(--surface2);}
+  .fms-product-item input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;}
+  .fms-timeline{display:flex;flex-direction:column;gap:0;}
+  .fms-timeline-step{display:flex;gap:14px;padding:12px 0;}
+  .fms-timeline-step:not(:last-child){border-bottom:1px solid var(--border);}
+  .fms-tl-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;flex-shrink:0;margin-top:2px;}
+  .fms-tl-dot.done{background:rgba(0,212,170,0.2);color:#00d4aa;border:2px solid #00d4aa;}
+  .fms-tl-dot.active{background:rgba(240,165,0,0.2);color:#f0a500;border:2px solid #f0a500;}
+  .fms-tl-dot.pending{background:var(--surface2);color:var(--muted);border:2px solid var(--border);}
+  .fms-tl-content{flex:1;}
+  .fms-tl-title{font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:3px;}
+  .fms-tl-meta{font-size:0.80rem;color:var(--muted);line-height:1.5;}
+  .fms-tat-badge{display:inline-block;font-size:0.75rem;font-weight:600;color:#00d4aa;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.25);border-radius:20px;padding:1px 8px;margin-left:6px;}
+  /* Pipeline table */
+  #fmsPipelineTable thead th{vertical-align:middle;}
+  #fmsPipelineTable tbody tr{transition:background 0.15s;}
+  #fmsPipelineTable tbody tr:hover{background:rgba(255,255,255,0.025);}
+  #fmsPipelineTable tbody tr:hover td:first-child{border-left:3px solid var(--accent) !important;}
+  #fmsPipelineTable td{vertical-align:middle;}
+  #fmsPipelineTable td::-webkit-scrollbar{display:none;}
+  @keyframes fmsPulse{0%,100%{box-shadow:0 0 0 0 rgba(108,99,255,0.4)}50%{box-shadow:0 0 0 6px rgba(108,99,255,0)}}
 
   /* ═══════════════════════════════
      MOBILE BOTTOM NAV
@@ -1092,11 +1131,12 @@
     .insight-card { padding: 12px !important; }
     .insight-row { font-size: 0.72rem !important; padding: 5px 0 !important; }
 
-    /* FMS table */
-    #panel-fms .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    #panel-fms table { min-width: 700px; }
-    #panel-fms thead th { padding: 8px 10px !important; font-size: 0.6rem !important; }
-    #panel-fms tbody td { padding: 8px 10px !important; font-size: 0.72rem !important; }
+    /* FMS table mobile */
+    .fms-table { min-width: 700px; }
+    .fms-table thead th { padding: 8px 10px !important; font-size: 0.6rem !important; }
+    .fms-table tbody td { padding: 8px 10px !important; font-size: 0.72rem !important; }
+    .fms-overlay-box { padding: 1.1rem !important; }
+    .fms-product-grid { grid-template-columns: 1fr 1fr !important; }
 
     /* Cross filter badge */
     #lCFBadge, #cCFBadge { font-size: 0.7rem !important; padding: 6px 10px !important; }
@@ -1612,7 +1652,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
         <div class="lp-feat-icon">📊</div>
         <div class="lp-feat-info">
           <strong>Live Lead Tracking</strong>
-          <span>Real-time data from Google Sheets</span>
+          <span>Real-time data from Supabase</span>
         </div>
       </div>
       <div class="lp-feat">
@@ -1625,7 +1665,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
       <div class="lp-feat">
         <div class="lp-feat-icon">🚚</div>
         <div class="lp-feat-info">
-          <strong>FMS O2D Monitor</strong>
+          <strong>FMS Installation Tracker</strong>
           <span>Fleet & delivery order tracking</span>
         </div>
       </div>
@@ -2399,7 +2439,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
             <div class="hp-step-num">5</div>
             <div class="hp-step-body">
               <div class="hp-step-title">Refresh data anytime</div>
-              <div class="hp-step-desc">Hit the <strong>Refresh</strong> button on any dashboard header to fetch the latest data from the Google Sheet source.</div>
+              <div class="hp-step-desc">Hit the <strong>Refresh</strong> button on any dashboard header to fetch the latest data.</div>
             </div>
           </div>
         </div>
@@ -3853,188 +3893,443 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
      ║  Table with filters, date range, search, mark-done modal
      ║  JS: fmsLoadData() (~line 6909)
      ╚═══════════════════════════════════════════════════════════════════════ -->
-<!-- FMS O2D PANEL -->
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL FMS] — NEW FMS Installation Tracker (Supabase-backed)
+     ║  5-step workflow: CRM → Support → Anish → Support → Engineer
+     ║  Overlays: New Order, Support Action, Config, Engineer Assign, Timeline
+     ║  JS: fmsNew* functions
+     ╚═══════════════════════════════════════════════════════════════════════ -->
+<!-- FMS INSTALLATION TRACKER PANEL -->
 <div class="dashboard-panel" id="panel-fms">
   <div class="db-header">
     <div>
       <div class="db-title">FMS <span>Installation Tracker</span></div>
-      <div class="db-breadcrumb">Home › FMS O2D › Engineer Tasks</div>
+      <div class="db-breadcrumb">Home › FMS › Orders</div>
     </div>
-    <div class="header-right">
-      
-      <button class="refresh-btn" onclick="fmsLoadData()"><span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></span> Refresh</button>
+    <div class="header-right" style="display:flex;gap:8px;align-items:center;">
+      <button class="refresh-btn" onclick="fmsLoadOrders()">
+        <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></span> Refresh
+      </button>
+      <button id="fmsNewOrderBtn" onclick="fmsOpenNewOrder()" style="display:none;padding:7px 16px;border-radius:10px;border:none;background:#f0a500;color:#000;font-size:0.87rem;font-weight:700;cursor:pointer;font-family:inherit;">
+        + New Order
+      </button>
     </div>
   </div>
 
   <div class="db-content">
 
-    <!-- ROW 1: DATE RANGE + PRODUCT CHART only -->
-    <div style="display:grid;grid-template-columns:1fr 2.6fr;gap:14px;margin-bottom:16px;align-items:stretch;">
-
-      <!-- Date Range Filter -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem;display:flex;flex-direction:column;gap:10px;justify-content:center;">
-        <div style="font-size:0.82rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Select Date Range</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:0.80rem;color:var(--muted);min-width:28px;">From</span>
-            <input type="date" id="fDateFrom" onchange="fmsApplyDateFilter()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.6rem;color:var(--text);font-size:0.88rem;">
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:0.80rem;color:var(--muted);min-width:28px;">To</span>
-            <input type="date" id="fDateTo" onchange="fmsApplyDateFilter()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.35rem 0.6rem;color:var(--text);font-size:0.88rem;">
-          </div>
-          <button onclick="fmsClearDateFilter()" style="margin-top:2px;padding:4px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.80rem;cursor:pointer;">Clear</button>
-        </div>
+    <!-- KPI CARDS -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(8,1fr);margin-bottom:16px;gap:12px;" id="fmsKpiRow">
+      <div class="kpi-card" style="--card-accent:#00d4ff;--card-color:#00d4ff;cursor:pointer;" onclick="fmsFilterStatus('')">
+        <div class="kpi-label">Total Orders</div>
+        <div class="kpi-value" id="fmsKpiTotal">—</div>
+        <div class="kpi-sub">All orders</div>
       </div>
-
-      <!-- Product Wise Pending Chart -->
-      <div class="chart-card" style="margin:0;">
-        <div class="chart-title">
-          <div class="dot" style="background:#f0a500"></div>Product Wise Pending Installation
-          <span style="font-size:0.76rem;color:var(--muted);margin-left:auto;font-weight:400;">Click to filter</span>
-        </div>
-        <div class="chart-wrap"><canvas id="fChartProductPending"></canvas></div>
+      <div class="kpi-card" style="--card-accent:#f0a500;--card-color:#f0a500;cursor:pointer;" onclick="fmsFilterStatus('pending_support')">
+        <div class="kpi-label">Awaiting Support</div>
+        <div class="kpi-value" id="fmsKpiPendingSupport">—</div>
+        <div class="kpi-sub">Step 1 done</div>
       </div>
-    </div>
-
-    <!-- ROW 2: KPIs — Remaining + Delayed (main) + Total + Today + Products -->
-    <div class="kpi-grid" style="grid-template-columns:1.2fr 1.2fr 1fr 1fr 1fr;margin-bottom:16px;gap:14px;">
-      <div class="kpi-card" id="fkpi-remaining" style="--card-accent:#f0a500;--card-color:#f0a500;cursor:pointer;" onclick="fmsKpiFilter('remaining')">
-        <div class="kpi-label">Total Remaining Task</div>
-        <div class="kpi-value" id="fkpiRemaining" style="font-size:2rem;">—</div>
-        <div class="kpi-sub">For PC = No</div>
-        <div class="kpi-click-hint">Click to filter</div>
+      <div class="kpi-card" style="--card-accent:#fb923c;--card-color:#fb923c;cursor:pointer;" onclick="fmsFilterStatus('pending_config')">
+        <div class="kpi-label">Awaiting Config</div>
+        <div class="kpi-value" id="fmsKpiPendingConfig">—</div>
+        <div class="kpi-sub">With Anish</div>
       </div>
-      <div class="kpi-card" id="fkpi-delayed" style="--card-accent:#ff5c7c;--card-color:#ff5c7c;cursor:pointer;" onclick="fmsKpiFilter('delayed')">
-        <div class="kpi-label">Total Delayed Tasks</div>
-        <div class="kpi-value" id="fkpiDelayed" style="font-size:2rem;">—</div>
-        <div class="kpi-sub">For PC = Yes</div>
-        <div class="kpi-click-hint">Click to filter</div>
+      <div class="kpi-card" style="--card-accent:#a855f7;--card-color:#a855f7;cursor:pointer;" onclick="fmsFilterStatus('pending_engineer')">
+        <div class="kpi-label">Awaiting Engineer</div>
+        <div class="kpi-value" id="fmsKpiPendingEngineer">—</div>
+        <div class="kpi-sub">Config done</div>
       </div>
-      <div class="kpi-card" id="fkpi-all" style="--card-accent:#00d4ff;--card-color:#00d4ff;cursor:pointer;" onclick="fmsKpiFilter('all')">
-        <div class="kpi-label">Total SO</div>
-        <div class="kpi-value" id="fkpiTotal">—</div>
-        <div class="kpi-sub">All entries</div>
-        <div class="kpi-click-hint">Click to view all</div>
+      <div class="kpi-card" style="--card-accent:#06b6d4;--card-color:#06b6d4;cursor:pointer;" onclick="fmsFilterStatus('installing')">
+        <div class="kpi-label">Installing</div>
+        <div class="kpi-value" id="fmsKpiInstalling">—</div>
+        <div class="kpi-sub">In progress</div>
       </div>
-      <div class="kpi-card" id="fkpi-today" style="--card-accent:#00d4aa;--card-color:#00d4aa;cursor:pointer;" onclick="fmsKpiFilter('today')">
-        <div class="kpi-label">Today's Tasks</div>
-        <div class="kpi-value" id="fkpiToday">—</div>
-        <div class="kpi-sub">Planned today</div>
-        <div class="kpi-click-hint">Click to filter</div>
+      <div class="kpi-card" style="--card-accent:#00d4aa;--card-color:#00d4aa;cursor:pointer;" onclick="fmsFilterStatus('completed')">
+        <div class="kpi-label">Completed</div>
+        <div class="kpi-value" id="fmsKpiCompleted">—</div>
+        <div class="kpi-sub">All done</div>
       </div>
-      <div class="kpi-card" id="fkpi-products" style="--card-accent:#a855f7;--card-color:#a855f7;">
-        <div class="kpi-label">Products</div>
-        <div class="kpi-value" id="fkpiProducts">—</div>
-        <div class="kpi-sub">Unique types</div>
+      <div class="kpi-card" style="--card-accent:#00d4aa;--card-color:#00d4aa;">
+        <div class="kpi-label">Total Amount</div>
+        <div class="kpi-value" id="fmsKpiTotalAmount">—</div>
+        <div class="kpi-sub">All orders</div>
+      </div>
+      <div class="kpi-card" style="--card-accent:#ff5c7c;--card-color:#ff5c7c;cursor:pointer;" onclick="fmsFilterPendingPayment()">
+        <div class="kpi-label">Pending Payment</div>
+        <div class="kpi-value" id="fmsKpiPendingPayment">—</div>
+        <div class="kpi-sub" id="fmsKpiPendingPaymentCount">0 orders</div>
       </div>
     </div>
 
-    <!-- ROW 3: Charts -->
-    <div class="charts-grid" style="margin-bottom:16px;">
-      <div class="chart-card">
-        <div class="chart-title"><div class="dot" style="background:#00d4ff"></div>Doer-wise Pending Tasks <span style="font-size:0.76rem;color:var(--muted);margin-left:auto;font-weight:400;">Click to filter</span></div>
-        <div class="chart-wrap"><canvas id="fChartDoer"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title"><div class="dot" style="background:#a855f7"></div>Task Status Split <span style="font-size:0.76rem;color:var(--muted);margin-left:auto;font-weight:400;">Click to filter</span></div>
-        <div class="chart-wrap"><canvas id="fChartStatus"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title"><div class="dot" style="background:#f0a500"></div>Daily Planned Volume <span style="font-size:0.76rem;color:var(--muted);margin-left:auto;font-weight:400;">Last 7 days</span></div>
-        <div class="chart-wrap"><canvas id="fChartDaily"></canvas></div>
-      </div>
+    <!-- FILTERS ROW -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.75rem 1rem;margin-bottom:14px;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+      <input type="text" id="fmsSearch" placeholder="🔍 Search SO, client, ticket..." oninput="fmsApplyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.9rem;color:var(--text);font-size:0.88rem;flex:1;min-width:180px;">
+      <select id="fmsCreatedByFilter" onchange="fmsApplyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.88rem;" id="fmsCreatedByFilter">
+        <option value="">All Created By</option>
+      </select>
+      <select id="fmsLocationFilter" onchange="fmsApplyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.88rem;">
+        <option value="">All Locations</option>
+      </select>
+      <input type="date" id="fmsDateFrom" onchange="fmsApplyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.38rem 0.6rem;color:var(--text);font-size:0.88rem;">
+      <input type="date" id="fmsDateTo" onchange="fmsApplyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.38rem 0.6rem;color:var(--text);font-size:0.88rem;">
+      <button onclick="fmsResetFilters()" style="padding:0.38rem 0.85rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.85rem;cursor:pointer;">Reset</button>
+      <span id="fmsTableCount" style="font-size:0.82rem;color:var(--muted);margin-left:4px;">—</span>
     </div>
 
-    <!-- ROW 4: SO/Customer/Product table + Doer Summary -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
-
-      <!-- Left: Customer-Product Table -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
-        <div style="background:#f0a500;padding:0.65rem 1rem;display:grid;grid-template-columns:1fr 1.2fr 0.9fr;">
-          <span style="font-size:0.89rem;font-weight:700;color:#000;">Unique Key</span>
-          <span style="font-size:0.89rem;font-weight:700;color:#000;">Customer Name</span>
-          <span style="font-size:0.89rem;font-weight:700;color:#000;">Product</span>
-        </div>
-        <div id="fCPTableBody" style="overflow-y:auto;max-height:280px;">
-          <div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.89rem;">No data</div>
-        </div>
-        <div id="fCPPagination" style="display:none;padding:0.6rem 1rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:0.82rem;color:var(--muted);">
-          <span id="fCPPageInfo"></span>
-          <div id="fCPPageBtns" style="display:flex;gap:4px;"></div>
-        </div>
+    <!-- ORDERS PIPELINE TABLE -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table class="fms-table" id="fmsPipelineTable">
+          <thead>
+            <tr>
+              <th style="width:100px;text-align:left;padding:0.5rem 0.75rem;">SO Number</th>
+              <th style="width:120px;text-align:left;padding:0.5rem 0.75rem;">Client</th>
+              <th colspan="11" style="padding:0.5rem 0.75rem;">
+                <div style="display:flex;align-items:center;padding:0 0;">
+                  <div style="flex:1;display:flex;justify-content:space-around;font-size:0.7rem;font-weight:700;">
+                    <span style="color:#f0a500;">🗒️ Order Created</span>
+                    <span style="color:#fb923c;">🔧 Support Assign</span>
+                    <span style="color:#4e9af1;">💾 Configuration</span>
+                    <span style="color:#a855f7;">🔩 Installation</span>
+                    <span style="color:#00d4aa;">🏁 Completed</span>
+                  </div>
+                </div>
+              </th>
+              <th style="width:85px;text-align:center;border-left:1px solid var(--border2);padding:0.5rem 0.5rem;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="fmsTableBody">
+            <tr><td colspan="12" style="text-align:center;padding:2.5rem;color:var(--muted);">
+              <div class="loader-bar"><div class="loader-fill"></div></div>
+              <p style="margin-top:0.8rem;font-size:0.89rem;">Loading orders...</p>
+            </td></tr>
+          </tbody>
+        </table>
       </div>
-
-      <!-- Right: Doer Summary -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
-        <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:0.89rem;font-weight:700;color:var(--text);font-family:'Playfair Display',serif;">Doer Summary</span>
-          <span style="font-size:0.80rem;color:var(--muted)">Remaining tasks per doer</span>
-        </div>
-        <div id="fDoerSummary" style="overflow-y:auto;max-height:280px;padding:0.5rem 0;">
-          <div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.89rem;">No data</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ROW 5: Main Task Table -->
-    <div class="table-card" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
-      <div style="background:#f0a500;padding:0;display:grid;grid-template-columns:1fr 1fr 2fr 1.4fr 1fr;gap:0;">
-        <div onclick="fmsSort2('uniqueKey')" style="padding:0.65rem 1rem;font-size:0.89rem;font-weight:700;color:#000;cursor:pointer;">SO Number ↕</div>
-        <div onclick="fmsSort2('doerName')" style="padding:0.65rem 1rem;font-size:0.89rem;font-weight:700;color:#000;cursor:pointer;">Doer Name ↕</div>
-        <div onclick="fmsSort2('plannedStep')" style="padding:0.65rem 1rem;font-size:0.89rem;font-weight:700;color:#000;cursor:pointer;">Step ↕</div>
-        <div onclick="fmsSort2('planned')" style="padding:0.65rem 1rem;font-size:0.89rem;font-weight:700;color:#000;cursor:pointer;">Planned ↕</div>
-        <div style="padding:0.65rem 1rem;font-size:0.89rem;font-weight:700;color:#000;text-align:center;">Mark Done</div>
-      </div>
-
-      <!-- Search + Filters -->
-      <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border);display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-        <input type="text" id="fSearch" placeholder="🔍 Search SO, customer, doer..." oninput="fmsApplySearch()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.9rem;color:var(--text);font-size:0.88rem;flex:1;min-width:180px;">
-        <select id="fProductFilter" onchange="fmsApplySearch()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.88rem;">
-          <option value="">All Products</option>
-        </select>
-        <select id="fDoerFilter" onchange="fmsApplySearch()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.88rem;">
-          <option value="">All Doers</option>
-        </select>
-        <select id="fStatusFilter" onchange="fmsApplySearch()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.88rem;">
-          <option value="">All Status</option>
-          <option value="done">✅ Done (PC Yes)</option>
-          <option value="pending">⏳ Pending (PC No)</option>
-        </select>
-        <span style="font-size:0.82rem;color:var(--muted)" id="fTableCount">—</span>
-        <button onclick="fmsExportCSV()" style="padding:0.38rem 0.8rem;border-radius:8px;border:none;background:#00d4aa;color:#000;font-size:0.85rem;font-weight:600;cursor:pointer;">↓ CSV</button>
-        <button onclick="fmsClearAllFilters()" style="padding:0.38rem 0.8rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.85rem;cursor:pointer;">Reset</button>
-      </div>
-
-      <div id="fMainTableBody" style="overflow-x:auto;">
-        <div style="display:flex;flex-direction:column;align-items:center;padding:3rem;gap:1rem;color:var(--muted);">
-          <div class="loader-bar"><div class="loader-fill"></div></div>
-          <p style="font-size:0.89rem;">Loading..</p>
-        </div>
-      </div>
-
-      <div id="fMainPagination" style="display:none;padding:0.9rem 1.5rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:0.88rem;color:var(--muted);flex-wrap:wrap;gap:0.5rem;">
-        <span id="fMainPageInfo"></span>
-        <div id="fMainPageBtns" style="display:flex;gap:0.35rem;"></div>
+      <div id="fmsPagination" style="padding:0.9rem 1.5rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:0.88rem;color:var(--muted);flex-wrap:wrap;gap:0.5rem;">
+        <span id="fmsPageInfo"></span>
+        <div id="fmsPageBtns" style="display:flex;gap:0.35rem;"></div>
       </div>
     </div>
 
   </div>
 </div>
 
-<!-- FMS MARK DONE MODAL -->
-<div id="fmsMarkDoneModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.5rem;max-width:460px;width:90%;position:relative;">
-    <button onclick="closeFmsMarkDone()" style="position:absolute;top:12px;right:12px;background:transparent;border:none;color:var(--muted);font-size:1.26rem;cursor:pointer;">✕</button>
-    <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;margin-bottom:0.5rem;color:#f0a500;">Mark Task as Done</div>
-    <div id="fmsMarkDoneInfo" style="font-size:0.91rem;color:var(--muted);margin-bottom:1.2rem;line-height:1.6;"></div>
-    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-      <a id="fmsMarkDoneLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:0.55rem 1.1rem;border-radius:10px;background:#f0a500;color:#000;font-weight:700;font-size:0.94rem;text-decoration:none;" onclick="closeFmsMarkDone()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        Open Form & Mark Done
-      </a>
-      <button onclick="closeFmsMarkDone()" style="padding:0.55rem 1rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.92rem;cursor:pointer;">Cancel</button>
+<!-- ══════════════════════════════════════════════════════
+     FMS OVERLAY 1 — NEW ORDER FORM (CRM/Sales — Step 1)
+══════════════════════════════════════════════════════ -->
+<div class="fms-overlay-backdrop" id="fmsNewOrderOverlay">
+  <div class="fms-overlay-box wide">
+    <button onclick="fmsCloseNewOrder()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#f0a500;margin-bottom:1.2rem;">📋 New Installation Order</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+
+      <!-- Client -->
+      <div class="fms-form-group" style="grid-column:1/-1;">
+        <label class="fms-form-label">Client Name * <span style="color:var(--muted);font-weight:400;">(Odoo Name)</span></label>
+        <input type="text" id="fmsClientSearch" class="fms-form-input" placeholder="Enter client name as in Odoo..." autocomplete="off">
+        <input type="hidden" id="fmsClientId">
+        <input type="hidden" id="fmsIsNewClient" value="false">
+      </div>
+
+      <!-- SO Number -->
+      <div class="fms-form-group">
+        <label class="fms-form-label">SO Number *</label>
+        <input type="text" id="fmsSoNumber" class="fms-form-input" placeholder="SO-2026-001">
+      </div>
+
+      <!-- Ticket No -->
+      <div class="fms-form-group">
+        <label class="fms-form-label">Ticket No</label>
+        <input type="text" id="fmsTicketNo" class="fms-form-input" placeholder="TKT-001">
+      </div>
+
+      <!-- Quantity auto-calculated from product rows -->
+      <div class="fms-form-group" style="display:none;">
+        <input type="number" id="fmsQuantity" class="fms-form-input" value="0">
+      </div>
+
+      <!-- Order Amount -->
+      <div class="fms-form-group">
+        <label class="fms-form-label">Order Amount (₹)</label>
+        <input type="number" id="fmsOrderAmount" class="fms-form-input" placeholder="50000">
+      </div>
+
+      <!-- Amount Received -->
+      <div class="fms-form-group">
+        <label class="fms-form-label">Amount Received (₹)</label>
+        <input type="number" id="fmsAmountReceived" class="fms-form-input" placeholder="25000">
+      </div>
+
+      <!-- Tentative Date -->
+      <div class="fms-form-group">
+        <label class="fms-form-label">Tentative Date (Pending Amount)</label>
+        <input type="date" id="fmsTentativeDate" class="fms-form-input">
+      </div>
+
+      <!-- Payment Proof -->
+      <div class="fms-form-group" style="grid-column:1/-1;">
+        <label class="fms-form-label">Payment Proof (Upload)</label>
+        <input type="file" id="fmsPaymentProof" class="fms-form-input" accept=".pdf,.jpg,.jpeg,.png" style="padding:0.4rem;">
+        <div id="fmsProofStatus" style="font-size:0.8rem;color:var(--muted);margin-top:4px;"></div>
+      </div>
+
+      <!-- Products + Quantity rows -->
+      <div class="fms-form-group" style="grid-column:1/-1;">
+        <label class="fms-form-label">Products * (Product + Quantity)</label>
+        <div id="fmsProductRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <button type="button" onclick="fmsAddProductRow()" style="margin-top:8px;padding:6px 16px;border-radius:8px;border:1px dashed var(--accent);background:transparent;color:var(--accent);font-size:0.85rem;font-weight:600;cursor:pointer;width:100%;">
+          + Add Another Product
+        </button>
+      </div>
+
+      <!-- Location -->
+      <div class="fms-form-group" style="grid-column:1/-1;">
+        <label class="fms-form-label">Location *</label>
+        <div id="fmsLocationGrid" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+          <!-- Loaded from fms_locations table -->
+        </div>
+        <input type="text" id="fmsLocationManual" class="fms-form-input" placeholder="Enter location name..." style="display:none;margin-top:6px;">
+      </div>
+
+      <!-- Assign to Support -->
+      <div class="fms-form-group" style="grid-column:1/-1;">
+        <label class="fms-form-label">Assign To Support Person *</label>
+        <select id="fmsAssignSupport" class="fms-form-input">
+          <option value="">Select support person...</option>
+        </select>
+      </div>
+
     </div>
+
+    <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+      <button onclick="fmsSubmitNewOrder()" style="flex:1;padding:0.7rem;border-radius:10px;border:none;background:#f0a500;color:#000;font-weight:700;font-size:0.95rem;cursor:pointer;font-family:inherit;">
+        📤 Submit Order
+      </button>
+      <button onclick="fmsCloseNewOrder()" style="padding:0.7rem 1.2rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.92rem;cursor:pointer;">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FMS OVERLAY 2 — SUPPORT ACTION (Step 2)
+══════════════════════════════════════════════════════ -->
+<div class="fms-overlay-backdrop" id="fmsSupportOverlay">
+  <div class="fms-overlay-box">
+    <button onclick="fmsCloseSupportOverlay()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#fb923c;margin-bottom:1rem;">🔧 Assign Order</div>
+    <div id="fmsSupportOrderInfo" style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem;font-size:0.88rem;color:var(--text);line-height:1.8;"></div>
+
+    <!-- Config required toggle -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0.85rem;margin-bottom:1rem;">
+      <div style="font-size:0.85rem;font-weight:700;color:var(--text);margin-bottom:8px;">Configuration Required?</div>
+      <div style="display:flex;gap:10px;">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.88rem;color:var(--text);padding:7px 14px;border-radius:8px;border:1px solid var(--border);flex:1;justify-content:center;" onclick="fmsSupportToggleCfg(true)">
+          <input type="radio" name="fmsCfgRequired" value="yes" checked style="accent-color:#fb923c;"> ⚙️ Yes — Send to Anish
+        </label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.88rem;color:var(--text);padding:7px 14px;border-radius:8px;border:1px solid var(--border);flex:1;justify-content:center;" onclick="fmsSupportToggleCfg(false)">
+          <input type="radio" name="fmsCfgRequired" value="no" style="accent-color:#a855f7;"> 👷 No — Direct to Engineer
+        </label>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="fms-form-group">
+      <label class="fms-form-label" id="fmsSupportNotesLabel">Notes for Anish (Optional)</label>
+      <textarea id="fmsSupportNotes" class="fms-form-input" rows="2" placeholder="Special instructions..."></textarea>
+    </div>
+
+    <!-- Engineer select (hidden by default) -->
+    <div class="fms-form-group" id="fmsSupportEngineerRow" style="display:none;">
+      <label class="fms-form-label">Assign Engineer *</label>
+      <select id="fmsSupportEngineerSelect" class="fms-form-input">
+        <option value="">Select engineer...</option>
+      </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.75rem;">
+        <div>
+          <label class="fms-form-label">Devices to Install</label>
+          <input type="number" id="fmsSupportInstallQty" class="fms-form-input" placeholder="0" min="0">
+        </div>
+        <div>
+          <label class="fms-form-label">Devices Pending</label>
+          <input type="number" id="fmsSupportPendingQty" class="fms-form-input" placeholder="0" min="0">
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+      <button id="fmsSupportSubmitBtn" onclick="fmsSupportSubmit()" style="flex:1;padding:0.65rem;border-radius:10px;border:none;background:#fb923c;color:#000;font-weight:700;cursor:pointer;font-family:inherit;">
+        ➡️ Send to Anish for Configuration
+      </button>
+      <button onclick="fmsCloseSupportOverlay()" style="padding:0.65rem 1rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FMS OVERLAY 3 — ANISH CONFIG (Step 3)
+══════════════════════════════════════════════════════ -->
+<div class="fms-overlay-backdrop" id="fmsConfigOverlay">
+  <div class="fms-overlay-box" style="max-width:480px;">
+    <button onclick="fmsCloseConfigOverlay()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:#4e9af1;margin-bottom:0.75rem;">⚙️ Device Configuration</div>
+
+    <!-- Order info — compact single line -->
+    <div id="fmsConfigOrderInfo" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.9rem;margin-bottom:0.85rem;font-size:0.84rem;color:var(--text);line-height:1.7;"></div>
+
+    <!-- Progress bar -->
+    <div style="margin-bottom:0.85rem;">
+      <div style="display:flex;justify-content:space-between;font-size:0.76rem;color:var(--muted);margin-bottom:3px;">
+        <span>Configuration Progress</span>
+        <span id="fmsCfgProgressText" style="font-weight:600;">0 / 0</span>
+      </div>
+      <div style="background:var(--bg);border-radius:20px;height:6px;overflow:hidden;border:1px solid var(--border);">
+        <div id="fmsCfgProgressBar" style="height:100%;background:#4e9af1;border-radius:20px;width:0%;transition:width 0.3s;"></div>
+      </div>
+    </div>
+
+    <!-- Configured + Not Configured side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+      <div>
+        <label class="fms-form-label">Configured <span style="color:var(--muted);font-weight:400;">(max: <span id="fmsCfgMax">0</span>)</span></label>
+        <input type="number" id="fmsConfiguredQty" class="fms-form-input" placeholder="0" min="0" oninput="fmsCfgAutoCalc()">
+      </div>
+      <div>
+        <label class="fms-form-label">Not Configured <span style="color:#4e9af1;font-size:0.72rem;">auto</span></label>
+        <input type="number" id="fmsNotConfiguredQty" class="fms-form-input" readonly style="background:var(--surface2);color:var(--muted);cursor:not-allowed;">
+      </div>
+    </div>
+
+    <!-- Notes + Skip reason side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.85rem;">
+      <div>
+        <label class="fms-form-label">Notes</label>
+        <textarea id="fmsConfigNotes" class="fms-form-input" rows="2" placeholder="Remarks..." style="resize:none;"></textarea>
+      </div>
+      <div>
+        <label class="fms-form-label" style="color:#fb923c;">⏭️ Skip Reason <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <textarea id="fmsSkipReason" class="fms-form-input" rows="2" placeholder="e.g. Faulty devices, Waiting for SIM..." style="resize:none;"></textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;">
+      <button onclick="fmsSubmitConfig()" style="flex:1;padding:0.6rem;border-radius:10px;border:none;background:#4e9af1;color:#000;font-weight:700;cursor:pointer;font-family:inherit;font-size:0.9rem;">
+        ✅ Submit & Send to Support
+      </button>
+      <button onclick="fmsCloseConfigOverlay()" style="padding:0.6rem 1rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FMS OVERLAY 4 — ENGINEER ASSIGN (Step 4: Support assigns engineer)
+══════════════════════════════════════════════════════ -->
+<div class="fms-overlay-backdrop" id="fmsEngineerOverlay">
+  <div class="fms-overlay-box">
+    <button onclick="fmsCloseEngineerOverlay()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#a855f7;margin-bottom:1rem;">👷 Assign Engineer</div>
+    <div id="fmsEngineerOrderInfo" style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem;font-size:0.88rem;color:var(--text);line-height:1.8;"></div>
+
+    <div class="fms-form-group">
+      <label class="fms-form-label">Assign Engineer *</label>
+      <select id="fmsEngineerSelect" class="fms-form-input">
+        <option value="">Select engineer...</option>
+      </select>
+    </div>
+
+    <div class="fms-form-group">
+      <label class="fms-form-label">Devices Installed <span style="color:var(--muted);font-weight:400;">(max: <span id="fmsEngMax">0</span>)</span></label>
+      <input type="number" id="fmsDevicesInstalled" class="fms-form-input" placeholder="0" min="0" oninput="fmsEngAutoCalc()">
+    </div>
+    <div class="fms-form-group">
+      <label class="fms-form-label">Devices Pending <span style="color:#a855f7;font-size:0.78rem;">(auto calculated)</span></label>
+      <input type="number" id="fmsDevicesPending" class="fms-form-input" placeholder="0" readonly style="background:var(--surface2);color:var(--muted);cursor:not-allowed;">
+    </div>
+
+    <div class="fms-form-group">
+      <label class="fms-form-label">Installation Notes</label>
+      <textarea id="fmsInstallNotes" class="fms-form-input" rows="2" placeholder="Any remarks..."></textarea>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;">
+      <button onclick="fmsSubmitEngineerAssign()" style="flex:1;padding:0.65rem;border-radius:10px;border:none;background:#a855f7;color:#fff;font-weight:700;cursor:pointer;font-family:inherit;">
+        ✅ Assign & Update
+      </button>
+      <button onclick="fmsCloseEngineerOverlay()" style="padding:0.65rem 1rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FMS OVERLAY 5 — INSTALLATION UPDATE (Step 5)
+══════════════════════════════════════════════════════ -->
+<div class="fms-overlay-backdrop" id="fmsInstallUpdateOverlay">
+  <div class="fms-overlay-box">
+    <button onclick="fmsCloseInstallUpdateOverlay()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#06b6d4;margin-bottom:1rem;">🔩 Update Installation</div>
+    <div id="fmsInstallUpdateInfo" style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem;font-size:0.88rem;color:var(--text);line-height:1.8;"></div>
+
+    <!-- Progress bar -->
+    <div style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--muted);margin-bottom:4px;">
+        <span>Installation Progress</span>
+        <span id="fmsInstProgressText">0 / 0</span>
+      </div>
+      <div style="background:var(--bg);border-radius:20px;height:8px;overflow:hidden;border:1px solid var(--border);">
+        <div id="fmsInstProgressBar" style="height:100%;background:#06b6d4;border-radius:20px;width:0%;transition:width 0.3s;"></div>
+      </div>
+    </div>
+
+    <div class="fms-form-group">
+      <label class="fms-form-label">Devices Installed <span style="color:var(--muted);font-weight:400;">(max: <span id="fmsInstMax">0</span>)</span></label>
+      <input type="number" id="fmsUpdateInstalled" class="fms-form-input" placeholder="0" min="0" oninput="fmsInstAutoCalc()">
+    </div>
+
+    <div class="fms-form-group">
+      <label class="fms-form-label">Devices Pending <span style="color:#06b6d4;font-size:0.78rem;">(auto calculated)</span></label>
+      <input type="number" id="fmsUpdatePending" class="fms-form-input" placeholder="0" readonly style="background:var(--surface2);color:var(--muted);cursor:not-allowed;">
+    </div>
+
+    <div class="fms-form-group">
+      <label class="fms-form-label">Notes</label>
+      <textarea id="fmsUpdateNotes" class="fms-form-input" rows="2" placeholder="Update remarks..."></textarea>
+    </div>
+
+    <div id="fmsCompleteWarning" style="display:none;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.3);border-radius:10px;padding:0.75rem;margin-bottom:0.75rem;font-size:0.88rem;color:#00d4aa;">
+      🎉 All devices installed — this order will be marked <strong>Completed</strong>!
+    </div>
+
+    <div style="display:flex;gap:0.75rem;">
+      <button onclick="fmsSubmitInstallUpdate()" style="flex:1;padding:0.65rem;border-radius:10px;border:none;background:#06b6d4;color:#000;font-weight:700;cursor:pointer;font-family:inherit;">
+        💾 Update Installation
+      </button>
+      <button onclick="fmsCloseInstallUpdateOverlay()" style="padding:0.65rem 1rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FMS OVERLAY 6 — ORDER TIMELINE (Read-only detail view)
+══════════════════════════════════════════════════════ -->
+<div class="fms-overlay-backdrop" id="fmsTimelineOverlay">
+  <div class="fms-overlay-box wide">
+    <button onclick="fmsCloseTimeline()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+
+    <!-- Title + Status -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <div id="fmsTimelineTitle" style="font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;color:var(--text);"></div>
+      <div id="fmsTimelineActions" style="display:flex;gap:6px;"></div>
+    </div>
+
+    <!-- Horizontal Pipeline with TAT -->
+    <div id="fmsTimelinePipeline" style="margin-bottom:1.2rem;"></div>
+
+    <!-- Order Data -->
+    <div id="fmsTimelineInfo" style="margin-bottom:0;"></div>
   </div>
 </div>
 
@@ -4729,6 +5024,60 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   <div class="db-content">
     <div class="section-title">Marketing Resources</div>
     <div id="mkt-main-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:2rem;">
+
+      <!-- Marketing Brochure (Supabase) -->
+      <div data-cn-name="Marketing Brochure" style="position:relative;">
+      <div class="home-card" style="--card-top:#f0a500;cursor:pointer;"
+           onclick="openMarketingOverlay('Marketing Brochure')"
+           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.3)';this.style.borderColor='#f0a500'"
+           onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
+        <div class="hc-icon" style="background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.3);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <div class="hc-name">Marketing Brochure</div>
+        <div class="hc-desc">Product brochures, flyers and promotional materials for Aditi Tracking — ready to share with clients and prospects.</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+          <span class="hc-status live" id="mkt-brochure-count" style="background:rgba(240,165,0,0.15);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">📂 Loading…</span>
+          <span style="font-size:0.78rem;font-weight:600;color:#f0a500;">View →</span>
+        </div>
+      </div>
+      </div>
+
+      <!-- Solution Videos (Supabase) -->
+      <div data-cn-name="Solution Videos" style="position:relative;">
+      <div class="home-card" style="--card-top:#a855f7;cursor:pointer;"
+           onclick="openMarketingOverlay('Solution Videos')"
+           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.3)';this.style.borderColor='#a855f7'"
+           onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
+        <div class="hc-icon" style="background:rgba(168,85,247,0.12);border-color:rgba(168,85,247,0.3);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        </div>
+        <div class="hc-name">Solution Videos</div>
+        <div class="hc-desc">Solution demo videos for Aditi Tracking — explaining product features and benefits for client presentations.</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+          <span class="hc-status live" id="mkt-solution-count" style="background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.3);">📂 Loading…</span>
+          <span style="font-size:0.78rem;font-weight:600;color:#a855f7;">View →</span>
+        </div>
+      </div>
+      </div>
+
+      <!-- Short Explainer (Supabase) -->
+      <div data-cn-name="Short Explainer" style="position:relative;">
+      <div class="home-card" style="--card-top:#00d4aa;cursor:pointer;"
+           onclick="openMarketingOverlay('Short Explainer')"
+           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.3)';this.style.borderColor='#00d4aa'"
+           onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
+        <div class="hc-icon" style="background:rgba(0,212,170,0.12);border-color:rgba(0,212,170,0.3);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="#00d4aa" stroke="none"/></svg>
+        </div>
+        <div class="hc-name">Short Explainer</div>
+        <div class="hc-desc">Short explainer videos for Aditi Tracking — quick, crisp product walkthroughs for client pitches and social outreach.</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+          <span class="hc-status live" id="mkt-explainer-count" style="background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.3);">📂 Loading…</span>
+          <span style="font-size:0.78rem;font-weight:600;color:#00d4aa;">View →</span>
+        </div>
+      </div>
+      </div>
 
       <!-- Dynamic cards yahan inject honge -->
 
@@ -6088,7 +6437,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 // ║  6. SUPABASE SETUP   (~line 6560) — URL, ANON key, SB_HDRS helpers         ║
 // ║  7. LEADS DASHBOARD  (~line 6600) — loadLeads, charts, filters, table       ║
 // ║  8. COLLECTION DASH  (~line 6780) — loadColl, charts, filters               ║
-// ║  9. FMS O2D          (~line 7087) — fmsLoadData, filters, table             ║
 // ║  10. TASKS CHECKLIST (~line 7477) — loadTasks, markTaskDone, upload         ║
 // ║  11. CONTENT NODES   (~line 11470) — CN system, file overlays               ║
 // ║  12. DEPT PANELS     (~line 11830) — HR, Sales, After Sales etc.            ║
@@ -6131,7 +6479,7 @@ function prefetchAllData(){
   if(_isOwner){
     if(!_leadsCache) fetch(L_URL).then(r=>r.json()).then(d=>{_leadsCache=d;}).catch(()=>{});
     if(!_collCache)  fetch(C_URL).then(r=>r.json()).then(d=>{_collCache=d;}).catch(()=>{});
-    if(!_fmsCache)   fetch(FMS_API).then(r=>r.text()).then(d=>{_fmsCache=d;}).catch(()=>{});
+    // FMS now uses Supabase directly — no prefetch needed
   }
 }
 function toggleUserPopup(e){
@@ -7058,402 +7406,1600 @@ function cGoPage(p){const tp=Math.ceil((Cf.length||1)/CPP);if(p<1||p>tp)return;C
 // FMS Installation Tracker — Dashboard Logic
 // For PC = Yes → DELAYED | For PC = No → REMAINING
 // ═══════════════════════════════════════════════════
-const FMS_API = "https://script.google.com/macros/s/AKfycbxpa-GJ2UNqVCBTVZeyhvfa9bUaCoqPYAfJS10Zu-9ljEEJgBEiwlER8S4bNzAm_nbo-g/exec";
-let fmsAllData=[], fmsFiltered=[], fmsCharts={}, fmsLoaded=false;
-let fmsMainPage=1, fmsCPPage=1, fmsCurrentFilter='all';
-let fmsSortKey=null, fmsSortDir=1;
-let fmsDateFrom=null, fmsDateTo=null;
-const FMS_PER_PAGE=15, FMS_CP_PER_PAGE=8;
-const FMS_COLS=['#f0a500','#00d4ff','#00d4aa','#a855f7','#ff5c7c','#06b6d4','#f97316'];
+// ╔══════════════════════════════════════════════════════════════════════════
+// ║  [NEW FMS MODULE JS] — Supabase-backed Installation Tracker
+// ║  Tables: fms_orders, fms_assignments, fms_configuration,
+// ║          fms_installation, fms_products, fms_locations
+// ╚══════════════════════════════════════════════════════════════════════════
 
-// For PC = Yes → Delayed, For PC = No → Remaining (time bacha hua)
-const fmsIsDelayed   = r => (r.forPC||'').toLowerCase()==='yes';
-const fmsIsRemaining = r => (r.forPC||'').toLowerCase()!=='yes';
+// ── State ──────────────────────────────────────────────────────────────────
+let _fmsOrders = [], _fmsFiltered = [], _fmsProducts = [], _fmsLocations = [];
+let _fmsCurrentOrder = null;
+let _fmsPage = 1;
+const FMS_PER_PAGE = 20;
+let _fmsLoaded = false;
+let _fmsSelectedLocation = null; // {id, name} or {id:'other', name:'Other'}
+let _fmsClientSearchTimeout = null;
+let _fmsEmpMap = {}; // email → name cache
 
-const _origSwitchDB = switchDB;
+// ── Anish email (hardcoded — only one config person) ──────────────────────
+const FMS_ANISH_EMAIL = 'support_1@adititracking.com';
+
+// ── Hook into switchDB ─────────────────────────────────────────────────────
+const _fmsOrigSwitchDB = typeof switchDB === 'function' ? switchDB : null;
 switchDB = function(id){
-  _origSwitchDB(id);
-  if(id==='fms'&&!fmsLoaded){fmsLoaded=true;fmsLoadData();}
+  if(_fmsOrigSwitchDB) _fmsOrigSwitchDB(id);
+  if(id === 'fms' && !_fmsLoaded){ _fmsLoaded = true; fmsInit(); }
 };
 
-async function fmsLoadData(){
-  document.getElementById('fMainTableBody').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;padding:3rem;gap:1rem;color:var(--muted);"><div class="loader-bar"><div class="loader-fill"></div></div><p style="font-size:0.89rem;">Loading...</p></div>`;
+// ── Init ───────────────────────────────────────────────────────────────────
+async function fmsInit(){
+  await Promise.all([fmsLoadProducts(), fmsLoadLocations(), fmsLoadEmpMap()]);
+  fmsSetupPermissions();
+  fmsLoadOrders();
+}
+
+async function fmsLoadEmpMap(){
   try{
-    const res=await fetch(FMS_API);
-    const text=await res.text();
-    let json;try{json=JSON.parse(text);}catch(e){throw new Error('Invalid JSON from API');}
-    let raw=[];
-    if(Array.isArray(json)) raw=json;
-    else if(json.data&&Array.isArray(json.data)) raw=json.data;
-    else if(json.records&&Array.isArray(json.records)) raw=json.records;
-    else if(json.rows&&Array.isArray(json.rows)) raw=json.rows;
-    else if(json.h&&json.r){raw=json.r.map(row=>{const o={};json.h.forEach((k,i)=>{o[k]=row[i]??'';});return o;});}
-    if(!raw.length){
-      document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--muted);"><div style="font-size:2rem;margin-bottom:0.5rem;">📭</div>No data found in sheet<br><small>Check [FMS] logs in Browser Console (F12)</small></div>`;
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Email_Id`,
+      { headers: SB_HDRS() }
+    );
+    const rows = await res.json();
+    rows.forEach(r => {
+      if(r.Email_Id) _fmsEmpMap[(r.Email_Id||'').toLowerCase().trim()] = r.Employee_name || r.Email_Id;
+    });
+  } catch(e){ console.error('FMS emp map error:', e); }
+}
+
+// Helper: email → name
+function fmsEmpName(email){
+  if(!email) return '—';
+  return _fmsEmpMap[(email||'').toLowerCase().trim()] || email;
+}
+
+function fmsSetupPermissions(){
+  const p = PERMISSIONS || {};
+  // can_view_fms gates the panel (via nav permission system)
+  const canCreate = p.fms_create === 'true' || CURRENT_USER?.rawRole === 'mis' || CURRENT_USER?.rawRole === 'managing director';
+  const btn = document.getElementById('fmsNewOrderBtn');
+  if(btn) btn.style.display = canCreate ? 'inline-flex' : 'none';
+}
+
+// ── Load Products ──────────────────────────────────────────────────────────
+async function fmsLoadProducts(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fms_products?is_active=eq.true&order=product_name`, { headers: SB_HDRS() });
+    _fmsProducts = await res.json();
+  } catch(e){ console.error('FMS products load error:', e); }
+}
+
+// ── Load Locations ─────────────────────────────────────────────────────────
+async function fmsLoadLocations(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fms_locations?is_active=eq.true&order=location_name`, { headers: SB_HDRS() });
+    _fmsLocations = await res.json();
+    // Populate location filter dropdown
+    const sel = document.getElementById('fmsLocationFilter');
+    if(sel){
+      _fmsLocations.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.location_name; opt.textContent = l.location_name;
+        sel.appendChild(opt);
+      });
+    }
+  } catch(e){ console.error('FMS locations load error:', e); }
+}
+
+// ── Load Orders ────────────────────────────────────────────────────────────
+async function fmsLoadOrders(){
+  const tbody = document.getElementById('fmsTableBody');
+  if(tbody) tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2.5rem;color:var(--muted);"><div class="loader-bar"><div class="loader-fill"></div></div><p style="margin-top:0.8rem;font-size:0.89rem;">Loading orders...</p></td></tr>`;
+
+  try{
+    const p = PERMISSIONS || {};
+    const isViewAll = p.fms_view_all === 'true' || CURRENT_USER?.rawRole === 'mis' || CURRENT_USER?.rawRole === 'managing director';
+    const myEmail = CURRENT_USER?.email || '';
+
+    let url = `${SUPABASE_URL}/rest/v1/fms_orders?order=created_at.desc`;
+    if(!isViewAll){
+      const isAnish = myEmail === FMS_ANISH_EMAIL;
+      if(isAnish){
+        url += `&or=(created_by.eq.${encodeURIComponent(myEmail)},assigned_to_support.eq.${encodeURIComponent(myEmail)},status.eq.pending_config,status.eq.configuring,status.eq.pending_engineer,status.eq.installing,status.eq.completed)`;
+      } else {
+        // Regular employee — sirf apne banaye + assigned orders
+        url += `&or=(created_by.eq.${encodeURIComponent(myEmail)},assigned_to_support.eq.${encodeURIComponent(myEmail)})`;
+      }
+    }
+
+    const res = await fetch(url, { headers: SB_HDRS() });
+    _fmsOrders = await res.json();
+
+    // Populate Created By dropdown — MIS/Owner only
+    const createdByEl = document.getElementById('fmsCreatedByFilter');
+    if(createdByEl){
+      if(isViewAll){
+        createdByEl.style.display = '';
+        const uniqueCreators = [...new Set(_fmsOrders.map(o => o.created_by).filter(Boolean))];
+        const currentVal = createdByEl.value;
+        createdByEl.innerHTML = '<option value="">All Created By</option>';
+        uniqueCreators.sort().forEach(email => {
+          const opt = document.createElement('option');
+          opt.value = email;
+          opt.textContent = _fmsEmpMap[email.toLowerCase()] || email;
+          createdByEl.appendChild(opt);
+        });
+        createdByEl.value = currentVal;
+      } else {
+        createdByEl.style.display = 'none';
+      }
+    }
+
+    fmsUpdateKPIs();
+    fmsApplyFilters();
+  } catch(e){
+    console.error('FMS load error:', e);
+    if(tbody) tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--hot);">❌ Error loading orders. <button onclick="fmsLoadOrders()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">Retry</button></td></tr>`;
+  }
+}
+
+// ── KPI Update ─────────────────────────────────────────────────────────────
+function fmsUpdateKPIs(){
+  const counts = { total:0, pending_support:0, pending_config:0, pending_engineer:0, installing:0, completed:0 };
+  let totalPendingAmt = 0;
+  let pendingAmtOrders = 0;
+
+  _fmsOrders.forEach(o => {
+    counts.total++;
+    if(counts[o.status] !== undefined) counts[o.status]++;
+
+    // Pending payment calc
+    const pending = (parseFloat(o.order_amount)||0) - (parseFloat(o.amount_received)||0);
+    if(pending > 0){
+      totalPendingAmt += pending;
+      pendingAmtOrders++;
+    }
+  });
+
+  document.getElementById('fmsKpiTotal').textContent           = counts.total;
+  document.getElementById('fmsKpiPendingSupport').textContent  = counts.pending_support;
+  document.getElementById('fmsKpiPendingConfig').textContent   = counts.pending_config;
+  document.getElementById('fmsKpiPendingEngineer').textContent = counts.pending_engineer;
+  document.getElementById('fmsKpiInstalling').textContent      = counts.installing;
+  document.getElementById('fmsKpiCompleted').textContent       = counts.completed;
+
+  // Pending Payment KPI — format as ₹ with K/L suffix
+  const fmt = (n) => {
+    if(n >= 10000000) return '₹' + (n/10000000).toFixed(1) + 'Cr';
+    if(n >= 100000)   return '₹' + (n/100000).toFixed(1) + 'L';
+    if(n >= 1000)     return '₹' + (n/1000).toFixed(1) + 'K';
+    return '₹' + n.toLocaleString('en-IN');
+  };
+  document.getElementById('fmsKpiPendingPayment').textContent      = fmt(totalPendingAmt);
+  document.getElementById('fmsKpiPendingPaymentCount').textContent = `${pendingAmtOrders} order${pendingAmtOrders!==1?'s':''}`;
+
+  // Total Amount KPI
+  const totalAmt = _fmsOrders.reduce((s,o) => s+(parseFloat(o.order_amount)||0), 0);
+  document.getElementById('fmsKpiTotalAmount').textContent = fmt(totalAmt);
+}
+
+// ── Filter ─────────────────────────────────────────────────────────────────
+function fmsFilterStatus(status){
+  document.getElementById('fmsStatusFilter').value = status;
+  fmsApplyFilters();
+}
+
+function fmsApplyFilters(){
+  const search    = (document.getElementById('fmsSearch')?.value || '').toLowerCase();
+  const createdBy = document.getElementById('fmsCreatedByFilter')?.value || '';
+  const location  = document.getElementById('fmsLocationFilter')?.value || '';
+  const dateFrom  = document.getElementById('fmsDateFrom')?.value || '';
+  const dateTo    = document.getElementById('fmsDateTo')?.value || '';
+
+  _fmsFiltered = _fmsOrders.filter(o => {
+    const clientName = (o.client_name || '').toLowerCase();
+    const so         = (o.so_number  || '').toLowerCase();
+    const ticket     = (o.ticket_no  || '').toLowerCase();
+    const loc        = o.location_id ? (_fmsLocations.find(l=>l.id===o.location_id)?.location_name||'') : (o.location_manual||'');
+
+    if(search && !clientName.includes(search) && !so.includes(search) && !ticket.includes(search)) return false;
+    if(createdBy && (o.created_by||'').toLowerCase() !== createdBy.toLowerCase()) return false;
+    if(location && loc !== location) return false;
+    if(dateFrom && o.created_at < dateFrom) return false;
+    if(dateTo && o.created_at.slice(0,10) > dateTo) return false;
+    if(_fmsPendingPaymentFilter){
+      const pending = (parseFloat(o.order_amount)||0) - (parseFloat(o.amount_received)||0);
+      if(pending <= 0) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('fmsTableCount').textContent = `${_fmsFiltered.length} order${_fmsFiltered.length!==1?'s':''}`;
+  _fmsPage = 1;
+  fmsRenderTable();
+}
+
+function fmsResetFilters(){
+  ['fmsSearch','fmsCreatedByFilter','fmsLocationFilter','fmsDateFrom','fmsDateTo'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  _fmsPendingPaymentFilter = false;
+  fmsApplyFilters();
+}
+
+// ── Pending Payment filter toggle ─────────────────────────────────────────
+let _fmsPendingPaymentFilter = false;
+function fmsFilterPendingPayment(){
+  _fmsPendingPaymentFilter = !_fmsPendingPaymentFilter;
+  // Highlight card
+  const card = document.querySelector('[onclick="fmsFilterPendingPayment()"]');
+  if(card) card.style.outline = _fmsPendingPaymentFilter ? '2px solid #ff5c7c' : '';
+  fmsApplyFilters();
+}
+
+// ── FMS Pipeline Row Renderer ────────────────────────────────────────────
+// Reference: large circles with icon, arrow connectors, Done/Next/Pending badges
+
+const FMS_STEPS = [
+  { key:'order',     icon:'🗒️',  label:'Order Created',  color:'#6c63ff', step:1 },
+  { key:'support',   icon:'🔧',  label:'Support Assign', color:'#7c3aed', step:2 },
+  { key:'config',    icon:'💾',  label:'Configuration',  color:'#2563eb', step:3 },
+  { key:'engineer',  icon:'🔩',  label:'Installation',   color:'#7c3aed', step:4 },
+  { key:'done',      icon:'🏁',  label:'Completed',      color:'#6b7280', step:5 },
+];
+
+function fmsStepStateMap(status){
+  // Returns array of 'done'|'active'|'pending' for each step
+  const map = {
+    'pending_support':  ['active','pending','pending','pending','pending'],
+    'pending_config':   ['done','active','pending','pending','pending'],
+    'configuring':      ['done','done','active','pending','pending'],
+    'pending_engineer': ['done','done','done','active','pending'],
+    'installing':       ['done','done','done','active','pending'],
+    'completed':        ['done','done','done','done','done'],
+  };
+  return map[status] || ['active','pending','pending','pending','pending'];
+}
+
+function fmsStepBadge(state){
+  if(state==='done')   return `<span style="display:inline-block;padding:0px 6px;border-radius:20px;font-size:0.55rem;font-weight:700;background:#dcfce7;color:#16a34a;">Done</span>`;
+  if(state==='active') return `<span style="display:inline-block;padding:0px 6px;border-radius:20px;font-size:0.55rem;font-weight:700;background:#fef9c3;color:#ca8a04;">Next</span>`;
+  return `<span style="display:inline-block;padding:0px 6px;border-radius:20px;font-size:0.55rem;font-weight:700;background:rgba(255,255,255,0.05);color:var(--muted);">Pend</span>`;
+}
+
+function fmsBuildPipelineRow(o, states){
+  // Layout: circle → line → circle → line → ...
+  // Line starts at RIGHT edge of circle, ends at LEFT edge of next circle
+  // Using flex row: circle div (fixed width) + line div (flex:1) alternating
+
+  const n = FMS_STEPS.length;
+  let rowHtml = '';
+
+  FMS_STEPS.forEach((step, i) => {
+    const state    = states[i];
+    const isDone   = state==='done';
+    const isActive = state==='active';
+
+    // Circle styling
+    let circleBg, circleBorder, circleOp, checkmark, glow;
+    if(isDone){
+      circleBg     = `linear-gradient(135deg,${step.color}99,${step.color}dd)`;
+      circleBorder = step.color;
+      circleOp     = '1';
+      glow         = '';
+      checkmark    = `<div style="position:absolute;top:-2px;right:-2px;width:13px;height:13px;border-radius:50%;background:#22c55e;border:1.5px solid var(--surface);display:flex;align-items:center;justify-content:center;font-size:0.45rem;color:#fff;font-weight:900;">✓</div>`;
+    } else if(isActive){
+      circleBg     = 'var(--surface)';
+      circleBorder = step.color;
+      circleOp     = '1';
+      glow         = `box-shadow:0 0 0 3px ${step.color}22;animation:fmsPulse 2s infinite;`;
+      checkmark    = '';
+    } else {
+      circleBg     = 'var(--surface2)';
+      circleBorder = 'rgba(130,130,150,0.3)';
+      circleOp     = '0.5';
+      glow         = '';
+      checkmark    = '';
+    }
+
+    // Step circle + badge (fixed width, no flex)
+    rowHtml += `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;">
+      <div style="position:relative;width:30px;height:30px;border-radius:50%;background:${circleBg};border:2px solid ${circleBorder};display:flex;align-items:center;justify-content:center;font-size:0.8rem;opacity:${circleOp};${glow}">
+        ${step.icon}${checkmark}
+      </div>
+      ${fmsStepBadge(state)}
+    </div>`;
+
+    // Line from RIGHT edge of this circle to LEFT edge of next circle
+    if(i < n - 1){
+      const lineColor = isDone ? step.color : 'rgba(140,140,160,0.18)';
+      const lineOp    = isDone ? '0.92' : '1';
+      rowHtml += `<div style="flex:1;display:flex;flex-direction:column;">
+        <!-- Spacer = full circle height so line starts from bottom of circle -->
+        <div style="height:30px;"></div>
+        <div style="width:100%;height:2.5px;background:${lineColor};opacity:${lineOp};border-radius:2px;margin-top:-1px;"></div>
+      </div>`;
+    }
+  });
+
+  return [`<td colspan="11" style="padding:0.28rem 0.75rem;vertical-align:middle;">
+    <div style="display:flex;align-items:flex-start;width:100%;">${rowHtml}</div>
+  </td>`];
+}
+
+
+// ── Render Table ───────────────────────────────────────────────────────────
+function fmsRenderTable(){
+  const tbody = document.getElementById('fmsTableBody');
+  if(!tbody) return;
+
+  const total = _fmsFiltered.length;
+  const totalPages = Math.ceil(total / FMS_PER_PAGE);
+  const start = (_fmsPage - 1) * FMS_PER_PAGE;
+  const page  = _fmsFiltered.slice(start, start + FMS_PER_PAGE);
+
+  if(!page.length){
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:2.5rem;color:var(--muted);font-size:0.9rem;">📭 No orders found</td></tr>`;
+    document.getElementById('fmsPagination').style.display = 'none';
+    return;
+  }
+
+  const myEmail    = (CURRENT_USER?.email||'').toLowerCase();
+  const p          = PERMISSIONS||{};
+  const isOverride = p.fms_override==='true'||CURRENT_USER?.rawRole==='mis'||CURRENT_USER?.rawRole==='managing director';
+  const isSupport  = p.fms_support==='true';
+  const isConfig   = p.fms_config==='true'||myEmail===FMS_ANISH_EMAIL;
+
+  tbody.innerHTML = page.map(o => {
+    const locName  = o.location_type==='outside'?(o.location_manual||'Outside'):(_fmsLocations.find(l=>l.id===o.location_id)?.location_name||'—');
+    const created  = o.created_at ? new Date(o.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const states   = fmsStepStateMap(o.status);
+    const pipeline = fmsBuildPipelineRow(o, states); // returns array of TDs
+
+    // Action button
+    let actionBtn = `<button onclick="fmsOpenTimeline(${o.id})" class="fms-action-btn info" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">👁 View</button>`;
+    if(o.status==='pending_support'&&(isSupport&&myEmail===(o.assigned_to_support||'').toLowerCase()||isOverride)){
+      actionBtn=`<button onclick="fmsOpenSupportOverlay(${o.id})" class="fms-action-btn primary" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">➡️ Assign</button>`;
+    } else if(o.status==='pending_config'&&(isConfig&&myEmail===FMS_ANISH_EMAIL||isOverride)){
+      actionBtn=`<button onclick="fmsOpenConfigOverlay(${o.id})" class="fms-action-btn" style="background:#2563eb;color:#fff;font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">💾 Config</button>`;
+    } else if(o.status==='pending_engineer'&&(isSupport&&myEmail===(o.assigned_to_support||'').toLowerCase()||isOverride)){
+      actionBtn=`<button onclick="fmsOpenEngineerOverlay(${o.id})" class="fms-action-btn purple" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">🔩 Assign</button>`;
+    } else if(o.status==='installing'&&(isSupport&&myEmail===(o.assigned_to_support||'').toLowerCase()||isOverride)){
+      actionBtn=`<button onclick="fmsOpenInstallUpdate(${o.id})" class="fms-action-btn success" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">🔧 Update</button>`;
+    }
+
+    // Edit + Delete for MIS/Owner
+    const editDeleteBtns = isOverride ? `
+      <div style="display:flex;gap:4px;margin-top:4px;">
+        <button onclick="event.stopPropagation();fmsEditOrder(${o.id})" style="flex:1;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.7rem;cursor:pointer;font-family:inherit;" title="Edit Order">✏️</button>
+        <button onclick="event.stopPropagation();fmsDeleteOrder(${o.id})" style="flex:1;padding:2px 6px;border-radius:6px;border:1px solid rgba(255,92,124,0.3);background:transparent;color:#ff5c7c;font-size:0.7rem;cursor:pointer;font-family:inherit;" title="Delete Order">🗑️</button>
+      </div>` : '';
+
+    return `<tr onclick="fmsOpenTimeline(${o.id})" style="cursor:pointer;">
+      <td style="padding:0.28rem 0.75rem;border-left:3px solid transparent;vertical-align:middle;">
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span style="font-weight:700;color:var(--accent);font-size:0.82rem;">${o.so_number||'—'}</span>
+          ${o.payment_proof_url ? `<a href="${o.payment_proof_url}" target="_blank" onclick="event.stopPropagation()" title="View Payment Proof" style="color:#4e9af1;font-size:0.85rem;line-height:1;text-decoration:none;">📎</a>` : ''}
+        </div>
+        <div style="font-size:0.65rem;color:var(--muted);">${created} · <strong>${o.quantity||0}</strong> units</div>
+      </td>
+      <td style="padding:0.28rem 0.75rem;vertical-align:middle;">
+        <div style="font-weight:600;font-size:0.82rem;color:var(--text);max-width:115px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.client_name||'—'}</div>
+        <div style="font-size:0.65rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:115px;">${locName} · ${fmsEmpName(o.assigned_to_support)}</div>
+      </td>
+      ${pipeline.join('')}
+      <td style="padding:0.28rem 0.5rem;text-align:center;vertical-align:middle;border-left:1px solid var(--border2);" onclick="event.stopPropagation()">
+        ${actionBtn}
+        ${editDeleteBtns}
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Pagination
+  const pag = document.getElementById('fmsPagination');
+  const pageInfo = document.getElementById('fmsPageInfo');
+  const pageBtns = document.getElementById('fmsPageBtns');
+  pag.style.display = totalPages > 1 ? 'flex' : 'none';
+  if(pageInfo) pageInfo.textContent = `Showing ${start+1}–${Math.min(start+FMS_PER_PAGE,total)} of ${total}`;
+  if(pageBtns){
+    pageBtns.innerHTML='';
+    for(let i=1;i<=totalPages;i++){
+      const btn=document.createElement('button');
+      btn.textContent=i;
+      btn.style.cssText=`padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:${i===_fmsPage?'var(--accent)':'transparent'};color:${i===_fmsPage?'#000':'var(--muted)'};cursor:pointer;font-size:0.82rem;`;
+      btn.onclick=()=>{_fmsPage=i;fmsRenderTable();};
+      pageBtns.appendChild(btn);
+    }
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function fmsStatusLabel(status){
+  const map = {
+    pending_support:  ['🟡','Awaiting Support','pending-support'],
+    pending_config:   ['🟠','Awaiting Config','pending-config'],
+    configuring:      ['🔵','Configuring','configuring'],
+    pending_engineer: ['🟣','Awaiting Engineer','pending-engineer'],
+    installing:       ['🔵','Installing','installing'],
+    completed:        ['🟢','Completed','completed'],
+  };
+  const [icon, label, cls] = map[status] || ['⚪','Unknown',''];
+  return `<span class="fms-status ${cls}">${icon} ${label}</span>`;
+}
+
+function fmsProductNames(ids, itemsJson){
+  // Try product_items JSON first (has name + qty)
+  if(itemsJson){
+    try{
+      const items = typeof itemsJson === 'string' ? JSON.parse(itemsJson) : itemsJson;
+      if(items && items.length){
+        return items.map(i => `${i.product_name||_fmsProducts.find(p=>p.id===i.product_id)?.product_name||i.product_id} ×${i.quantity}`).join(', ');
+      }
+    } catch(e){}
+  }
+  // Fallback to ids array
+  if(!ids || !ids.length) return '—';
+  return ids.map(id => _fmsProducts.find(p=>p.id===id)?.product_name || id).join(', ');
+}
+
+function fmsTatStr(from, to){
+  if(!from || !to) return '';
+  const diff = new Date(to) - new Date(from);
+  const hrs = Math.floor(diff/3600000);
+  const mins = Math.floor((diff%3600000)/60000);
+  if(hrs >= 24) return `${Math.floor(hrs/24)}d ${hrs%24}h`;
+  if(hrs > 0) return `${hrs}h ${mins}m`;
+  return `${mins}m`;
+}
+
+// ── NEW ORDER FORM ─────────────────────────────────────────────────────────
+
+// ── Product Row helpers ────────────────────────────────────────────────────
+function fmsAddProductRow(){
+  const container = document.getElementById('fmsProductRows');
+  if(!container) return;
+  const rowIdx = container.children.length;
+  const row = document.createElement('div');
+  row.className = 'fms-product-row';
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;';
+  row.innerHTML = `
+    <select class="fms-form-input fms-product-select" style="flex:2;">
+      <option value="">Select product...</option>
+      ${_fmsProducts.map(p => `<option value="${p.id}">${p.product_name}</option>`).join('')}
+    </select>
+    <input type="number" class="fms-form-input fms-product-qty" placeholder="Qty" min="1" style="flex:0.7;max-width:90px;" value="1">
+    <button type="button" onclick="this.closest('.fms-product-row').remove()" style="padding:0.55rem 0.7rem;border-radius:8px;border:1px solid rgba(255,92,124,0.4);background:rgba(255,92,124,0.1);color:#ff5c7c;cursor:pointer;font-size:0.9rem;flex-shrink:0;">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+function fmsGetProductItems(){
+  const rows = document.querySelectorAll('.fms-product-row');
+  return [...rows].map(row => ({
+    product_id: parseInt(row.querySelector('.fms-product-select')?.value)||null,
+    product_name: row.querySelector('.fms-product-select')?.selectedOptions[0]?.text || '',
+    quantity: parseInt(row.querySelector('.fms-product-qty')?.value)||1
+  })).filter(r => r.product_id);
+}
+
+async function fmsOpenNewOrder(){
+  // Init product rows — start with 1 row
+  const rowsContainer = document.getElementById('fmsProductRows');
+  if(rowsContainer){
+    rowsContainer.innerHTML = '';
+    fmsAddProductRow();
+  }
+
+  // Populate location checkboxes
+  const locGrid = document.getElementById('fmsLocationGrid');
+  if(locGrid){
+    locGrid.innerHTML = _fmsLocations.map(l =>
+      `<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:0.87rem;color:var(--text);transition:all 0.15s;" onclick="fmsSelectLocation(${l.id},'${l.location_name}',this)">
+        <input type="radio" name="fmsLocation" value="${l.id}" style="accent-color:var(--accent);"> ${l.location_name}
+      </label>`
+    ).join('') +
+    `<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:0.87rem;color:var(--text);" onclick="fmsSelectLocation('other','Other',this)">
+      <input type="radio" name="fmsLocation" value="other" style="accent-color:var(--accent);"> Other
+    </label>`;
+  }
+
+  // Load support persons
+  await fmsLoadSupportPersons('fmsAssignSupport');
+
+  // Reset form
+  ['fmsClientSearch','fmsSoNumber','fmsTicketNo','fmsQuantity','fmsOrderAmount','fmsAmountReceived','fmsLocationManual'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  document.getElementById('fmsClientSearch').value = '';
+  document.getElementById('fmsClientId').value = '';
+  document.getElementById('fmsLocationManual').style.display = 'none';
+  document.getElementById('fmsProofStatus').textContent = '';
+  // Reset file input
+  const proofInput = document.getElementById('fmsPaymentProof');
+  if(proofInput) proofInput.value = '';
+  _fmsSelectedLocation = null;
+
+  document.getElementById('fmsNewOrderOverlay').classList.add('open');
+}
+
+function fmsCloseNewOrder(){
+  document.getElementById('fmsNewOrderOverlay').classList.remove('open');
+}
+
+function fmsSelectLocation(id, name, el){
+  _fmsSelectedLocation = { id, name };
+  // Highlight selected
+  document.querySelectorAll('#fmsLocationGrid label').forEach(l => l.style.borderColor = 'var(--border)');
+  el.style.borderColor = 'var(--accent)';
+  // Show manual input if Other
+  const manual = document.getElementById('fmsLocationManual');
+  if(manual) manual.style.display = id === 'other' ? 'block' : 'none';
+}
+
+function fmsToggleNewClient(checked){
+  const search = document.getElementById('fmsClientSearch');
+  if(search){
+    search.placeholder = checked ? 'Enter new client name...' : 'Search existing client...';
+    search.oninput = checked ? null : (e => fmsSearchClient(e.target.value));
+  }
+  if(checked){
+    document.getElementById('fmsClientId').value = '';
+    document.getElementById('fmsClientDropdown').style.display = 'none';
+  }
+}
+
+async function fmsSearchClient(q){
+  if(!q || q.length < 2){
+    document.getElementById('fmsClientDropdown').style.display = 'none';
+    return;
+  }
+  clearTimeout(_fmsClientSearchTimeout);
+  _fmsClientSearchTimeout = setTimeout(async () => {
+    try{
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/customer_odoo_aliases?odoo_name=ilike.%25${encodeURIComponent(q)}%25&order=odoo_name&limit=15`, { headers: SB_HDRS() });
+      const data = await res.json();
+      const dd = document.getElementById('fmsClientDropdown');
+      if(!data.length){ dd.style.display = 'none'; return; }
+      dd.innerHTML = data.map(c =>
+        `<div onclick="fmsSelectClient(${c.id},'${(c.odoo_name||'').replace(/'/g,"\'")}',this)" style="padding:9px 14px;cursor:pointer;font-size:0.88rem;color:var(--text);border-bottom:1px solid var(--border);transition:background 0.15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">${c.odoo_name}</div>`
+      ).join('');
+      dd.style.display = 'block';
+    } catch(e){}
+  }, 300);
+}
+
+function fmsSelectClient(id, name, el){
+  document.getElementById('fmsClientId').value = id;
+  document.getElementById('fmsClientSearch').value = name;
+  document.getElementById('fmsClientDropdown').style.display = 'none';
+}
+
+async function fmsLoadSupportPersons(selectId){
+  try{
+    // Employee_Dept = 'Support' waale employees fetch karo
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Employee_details?Employee_Dept=eq.Support&select=Employee_name,Email_Id&order=Employee_name`,
+      { headers: SB_HDRS() }
+    );
+    const rows = await res.json();
+    const sel = document.getElementById(selectId);
+    if(!sel) return;
+    sel.innerHTML = '<option value="">Select support person...</option>';
+    rows.forEach(emp => {
+      if(!emp.Email_Id) return;
+      const opt = document.createElement('option');
+      opt.value = (emp.Email_Id||'').toLowerCase().trim();
+      opt.textContent = emp.Employee_name || emp.Email_Id;
+      sel.appendChild(opt);
+    });
+  } catch(e){ console.error('Load support persons error:', e); }
+}
+
+async function fmsLoadEngineers(selectId){
+  try{
+    // Employee_Dept = 'Service Engineer' waale fetch karo
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Employee_details?Employee_Dept=eq.Service%20Engineer&select=Employee_name,Email_Id&order=Employee_name`,
+      { headers: SB_HDRS() }
+    );
+    const rows = await res.json();
+    const sel = document.getElementById(selectId);
+    if(!sel) return;
+    sel.innerHTML = '<option value="">Select engineer...</option>';
+    rows.forEach(r => {
+      if(!r.Email_Id) return;
+      const opt = document.createElement('option');
+      opt.value = (r.Email_Id||'').toLowerCase().trim();
+      opt.textContent = r.Employee_name || r.Email_Id;
+      sel.appendChild(opt);
+    });
+  } catch(e){ console.error('Load engineers error:', e); }
+}
+
+let _fmsSubmitting = false;
+async function fmsSubmitNewOrder(){
+  if(_fmsSubmitting){ fmsToast('⏳ Please wait...'); return; }
+  const _submitBtn = document.querySelector('#fmsNewOrderOverlay button[onclick="fmsSubmitNewOrder()"]');
+  fmsBtnLoading(_submitBtn, '⏳ Submitting...');
+  _fmsSubmitting = true;
+
+  const isNewClient = false; // Simplified — just name entry
+  const clientSearch = document.getElementById('fmsClientSearch').value.trim();
+  const clientId   = document.getElementById('fmsClientId').value;
+  const soNumber   = document.getElementById('fmsSoNumber').value.trim();
+  const ticketNo   = document.getElementById('fmsTicketNo').value.trim();
+  // Auto-calculate total quantity from product rows
+  const _allProductItems = fmsGetProductItems();
+  const quantity = _allProductItems.reduce((sum, r) => sum + (r.quantity||0), 0);
+  const orderAmt   = parseFloat(document.getElementById('fmsOrderAmount').value) || null;
+  const amtRcvd    = parseFloat(document.getElementById('fmsAmountReceived').value) || null;
+  const tentDate   = document.getElementById('fmsTentativeDate').value || null;
+  const assignTo   = document.getElementById('fmsAssignSupport').value;
+  const locManual  = document.getElementById('fmsLocationManual').value.trim();
+
+  // Product items already calculated above
+  const productItems = _allProductItems;
+  const productIds = productItems.map(i => i.product_id);
+
+  // Validate
+  if(!clientSearch){ fmsToast('❌ Client name required'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
+  if(!soNumber){ fmsToast('❌ SO Number required'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
+  if(!quantity || quantity < 1){ fmsToast('❌ Add at least one product with quantity'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
+  if(!productItems.length){ fmsToast('❌ Add at least one product'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
+  if(!_fmsSelectedLocation){ fmsToast('❌ Select a location'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
+  if(_fmsSelectedLocation.id === 'other' && !locManual){ fmsToast('❌ Enter location name'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
+  if(!assignTo){ fmsToast('❌ Assign to support person'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
+
+  // Upload payment proof if any
+  let proofUrl = null;
+  const proofFile = document.getElementById('fmsPaymentProof').files[0];
+  if(proofFile){
+    proofUrl = await fmsUploadProof(proofFile);
+  }
+
+  const now = new Date().toISOString();
+  const myEmail = CURRENT_USER?.email || '';
+
+  // Simple client name — no dropdown logic
+  let finalClientId = clientId ? parseInt(clientId) : null;
+  let finalClientName = clientSearch;
+
+  const orderPayload = {
+    client_id:          finalClientId,
+    client_name:        finalClientName,
+    is_new_client:      isNewClient,
+    so_number:          soNumber,
+    ticket_no:          ticketNo || null,
+    product_ids:        productIds,
+    product_items:      JSON.stringify(productItems.map(i => ({product_id:i.product_id, product_name:i.product_name, quantity:i.quantity}))),
+    quantity:           quantity,
+    order_amount:       orderAmt,
+    amount_received:    amtRcvd,
+    payment_proof_url:  proofUrl,
+    tentative_date:     tentDate,
+    location_type:      _fmsSelectedLocation.id === 'other' ? 'outside' : 'local',
+    location_id:        _fmsSelectedLocation.id !== 'other' ? parseInt(_fmsSelectedLocation.id) : null,
+    location_manual:    _fmsSelectedLocation.id === 'other' ? locManual : null,
+    status:             'pending_support',
+    current_step:       1,
+    created_by:         myEmail,
+    assigned_to_support: assignTo,
+    step1_completed_at: now,
+    step2_started_at:   now,
+  };
+
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fms_orders`, {
+      method: 'POST',
+      headers: { ...SB_HDRS_JSON(), 'Prefer': 'return=representation' },
+      body: JSON.stringify(orderPayload)
+    });
+
+    if(!res.ok){
+      const errText = await res.text();
+      console.error('Order insert error:', errText);
+      // Agar product_items column nahi hai toh without it retry karo
+      if(errText.includes('product_items')){
+        delete orderPayload.product_items;
+        const res2 = await fetch(`${SUPABASE_URL}/rest/v1/fms_orders`, {
+          method: 'POST',
+          headers: { ...SB_HDRS_JSON(), 'Prefer': 'return=representation' },
+          body: JSON.stringify(orderPayload)
+        });
+        if(!res2.ok){
+          const e2 = await res2.text();
+          fmsToast('❌ Error: ' + e2.slice(0,120));
+          fmsBtnReset(_submitBtn);
+          _fmsSubmitting = false;
+          return;
+        }
+        const newOrder2 = await res2.json();
+        const orderId2 = newOrder2[0]?.id;
+        if(orderId2){
+          await fetch(`${SUPABASE_URL}/rest/v1/fms_assignments`, {
+            method: 'POST',
+            headers: SB_HDRS_JSON(),
+            body: JSON.stringify({ order_id: orderId2, step: 1, assigned_from: myEmail, assigned_to: assignTo, assigned_at: now })
+          });
+        }
+        fmsToast('✅ Order created! (Run ALTER TABLE to enable product details)');
+        fmsBtnSuccess(_submitBtn, '✅ Submitted!', 'fmsNewOrderOverlay');
+        setTimeout(() => { fmsLoadOrders(); _fmsSubmitting = false; }, 950);
+        return;
+      }
+      fmsToast('❌ Error: ' + errText.slice(0,120));
+      fmsBtnReset(_submitBtn);
+      _fmsSubmitting = false;
       return;
     }
-    const firstRow=raw[0],keys=Object.keys(firstRow);
-    function gv(r,...cols){for(const c of cols){if(r[c]!==undefined&&String(r[c]).trim()!='')return String(r[c]);const f=keys.find(k=>k.toLowerCase().replace(/[^a-z0-9]/g,'')==c.toLowerCase().replace(/[^a-z0-9]/g,''));if(f&&r[f]!==undefined&&String(r[f]).trim()!='')return String(r[f]);}return '';}
-    fmsAllData=raw.map(r=>({
-      uniqueKey:    gv(r,'Unique Key','UniqueKey','uniqueKey'),
-      planned:      gv(r,'Planned Step','PlannedStep','Planned','planned'),
-      plannedStep:  gv(r,'Planned Step','PlannedStep','How','how'),
-      how:          gv(r,'How','how'),
-      doerName:     gv(r,'Final Doer Name','FinalDoerName','Doer Name','DoerName','doerName'),
-      link:         gv(r,'Link','link'),
-      forPC:        gv(r,'For PC','ForPC','forPC'),
-      doerEmail:    gv(r,'Final Doer Email','FinalDoerEmail','Doer Email','DoerEmail','doerEmail'),
-      customerName: gv(r,'Customer Name','CustomerName','customerName'),
-      product:      gv(r,'Product','product'),
-    })).filter(r=>r.uniqueKey&&!r.uniqueKey.includes('#N/A'));
-    const el=document.getElementById('fmsLastRefresh');
-    if(el) el.textContent='Updated '+new Date().toLocaleTimeString();
-    fmsProcessData();
-  }catch(e){
-    document.getElementById('fMainTableBody').innerHTML=`<div style="padding:2rem;text-align:center;color:var(--hot);">❌ ${e.message}<br><small style="color:var(--muted);">Set Apps Script URL or check CORS</small><button onclick="fmsLoadData()" style="margin-top:0.8rem;display:block;margin-left:auto;margin-right:auto;padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">🔄 Retry</button></div>`;
+
+    const newOrder = await res.json();
+    const orderId = newOrder[0]?.id;
+
+    if(orderId){
+      // Insert assignment record
+      await fetch(`${SUPABASE_URL}/rest/v1/fms_assignments`, {
+        method: 'POST',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({ order_id: orderId, step: 1, assigned_from: myEmail, assigned_to: assignTo, assigned_at: now })
+      });
+    }
+
+    fmsToast('✅ Order created successfully!');
+    fmsBtnSuccess(_submitBtn, '✅ Submitted!', 'fmsNewOrderOverlay');
+    setTimeout(() => { fmsLoadOrders(); _fmsSubmitting = false; }, 950);
+  } catch(e){
+    console.error('Submit order error:', e);
+    fmsToast('❌ Error: ' + e.message);
+    fmsBtnReset(_submitBtn);
+    _fmsSubmitting = false;
   }
 }
 
-function fmsProcessData(){
-  fmsFiltered=[...fmsAllData];
-  fmsCurrentFilter='all';
-  fmsPopulateDropdowns();
-  fmsRefreshAll();
-}
-
-// Central refresh — updates KPIs + Charts + Tables together
-function fmsRefreshAll(){
-  fmsUpdateKPIs();
-  fmsRenderCharts(fmsFiltered);
-  fmsRenderCPTable();
-  fmsRenderDoerSummary();
-  fmsMainPage=1;
-  fmsRenderMainTable();
-}
-
-function fmsUpdateKPIs(){
-  const delayed  = fmsFiltered.filter(fmsIsDelayed).length;
-  const remaining= fmsFiltered.filter(fmsIsRemaining).length;
-  const now=new Date();
-  const dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');
-  const todayCount=fmsFiltered.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm)).length;
-  const prods=new Set(fmsFiltered.map(r=>r.product).filter(v=>v&&v.trim())).size;
-
-  document.getElementById('fkpiRemaining').textContent=remaining||'0';
-  document.getElementById('fkpiDelayed').textContent=delayed||'0';
-  document.getElementById('fkpiTotal').textContent=fmsFiltered.length;
-  document.getElementById('fkpiToday').textContent=todayCount;
-  document.getElementById('fkpiProducts').textContent=prods;
-
-  // Active KPI highlight
-  document.querySelectorAll('.kpi-card[id^="fkpi-"]').forEach(c=>c.classList.remove('kpi-active'));
-  const m={all:'fkpi-all',remaining:'fkpi-remaining',delayed:'fkpi-delayed',today:'fkpi-today'};
-  if(m[fmsCurrentFilter]) document.getElementById(m[fmsCurrentFilter])?.classList.add('kpi-active');
-}
-
-// Charts always reflect fmsFiltered (reactive)
-function fmsRenderCharts(data){
-  Object.values(fmsCharts).forEach(c=>{try{c.destroy();}catch(e){}});fmsCharts={};
-  const {tc,gc,noGrid}=chartColors();
-
-  // Chart 1: Product Wise Pending (For PC = No = remaining)
-  const pm={};
-  data.filter(fmsIsRemaining).forEach(r=>{const k=r.product&&r.product.trim()?r.product:'Unknown';pm[k]=(pm[k]||0)+1;});
-  const pl=Object.keys(pm),pv=Object.values(pm);
-  const c1=document.getElementById('fChartProductPending');
-  if(c1&&pl.length){
-    fmsCharts.prod=new Chart(c1,{type:'bar',data:{labels:pl,datasets:[{data:pv,backgroundColor:FMS_COLS.slice(0,pl.length),borderRadius:6,borderSkipped:false}]},
-    options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' Remaining: '+ctx.raw}}},
-    scales:{x:{ticks:{color:tc,font:{size:9}},grid:{display:false}},y:{ticks:{color:tc,beginAtZero:true},grid:{display:!noGrid,color:gc}}},
-    onClick:(e,els)=>{if(els.length)fmsKpiFilter('product',pl[els[0].index]);},
-    onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
-    responsive:true,maintainAspectRatio:false}});
-  } else if(c1){
-    const ctx=c1.getContext('2d');ctx.clearRect(0,0,c1.width,c1.height);
-  }
-
-  // Chart 2: Doer-wise Remaining tasks (horizontal bar)
-  const dm={};
-  data.filter(fmsIsRemaining).forEach(r=>{const k=r.doerName&&r.doerName.trim()?r.doerName:'Unknown';dm[k]=(dm[k]||0)+1;});
-  const dl=Object.keys(dm),dv=Object.values(dm);
-  const c2=document.getElementById('fChartDoer');
-  if(c2&&dl.length){
-    fmsCharts.doer=new Chart(c2,{type:'bar',data:{labels:dl,datasets:[{data:dv,backgroundColor:'rgba(0,212,255,0.75)',borderRadius:6}]},
-    options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' Remaining: '+ctx.raw}}},
-    scales:{x:{ticks:{color:tc,beginAtZero:true},grid:{display:!noGrid,color:gc}},y:{ticks:{color:tc,font:{size:9}},grid:{display:false}}},
-    onClick:(e,els)=>{if(els.length)fmsKpiFilter('doer',dl[els[0].index]);},
-    onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
-    responsive:true,maintainAspectRatio:false}});
-  }
-
-  // Chart 3: Status doughnut — For PC No=Remaining, Yes=Delayed
-  const delayed  =data.filter(fmsIsDelayed).length;
-  const remaining=data.filter(fmsIsRemaining).length;
-  const c3=document.getElementById('fChartStatus');
-  if(c3){
-    fmsCharts.status=new Chart(c3,{type:'doughnut',
-    data:{labels:['Remaining (PC No)','Delayed (PC Yes)'],datasets:[{data:[remaining,delayed],backgroundColor:['#00d4aa','#ff5c7c'],borderWidth:0,hoverOffset:8}]},
-    options:{plugins:{legend:{labels:{color:tc,padding:14,font:{size:11}}}},cutout:'62%',
-    onClick:(e,els)=>{if(els.length)fmsKpiFilter(els[0].index===0?'remaining':'delayed');},
-    onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default';},
-    responsive:true,maintainAspectRatio:false}});
-  }
-
-  // Chart 4: Daily planned volume line
-  const days=[],counts=[];
-  for(let i=6;i>=0;i--){
-    const d=new Date();d.setDate(d.getDate()-i);
-    days.push(d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}));
-    const dd2=String(d.getDate()).padStart(2,'0'),mm2=String(d.getMonth()+1).padStart(2,'0');
-    counts.push(data.filter(r=>r.planned&&r.planned.includes(dd2+'/'+mm2)).length);
-  }
-  const c4=document.getElementById('fChartDaily');
-  if(c4){
-    fmsCharts.daily=new Chart(c4,{type:'line',data:{labels:days,datasets:[{data:counts,borderColor:'#f0a500',backgroundColor:'rgba(240,165,0,0.1)',fill:true,tension:0.4,pointBackgroundColor:'#f0a500',pointRadius:5,pointHoverRadius:7}]},
-    options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:9}},grid:{display:!noGrid,color:gc}},y:{ticks:{color:tc,beginAtZero:true},grid:{display:!noGrid,color:gc}}},responsive:true,maintainAspectRatio:false}});
-  }
-}
-
-// Single filter entry point — filters fmsFiltered, then refreshes everything
-// Format date from any format → DD/MM/YYYY HH:MM
-function fmsFmtDate(str){
-  if(!str||str.trim()==='')return '—';
+async function fmsUploadProof(file){
   try{
-    // ISO format: 2026-04-03T05:18:12.372Z or 1899-12-29T...
-    let d;
-    if(str.includes('T')){
-      d=new Date(str);
-      // Invalid/epoch dates (1899 etc) → show as-is trimmed
-      if(isNaN(d)||d.getFullYear()<2000) return str.split('T')[0];
+    const ext = file.name.split('.').pop().toLowerCase();
+    const safeName = Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
+    const path = `fms-proofs/${safeName}`;
+
+    document.getElementById('fmsProofStatus').textContent = '⏳ Uploading...';
+
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/fms-documents/${path}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${_currentToken || SUPABASE_ANON}`,
+        'Content-Type': file.type,
+        'x-upsert': 'true'
+      },
+      body: file
+    });
+
+    if(res.ok){
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/fms-documents/${path}`;
+      document.getElementById('fmsProofStatus').innerHTML = `✅ Uploaded — <a href="${publicUrl}" target="_blank" style="color:#4e9af1;">View File</a>`;
+      return publicUrl;
     } else {
-      // DD/MM/YYYY HH:MM:SS or similar
-      const p=str.split(' ');const datePart=p[0],timePart=p[1]||'';
-      const dp=datePart.split('/');
-      if(dp.length===3){
-        // already DD/MM/YYYY
-        const timeStr=timePart?timePart.slice(0,5):'';
-        return datePart+(timeStr?' '+timeStr:'');
-      }
-      d=new Date(str);
+      const err = await res.text();
+      console.error('Upload error:', err);
+      document.getElementById('fmsProofStatus').textContent = '❌ Upload failed — ' + (JSON.parse(err)?.error || err).slice(0,60);
+      return null;
     }
-    if(isNaN(d))return str;
-    const dd=String(d.getDate()).padStart(2,'0');
-    const mm=String(d.getMonth()+1).padStart(2,'0');
-    const yyyy=d.getFullYear();
-    const hh=String(d.getHours()).padStart(2,'0');
-    const min=String(d.getMinutes()).padStart(2,'0');
-    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
-  }catch(e){return str;}
-}
-
-function fmsKpiFilter(type, value){
-  // Toggle: same KPI clicked again → reset to all
-  if(type===fmsCurrentFilter && !value){
-    fmsCurrentFilter='all';
-    fmsFiltered=[...fmsAllData];
-    fmsMainPage=1;
-    fmsRefreshAll();
-    return;
+  } catch(e){
+    console.error('Upload error:', e);
+    document.getElementById('fmsProofStatus').textContent = '❌ Upload error: ' + e.message;
+    return null;
   }
-  fmsCurrentFilter=type;
-  const now=new Date();
-  const dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');
-  if(type==='all')           fmsFiltered=[...fmsAllData];
-  else if(type==='remaining')fmsFiltered=fmsAllData.filter(fmsIsRemaining);
-  else if(type==='delayed')  fmsFiltered=fmsAllData.filter(fmsIsDelayed);
-  else if(type==='today')    fmsFiltered=fmsAllData.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm));
-  else if(type==='product')  fmsFiltered=fmsAllData.filter(r=>r.product===value);
-  else if(type==='doer')     fmsFiltered=fmsAllData.filter(r=>r.doerName===value);
-  fmsMainPage=1;
-  fmsRefreshAll();
 }
 
-function fmsPopulateDropdowns(){
-  const prods=[...new Set(fmsAllData.map(r=>r.product).filter(v=>v&&v.trim()))];
-  document.getElementById('fProductFilter').innerHTML='<option value="">All Products</option>'+prods.map(p=>`<option value="${p}">${p}</option>`).join('');
-  const doers=[...new Set(fmsAllData.map(r=>r.doerName).filter(v=>v&&v.trim()))];
-  document.getElementById('fDoerFilter').innerHTML='<option value="">All Doers</option>'+doers.map(d=>`<option value="${d}">${d}</option>`).join('');
+// ── SUPPORT OVERLAY (Step 2) ───────────────────────────────────────────────
+async function fmsOpenSupportOverlay(orderId){
+  _fmsCurrentOrder = _fmsOrders.find(o => o.id === orderId);
+  if(!_fmsCurrentOrder) return;
+  const o = _fmsCurrentOrder;
+  const locName = o.location_type === 'outside' ? (o.location_manual||'Outside') : (_fmsLocations.find(l=>l.id===o.location_id)?.location_name||'—');
+
+  const pendingAmt = (parseFloat(o.order_amount)||0) - (parseFloat(o.amount_received)||0);
+  document.getElementById('fmsSupportOrderInfo').innerHTML = `
+    <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Ticket:</strong> ${o.ticket_no||'—'}</div>
+    <div><strong>Client:</strong> ${o.client_name||'—'}</div>
+    <div><strong>Products:</strong> ${fmsProductNames(o.product_ids, o.product_items)}</div>
+    <div><strong>Qty:</strong> ${o.quantity} &nbsp;|&nbsp; <strong>Location:</strong> ${locName}</div>
+    <div><strong>Order Amt:</strong> ₹${o.order_amount||0} &nbsp;|&nbsp; <strong>Received:</strong> ₹${o.amount_received||0} &nbsp;|&nbsp; <strong style="color:${pendingAmt>0?'#ff5c7c':'#00d4aa'}">Pending: ₹${pendingAmt}</strong></div>
+    ${o.tentative_date ? `<div><strong>Payment Due:</strong> <span style="color:#f0a500;">${new Date(o.tentative_date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</span></div>` : ''}
+    ${o.payment_proof_url ? `<div><a href="${o.payment_proof_url}" target="_blank" style="color:#4e9af1;font-size:0.85rem;">📎 View Payment Proof</a></div>` : ''}
+  `;
+  document.getElementById('fmsSupportNotes').value = '';
+  document.getElementById('fmsSupportEngineerRow').style.display = 'none';
+  document.getElementById('fmsSupportSubmitBtn').textContent = '➡️ Send to Anish for Configuration';
+  document.getElementById('fmsSupportSubmitBtn').style.background = '#fb923c';
+  // Reset radio to "Yes - Config required"
+  const radios = document.querySelectorAll('input[name="fmsCfgRequired"]');
+  if(radios[0]) radios[0].checked = true;
+  document.getElementById('fmsSupportOverlay').classList.add('open');
 }
 
-function fmsRenderDoerSummary(){
-  const dm={};
-  fmsFiltered.filter(fmsIsRemaining).forEach(r=>{const k=r.doerName&&r.doerName.trim()?r.doerName:'Unknown';dm[k]=(dm[k]||0)+1;});
-  const sorted=Object.entries(dm).sort((a,b)=>b[1]-a[1]);
-  const max=sorted[0]?.[1]||1;
-  document.getElementById('fDoerSummary').innerHTML=sorted.length?sorted.map(([name,cnt],i)=>`
-    <div onclick="fmsKpiFilter('doer','${name.replace(/'/g,"\\\'")}')" style="padding:0.55rem 1rem;display:flex;align-items:center;gap:0.6rem;cursor:pointer;border-bottom:1px solid var(--border);">
-      <div style="width:28px;height:28px;border-radius:50%;background:${FMS_COLS[i%FMS_COLS.length]}22;color:${FMS_COLS[i%FMS_COLS.length]};display:flex;align-items:center;justify-content:center;font-size:0.79rem;font-weight:700;flex-shrink:0;">${(name[0]||'?').toUpperCase()}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:0.88rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
-        <div style="height:4px;background:var(--border);border-radius:4px;margin-top:4px;"><div style="height:4px;background:${FMS_COLS[i%FMS_COLS.length]};border-radius:4px;width:${Math.round(cnt/max*100)}%;"></div></div>
-      </div>
-      <div style="font-size:0.91rem;font-weight:700;color:${FMS_COLS[i%FMS_COLS.length]};min-width:22px;text-align:right;">${cnt}</div>
-    </div>`).join(''):'<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:0.89rem;">No remaining tasks</div>';
+function fmsCloseSupportOverlay(){
+  document.getElementById('fmsSupportOverlay').classList.remove('open');
 }
 
-function fmsRenderCPTable(){
-  const data=fmsFiltered;
-  if(!data.length){document.getElementById('fCPTableBody').innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.89rem;">No data</div>';document.getElementById('fCPPagination').style.display='none';return;}
-  const start=(fmsCPPage-1)*FMS_CP_PER_PAGE;
-  const pg=data.slice(start,start+FMS_CP_PER_PAGE);
-  document.getElementById('fCPTableBody').innerHTML=pg.map(r=>{
-    const delayed=fmsIsDelayed(r);
-    return`<div style="display:grid;grid-template-columns:1fr 1.2fr 0.9fr;border-bottom:1px solid var(--border);padding:0.45rem 1rem;cursor:pointer;" onclick="fmsOpenMarkDone(${fmsAllData.indexOf(r)})">
-      <span style="font-size:0.85rem;font-weight:700;color:#00d4ff;">${r.uniqueKey}</span>
-      <span style="font-size:0.82rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.customerName||'—'}</span>
-      <span style="font-size:0.79rem;color:${delayed?'var(--hot)':'var(--won)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.product||'—'}</span>
-    </div>`;
-  }).join('');
-  const tot=data.length,tp=Math.ceil(tot/FMS_CP_PER_PAGE),s=start+1,e=Math.min(fmsCPPage*FMS_CP_PER_PAGE,tot);
-  document.getElementById('fCPPageInfo').textContent=`${s}–${e} of ${tot}`;
-  let btns='';for(let i=1;i<=Math.min(tp,6);i++)btns+=`<button onclick="fmsCPGoPage(${i})" style="width:22px;height:22px;border-radius:5px;border:1px solid var(--border);background:${i===fmsCPPage?'#f0a500':'transparent'};color:${i===fmsCPPage?'#000':'var(--text)'};cursor:pointer;font-size:0.80rem;">${i}</button>`;
-  document.getElementById('fCPPageBtns').innerHTML=btns;
-  document.getElementById('fCPPagination').style.display='flex';
-}
-function fmsCPGoPage(n){fmsCPPage=n;fmsRenderCPTable();}
 
-function fmsApplyDateFilter(){
-  fmsDateFrom=document.getElementById('fDateFrom').value||null;
-  fmsDateTo=document.getElementById('fDateTo').value||null;
-  fmsApplySearch();
-}
-function fmsClearDateFilter(){
-  document.getElementById('fDateFrom').value='';
-  document.getElementById('fDateTo').value='';
-  fmsDateFrom=null;fmsDateTo=null;fmsApplySearch();
+// ── FMS Toast — standalone (doesn't depend on showToast) ─────────────────
+function fmsToast(msg, duration=3200){
+  // Try global showToast first
+  if(typeof showToast === 'function'){ fmsToast(msg); return; }
+  // Fallback: create our own toast
+  const existing = document.getElementById('_fmsToast');
+  if(existing) existing.remove();
+  const t = document.createElement('div');
+  t.id = '_fmsToast';
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e1e2e;border:1px solid rgba(255,255,255,0.12);color:#fff;border-radius:12px;padding:11px 22px;font-size:0.88rem;font-weight:600;z-index:9999;transition:opacity 0.4s;opacity:0;pointer-events:none;white-space:nowrap;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.style.opacity = '1');
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, duration);
 }
 
-function fmsApplySearch(){
-  const q=(document.getElementById('fSearch').value||'').toLowerCase();
-  const prod=document.getElementById('fProductFilter').value;
-  const doer=document.getElementById('fDoerFilter').value;
-  const status=document.getElementById('fStatusFilter').value;
-  // Search from full dataset but respect active KPI filter
-  let base=fmsAllData;
-  if(fmsCurrentFilter==='remaining') base=fmsAllData.filter(fmsIsRemaining);
-  else if(fmsCurrentFilter==='delayed') base=fmsAllData.filter(fmsIsDelayed);
-  else if(fmsCurrentFilter==='today'){const now=new Date(),dd=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');base=fmsAllData.filter(r=>r.planned&&r.planned.includes(dd+'/'+mm));}
-  fmsFiltered=base.filter(r=>{
-    const mq=!q||[r.uniqueKey,r.plannedStep,r.doerName,r.customerName,r.product].some(v=>(v||'').toLowerCase().includes(q));
-    const mp=!prod||r.product===prod;
-    const md=!doer||r.doerName===doer;
-    const ms=!status||(status==='delayed'?fmsIsDelayed(r):fmsIsRemaining(r));
-    let mdate=true;
-    if(fmsDateFrom||fmsDateTo){
-      // Parse planned date for date range filter
-      const raw=r.planned||'';const part=raw.split(' ')[0];const pp=part.split('/');
-      if(pp.length>=3){
-        const d=pp[0].length===4?new Date(+pp[0],+pp[1]-1,+pp[2]):new Date(+pp[2],+pp[1]-1,+pp[0]);
-        if(fmsDateFrom&&d<new Date(fmsDateFrom))mdate=false;
-        if(fmsDateTo&&d>new Date(fmsDateTo))mdate=false;
-      } else mdate=false;
+// ── Button loading state helper ───────────────────────────────────────────
+function fmsBtnLoading(btn, text='⏳ Please wait...'){
+  if(!btn) return;
+  btn._origText = btn.textContent;
+  btn._origBg   = btn.style.background;
+  btn.disabled  = true;
+  btn.textContent = text;
+  btn.style.opacity = '0.7';
+}
+function fmsBtnSuccess(btn, text='✅ Done!', overlayId=null){
+  if(!btn) return;
+  btn.style.background = '#00d4aa';
+  btn.style.color = '#000';
+  btn.style.opacity = '1';
+  btn.textContent = text;
+  setTimeout(() => {
+    if(overlayId) document.getElementById(overlayId)?.classList.remove('open');
+    btn.disabled = false;
+    btn.style.background = btn._origBg || '';
+    btn.style.opacity = '1';
+    btn.textContent = btn._origText || text;
+  }, 900);
+}
+function fmsBtnReset(btn){
+  if(!btn) return;
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.textContent = btn._origText || 'Submit';
+}
+
+// Toggle config required in support overlay
+async function fmsSupportToggleCfg(cfgRequired){
+  const engRow   = document.getElementById('fmsSupportEngineerRow');
+  const notesLbl = document.getElementById('fmsSupportNotesLabel');
+  const submitBtn = document.getElementById('fmsSupportSubmitBtn');
+  if(cfgRequired){
+    engRow.style.display = 'none';
+    notesLbl.textContent = 'Notes for Anish (Optional)';
+    submitBtn.textContent = '➡️ Send to Anish for Configuration';
+    submitBtn.style.background = '#fb923c';
+  } else {
+    engRow.style.display = 'block';
+    notesLbl.textContent = 'Notes (Optional)';
+    submitBtn.textContent = '👷 Assign Directly to Engineer';
+    submitBtn.style.background = '#a855f7';
+    // Load engineers if not already loaded
+    await fmsLoadEngineers('fmsSupportEngineerSelect');
+  }
+}
+
+async function fmsSupportSubmit(){
+  if(!_fmsCurrentOrder) return;
+  const cfgRequired = document.querySelector('input[name="fmsCfgRequired"]:checked')?.value === 'yes';
+  const btn = document.getElementById('fmsSupportSubmitBtn');
+  fmsBtnLoading(btn, '⏳ Assigning...');
+  const notes   = document.getElementById('fmsSupportNotes').value.trim();
+  const myEmail = CURRENT_USER?.email || '';
+  const now     = new Date().toISOString();
+
+  try{
+    if(cfgRequired){
+      // ── Send to Anish ──
+      await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${_fmsCurrentOrder.id}`, {
+        method: 'PATCH',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({ status: 'pending_config', current_step: 2, step2_completed_at: now, step3_started_at: now })
+      });
+      await fetch(`${SUPABASE_URL}/rest/v1/fms_assignments`, {
+        method: 'POST',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({ order_id: _fmsCurrentOrder.id, step: 2, assigned_from: myEmail, assigned_to: FMS_ANISH_EMAIL, notes, assigned_at: now })
+      });
+      fmsToast('✅ Sent to Anish for configuration!');
+    } else {
+      // ── Direct to Engineer — skip config step ──
+      const engineerEmail = document.getElementById('fmsSupportEngineerSelect').value;
+      const installed     = parseInt(document.getElementById('fmsSupportInstallQty').value) || 0;
+      const pending       = parseInt(document.getElementById('fmsSupportPendingQty').value) || 0;
+      if(!engineerEmail){ fmsBtnReset(btn); fmsToast('❌ Select an engineer'); return; }
+
+      // Update order — skip to installing
+      await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${_fmsCurrentOrder.id}`, {
+        method: 'PATCH',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({ status: 'installing', current_step: 4, step2_completed_at: now, step4_completed_at: now, step5_started_at: now })
+      });
+      // Insert installation record
+      const isCompleted = installed >= (_fmsCurrentOrder.quantity||0) && installed > 0;
+      await fetch(`${SUPABASE_URL}/rest/v1/fms_installation`, {
+        method: 'POST',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({ order_id: _fmsCurrentOrder.id, engineer_email: engineerEmail, devices_installed: installed, devices_pending: pending, is_completed: isCompleted, completed_at: isCompleted ? now : null, updated_by: myEmail, assigned_at: now })
+      });
+      // Assignment record
+      await fetch(`${SUPABASE_URL}/rest/v1/fms_assignments`, {
+        method: 'POST',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({ order_id: _fmsCurrentOrder.id, step: 2, assigned_from: myEmail, assigned_to: engineerEmail, notes: 'Direct assignment (no config required)', assigned_at: now })
+      });
+      fmsToast('👷 Assigned directly to engineer!');
     }
-    return mq&&mp&&md&&ms&&mdate;
+    fmsBtnSuccess(btn, '✅ Done!', 'fmsSupportOverlay');
+    setTimeout(() => fmsLoadOrders(), 950);
+  } catch(e){
+    fmsBtnReset(btn);
+    fmsToast('❌ Error: ' + e.message);
+  }
+}
+
+// Legacy — keep for compatibility
+async function fmsAssignToAnish(){
+  fmsSupportSubmit();
+}
+
+// ── ANISH CONFIG OVERLAY (Step 3) ─────────────────────────────────────────
+async function fmsOpenConfigOverlay(orderId){
+  _fmsCurrentOrder = _fmsOrders.find(o => o.id === orderId);
+  if(!_fmsCurrentOrder) return;
+  const o = _fmsCurrentOrder;
+  const totalQty = parseInt(o.quantity) || 0;
+
+  document.getElementById('fmsConfigOrderInfo').innerHTML = `
+    <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Client:</strong> ${o.client_name||'—'}</div>
+    <div><strong>Products:</strong> ${fmsProductNames(o.product_ids, o.product_items)}</div>
+    <div><strong>Total Devices to Configure:</strong> <span style="color:#f0a500;font-weight:700;">${totalQty}</span></div>
+  `;
+
+  // Set max on configured qty
+  const cfgInput = document.getElementById('fmsConfiguredQty');
+  cfgInput.max = totalQty;
+  cfgInput.value = '';
+  document.getElementById('fmsCfgMax').textContent = totalQty;
+  document.getElementById('fmsNotConfiguredQty').value = totalQty;
+  document.getElementById('fmsConfigNotes').value = '';
+  document.getElementById('fmsSkipReason').value = '';
+
+  // Load existing config if any (Anish can update partial config)
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fms_configuration?order_id=eq.${o.id}&order=configured_at.desc&limit=1`, { headers: SB_HDRS() });
+    const rows = await res.json();
+    if(rows[0]){
+      cfgInput.value = rows[0].configured_qty || 0;
+      document.getElementById('fmsConfigNotes').value = rows[0].config_notes || '';
+      document.getElementById('fmsSkipReason').value = rows[0].skip_reason || '';
+      fmsCfgAutoCalc();
+    } else {
+      fmsCfgAutoCalc();
+    }
+  } catch(e){ fmsCfgAutoCalc(); }
+
+  document.getElementById('fmsConfigOverlay').classList.add('open');
+}
+
+function fmsCloseConfigOverlay(){
+  document.getElementById('fmsConfigOverlay').classList.remove('open');
+}
+
+// Auto calculate not-configured + progress bar
+function fmsCfgAutoCalc(){
+  const total = parseInt(_fmsCurrentOrder?.quantity) || 0;
+  let cfgVal = parseInt(document.getElementById('fmsConfiguredQty').value) || 0;
+
+  // Cap at total
+  if(cfgVal > total){ cfgVal = total; document.getElementById('fmsConfiguredQty').value = total; }
+  if(cfgVal < 0){ cfgVal = 0; document.getElementById('fmsConfiguredQty').value = 0; }
+
+  const notCfg = total - cfgVal;
+  document.getElementById('fmsNotConfiguredQty').value = notCfg;
+
+  // Progress bar
+  const pct = total > 0 ? Math.round((cfgVal / total) * 100) : 0;
+  document.getElementById('fmsCfgProgressBar').style.width = pct + '%';
+  document.getElementById('fmsCfgProgressText').textContent = `${cfgVal} / ${total} configured`;
+  document.getElementById('fmsCfgProgressBar').style.background = pct === 100 ? '#00d4aa' : pct > 50 ? '#4e9af1' : '#fb923c';
+}
+
+async function fmsSubmitConfig(){
+  if(!_fmsCurrentOrder) return;
+  const cfgBtnStart = document.querySelector('#fmsConfigOverlay button[onclick="fmsSubmitConfig()"]');
+  const totalQty   = parseInt(_fmsCurrentOrder.quantity) || 0;
+  const configQty  = parseInt(document.getElementById('fmsConfiguredQty').value) || 0;
+  const notCfgQty  = parseInt(document.getElementById('fmsNotConfiguredQty').value) || 0;
+  const notes      = document.getElementById('fmsConfigNotes').value.trim();
+  const skipReason = document.getElementById('fmsSkipReason').value.trim();
+  const myEmail    = CURRENT_USER?.email || '';
+  const now        = new Date().toISOString();
+
+  // No restriction — Anish can configure any number freely
+  const isSkipped = configQty === 0; // All skipped if 0 configured
+  fmsBtnLoading(cfgBtnStart, '⏳ Saving...');
+
+  try{
+    // Insert config record
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_configuration`, {
+      method: 'POST',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({
+        order_id: _fmsCurrentOrder.id,
+        configured_qty: configQty,
+        not_configured_qty: notCfgQty,
+        config_notes: notes || null,
+        is_skipped: isSkipped,
+        skip_reason: skipReason || null,
+        configured_by: myEmail,
+        received_at: _fmsCurrentOrder.step3_started_at || now,
+        configured_at: now
+      })
+    });
+
+    // Update order — go back to support person
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${_fmsCurrentOrder.id}`, {
+      method: 'PATCH',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({ status: 'pending_engineer', current_step: 3, step3_completed_at: now, step4_started_at: now })
+    });
+
+    // Insert assignment back to support
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_assignments`, {
+      method: 'POST',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({ order_id: _fmsCurrentOrder.id, step: 3, assigned_from: myEmail, assigned_to: _fmsCurrentOrder.assigned_to_support || '', notes: isSkipped ? `Skipped: ${skipReason}` : notes, assigned_at: now })
+    });
+
+    fmsToast(isSkipped ? '⏭️ Skipped — sent back to support!' : '✅ Configuration saved!');
+    const cfgBtn = document.querySelector('#fmsConfigOverlay button[onclick="fmsSubmitConfig()"]');
+    fmsBtnSuccess(cfgBtn, '✅ Done!', 'fmsConfigOverlay');
+    setTimeout(() => fmsLoadOrders(), 950);
+  } catch(e){
+    const cfgBtn = document.querySelector('#fmsConfigOverlay button[onclick="fmsSubmitConfig()"]');
+    fmsBtnReset(cfgBtn);
+    fmsToast('❌ Error: ' + e.message);
+  }
+}
+
+// ── ENGINEER ASSIGN OVERLAY (Step 4) ──────────────────────────────────────
+async function fmsOpenEngineerOverlay(orderId){
+  _fmsCurrentOrder = _fmsOrders.find(o => o.id === orderId);
+  if(!_fmsCurrentOrder) return;
+  const o = _fmsCurrentOrder;
+
+  document.getElementById('fmsEngineerOrderInfo').innerHTML = `
+    <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Client:</strong> ${o.client_name||'—'}</div>
+    <div><strong>Products:</strong> ${fmsProductNames(o.product_ids, o.product_items)}</div>
+    <div><strong>Total Qty:</strong> <span style="color:#a855f7;font-weight:700;">${o.quantity}</span></div>
+  `;
+  const engTotal = parseInt(o.quantity) || 0;
+  document.getElementById('fmsDevicesInstalled').value = '';
+  document.getElementById('fmsDevicesInstalled').max = engTotal;
+  document.getElementById('fmsDevicesPending').value = engTotal;
+  document.getElementById('fmsEngMax').textContent = engTotal;
+  document.getElementById('fmsInstallNotes').value = '';
+  await fmsLoadEngineers('fmsEngineerSelect');
+  document.getElementById('fmsEngineerOverlay').classList.add('open');
+}
+
+function fmsCloseEngineerOverlay(){
+  document.getElementById('fmsEngineerOverlay').classList.remove('open');
+}
+
+async function fmsSubmitEngineerAssign(){
+  if(!_fmsCurrentOrder) return;
+  const engBtnStart = document.querySelector('#fmsEngineerOverlay button[onclick="fmsSubmitEngineerAssign()"]');
+  fmsBtnLoading(engBtnStart, '⏳ Assigning...');
+  const engineerEmail = document.getElementById('fmsEngineerSelect').value;
+  const installed = parseInt(document.getElementById('fmsDevicesInstalled').value) || 0;
+  const totalQtyEng = parseInt(_fmsCurrentOrder?.quantity) || 0;
+  const pending = totalQtyEng - installed;
+  const notes         = document.getElementById('fmsInstallNotes').value.trim();
+  const myEmail       = CURRENT_USER?.email || '';
+  const now           = new Date().toISOString();
+
+  if(!engineerEmail){ fmsToast('❌ Select an engineer'); return; }
+
+  const isCompleted = installed >= (_fmsCurrentOrder.quantity || 0) && installed > 0;
+
+  try{
+    // Insert installation record
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_installation`, {
+      method: 'POST',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({
+        order_id: _fmsCurrentOrder.id,
+        engineer_email: engineerEmail,
+        devices_installed: installed,
+        devices_pending: pending,
+        installation_notes: notes || null,
+        is_completed: isCompleted,
+        completed_at: isCompleted ? now : null,
+        updated_by: myEmail,
+        assigned_at: now
+      })
+    });
+
+    // Update order
+    const newStatus = isCompleted ? 'completed' : 'installing';
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${_fmsCurrentOrder.id}`, {
+      method: 'PATCH',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({
+        status: newStatus,
+        current_step: 4,
+        step4_completed_at: now,
+        step5_started_at: now,
+        ...(isCompleted ? { step5_completed_at: now } : {})
+      })
+    });
+
+    // Insert assignment
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_assignments`, {
+      method: 'POST',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({ order_id: _fmsCurrentOrder.id, step: 4, assigned_from: myEmail, assigned_to: engineerEmail, assigned_at: now })
+    });
+
+    fmsToast(isCompleted ? '🎉 Order completed!' : '✅ Engineer assigned!');
+    const engBtn = document.querySelector('#fmsEngineerOverlay button[onclick="fmsSubmitEngineerAssign()"]');
+    fmsBtnSuccess(engBtn, isCompleted ? '🎉 Completed!' : '✅ Assigned!', 'fmsEngineerOverlay');
+    setTimeout(() => fmsLoadOrders(), 950);
+  } catch(e){
+    const engBtn = document.querySelector('#fmsEngineerOverlay button[onclick="fmsSubmitEngineerAssign()"]');
+    fmsBtnReset(engBtn);
+    fmsToast('❌ Error: ' + e.message);
+  }
+}
+
+// ── INSTALLATION UPDATE (Step 5) ───────────────────────────────────────────
+async function fmsOpenInstallUpdate(orderId){
+  _fmsCurrentOrder = _fmsOrders.find(o => o.id === orderId);
+  if(!_fmsCurrentOrder) return;
+  const o = _fmsCurrentOrder;
+
+  // Load existing installation record
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fms_installation?order_id=eq.${o.id}&order=created_at.desc&limit=1`, { headers: SB_HDRS() });
+    const rows = await res.json();
+    const inst = rows[0] || {};
+    document.getElementById('fmsUpdateInstalled').value = inst.devices_installed || '';
+    document.getElementById('fmsUpdatePending').value   = inst.devices_pending || '';
+    document.getElementById('fmsUpdateNotes').value     = '';
+  } catch(e){}
+
+  const totalQty = parseInt(o.quantity) || 0;
+  document.getElementById('fmsInstallUpdateInfo').innerHTML = `
+    <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Client:</strong> ${o.client_name||'—'}</div>
+    <div><strong>Total Qty Required:</strong> <span style="color:#06b6d4;font-weight:700;">${totalQty}</span></div>
+  `;
+
+  // Set max
+  document.getElementById('fmsUpdateInstalled').max = totalQty;
+  document.getElementById('fmsInstMax').textContent = totalQty;
+  document.getElementById('fmsInstProgressText').textContent = `0 / ${totalQty}`;
+  document.getElementById('fmsInstProgressBar').style.width = '0%';
+  document.getElementById('fmsCompleteWarning').style.display = 'none';
+  document.getElementById('fmsInstallUpdateOverlay').classList.add('open');
+}
+
+function fmsInstAutoCalc(){
+  const total = parseInt(_fmsCurrentOrder?.quantity) || 0;
+  let installed = parseInt(document.getElementById('fmsUpdateInstalled').value) || 0;
+  if(installed > total){ installed = total; document.getElementById('fmsUpdateInstalled').value = total; }
+  if(installed < 0){ installed = 0; document.getElementById('fmsUpdateInstalled').value = 0; }
+  const pending = total - installed;
+  document.getElementById('fmsUpdatePending').value = pending;
+  // Progress
+  const pct = total > 0 ? Math.round((installed/total)*100) : 0;
+  document.getElementById('fmsInstProgressBar').style.width = pct + '%';
+  document.getElementById('fmsInstProgressText').textContent = `${installed} / ${total} installed`;
+  document.getElementById('fmsInstProgressBar').style.background = pct===100 ? '#00d4aa' : pct>50 ? '#06b6d4' : '#fb923c';
+  document.getElementById('fmsCompleteWarning').style.display = (installed > 0 && installed >= total) ? 'block' : 'none';
+}
+
+function fmsEngAutoCalc(){
+  const total = parseInt(_fmsCurrentOrder?.quantity) || 0;
+  let installed = parseInt(document.getElementById('fmsDevicesInstalled').value) || 0;
+  if(installed > total){ installed = total; document.getElementById('fmsDevicesInstalled').value = total; }
+  if(installed < 0){ installed = 0; document.getElementById('fmsDevicesInstalled').value = 0; }
+  document.getElementById('fmsDevicesPending').value = total - installed;
+}
+
+function fmsCheckInstallComplete(){
+  fmsInstAutoCalc(); // Keep for compatibility
+}
+
+function fmsCloseInstallUpdateOverlay(){
+  document.getElementById('fmsInstallUpdateOverlay').classList.remove('open');
+}
+
+async function fmsSubmitInstallUpdate(){
+  if(!_fmsCurrentOrder) return;
+  const instBtnStart = document.querySelector('#fmsInstallUpdateOverlay button[onclick="fmsSubmitInstallUpdate()"]');
+  fmsBtnLoading(instBtnStart, '⏳ Updating...');
+  const installed = parseInt(document.getElementById('fmsUpdateInstalled').value) || 0;
+  const totalQtyInst = parseInt(_fmsCurrentOrder?.quantity) || 0;
+  const pending = totalQtyInst - installed;
+  const notes     = document.getElementById('fmsUpdateNotes').value.trim();
+  const myEmail   = CURRENT_USER?.email || '';
+  const now       = new Date().toISOString();
+  const isCompleted = installed >= (_fmsCurrentOrder.quantity || 0) && installed > 0;
+
+  try{
+    // Update installation record
+    const instRes = await fetch(`${SUPABASE_URL}/rest/v1/fms_installation?order_id=eq.${_fmsCurrentOrder.id}&order=created_at.desc&limit=1`, { headers: SB_HDRS() });
+    const instRows = await instRes.json();
+
+    if(instRows[0]){
+      await fetch(`${SUPABASE_URL}/rest/v1/fms_installation?id=eq.${instRows[0].id}`, {
+        method: 'PATCH',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({
+          devices_installed: installed,
+          devices_pending: pending,
+          installation_notes: notes || null,
+          is_completed: isCompleted,
+          completed_at: isCompleted ? now : null,
+          updated_by: myEmail
+        })
+      });
+    }
+
+    // Update order if complete
+    if(isCompleted){
+      await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${_fmsCurrentOrder.id}`, {
+        method: 'PATCH',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({ status: 'completed', current_step: 5, step5_completed_at: now })
+      });
+    }
+
+    fmsToast(isCompleted ? '🎉 Order marked as Completed!' : '✅ Installation updated!');
+    const instBtn = document.querySelector('#fmsInstallUpdateOverlay button[onclick="fmsSubmitInstallUpdate()"]');
+    fmsBtnSuccess(instBtn, isCompleted ? '🎉 Completed!' : '✅ Updated!', 'fmsInstallUpdateOverlay');
+    setTimeout(() => fmsLoadOrders(), 950);
+  } catch(e){
+    const instBtn = document.querySelector('#fmsInstallUpdateOverlay button[onclick="fmsSubmitInstallUpdate()"]');
+    fmsBtnReset(instBtn);
+    fmsToast('❌ Error: ' + e.message);
+  }
+}
+
+// ── TIMELINE (Read-only detail view) ──────────────────────────────────────
+async function fmsOpenTimeline(orderId){
+  const o = _fmsOrders.find(x => x.id === orderId);
+  if(!o) return;
+
+  document.getElementById('fmsTimelineTitle').innerHTML = `
+    📋 Order: <span style="color:var(--accent);">${o.so_number}</span> &nbsp; ${fmsStatusLabel(o.status)}
+  `;
+
+  // Edit/Delete — MIS/Owner only
+  const tlActions = document.getElementById('fmsTimelineActions');
+  const _isMISOwner = CURRENT_USER?.rawRole==='mis' || CURRENT_USER?.rawRole==='managing director';
+  if(tlActions){
+    tlActions.innerHTML = _isMISOwner ? `
+      <button onclick="fmsEditOrder(${orderId})" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">✏️ Edit</button>
+      <button onclick="fmsDeleteOrder(${orderId})" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(255,92,124,0.4);background:rgba(255,92,124,0.08);color:#ff5c7c;font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">🗑️ Delete</button>
+    ` : '';
+  }
+
+  // Load data
+  const [assignRes, configRes, installRes] = await Promise.all([
+    fetch(`${SUPABASE_URL}/rest/v1/fms_assignments?order_id=eq.${orderId}&order=assigned_at`, { headers: SB_HDRS() }),
+    fetch(`${SUPABASE_URL}/rest/v1/fms_configuration?order_id=eq.${orderId}&order=configured_at.desc&limit=1`, { headers: SB_HDRS() }),
+    fetch(`${SUPABASE_URL}/rest/v1/fms_installation?order_id=eq.${orderId}&order=created_at.desc&limit=1`, { headers: SB_HDRS() }),
+  ]);
+  const assignments = await assignRes.json();
+  const config  = (await configRes.json())[0] || null;
+  const install = (await installRes.json())[0] || null;
+
+  const step   = o.current_step || 1;
+  const fmtDt  = dt => dt ? new Date(dt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : null;
+  const fmtDate= dt => dt ? new Date(dt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+  const locName = o.location_type==='outside' ? (o.location_manual||'Outside') : (_fmsLocations.find(l=>l.id===o.location_id)?.location_name||'—');
+  const pendAmt = (parseFloat(o.order_amount)||0) - (parseFloat(o.amount_received)||0);
+
+  // ── STEP DATA ──
+  const stepDefs = [
+    {
+      icon:'🗒️', label:'Order Created',     color:'#f0a500',
+      state: step>=1?'done':'active',
+      tat: null,
+      time: fmtDt(o.step1_completed_at||o.created_at),
+      info: `By ${fmsEmpName(o.created_by)} → ${fmsEmpName(o.assigned_to_support)}`
+    },
+    {
+      icon:'🔧', label:'Support Assign',     color:'#fb923c',
+      state: step>=2?'done':step===1?'active':'pending',
+      tat: fmsTatStr(o.step1_completed_at, o.step2_completed_at),
+      time: fmtDt(o.step2_completed_at),
+      info: step>=2 ? `To: ${fmsEmpName(FMS_ANISH_EMAIL)}` : '⏳ Pending'
+    },
+    {
+      icon:'💾', label:'Configuration',      color:'#4e9af1',
+      state: step>=3?'done':step===2?'active':'pending',
+      tat: fmsTatStr(o.step3_started_at, o.step3_completed_at),
+      time: fmtDt(config?.configured_at),
+      info: config ? (config.is_skipped ? `Skipped — ${config.skip_reason||''}` : `✓ ${config.configured_qty} done, ${config.not_configured_qty} pending`) : '⏳ Pending'
+    },
+    {
+      icon:'🔩', label:'Installation',       color:'#a855f7',
+      state: step>=4?'done':step===3?'active':'pending',
+      tat: fmsTatStr(o.step4_started_at, o.step4_completed_at),
+      time: fmtDt(install?.assigned_at),
+      info: install ? `Eng: ${fmsEmpName(install.engineer_email)} · ${install.devices_installed}/${o.quantity} installed` : '⏳ Pending'
+    },
+    {
+      icon:'🏁', label:'Completed',          color:'#00d4aa',
+      state: o.status==='completed'?'done':step>=4?'active':'pending',
+      tat: fmsTatStr(o.step5_started_at, o.step5_completed_at),
+      time: fmtDt(o.step5_completed_at),
+      info: o.status==='completed' ? '🎉 Order Completed' : '⏳ Pending'
+    },
+  ];
+
+  // ── HORIZONTAL PIPELINE with TAT on line ──
+  let pipeHtml = '<div style="display:flex;align-items:flex-start;width:100%;padding:0.5rem 0;">';
+  stepDefs.forEach((s, i) => {
+    const isDone   = s.state==='done';
+    const isActive = s.state==='active';
+    const color    = s.color;
+
+    let circleBg = isDone ? `linear-gradient(135deg,${color}99,${color}dd)` : isActive ? 'var(--surface)' : 'var(--surface2)';
+    let circleBdr = isDone||isActive ? color : 'rgba(130,130,150,0.3)';
+    let circleOp  = isDone||isActive ? '1' : '0.4';
+    let glow      = isActive ? `box-shadow:0 0 0 3px ${color}22;` : '';
+    let checkmark = isDone ? `<div style="position:absolute;top:-2px;right:-2px;width:13px;height:13px;border-radius:50%;background:#22c55e;border:1.5px solid var(--surface);display:flex;align-items:center;justify-content:center;font-size:0.45rem;color:#fff;font-weight:900;">✓</div>` : '';
+
+    // Step cell — NO TAT here
+    pipeHtml += `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;min-width:80px;">
+      <div style="position:relative;width:36px;height:36px;border-radius:50%;background:${circleBg};border:2px solid ${circleBdr};display:flex;align-items:center;justify-content:center;font-size:0.9rem;opacity:${circleOp};${glow}">
+        ${s.icon}${checkmark}
+      </div>
+      <div style="font-size:0.62rem;font-weight:700;color:${isDone?color:isActive?color:'var(--muted)'};text-align:center;margin-top:2px;">${s.label}</div>
+      <div style="font-size:0.58rem;color:var(--muted);text-align:center;line-height:1.3;">${s.time||''}</div>
+      <div style="font-size:0.58rem;color:${isDone?color+'cc':isActive?color+'99':'var(--muted)'};text-align:center;line-height:1.3;max-width:80px;">${s.info}</div>
+    </div>`;
+
+    // Connector line with TAT label on top
+    if(i < stepDefs.length - 1){
+      const nextS     = stepDefs[i+1];
+      const lineColor = isDone ? s.color : 'rgba(140,140,160,0.18)';
+      const lineOp    = isDone ? '0.9' : '1';
+      const tatLabel  = nextS.tat ? `⏱ ${nextS.tat}` : '';
+      pipeHtml += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;min-width:40px;">
+        <!-- TAT label above line -->
+        <div style="height:20px;display:flex;align-items:center;justify-content:center;">
+          ${tatLabel ? `<span style="font-size:0.58rem;font-weight:700;color:${isDone?s.color:'var(--muted)'};background:${isDone?s.color+'12':'transparent'};border-radius:20px;padding:1px 6px;white-space:nowrap;">${tatLabel}</span>` : ''}
+        </div>
+        <!-- Line at circle center (18px = circle center) -->
+        <div style="width:100%;height:2px;background:${lineColor};opacity:${lineOp};border-radius:1px;margin-top:0px;"></div>
+      </div>`;
+    }
   });
-  fmsMainPage=1;
-  fmsRenderCharts(fmsFiltered);
-  fmsUpdateKPIs();
-  fmsRenderCPTable();
-  fmsRenderDoerSummary();
-  fmsRenderMainTable();
-}
+  pipeHtml += '</div>';
 
-function fmsSort2(key){
-  if(fmsSortKey===key)fmsSortDir*=-1;else{fmsSortKey=key;fmsSortDir=1;}
-  fmsFiltered.sort((a,b)=>String(a[key]||'').localeCompare(String(b[key]||''))*fmsSortDir);
-  fmsRenderMainTable();
-}
+  document.getElementById('fmsTimelinePipeline').innerHTML = pipeHtml;
 
-function fmsRenderMainTable(){
-  const tot=fmsFiltered.length;
-  document.getElementById('fTableCount').textContent=tot+' record'+(tot!==1?'s':'');
-  if(!tot){
-    document.getElementById('fMainTableBody').innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted);">No data found 😕<br><small style="font-size:0.85rem;">Press the Reset button</small></div>';
-    document.getElementById('fMainPagination').style.display='none';
-    return;
-  }
-  const start=(fmsMainPage-1)*FMS_PER_PAGE;
-  const pg=fmsFiltered.slice(start,start+FMS_PER_PAGE);
-  const rows=pg.map((r)=>{
-    const delayed=fmsIsDelayed(r);
-    const rowBg=delayed?'rgba(255,92,124,0.035)':'';
-    const doerIdx=[...new Set(fmsAllData.map(x=>x.doerName))].indexOf(r.doerName);
-    const doerCol=FMS_COLS[doerIdx%FMS_COLS.length]||'#888';
-    const fmtDate=fmsFmtDate(r.planned);
-    const statusBadge=delayed
-      ?'<span style="font-size:0.70rem;color:#ff5c7c;font-weight:700;background:rgba(255,92,124,0.12);padding:2px 8px;border-radius:20px;white-space:nowrap;">⚠ Delayed</span>'
-      :'<span style="font-size:0.70rem;color:#00d4aa;font-weight:700;background:rgba(0,212,170,0.1);padding:2px 8px;border-radius:20px;white-space:nowrap;">✓ Remaining</span>';
-    const markDoneBtn=r.link&&r.link.startsWith('http')
-      ?`<button onclick="event.stopPropagation();fmsOpenMarkDone(${fmsAllData.indexOf(r)})" style="padding:5px 14px;border-radius:20px;border:1.5px solid ${delayed?'#ff5c7c':'#f0a500'};background:transparent;color:${delayed?'#ff5c7c':'#f0a500'};font-size:0.82rem;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Mark Done</button>`
-      :'<span style="font-size:0.80rem;color:var(--muted);">—</span>';
-    return`<div onclick="fmsOpenMarkDone(${fmsAllData.indexOf(r)})" style="display:grid;grid-template-columns:1.1fr 1.1fr 2fr 1.3fr 1fr;border-bottom:1px solid var(--border);background:${rowBg};cursor:pointer;align-items:center;" onmouseover="this.style.background='rgba(255,255,255,0.025)'" onmouseout="this.style.background='${rowBg}'">
-      <div style="padding:0.65rem 1rem;border-right:1px solid var(--border);">
-        <div style="font-size:0.89rem;font-weight:800;color:#00d4ff;letter-spacing:0.01em;">${r.uniqueKey}</div>
-        <div style="font-size:0.79rem;color:var(--muted);margin-top:3px;line-height:1.3;">${r.customerName||'—'}</div>
-      </div>
-      <div style="padding:0.65rem 1rem;border-right:1px solid var(--border);">
-        <div style="font-size:0.88rem;font-weight:600;color:${doerCol};">${r.doerName||'—'}</div>
-        <div style="font-size:0.73rem;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;">${r.doerEmail||''}</div>
-      </div>
-      <div style="padding:0.65rem 1rem;border-right:1px solid var(--border);">
-        <div style="font-size:0.86rem;color:var(--text);line-height:1.4;">${r.plannedStep||'—'}</div>
-        <div style="font-size:0.74rem;color:var(--muted);margin-top:2px;font-style:italic;">${r.product||''}</div>
-      </div>
-      <div style="padding:0.65rem 1rem;border-right:1px solid var(--border);">
-        <div style="font-size:0.84rem;font-weight:500;color:var(--text);font-family:'DM Mono',monospace,sans-serif;">${fmtDate}</div>
-        <div style="margin-top:4px;">${statusBadge}</div>
-      </div>
-      <div style="padding:0.65rem 1rem;text-align:center;">${markDoneBtn}</div>
+  // ── ORDER DATA — Odoo style: label left, value right ──
+  const row = (label, value, valueStyle='') =>
+    `<div style="display:flex;align-items:baseline;padding:0.38rem 0;border-bottom:1px solid var(--border2);">
+      <span style="min-width:140px;font-size:0.78rem;color:var(--muted);font-weight:600;flex-shrink:0;">${label}</span>
+      <span style="font-size:0.86rem;font-weight:600;color:var(--text);flex:1;${valueStyle}">${value}</span>
     </div>`;
-  }).join('');
-  document.getElementById('fMainTableBody').innerHTML=rows;
-  const tp=Math.ceil(tot/FMS_PER_PAGE),s=start+1,e=Math.min(fmsMainPage*FMS_PER_PAGE,tot);
-  document.getElementById('fMainPageInfo').textContent=`${s}–${e} of ${tot}`;
-  let btns='';
-  if(fmsMainPage>1)btns+=`<button onclick="fmsMainGoPage(${fmsMainPage-1})" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">‹</button>`;
-  for(let i=Math.max(1,fmsMainPage-2);i<=Math.min(tp,fmsMainPage+2);i++)btns+=`<button onclick="fmsMainGoPage(${i})" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:${i===fmsMainPage?'#f0a500':'transparent'};color:${i===fmsMainPage?'#000':'var(--text)'};cursor:pointer;font-size:0.88rem;">${i}</button>`;
-  if(fmsMainPage<tp)btns+=`<button onclick="fmsMainGoPage(${fmsMainPage+1})" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">›</button>`;
-  document.getElementById('fMainPageBtns').innerHTML=btns;
-  document.getElementById('fMainPagination').style.display='flex';
+
+  document.getElementById('fmsTimelineInfo').innerHTML = `
+    <div style="border-top:1px solid var(--border);padding-top:0.85rem;margin-top:0.25rem;">
+
+      <!-- Section: Order Info -->
+      <div style="font-size:0.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.4rem;opacity:0.7;">Order Details</div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:0 0.9rem;margin-bottom:0.85rem;">
+        ${row('Client', o.client_name||'—')}
+        ${row('SO Number', o.so_number||'—', 'color:var(--accent);')}
+        ${row('Ticket No', o.ticket_no||'—')}
+        ${row('Location', locName)}
+        ${row('Products', fmsProductNames(o.product_ids, o.product_items))}
+        ${row('Total Quantity', `<span style="color:var(--accent);font-size:1rem;font-weight:700;">${o.quantity||'—'}</span> units`)}
+        ${row('Created By', fmsEmpName(o.created_by))}
+        ${row('Assigned To', fmsEmpName(o.assigned_to_support))}
+      </div>
+
+      <!-- Section: Payment Info -->
+      <div style="font-size:0.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.4rem;opacity:0.7;">Payment Details</div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:0 0.9rem;margin-bottom:0.5rem;">
+        ${row('Order Amount', `₹${(o.order_amount||0).toLocaleString('en-IN')}`)}
+        ${row('Amount Received', `₹${(o.amount_received||0).toLocaleString('en-IN')}`, 'color:#00d4aa;')}
+        ${row('Pending Amount', `₹${pendAmt.toLocaleString('en-IN')}`, `color:${pendAmt>0?'#ff5c7c':'#00d4aa'};`)}
+        ${o.tentative_date ? row('Payment Due Date', fmtDate(o.tentative_date), 'color:#f0a500;') : ''}
+        ${o.payment_proof_url ? `<div style="display:flex;align-items:center;padding:0.38rem 0;">
+          <span style="min-width:140px;font-size:0.78rem;color:var(--muted);font-weight:600;">Payment Proof</span>
+          <a href="${o.payment_proof_url}" target="_blank" style="color:#4e9af1;font-size:0.84rem;font-weight:600;text-decoration:none;">📎 View File</a>
+        </div>` : ''}
+      </div>
+
+    </div>
+  `;
+
+  document.getElementById('fmsTimelineOverlay').classList.add('open');
 }
 
-function fmsMainGoPage(n){fmsMainPage=n;fmsRenderMainTable();}
-
-function fmsOpenMarkDone(idx){
-  const r=fmsAllData[idx];if(!r)return;
-  const delayed=fmsIsDelayed(r);
-  document.getElementById('fmsMarkDoneInfo').innerHTML=`
-    <b style="color:#f0a500;">${r.uniqueKey}</b> — ${r.customerName||'Customer'}<br>
-    <span style="color:var(--muted);">Doer:</span> ${r.doerName||'—'} &nbsp;|&nbsp; <span style="color:var(--muted);">Product:</span> ${r.product||'—'}<br>
-    <span style="color:var(--muted);">Step:</span> ${r.plannedStep||'—'}<br>
-    <span style="color:var(--muted);">Planned:</span> ${fmsFmtDate(r.planned)}<br>
-    <span style="color:var(--muted);">Status:</span> ${delayed?'<span style="color:var(--hot);font-weight:600;">⚠ Delayed (For PC = Yes)</span>':'<span style="color:var(--won);font-weight:600;">✓ Remaining (For PC = No)</span>'}`;
-  const lnk=document.getElementById('fmsMarkDoneLink');
-  if(r.link&&r.link.startsWith('http')){lnk.href=r.link;lnk.style.display='inline-flex';}else{lnk.style.display='none';}
-  document.getElementById('fmsMarkDoneModal').style.display='flex';
-}
-function closeFmsMarkDone(){document.getElementById('fmsMarkDoneModal').style.display='none';}
-document.getElementById('fmsMarkDoneModal').addEventListener('click',function(e){if(e.target===this)closeFmsMarkDone();});
-
-function fmsClearAllFilters(){
-  document.getElementById('fSearch').value='';
-  document.getElementById('fProductFilter').value='';
-  document.getElementById('fDoerFilter').value='';
-  document.getElementById('fStatusFilter').value='';
-  document.getElementById('fDateFrom').value='';
-  document.getElementById('fDateTo').value='';
-  fmsDateFrom=null; fmsDateTo=null;
-  fmsCurrentFilter='all';
-  fmsFiltered=[...fmsAllData];
-  fmsMainPage=1;
-  fmsRefreshAll();
+function fmsCloseTimeline(){
+  document.getElementById('fmsTimelineOverlay').classList.remove('open');
 }
 
-function fmsExportCSV(){
-  const h=['Unique Key','Customer Name','Product','Doer Name','Planned Step','Planned','For PC','Doer Email','Form Link'];
-  const rows=fmsFiltered.map(r=>[r.uniqueKey,r.customerName,r.product,r.doerName,r.plannedStep,r.planned,r.forPC,r.doerEmail,r.link].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...rows].join('\n'));a.download='fms_tasks_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+// ── Edit Order — reopen New Order form pre-filled ──────────────────────────
+async function fmsEditOrder(orderId){
+  const o = _fmsOrders.find(x => x.id === orderId);
+  if(!o) return;
+
+  // Close timeline first
+  fmsCloseTimeline();
+
+  // Open New Order form
+  await fmsOpenNewOrder();
+
+  // Pre-fill all fields
+  setTimeout(() => {
+    // Client
+    document.getElementById('fmsClientSearch').value = o.client_name || '';
+    document.getElementById('fmsClientId').value     = o.client_id || '';
+
+    // Basic fields
+    document.getElementById('fmsSoNumber').value          = o.so_number || '';
+    document.getElementById('fmsTicketNo').value          = o.ticket_no || '';
+    document.getElementById('fmsOrderAmount').value       = o.order_amount || '';
+    document.getElementById('fmsAmountReceived').value    = o.amount_received || '';
+    document.getElementById('fmsTentativeDate').value     = o.tentative_date || '';
+
+    // Products — rebuild rows
+    const container = document.getElementById('fmsProductRows');
+    if(container && o.product_items){
+      try{
+        const items = JSON.parse(o.product_items);
+        container.innerHTML = '';
+        items.forEach(item => {
+          fmsAddProductRow();
+          const rows = container.querySelectorAll('.fms-product-row');
+          const lastRow = rows[rows.length-1];
+          const sel = lastRow.querySelector('.fms-product-select');
+          const qty = lastRow.querySelector('.fms-product-qty');
+          if(sel) sel.value = item.product_id;
+          if(qty) qty.value = item.quantity;
+        });
+      } catch(e){}
+    }
+
+    // Location
+    if(o.location_type === 'outside'){
+      fmsSelectLocation('other', 'Other', document.querySelector('#fmsLocationGrid label:last-child'));
+      document.getElementById('fmsLocationManual').value = o.location_manual || '';
+    } else if(o.location_id){
+      const locLabel = document.querySelector(`#fmsLocationGrid label input[value="${o.location_id}"]`);
+      if(locLabel) fmsSelectLocation(o.location_id, '', locLabel.closest('label'));
+    }
+
+    // Assign support
+    document.getElementById('fmsAssignSupport').value = o.assigned_to_support || '';
+
+    // Change submit button to UPDATE
+    const submitBtn = document.querySelector('#fmsNewOrderOverlay button[onclick="fmsSubmitNewOrder()"]');
+    if(submitBtn){
+      submitBtn.textContent = '💾 Update Order';
+      submitBtn.onclick = () => fmsUpdateOrder(orderId);
+    }
+
+    // Change title
+    const title = document.querySelector('#fmsNewOrderOverlay div[style*="Playfair"]');
+    if(title) title.innerHTML = '✏️ Edit Order — <span style="color:var(--accent);">' + (o.so_number||'') + '</span>';
+
+  }, 200);
 }
+
+// ── Update Order (PATCH) ───────────────────────────────────────────────────
+async function fmsUpdateOrder(orderId){
+  const _submitBtn = document.querySelector('#fmsNewOrderOverlay button');
+  fmsBtnLoading(_submitBtn, '⏳ Updating...');
+
+  const clientSearch = document.getElementById('fmsClientSearch').value.trim();
+  const clientId     = document.getElementById('fmsClientId').value;
+  const soNumber     = document.getElementById('fmsSoNumber').value.trim();
+  const ticketNo     = document.getElementById('fmsTicketNo').value.trim();
+  const orderAmt     = parseFloat(document.getElementById('fmsOrderAmount').value) || null;
+  const amtRcvd      = parseFloat(document.getElementById('fmsAmountReceived').value) || null;
+  const tentDate     = document.getElementById('fmsTentativeDate').value || null;
+  const assignTo     = document.getElementById('fmsAssignSupport').value;
+  const locManual    = document.getElementById('fmsLocationManual').value.trim();
+
+  const productItems = fmsGetProductItems();
+  const productIds   = productItems.map(i => i.product_id);
+  const quantity     = productItems.reduce((s,r) => s+(r.quantity||0), 0);
+
+  if(!soNumber){ fmsToast('❌ SO Number required'); fmsBtnReset(_submitBtn); return; }
+  if(!productItems.length){ fmsToast('❌ Add at least one product'); fmsBtnReset(_submitBtn); return; }
+  if(!_fmsSelectedLocation){ fmsToast('❌ Select a location'); fmsBtnReset(_submitBtn); return; }
+
+  const payload = {
+    client_id:           clientId ? parseInt(clientId) : null,
+    client_name:         clientSearch,
+    so_number:           soNumber,
+    ticket_no:           ticketNo || null,
+    product_ids:         productIds,
+    product_items:       JSON.stringify(productItems.map(i=>({product_id:i.product_id,product_name:i.product_name,quantity:i.quantity}))),
+    quantity:            quantity,
+    order_amount:        orderAmt,
+    amount_received:     amtRcvd,
+    tentative_date:      tentDate,
+    location_type:       _fmsSelectedLocation.id==='other'?'outside':'local',
+    location_id:         _fmsSelectedLocation.id!=='other'?parseInt(_fmsSelectedLocation.id):null,
+    location_manual:     _fmsSelectedLocation.id==='other'?locManual:null,
+    assigned_to_support: assignTo,
+  };
+
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${orderId}`, {
+      method: 'PATCH',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok){ const e=await res.text(); throw new Error(e); }
+    fmsToast('✅ Order updated!');
+    fmsBtnSuccess(_submitBtn, '✅ Updated!', 'fmsNewOrderOverlay');
+    setTimeout(() => { fmsLoadOrders(); _fmsSubmitting = false; }, 950);
+  } catch(e){
+    fmsToast('❌ Error: ' + e.message);
+    fmsBtnReset(_submitBtn);
+  }
+}
+
+// ── Delete Order ───────────────────────────────────────────────────────────
+async function fmsDeleteOrder(orderId){
+  const o = _fmsOrders.find(x => x.id === orderId);
+  if(!o) return;
+
+  // Confirm
+  if(!confirm(`Delete order "${o.so_number}" for "${o.client_name}"?
+
+This cannot be undone.`)) return;
+
+  fmsCloseTimeline();
+
+  try{
+    // Delete related records first (CASCADE should handle it but being safe)
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_assignments?order_id=eq.${orderId}`,   { method:'DELETE', headers:SB_HDRS() });
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_configuration?order_id=eq.${orderId}`, { method:'DELETE', headers:SB_HDRS() });
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_installation?order_id=eq.${orderId}`,  { method:'DELETE', headers:SB_HDRS() });
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${orderId}`,              { method:'DELETE', headers:SB_HDRS() });
+
+    fmsToast('🗑️ Order deleted');
+    fmsLoadOrders();
+  } catch(e){
+    fmsToast('❌ Delete failed: ' + e.message);
+  }
+}
+
+// Close overlays on backdrop click
+['fmsNewOrderOverlay','fmsSupportOverlay','fmsConfigOverlay','fmsEngineerOverlay','fmsInstallUpdateOverlay','fmsTimelineOverlay'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('click', function(e){ if(e.target === this) this.classList.remove('open'); });
+});
+
+
 
 
 
@@ -8800,7 +10346,7 @@ function tUndoTask(taskId){
         showToast && showToast('↩️ Task undone & database updated!', 'success', 3000);
         setTimeout(() => { _tasksLastSync = 0; tSilentRefresh(); }, 3000);
       } else {
-        showToast && showToast('⚠️ UI updated but DB sync failed. Refresh karain.', 'error', 4000);
+        showToast && showToast('⚠️ UI updated but DB sync failed. Please refresh.', 'error', 4000);
       }
     }).catch(() => {
       showToast && showToast('⚠️ Network error — DB update failed.', 'error', 4000);
@@ -9754,7 +11300,7 @@ let PERMISSIONS  = {};   // populated from Python backend after login
 const _PAPI = 'https://knowlege-based-portal-production.up.railway.app';
 function warmupAPIs(){
   // Warm-up ping to Google Apps Scripts (fire & forget)
-  [L_URL,C_URL,FMS_API].forEach(url=>{
+  [L_URL,C_URL].forEach(url=>{
     fetch(url+'?ping=1',{method:'GET',mode:'cors'}).catch(()=>{});
   });
 }
@@ -23019,7 +24565,12 @@ let _acpUsers = [], _acpAllKeys = [], _acpLoaded = false;
 const _permLabels = {
   can_view_leads:         '📊 Lead Tracking Dashboard',
   can_view_collection:    '💰 Collection Dashboard',
-  can_view_fms:           '🚚 FMS O2D Dashboard',
+  can_view_fms:           '🔧 FMS Installation Tracker',
+      fms_create:             '📋 FMS Create Order',
+      fms_support:            '👷 FMS Support Actions',
+      fms_config:             '⚙️ FMS Config (Anish)',
+      fms_view_all:           '👁 FMS View All Orders',
+      fms_override:           '🔑 FMS Override (MIS)',
   can_view_ims:           '📦 IMS Dashboard',
   can_view_mapping:             '🗺️ Customer Mapping — View',
   can_edit_mapping:             '🗺️ Customer Mapping — Edit',
