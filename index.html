@@ -10114,8 +10114,6 @@ function tRenderTable(){
     const hasUpload = !!(r['_upload_url'] || tGetUploadCount(r['Task ID']||'') > 0);
     const uploadUrl  = r['_upload_url'] || (() => { try{ const s=JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}'); const f=(s[String(r['Task ID']||'')]||[])[0]; return f?f.url:null; }catch(e){return null;} })();
     const uploadCell = `
-      <input type="file" id="tfu_${r['Task ID']||''}" style="display:none;" accept="*/*"
-        onchange="tDirectUpload(this,'${r['Task ID']||''}')">
       <div style="display:flex;align-items:center;justify-content:center;">
         ${hasUpload && uploadUrl
           ? `<a href="${uploadUrl}" target="_blank" rel="noopener" title="See Your Uploaded file"
@@ -10125,7 +10123,7 @@ function tRenderTable(){
                onmouseover="this.style.background='rgba(0,212,170,0.25)'"
                onmouseout="this.style.background='rgba(0,212,170,0.12)'">📄</a>`
           : `<button id="tfu_btn_${r['Task ID']||''}" title="${_attachMissing?'Mandatory — File/PDF':'Upload file'}"
-               onclick="document.getElementById('tfu_${r['Task ID']||''}').click()"
+               onclick="tOpenTaskUpload('${r['Task ID']||''}','${(r['Task']||'').replace(/'/g,"\\'")}')"
                style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;
                       background:${_attachMissing?'rgba(255,92,124,0.10)':'rgba(168,85,247,0.08)'};border:1.5px solid ${_attachMissing?'rgba(255,92,124,0.5)':'rgba(168,85,247,0.3)'};
                       border-radius:8px;font-size:1rem;cursor:pointer;transition:all 0.18s;color:${_attachMissing?'#ff5c7c':'#a855f7'};"
@@ -10943,6 +10941,12 @@ function tUnlockMarkDoneIfReady(taskId){
 async function tDirectUpload(input, taskId){
   const file = input.files[0];
   if(!file) return;
+  await tProcessTaskFile(file, taskId);
+  input.value='';
+}
+// ── Shared upload logic — click, drag&drop, aur Ctrl+V paste teeno yahi function use karte hain ──
+async function tProcessTaskFile(file, taskId){
+  if(!file) return;
   const tid = String(taskId);
 
   const btn = document.getElementById('tfu_btn_'+tid);
@@ -11064,7 +11068,6 @@ async function tDirectUpload(input, taskId){
     tUnlockMarkDoneIfReady(tid);
     console.error('Upload error:', err);
   }
-  input.value='';
 }
 function isCloudUploadDone(u){ return !!u; }
 
@@ -11081,8 +11084,8 @@ function tOpenTaskUpload(taskId, taskName){
   document.getElementById('taskUploadTaskName').textContent = taskName;
   document.getElementById('taskUploadStatus').style.display = 'none';
   document.getElementById('taskUploadFileInput').value      = '';
-  document.getElementById('taskUploadDropLabel').textContent= 'Click or drag a file here';
-  document.getElementById('taskUploadDropMeta').textContent = 'PDF, Image, Doc — any format';
+  document.getElementById('taskUploadDropLabel').textContent= 'Click, drag & drop, or paste (Ctrl+V)';
+  document.getElementById('taskUploadDropMeta').textContent = 'You can upload a file, drag & drop, or copy-paste a screenshot directly';
   document.getElementById('taskUploadDropZone').style.borderColor = '';
   document.getElementById('taskUploadDropZone').style.background  = '';
 
@@ -11169,6 +11172,25 @@ function tHandleTaskFileSelect(e){
   document.getElementById('taskUploadDropZone').style.background  = 'rgba(168,85,247,0.06)';
 }
 
+// ── Task Upload Modal — Ctrl+V se screenshot paste karne ka support ──────
+document.addEventListener('paste', function(e){
+  const modal = document.getElementById('taskUploadModal');
+  if(!modal || modal.style.display !== 'flex') return; // modal khula nahi hai to kuch na karo
+  const items = e.clipboardData?.items;
+  if(!items) return;
+  for(let item of items){
+    if(item.type.startsWith('image/')){
+      const file = item.getAsFile();
+      if(!file) continue;
+      const namedFile = new File([file], `screenshot_${Date.now()}.png`, { type: 'image/png' });
+      tHandleTaskFileSelect({ target: { files: [namedFile] } });
+      showToast && showToast('📋 Screenshot pasted! Click Upload to save.', 'success', 2500);
+      e.preventDefault();
+      break;
+    }
+  }
+});
+
 async function tSubmitTaskUpload(){
   if(!_taskUploadFile){ alert('Please select a file first!'); return; }
   if(!_taskUploadId){ return; }
@@ -11244,8 +11266,8 @@ async function tSubmitTaskUpload(){
     tRenderTable();
     document.getElementById('taskUploadFileInput').value = '';
     _taskUploadFile = null;
-    document.getElementById('taskUploadDropLabel').textContent = 'Click or drag a file here';
-    document.getElementById('taskUploadDropMeta').textContent  = 'PDF, Image, Doc — any format';
+    document.getElementById('taskUploadDropLabel').textContent = 'Click, drag & drop, or paste (Ctrl+V)';
+    document.getElementById('taskUploadDropMeta').textContent  = 'You can upload a file, drag & drop, or copy-paste a screenshot directly';
     document.getElementById('taskUploadDropZone').style.borderColor = '';
     document.getElementById('taskUploadDropZone').style.background  = '';
 
@@ -24728,8 +24750,8 @@ async function deletePortalUpdate(id) {
         padding:22px 16px;text-align:center;cursor:pointer;
         transition:all 0.2s;margin-bottom:12px;background:rgba(168,85,247,0.03);">
       <div style="font-size:1.6rem;margin-bottom:6px;">📎</div>
-      <div id="taskUploadDropLabel" style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:3px;">Click or drag a file here</div>
-      <div id="taskUploadDropMeta"  style="font-size:0.76rem;color:var(--muted);">PDF, Image, Doc — any format</div>
+      <div id="taskUploadDropLabel" style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:3px;">Click, drag & drop, or paste (Ctrl+V)</div>
+      <div id="taskUploadDropMeta"  style="font-size:0.76rem;color:var(--muted);">You can upload a file, drag & drop, or copy-paste a screenshot directly</div>
       <input type="file" id="taskUploadFileInput" style="display:none;" onchange="tHandleTaskFileSelect(event)" accept="*/*">
     </div>
 
@@ -24741,15 +24763,9 @@ async function deletePortalUpdate(id) {
       width:100%;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;
       border:none;border-radius:12px;padding:13px;font-size:0.94rem;font-weight:700;
       cursor:pointer;font-family:'Playfair Display',serif;letter-spacing:0.03em;
-      margin-bottom:18px;transition:all 0.2s;">
+      transition:all 0.2s;">
       📤 Upload
     </button>
-
-    <!-- Divider -->
-    <div style="border-top:1px solid var(--border);padding-top:14px;">
-      <div style="font-size:0.76rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Previously Uploaded Files</div>
-      <div id="taskUploadFileList"></div>
-    </div>
   </div>
 </div>
 <!-- ╔═══════════════════════════════════════════════════════════════════════
