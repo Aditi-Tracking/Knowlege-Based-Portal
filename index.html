@@ -4095,19 +4095,15 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
           onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"
           ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
           ondragleave="this.style.borderColor='var(--border)'"
-          ondrop="event.preventDefault();fmsHandleProofFile(event.dataTransfer.files[0])">
+          ondrop="event.preventDefault();fmsHandleProofFiles(event.dataTransfer.files)">
           <span style="font-size:1.3rem;">📎</span>
           <div>
             <div style="font-size:0.84rem;color:var(--text);font-weight:600;">Click to upload or drag & drop</div>
-            <div style="font-size:0.74rem;color:var(--muted);">Also supports Ctrl+V to paste screenshot directly</div>
+            <div style="font-size:0.74rem;color:var(--muted);">Add multiple files — PDF, JPG, PNG • Ctrl+V to paste screenshot</div>
           </div>
         </div>
-        <input type="file" id="fmsPaymentProof" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="fmsHandleProofFile(this.files[0])">
-        <div id="fmsProofPreview" style="display:none;margin-top:8px;position:relative;">
-          <img id="fmsProofPreviewImg" style="max-height:120px;max-width:100%;border-radius:8px;border:1px solid var(--border);">
-          <div id="fmsProofFileName" style="font-size:0.75rem;color:var(--muted);margin-top:4px;"></div>
-          <button onclick="fmsClearProof()" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:0.7rem;">✕</button>
-        </div>
+        <input type="file" id="fmsPaymentProof" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" multiple onchange="fmsHandleProofFiles(this.files)">
+        <div id="fmsProofFileList" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;min-height:0;"></div>
         <div id="fmsProofStatus" style="font-size:0.8rem;color:var(--muted);margin-top:4px;"></div>
       </div>
 
@@ -7820,7 +7816,7 @@ function fmsRenderTable(){
       <td style="padding:0.28rem 0.75rem;border-left:3px solid transparent;vertical-align:middle;">
         <div style="display:flex;align-items:center;gap:5px;">
           <span style="font-weight:700;color:var(--accent);font-size:0.82rem;">${o.so_number||'—'}</span>
-          ${o.payment_proof_url ? `<a href="${o.payment_proof_url}" target="_blank" onclick="event.stopPropagation()" title="View Payment Proof" style="color:#4e9af1;font-size:0.85rem;line-height:1;text-decoration:none;">📎</a>` : ''}
+          ${o.payment_proof_url ? fmsProofLinks(o.payment_proof_url, 'font-size:0.85rem;') : ''}
         </div>
         <div style="font-size:0.65rem;color:var(--muted);">${created} · <strong>${o.quantity||0}</strong> units</div>
       </td>
@@ -7965,9 +7961,9 @@ async function fmsOpenNewOrder(){
   // Reset file input
   const proofInput = document.getElementById('fmsPaymentProof');
   if(proofInput) proofInput.value = '';
-  _fmsProofFile = null;
-  const pp = document.getElementById('fmsProofPreview');
-  if(pp) pp.style.display = 'none';
+  _fmsProofFiles = [];
+  const proofList = document.getElementById('fmsProofFileList');
+  if(proofList) proofList.innerHTML = '';
   _fmsSelectedLocation = null;
 
   document.getElementById('fmsNewOrderOverlay').classList.add('open');
@@ -8102,11 +8098,8 @@ async function fmsSubmitNewOrder(){
   if(!assignTo){ fmsToast('❌ Assign to support person'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
 
   // Upload payment proof if any
-  let proofUrl = null;
-  const proofFile = _fmsProofFile || document.getElementById('fmsPaymentProof').files[0];
-  if(proofFile){
-    proofUrl = await fmsUploadProof(proofFile);
-  }
+  const proofUrls = await fmsUploadAllProofs('fmsProofStatus');
+  const proofUrl = proofUrls.length > 0 ? JSON.stringify(proofUrls) : null;
 
   const now = new Date().toISOString();
   const myEmail = CURRENT_USER?.email || '';
@@ -8209,34 +8202,66 @@ async function fmsSubmitNewOrder(){
 }
 
 // ── Proof file state ──────────────────────────────────────────────────────
-let _fmsProofFile = null;
+let _fmsProofFiles = [];      // array of File objects — new order
 let _fmsUpdateProofFile = null;
 
-// Handle proof file — new order form
-function fmsHandleProofFile(file){
-  if(!file) return;
-  _fmsProofFile = file;
-  const preview = document.getElementById('fmsProofPreview');
-  const previewImg = document.getElementById('fmsProofPreviewImg');
-  const fileName = document.getElementById('fmsProofFileName');
-  if(preview && previewImg){
-    if(file.type.startsWith('image/')){
-      const reader = new FileReader();
-      reader.onload = e => { previewImg.src = e.target.result; preview.style.display='block'; };
-      reader.readAsDataURL(file);
-    } else {
-      previewImg.src = '';
-      previewImg.style.display = 'none';
-      preview.style.display = 'block';
+// Handle multiple proof files — new order form
+function fmsHandleProofFiles(fileList){
+  if(!fileList || !fileList.length) return;
+  const newFiles = Array.from(fileList);
+  newFiles.forEach(file => {
+    if(!_fmsProofFiles.find(f => f.name === file.name)){
+      _fmsProofFiles.push(file);
     }
-    if(fileName) fileName.textContent = `📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
-  }
+  });
+  fmsRenderProofPreviews();
+}
+
+// Legacy single-file handler (Ctrl+V paste still calls this)
+function fmsHandleProofFile(file){
+  if(file) fmsHandleProofFiles([file]);
+}
+
+function fmsRenderProofPreviews(){
+  const list = document.getElementById('fmsProofFileList');
+  if(!list) return;
+  list.innerHTML = '';
+  _fmsProofFiles.forEach((file, idx) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--bg);';
+    if(file.type.startsWith('image/')){
+      const img = document.createElement('img');
+      img.style.cssText = 'width:80px;height:80px;object-fit:cover;display:block;';
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; };
+      reader.readAsDataURL(file);
+      wrap.appendChild(img);
+    } else {
+      const icon = document.createElement('div');
+      icon.style.cssText = 'width:80px;height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:1.6rem;';
+      icon.innerHTML = '📄<span style="font-size:0.6rem;color:var(--muted);text-align:center;padding:0 4px;word-break:break-all;">' + file.name.slice(0,12) + '</span>';
+      wrap.appendChild(icon);
+    }
+    const rmBtn = document.createElement('button');
+    rmBtn.innerHTML = '✕';
+    rmBtn.style.cssText = 'position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.65);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:0.6rem;display:flex;align-items:center;justify-content:center;padding:0;';
+    rmBtn.onclick = () => { _fmsProofFiles.splice(idx, 1); fmsRenderProofPreviews(); };
+    wrap.appendChild(rmBtn);
+    const sizeLabel = document.createElement('div');
+    sizeLabel.style.cssText = 'font-size:0.58rem;color:var(--muted);text-align:center;padding:2px 4px;border-top:1px solid var(--border);background:var(--surface2);';
+    sizeLabel.textContent = (file.size/1024).toFixed(0) + ' KB';
+    wrap.appendChild(sizeLabel);
+    list.appendChild(wrap);
+  });
+  const status = document.getElementById('fmsProofStatus');
+  if(status) status.textContent = _fmsProofFiles.length > 0 ? `${_fmsProofFiles.length} file${_fmsProofFiles.length>1?'s':''} selected` : '';
 }
 
 function fmsClearProof(){
-  _fmsProofFile = null;
+  _fmsProofFiles = [];
   document.getElementById('fmsPaymentProof').value = '';
-  document.getElementById('fmsProofPreview').style.display = 'none';
+  const list = document.getElementById('fmsProofFileList');
+  if(list) list.innerHTML = '';
   document.getElementById('fmsProofStatus').textContent = '';
 }
 
@@ -8285,7 +8310,7 @@ document.addEventListener('paste', function(e){
       // Convert to named file
       const namedFile = new File([file], `screenshot_${Date.now()}.png`, { type: 'image/png' });
       if(newOrderOpen){
-        fmsHandleProofFile(namedFile);
+        fmsHandleProofFiles([namedFile]);
         fmsToast('📋 Screenshot pasted!');
       } else if(updatePmtOpen){
         fmsHandleUpdateProofFile(namedFile);
@@ -8302,9 +8327,6 @@ async function fmsUploadProof(file){
     const ext = file.name.split('.').pop().toLowerCase();
     const safeName = Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
     const path = `fms-proofs/${safeName}`;
-
-    document.getElementById('fmsProofStatus').textContent = '⏳ Uploading...';
-
     const res = await fetch(`${SUPABASE_URL}/storage/v1/object/fms-documents/${path}`, {
       method: 'POST',
       headers: {
@@ -8314,22 +8336,29 @@ async function fmsUploadProof(file){
       },
       body: file
     });
-
-    if(res.ok){
-      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/fms-documents/${path}`;
-      document.getElementById('fmsProofStatus').innerHTML = `✅ Uploaded — <a href="${publicUrl}" target="_blank" style="color:#4e9af1;">View File</a>`;
-      return publicUrl;
-    } else {
-      const err = await res.text();
-      console.error('Upload error:', err);
-      document.getElementById('fmsProofStatus').textContent = '❌ Upload failed — ' + (JSON.parse(err)?.error || err).slice(0,60);
-      return null;
-    }
+    if(res.ok) return `${SUPABASE_URL}/storage/v1/object/public/fms-documents/${path}`;
+    const err = await res.text();
+    console.error('Upload error:', err);
+    return null;
   } catch(e){
     console.error('Upload error:', e);
-    document.getElementById('fmsProofStatus').textContent = '❌ Upload error: ' + e.message;
     return null;
   }
+}
+
+async function fmsUploadAllProofs(statusElId='fmsProofStatus'){
+  if(!_fmsProofFiles.length) return [];
+  const statusEl = document.getElementById(statusElId);
+  if(statusEl) statusEl.textContent = `⏳ Uploading ${_fmsProofFiles.length} file(s)...`;
+  const urls = [];
+  for(let i = 0; i < _fmsProofFiles.length; i++){
+    const file = _fmsProofFiles[i];
+    if(statusEl) statusEl.textContent = `⏳ Uploading file ${i+1}/${_fmsProofFiles.length}...`;
+    const url = await fmsUploadProof(file);
+    if(url) urls.push(url);
+  }
+  if(statusEl && urls.length > 0) statusEl.textContent = `✅ ${urls.length} file(s) uploaded`;
+  return urls;
 }
 
 // ── SUPPORT OVERLAY (Step 2) ───────────────────────────────────────────────
@@ -8347,7 +8376,7 @@ async function fmsOpenSupportOverlay(orderId){
     <div><strong>Qty:</strong> ${o.quantity} &nbsp;|&nbsp; <strong>Location:</strong> ${locName}</div>
     <div><strong>Order Amt:</strong> ₹${o.order_amount||0} &nbsp;|&nbsp; <strong>Received:</strong> ₹${o.amount_received||0} &nbsp;|&nbsp; <strong style="color:${pendingAmt>0?'#ff5c7c':'#00d4aa'}">Pending: ₹${pendingAmt}</strong></div>
     ${o.tentative_date ? `<div><strong>Payment Due:</strong> <span style="color:#f0a500;">${new Date(o.tentative_date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</span></div>` : ''}
-    ${o.payment_proof_url ? `<div><a href="${o.payment_proof_url}" target="_blank" style="color:#4e9af1;font-size:0.85rem;">📎 View Payment Proof</a></div>` : ''}
+    ${o.payment_proof_url ? `<div>${fmsProofLinks(o.payment_proof_url)}</div>` : ''}
   `;
   document.getElementById('fmsSupportNotes').value = '';
   document.getElementById('fmsSupportEngineerRow').style.display = 'none';
@@ -8976,9 +9005,9 @@ async function fmsOpenTimeline(orderId){
         ${row('Amount Received', `₹${(o.amount_received||0).toLocaleString('en-IN')}`, 'color:#00d4aa;')}
         ${row('Pending Amount', `₹${pendAmt.toLocaleString('en-IN')}`, `color:${pendAmt>0?'#ff5c7c':'#00d4aa'};`)}
         ${o.tentative_date ? row('Payment Due Date', fmtDate(o.tentative_date), 'color:#f0a500;') : ''}
-        ${o.payment_proof_url ? `<div style="display:flex;align-items:center;padding:0.38rem 0;">
-          <span style="min-width:140px;font-size:0.78rem;color:var(--muted);font-weight:600;">Payment Proof</span>
-          <a href="${o.payment_proof_url}" target="_blank" style="color:#4e9af1;font-size:0.84rem;font-weight:600;text-decoration:none;">📎 View File</a>
+        ${o.payment_proof_url ? `<div style="display:flex;align-items:baseline;padding:0.38rem 0;border-bottom:1px solid var(--border2);">
+          <span style="min-width:140px;font-size:0.78rem;color:var(--muted);font-weight:600;flex-shrink:0;">Payment Proof</span>
+          <span style="display:flex;gap:8px;flex-wrap:wrap;">${fmsProofLinks(o.payment_proof_url, 'font-size:0.84rem;font-weight:600;')}</span>
         </div>` : ''}
       </div>
 
@@ -9140,6 +9169,24 @@ This cannot be undone.`)) return;
   } catch(e){
     fmsToast('❌ Delete failed: ' + e.message);
   }
+}
+
+// ── Parse proof URLs — supports old single URL + new JSON array ──────────
+function fmsParseProofUrls(raw){
+  if(!raw) return [];
+  try{
+    const parsed = JSON.parse(raw);
+    if(Array.isArray(parsed)) return parsed;
+    return [parsed];
+  } catch(e){ return [raw]; }
+}
+
+function fmsProofLinks(raw, style=''){
+  const urls = fmsParseProofUrls(raw);
+  if(!urls.length) return '';
+  return urls.map((url, i) =>
+    `<a href="${url}" target="_blank" onclick="event.stopPropagation()" style="color:#4e9af1;text-decoration:none;${style}" title="View file ${i+1}">📎${urls.length>1?' '+(i+1):''}</a>`
+  ).join(' ');
 }
 
 // ── fmsSetClientType — NBD vs Existing ───────────────────────────────────
