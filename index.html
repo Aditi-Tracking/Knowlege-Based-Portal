@@ -880,6 +880,15 @@
   .fms-overlay-backdrop.open{display:flex;}
   .fms-overlay-box{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.6rem;width:90%;max-width:600px;max-height:90vh;overflow-y:auto;position:relative;}
   .fms-overlay-box.wide{max-width:780px;}
+  .fms-overlay-box.fms-timeline-box{max-width:1180px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;}
+  .fms-timeline-columns{display:flex;gap:1.4rem;flex:1;min-height:0;margin-top:0.6rem;}
+  .fms-timeline-col-left{flex:1.25;min-width:0;overflow-y:auto;max-height:68vh;padding-right:8px;}
+  .fms-timeline-col-right{flex:1;min-width:0;overflow-y:auto;max-height:68vh;border-left:1px solid var(--border);padding-left:1.2rem;}
+  @media (max-width:900px){
+    .fms-timeline-columns{flex-direction:column;}
+    .fms-timeline-col-left,.fms-timeline-col-right{max-height:none;}
+    .fms-timeline-col-right{border-left:none;border-top:1px solid var(--border);padding-left:0;padding-top:1rem;}
+  }
   .fms-form-group{margin-bottom:1rem;}
   .fms-form-label{font-size:0.82rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;display:block;}
   .fms-form-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:0.6rem 0.9rem;color:var(--text);font-size:0.91rem;font-family:inherit;box-sizing:border-box;}
@@ -4119,9 +4128,9 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <!-- Location -->
       <div class="fms-form-group" style="grid-column:1/-1;">
         <label class="fms-form-label">Location *</label>
-        <div id="fmsLocationGrid" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-          <!-- Loaded from fms_locations table -->
-        </div>
+        <select id="fmsLocationSelect" class="fms-form-input" onchange="fmsLocationSelectChange()">
+          <option value="">Select location...</option>
+        </select>
         <input type="text" id="fmsLocationManual" class="fms-form-input" placeholder="Enter location name..." style="display:none;margin-top:6px;">
       </div>
 
@@ -4160,7 +4169,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <div style="font-size:0.85rem;font-weight:700;color:var(--text);margin-bottom:8px;">Configuration Required?</div>
       <div style="display:flex;gap:10px;">
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.88rem;color:var(--text);padding:7px 14px;border-radius:8px;border:1px solid var(--border);flex:1;justify-content:center;" onclick="fmsSupportToggleCfg(true)">
-          <input type="radio" name="fmsCfgRequired" value="yes" checked style="accent-color:#fb923c;"> ⚙️ Yes — Send to Anish
+          <input type="radio" name="fmsCfgRequired" value="yes" checked style="accent-color:#fb923c;"> ⚙️ Yes — Send for Configuration
         </label>
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.88rem;color:var(--text);padding:7px 14px;border-radius:8px;border:1px solid var(--border);flex:1;justify-content:center;" onclick="fmsSupportToggleCfg(false)">
           <input type="radio" name="fmsCfgRequired" value="no" style="accent-color:#a855f7;"> 👷 No — Direct to Engineer
@@ -4169,6 +4178,13 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     </div>
 
     <!-- Notes -->
+    <div class="fms-form-group" id="fmsSupportConfigPersonRow">
+      <label class="fms-form-label">Send Configuration To *</label>
+      <select id="fmsSupportConfigPerson" class="fms-form-input">
+        <option value="support_1@adititracking.com">⚙️ Anish</option>
+        <option value="supportgoa1@adititracking.com">⚙️ Kush (Goa)</option>
+      </select>
+    </div>
     <div class="fms-form-group">
       <label class="fms-form-label" id="fmsSupportNotesLabel">Notes for Anish (Optional)</label>
       <textarea id="fmsSupportNotes" class="fms-form-input" rows="2" placeholder="Special instructions..."></textarea>
@@ -4397,20 +4413,23 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
      FMS OVERLAY 6 — ORDER TIMELINE (Read-only detail view)
 ══════════════════════════════════════════════════════ -->
 <div class="fms-overlay-backdrop" id="fmsTimelineOverlay">
-  <div class="fms-overlay-box wide">
+  <div class="fms-overlay-box wide fms-timeline-box">
     <button onclick="fmsCloseTimeline()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
 
     <!-- Title + Status -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-shrink:0;">
       <div id="fmsTimelineTitle" style="font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;color:var(--text);"></div>
       <div id="fmsTimelineActions" style="display:flex;gap:6px;"></div>
     </div>
 
     <!-- Horizontal Pipeline with TAT -->
-    <div id="fmsTimelinePipeline" style="margin-bottom:1.2rem;"></div>
+    <div id="fmsTimelinePipeline" style="margin-bottom:0.2rem;flex-shrink:0;"></div>
 
-    <!-- Order Data -->
-    <div id="fmsTimelineInfo" style="margin-bottom:0;"></div>
+    <!-- Two columns: Order/Payment details (left) + Notes (right, starts from top) -->
+    <div class="fms-timeline-columns">
+      <div class="fms-timeline-col-left" id="fmsTimelineInfo"></div>
+      <div class="fms-timeline-col-right" id="fmsTimelineNotesPanel"></div>
+    </div>
   </div>
 </div>
 
@@ -7447,10 +7466,12 @@ const FMS_PER_PAGE = 20;
 let _fmsLoaded = false;
 let _fmsSelectedLocation = null; // {id, name} or {id:'other', name:'Other'}
 let _fmsClientSearchTimeout = null;
-let _fmsEmpMap = {}; // email → name cache
+let _fmsEmpMap = { 'outsource':'Outsource', 'self_installed':'Self Installed by Client' }; // email → name cache
 
-// ── Anish email (hardcoded — only one config person) ──────────────────────
+// ── Config persons — Anish (Mumbai) + Kush (Goa) — both do device configuration ──
 const FMS_ANISH_EMAIL = 'support_1@adititracking.com';
+const FMS_KUSH_EMAIL  = 'supportgoa1@adititracking.com';
+const FMS_CONFIG_EMAILS = [FMS_ANISH_EMAIL, FMS_KUSH_EMAIL];
 
 // ── Hook into switchDB ─────────────────────────────────────────────────────
 const _fmsOrigSwitchDB = typeof switchDB === 'function' ? switchDB : null;
@@ -7530,7 +7551,7 @@ async function fmsLoadOrders(){
 
     let url = `${SUPABASE_URL}/rest/v1/fms_orders?order=created_at.desc`;
     if(!isViewAll){
-      const isAnish = myEmail === FMS_ANISH_EMAIL;
+      const isAnish = FMS_CONFIG_EMAILS.includes(myEmail);
       if(isAnish){
         url += `&or=(created_by.eq.${encodeURIComponent(myEmail)},assigned_to_support.eq.${encodeURIComponent(myEmail)},status.eq.pending_config,status.eq.configuring,status.eq.pending_engineer,status.eq.installing,status.eq.completed)`;
       } else {
@@ -7698,12 +7719,23 @@ function fmsStepBadge(state){
 }
 
 function fmsBuildPipelineRow(o, states){
-  // Layout: circle → line → circle → line → ...
-  // Line starts at RIGHT edge of circle, ends at LEFT edge of next circle
-  // Using flex row: circle div (fixed width) + line div (flex:1) alternating
-
+  // 3 stacked rows, all sharing the same circle(30px)/line(flex:1) column widths so everything lines up:
+  //   Row 1 — TAT chip between each step (how long that step took)
+  //   Row 2 — circle + connecting line (the actual pipeline)
+  //   Row 3 — Done/Next/Pend badge under each circle
   const n = FMS_STEPS.length;
-  let rowHtml = '';
+  const CIRCLE = 30; // px
+
+  // Time-between-steps, same source as the detail view used to show
+  const tatArr = [
+    null,
+    fmsTatStr(o.step1_completed_at, o.step2_completed_at),
+    fmsTatStr(o.step3_started_at,   o.step3_completed_at),
+    fmsTatStr(o.step4_started_at,   o.step4_completed_at),
+    fmsTatStr(o.step5_started_at,   o.step5_completed_at),
+  ];
+
+  let tatRow = '', circleRow = '', badgeRow = '';
 
   FMS_STEPS.forEach((step, i) => {
     const state    = states[i];
@@ -7732,28 +7764,40 @@ function fmsBuildPipelineRow(o, states){
       checkmark    = '';
     }
 
-    // Step circle + badge (fixed width, no flex)
-    rowHtml += `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;">
-      <div style="position:relative;width:30px;height:30px;border-radius:50%;background:${circleBg};border:2px solid ${circleBorder};display:flex;align-items:center;justify-content:center;font-size:0.8rem;opacity:${circleOp};${glow}">
+    // Row 2 — circle (fixed width column, matches Row 1 & Row 3 circle columns)
+    circleRow += `<div style="width:${CIRCLE}px;flex-shrink:0;display:flex;justify-content:center;">
+      <div style="position:relative;width:${CIRCLE}px;height:${CIRCLE}px;border-radius:50%;background:${circleBg};border:2px solid ${circleBorder};display:flex;align-items:center;justify-content:center;font-size:0.8rem;opacity:${circleOp};${glow}">
         ${step.icon}${checkmark}
       </div>
-      ${fmsStepBadge(state)}
     </div>`;
 
-    // Line from RIGHT edge of this circle to LEFT edge of next circle
+    // Row 3 — badge under this circle
+    badgeRow += `<div style="width:${CIRCLE}px;flex-shrink:0;display:flex;justify-content:center;">${fmsStepBadge(state)}</div>`;
+
+    // Row 1 — empty placeholder under the circle (TAT chips only sit on the connector segments)
+    tatRow += `<div style="width:${CIRCLE}px;flex-shrink:0;"></div>`;
+
+    // Connector segment (flex:1) — line + TAT chip above it
     if(i < n - 1){
       const lineColor = isDone ? step.color : 'rgba(140,140,160,0.18)';
       const lineOp    = isDone ? '0.92' : '1';
-      rowHtml += `<div style="flex:1;display:flex;flex-direction:column;">
-        <!-- Spacer = full circle height so line starts from bottom of circle -->
-        <div style="height:30px;"></div>
-        <div style="width:100%;height:2.5px;background:${lineColor};opacity:${lineOp};border-radius:2px;margin-top:-1px;"></div>
+      const tatVal    = tatArr[i+1];
+      const tatChip   = tatVal
+        ? `<span style="font-size:0.6rem;font-weight:700;color:${isDone?step.color:'var(--muted)'};background:${isDone?step.color+'14':'rgba(255,255,255,0.04)'};border:1px solid ${isDone?step.color+'33':'var(--border2)'};border-radius:20px;padding:1px 7px;white-space:nowrap;">⏱ ${tatVal}</span>`
+        : '';
+
+      tatRow += `<div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:16px;">${tatChip}</div>`;
+      circleRow += `<div style="flex:1;display:flex;align-items:center;">
+        <div style="width:100%;height:2.5px;background:${lineColor};opacity:${lineOp};border-radius:2px;"></div>
       </div>`;
+      badgeRow += `<div style="flex:1;"></div>`;
     }
   });
 
   return [`<td colspan="11" style="padding:0.28rem 0.75rem;vertical-align:middle;">
-    <div style="display:flex;align-items:flex-start;width:100%;">${rowHtml}</div>
+    <div style="display:flex;align-items:center;width:100%;margin-bottom:2px;">${tatRow}</div>
+    <div style="display:flex;align-items:center;width:100%;">${circleRow}</div>
+    <div style="display:flex;align-items:flex-start;width:100%;margin-top:3px;">${badgeRow}</div>
   </td>`];
 }
 
@@ -7778,7 +7822,7 @@ function fmsRenderTable(){
   const p          = PERMISSIONS||{};
   const isOverride = p.fms_override==='true'||CURRENT_USER?.rawRole==='mis'||CURRENT_USER?.rawRole==='managing director';
   const isSupport  = p.fms_support==='true';
-  const isConfig   = p.fms_config==='true'||myEmail===FMS_ANISH_EMAIL;
+  const isConfig   = p.fms_config==='true'||FMS_CONFIG_EMAILS.includes(myEmail);
 
   tbody.innerHTML = page.map(o => {
     const locName  = o.location_type==='outside'?(o.location_manual||'Outside'):(_fmsLocations.find(l=>l.id===o.location_id)?.location_name||'—');
@@ -7790,7 +7834,7 @@ function fmsRenderTable(){
     let actionBtn = `<button onclick="fmsOpenTimeline(${o.id})" class="fms-action-btn info" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">👁 View</button>`;
     if(o.status==='pending_support'&&(isSupport&&myEmail===(o.assigned_to_support||'').toLowerCase()||isOverride)){
       actionBtn=`<button onclick="fmsOpenSupportOverlay(${o.id})" class="fms-action-btn primary" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">➡️ Assign</button>`;
-    } else if(o.status==='pending_config'&&(isConfig&&myEmail===FMS_ANISH_EMAIL||isOverride)){
+    } else if(o.status==='pending_config'&&(isConfig&&FMS_CONFIG_EMAILS.includes(myEmail)||isOverride)){
       actionBtn=`<button onclick="fmsOpenConfigOverlay(${o.id})" class="fms-action-btn" style="background:#2563eb;color:#fff;font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">💾 Config</button>`;
     } else if(o.status==='pending_engineer'&&(isSupport&&myEmail===(o.assigned_to_support||'').toLowerCase()||isOverride)){
       actionBtn=`<button onclick="fmsOpenEngineerOverlay(${o.id})" class="fms-action-btn purple" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">🔩 Assign</button>`;
@@ -7923,7 +7967,90 @@ function fmsGetProductItems(){
   })).filter(r => r.product_id);
 }
 
-async function fmsOpenNewOrder(){
+// ── Draft autosave — prevents New Order form data loss when switching browser tabs ──
+const FMS_DRAFT_KEY = 'fmsNewOrderDraft_v1';
+let _fmsDraftSaveTimer = null;
+let _fmsDraftListenersAttached = false;
+
+function fmsSaveDraft(){
+  try{
+    if(!document.getElementById('fmsNewOrderOverlay')?.classList.contains('open')) return;
+    const draft = {
+      clientType:     document.querySelector('input[name="fmsClientType"]:checked')?.value || '',
+      clientSearch:   document.getElementById('fmsClientSearch')?.value || '',
+      soNumber:       document.getElementById('fmsSoNumber')?.value || '',
+      ticketNo:       document.getElementById('fmsTicketNo')?.value || '',
+      orderAmount:    document.getElementById('fmsOrderAmount')?.value || '',
+      amountReceived: document.getElementById('fmsAmountReceived')?.value || '',
+      tentativeDate:  document.getElementById('fmsTentativeDate')?.value || '',
+      locationId:     document.getElementById('fmsLocationSelect')?.value || '',
+      locationManual: document.getElementById('fmsLocationManual')?.value || '',
+      assignSupport:  document.getElementById('fmsAssignSupport')?.value || '',
+      products:       typeof fmsGetProductItems === 'function' ? fmsGetProductItems() : [],
+      savedAt:        Date.now()
+    };
+    localStorage.setItem(FMS_DRAFT_KEY, JSON.stringify(draft));
+  } catch(e){}
+}
+
+function fmsScheduleDraftSave(){
+  clearTimeout(_fmsDraftSaveTimer);
+  _fmsDraftSaveTimer = setTimeout(fmsSaveDraft, 600);
+}
+
+function fmsClearDraft(){
+  try{ localStorage.removeItem(FMS_DRAFT_KEY); } catch(e){}
+}
+
+function fmsRestoreDraftIfAny(){
+  let draft = null;
+  try{ draft = JSON.parse(localStorage.getItem(FMS_DRAFT_KEY) || 'null'); } catch(e){}
+  if(!draft) return;
+  // Drafts older than 24 hours are stale — discard
+  if(!draft.savedAt || (Date.now() - draft.savedAt) > 24*60*60*1000){ fmsClearDraft(); return; }
+  if(!draft.clientSearch && !draft.soNumber && !(draft.products||[]).length) return; // nothing meaningful saved
+
+  if(document.getElementById('fmsClientSearch')) document.getElementById('fmsClientSearch').value = draft.clientSearch || '';
+  if(document.getElementById('fmsSoNumber')) document.getElementById('fmsSoNumber').value = draft.soNumber || '';
+  if(document.getElementById('fmsTicketNo')) document.getElementById('fmsTicketNo').value = draft.ticketNo || '';
+  if(document.getElementById('fmsOrderAmount')) document.getElementById('fmsOrderAmount').value = draft.orderAmount || '';
+  if(document.getElementById('fmsAmountReceived')) document.getElementById('fmsAmountReceived').value = draft.amountReceived || '';
+  if(document.getElementById('fmsTentativeDate')) document.getElementById('fmsTentativeDate').value = draft.tentativeDate || '';
+  if(draft.clientType) fmsSetClientType(draft.clientType);
+  if(draft.locationId){
+    const locSel = document.getElementById('fmsLocationSelect');
+    if(locSel){ locSel.value = draft.locationId; fmsLocationSelectChange(); }
+    if(draft.locationManual && document.getElementById('fmsLocationManual')) document.getElementById('fmsLocationManual').value = draft.locationManual;
+  }
+  if(draft.assignSupport && document.getElementById('fmsAssignSupport')) document.getElementById('fmsAssignSupport').value = draft.assignSupport;
+  if(draft.products && draft.products.length){
+    const container = document.getElementById('fmsProductRows');
+    if(container){
+      container.innerHTML = '';
+      draft.products.forEach(item => {
+        fmsAddProductRow();
+        const rows = container.querySelectorAll('.fms-product-row');
+        const lastRow = rows[rows.length-1];
+        const sel = lastRow.querySelector('.fms-product-select');
+        const qty = lastRow.querySelector('.fms-product-qty');
+        if(sel) sel.value = item.product_id;
+        if(qty) qty.value = item.quantity;
+      });
+    }
+  }
+  fmsToast('📝 Restored your unsaved draft from earlier');
+}
+
+function fmsAttachDraftListeners(){
+  if(_fmsDraftListenersAttached) return;
+  const box = document.querySelector('#fmsNewOrderOverlay .fms-overlay-box');
+  if(!box) return;
+  box.addEventListener('input', fmsScheduleDraftSave);
+  box.addEventListener('change', fmsScheduleDraftSave);
+  _fmsDraftListenersAttached = true;
+}
+
+async function fmsOpenNewOrder(isEdit){
   // Init product rows — start with 1 row
   const rowsContainer = document.getElementById('fmsProductRows');
   if(rowsContainer){
@@ -7931,32 +8058,31 @@ async function fmsOpenNewOrder(){
     fmsAddProductRow();
   }
 
-  // Populate location checkboxes
-  const locGrid = document.getElementById('fmsLocationGrid');
-  if(locGrid){
-    locGrid.innerHTML = _fmsLocations.map(l =>
-      `<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:0.87rem;color:var(--text);transition:all 0.15s;" onclick="fmsSelectLocation(${l.id},'${l.location_name}',this)">
-        <input type="radio" name="fmsLocation" value="${l.id}" style="accent-color:var(--accent);"> ${l.location_name}
-      </label>`
-    ).join('') +
-    `<label style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:0.87rem;color:var(--text);" onclick="fmsSelectLocation('other','Other',this)">
-      <input type="radio" name="fmsLocation" value="other" style="accent-color:var(--accent);"> Other
-    </label>`;
+  // Populate location dropdown — all active locations + Other
+  const locSelect = document.getElementById('fmsLocationSelect');
+  if(locSelect){
+    locSelect.innerHTML = '<option value="">Select location...</option>' +
+      _fmsLocations.map(l => `<option value="${l.id}">${l.location_name}</option>`).join('') +
+      '<option value="other">Other</option>';
   }
 
   // Load support persons
   await fmsLoadSupportPersons('fmsAssignSupport');
 
   // Reset form
-  ['fmsClientSearch','fmsSoNumber','fmsTicketNo','fmsQuantity','fmsOrderAmount','fmsAmountReceived','fmsLocationManual'].forEach(id => {
+  ['fmsClientSearch','fmsSoNumber','fmsTicketNo','fmsQuantity','fmsOrderAmount','fmsAmountReceived'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
   document.getElementById('fmsClientSearch').value = '';
   document.getElementById('fmsClientId').value = '';
-  // Reset client type to Existing (default)
-  fmsSetClientType('existing');
-  document.getElementById('fmsLocationManual').style.display = 'none';
+  // Reset client type — default Existing, but auto-NBD for users who only handle New Business (e.g. Ronak Sir)
+  const _fmsNBDDefaultUsers = ['salesmumbai@adititracking.com'];
+  const _fmsCurrentEmail = (CURRENT_USER?.email || '').toLowerCase().trim();
+  fmsSetClientType(_fmsNBDDefaultUsers.includes(_fmsCurrentEmail) ? 'nbd' : 'existing');
+  if(locSelect) locSelect.value = '';
+  const locManualReset = document.getElementById('fmsLocationManual');
+  if(locManualReset){ locManualReset.value = ''; locManualReset.style.display = 'none'; }
   document.getElementById('fmsProofStatus').textContent = '';
   // Reset file input
   const proofInput = document.getElementById('fmsPaymentProof');
@@ -7967,20 +8093,22 @@ async function fmsOpenNewOrder(){
   _fmsSelectedLocation = null;
 
   document.getElementById('fmsNewOrderOverlay').classList.add('open');
+  fmsAttachDraftListeners();
+  // Only restore a saved draft when opening a fresh "New Order" form (not while editing an existing order)
+  if(!isEdit) fmsRestoreDraftIfAny();
 }
 
 function fmsCloseNewOrder(){
   document.getElementById('fmsNewOrderOverlay').classList.remove('open');
+  fmsClearDraft();
 }
 
-function fmsSelectLocation(id, name, el){
-  _fmsSelectedLocation = { id, name };
-  // Highlight selected
-  document.querySelectorAll('#fmsLocationGrid label').forEach(l => l.style.borderColor = 'var(--border)');
-  el.style.borderColor = 'var(--accent)';
-  // Show manual input if Other
+function fmsLocationSelectChange(){
+  const sel = document.getElementById('fmsLocationSelect');
   const manual = document.getElementById('fmsLocationManual');
-  if(manual) manual.style.display = id === 'other' ? 'block' : 'none';
+  if(!sel || !sel.value){ _fmsSelectedLocation = null; if(manual) manual.style.display = 'none'; return; }
+  _fmsSelectedLocation = { id: sel.value, name: sel.options[sel.selectedIndex].textContent };
+  if(manual) manual.style.display = sel.value === 'other' ? 'block' : 'none';
 }
 
 function fmsToggleNewClient(checked){
@@ -8060,6 +8188,15 @@ async function fmsLoadEngineers(selectId){
       opt.textContent = r.Employee_name || r.Email_Id;
       sel.appendChild(opt);
     });
+    // Extra non-employee options — Outsource / Self Installed by Client
+    const optOutsource = document.createElement('option');
+    optOutsource.value = 'outsource';
+    optOutsource.textContent = 'Outsource';
+    sel.appendChild(optOutsource);
+    const optSelfInstalled = document.createElement('option');
+    optSelfInstalled.value = 'self_installed';
+    optSelfInstalled.textContent = 'Self Installed by Client';
+    sel.appendChild(optSelfInstalled);
   } catch(e){ console.error('Load engineers error:', e); }
 }
 
@@ -8167,6 +8304,7 @@ async function fmsSubmitNewOrder(){
             body: JSON.stringify({ order_id: orderId2, step: 1, assigned_from: myEmail, assigned_to: assignTo, assigned_at: now })
           });
         }
+        fmsClearDraft();
         fmsToast('✅ Order created! (Run ALTER TABLE to enable product details)');
         fmsBtnSuccess(_submitBtn, '✅ Submitted!', 'fmsNewOrderOverlay');
         setTimeout(() => { fmsLoadOrders(); _fmsSubmitting = false; }, 950);
@@ -8190,6 +8328,7 @@ async function fmsSubmitNewOrder(){
       });
     }
 
+    fmsClearDraft();
     fmsToast('✅ Order created successfully!');
     fmsBtnSuccess(_submitBtn, '✅ Submitted!', 'fmsNewOrderOverlay');
     setTimeout(() => { fmsLoadOrders(); _fmsSubmitting = false; }, 950);
@@ -8380,7 +8519,11 @@ async function fmsOpenSupportOverlay(orderId){
   `;
   document.getElementById('fmsSupportNotes').value = '';
   document.getElementById('fmsSupportEngineerRow').style.display = 'none';
-  document.getElementById('fmsSupportSubmitBtn').textContent = '➡️ Send to Anish for Configuration';
+  const _fmsCfgPersonRow = document.getElementById('fmsSupportConfigPersonRow');
+  if(_fmsCfgPersonRow) _fmsCfgPersonRow.style.display = 'block';
+  const _fmsCfgPersonSel = document.getElementById('fmsSupportConfigPerson');
+  if(_fmsCfgPersonSel) _fmsCfgPersonSel.value = FMS_ANISH_EMAIL;
+  document.getElementById('fmsSupportSubmitBtn').textContent = '➡️ Send for Configuration';
   document.getElementById('fmsSupportSubmitBtn').style.background = '#fb923c';
   // Reset radio to "Yes - Config required"
   const radios = document.querySelectorAll('input[name="fmsCfgRequired"]');
@@ -8442,18 +8585,27 @@ function fmsBtnReset(btn){
 // Toggle config required in support overlay
 async function fmsSupportToggleCfg(cfgRequired){
   const engRow   = document.getElementById('fmsSupportEngineerRow');
+  const cfgPersonRow = document.getElementById('fmsSupportConfigPersonRow');
   const notesLbl = document.getElementById('fmsSupportNotesLabel');
   const submitBtn = document.getElementById('fmsSupportSubmitBtn');
   if(cfgRequired){
     engRow.style.display = 'none';
-    notesLbl.textContent = 'Notes for Anish (Optional)';
-    submitBtn.textContent = '➡️ Send to Anish for Configuration';
+    if(cfgPersonRow) cfgPersonRow.style.display = 'block';
+    notesLbl.textContent = 'Notes for Configuration Team (Optional)';
+    submitBtn.textContent = '➡️ Send for Configuration';
     submitBtn.style.background = '#fb923c';
   } else {
     engRow.style.display = 'block';
+    if(cfgPersonRow) cfgPersonRow.style.display = 'none';
     notesLbl.textContent = 'Notes (Optional)';
     submitBtn.textContent = '👷 Assign Directly to Engineer';
     submitBtn.style.background = '#a855f7';
+    // Default Devices to Install = order quantity, Devices Pending = 0
+    const totalQty = _fmsCurrentOrder?.quantity || 0;
+    const installQtyEl = document.getElementById('fmsSupportInstallQty');
+    const pendingQtyEl = document.getElementById('fmsSupportPendingQty');
+    if(installQtyEl) installQtyEl.value = totalQty;
+    if(pendingQtyEl) pendingQtyEl.value = 0;
     // Load engineers if not already loaded
     await fmsLoadEngineers('fmsSupportEngineerSelect');
   }
@@ -8470,7 +8622,8 @@ async function fmsSupportSubmit(){
 
   try{
     if(cfgRequired){
-      // ── Send to Anish ──
+      // ── Send to selected config person (Anish or Kush) ──
+      const configPersonEmail = document.getElementById('fmsSupportConfigPerson')?.value || FMS_ANISH_EMAIL;
       await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${_fmsCurrentOrder.id}`, {
         method: 'PATCH',
         headers: SB_HDRS_JSON(),
@@ -8479,9 +8632,9 @@ async function fmsSupportSubmit(){
       await fetch(`${SUPABASE_URL}/rest/v1/fms_assignments`, {
         method: 'POST',
         headers: SB_HDRS_JSON(),
-        body: JSON.stringify({ order_id: _fmsCurrentOrder.id, step: 2, assigned_from: myEmail, assigned_to: FMS_ANISH_EMAIL, notes, assigned_at: now })
+        body: JSON.stringify({ order_id: _fmsCurrentOrder.id, step: 2, assigned_from: myEmail, assigned_to: configPersonEmail, notes, assigned_at: now })
       });
-      fmsToast('✅ Sent to Anish for configuration!');
+      fmsToast(`✅ Sent to ${fmsEmpName(configPersonEmail)} for configuration!`);
     } else {
       // ── Direct to Engineer — skip config step ──
       const engineerEmail = document.getElementById('fmsSupportEngineerSelect').value;
@@ -8878,14 +9031,30 @@ async function fmsOpenTimeline(orderId){
   }
 
   // Load data
-  const [assignRes, configRes, installRes] = await Promise.all([
+  const [assignRes, configRes, installRes, notesRes] = await Promise.all([
     fetch(`${SUPABASE_URL}/rest/v1/fms_assignments?order_id=eq.${orderId}&order=assigned_at`, { headers: SB_HDRS() }),
     fetch(`${SUPABASE_URL}/rest/v1/fms_configuration?order_id=eq.${orderId}&order=configured_at.desc&limit=1`, { headers: SB_HDRS() }),
     fetch(`${SUPABASE_URL}/rest/v1/fms_installation?order_id=eq.${orderId}&order=created_at.desc&limit=1`, { headers: SB_HDRS() }),
+    fetch(`${SUPABASE_URL}/rest/v1/fms_order_notes?order_id=eq.${orderId}&order=created_at.asc`, { headers: SB_HDRS() }).catch(()=>null),
   ]);
   const assignments = await assignRes.json();
   const config  = (await configRes.json())[0] || null;
   const install = (await installRes.json())[0] || null;
+  const orderNotes = notesRes && notesRes.ok ? await notesRes.json() : [];
+
+  // ── Notes access — default: anyone involved in THIS order (creator, assigned support,
+  //    config person, engineer) can add a note; they can delete only their OWN notes.
+  //    MIS/PC remain full admins.
+  const _fmsNotesAdmin = CURRENT_USER?.rawRole==='mis' || CURRENT_USER?.rawRole==='pc';
+  const _fmsInvolvedEmails = new Set();
+  const _fmsAddInvolved = e => { if(e) _fmsInvolvedEmails.add(String(e).toLowerCase().trim()); };
+  _fmsAddInvolved(o.created_by);
+  _fmsAddInvolved(o.assigned_to_support);
+  (assignments||[]).forEach(a => { _fmsAddInvolved(a.assigned_from); _fmsAddInvolved(a.assigned_to); });
+  if(install) _fmsAddInvolved(install.engineer_email);
+  const _fmsIsInvolved = _fmsInvolvedEmails.has(_myEmailLower);
+  const _canAddNote = _fmsNotesAdmin || _fmsIsInvolved;
+  const _canDeleteNote = (noteCreatedBy) => _fmsNotesAdmin || ((noteCreatedBy||'').toLowerCase().trim() === _myEmailLower);
 
   const step   = o.current_step || 1;
   const fmtDt  = dt => dt ? new Date(dt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : null;
@@ -8907,7 +9076,7 @@ async function fmsOpenTimeline(orderId){
       state: step>=2?'done':step===1?'active':'pending',
       tat: fmsTatStr(o.step1_completed_at, o.step2_completed_at),
       time: fmtDt(o.step2_completed_at),
-      info: step>=2 ? `To: ${fmsEmpName(FMS_ANISH_EMAIL)}` : '⏳ Pending'
+      info: step>=2 ? `To: ${fmsEmpName(assignments.find(a=>a.step===2)?.assigned_to || FMS_ANISH_EMAIL)}` : '⏳ Pending'
     },
     {
       icon:'💾', label:'Configuration',      color:'#4e9af1',
@@ -8955,19 +9124,12 @@ async function fmsOpenTimeline(orderId){
       <div style="font-size:0.58rem;color:${isDone?color+'cc':isActive?color+'99':'var(--muted)'};text-align:center;line-height:1.3;max-width:80px;">${s.info}</div>
     </div>`;
 
-    // Connector line with TAT label on top
+    // Connector line (TAT now shown in the orders table row instead, not here)
     if(i < stepDefs.length - 1){
-      const nextS     = stepDefs[i+1];
       const lineColor = isDone ? s.color : 'rgba(140,140,160,0.18)';
       const lineOp    = isDone ? '0.9' : '1';
-      const tatLabel  = nextS.tat ? `⏱ ${nextS.tat}` : '';
-      pipeHtml += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;min-width:40px;">
-        <!-- TAT label above line -->
-        <div style="height:20px;display:flex;align-items:center;justify-content:center;">
-          ${tatLabel ? `<span style="font-size:0.58rem;font-weight:700;color:${isDone?s.color:'var(--muted)'};background:${isDone?s.color+'12':'transparent'};border-radius:20px;padding:1px 6px;white-space:nowrap;">${tatLabel}</span>` : ''}
-        </div>
-        <!-- Line at circle center (18px = circle center) -->
-        <div style="width:100%;height:2px;background:${lineColor};opacity:${lineOp};border-radius:1px;margin-top:0px;"></div>
+      pipeHtml += `<div style="flex:1;min-width:40px;margin-top:17px;">
+        <div style="width:100%;height:2px;background:${lineColor};opacity:${lineOp};border-radius:1px;"></div>
       </div>`;
     }
   });
@@ -8983,7 +9145,7 @@ async function fmsOpenTimeline(orderId){
     </div>`;
 
   document.getElementById('fmsTimelineInfo').innerHTML = `
-    <div style="border-top:1px solid var(--border);padding-top:0.85rem;margin-top:0.25rem;">
+    <div>
 
       <!-- Section: Order Info -->
       <div style="font-size:0.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.4rem;opacity:0.7;">Order Details</div>
@@ -9014,11 +9176,120 @@ async function fmsOpenTimeline(orderId){
     </div>
   `;
 
+  // ── Notes panel — right column, starts from top — add/delete restricted to MIS & PC ──
+  document.getElementById('fmsTimelineNotesPanel').innerHTML = `
+    <div style="font-size:0.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;opacity:0.7;">📝 Notes</div>
+    <div id="fmsTimelineNotesList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:${orderNotes.length?'10px':'0'};">
+      ${orderNotes.length ? orderNotes.map(n => `
+        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:0.6rem 0.75rem;display:flex;gap:8px;align-items:flex-start;justify-content:space-between;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.83rem;color:var(--text);white-space:pre-wrap;line-height:1.5;">${(n.note_text||'').replace(/</g,'&lt;')}</div>
+            <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">${fmsEmpName(n.created_by)} · ${fmtDt(n.created_at)}</div>
+          </div>
+          ${_canDeleteNote(n.created_by) ? `<button onclick="fmsDeleteOrderNote(${n.id},${o.id},'${(n.created_by||'').replace(/'/g,"\\'")}')" title="Delete note" style="flex-shrink:0;background:transparent;border:none;color:var(--muted);font-size:0.9rem;cursor:pointer;padding:2px 4px;">🗑️</button>` : ''}
+        </div>
+      `).join('') : '<div style="font-size:0.8rem;color:var(--muted);">No notes yet' + (_canAddNote ? ' — add one below to explain a delay or share an update.' : '.') + '</div>'}
+    </div>
+    ${_canAddNote ? `
+    <textarea id="fmsTimelineNoteInput" class="fms-form-input" rows="3" placeholder="e.g. Delayed due to client unavailable on site, rescheduled to..." style="width:100%;box-sizing:border-box;"></textarea>
+    <button onclick="fmsAddOrderNote(${o.id})" style="margin-top:8px;padding:6px 16px;border-radius:8px;border:none;background:var(--accent);color:#000;font-size:0.83rem;font-weight:700;cursor:pointer;font-family:inherit;">➕ Add Note</button>
+    ` : ''}
+  `;
+
+  // Auto-scroll Notes column to the bottom so the latest note is in view (chat-style)
+  const _fmsNotesPanelEl = document.getElementById('fmsTimelineNotesPanel');
+  if(_fmsNotesPanelEl) _fmsNotesPanelEl.scrollTop = _fmsNotesPanelEl.scrollHeight;
+
   document.getElementById('fmsTimelineOverlay').classList.add('open');
 }
 
 function fmsCloseTimeline(){
   document.getElementById('fmsTimelineOverlay').classList.remove('open');
+}
+
+// ── Notes access — default: anyone INVOLVED in a sale order (creator, support,
+//    config person, engineer) can add a note to it; MIS/PC are always admins. ──
+function fmsNotesIsAdmin(){
+  const role = CURRENT_USER?.rawRole;
+  return role === 'mis' || role === 'pc';
+}
+
+async function fmsIsInvolvedInOrder(orderId){
+  const o = _fmsOrders.find(x => x.id === orderId);
+  if(!o) return false;
+  const myEmail = (CURRENT_USER?.email || '').toLowerCase().trim();
+  if(!myEmail) return false;
+  const involved = new Set();
+  const addE = e => { if(e) involved.add(String(e).toLowerCase().trim()); };
+  addE(o.created_by);
+  addE(o.assigned_to_support);
+  try{
+    const [assignRes, installRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/fms_assignments?order_id=eq.${orderId}&select=assigned_from,assigned_to`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/fms_installation?order_id=eq.${orderId}&order=created_at.desc&limit=1`, { headers: SB_HDRS() }),
+    ]);
+    const assignments = await assignRes.json().catch(()=>[]);
+    const install = (await installRes.json().catch(()=>[]))[0] || null;
+    (assignments||[]).forEach(a => { addE(a.assigned_from); addE(a.assigned_to); });
+    if(install) addE(install.engineer_email);
+  } catch(e){}
+  return involved.has(myEmail);
+}
+
+// ── Add a note to an order — default: only people involved in THAT order ───
+async function fmsAddOrderNote(orderId){
+  const input = document.getElementById('fmsTimelineNoteInput');
+  const noteText = input?.value.trim();
+  if(!noteText){ fmsToast('❌ Write something before adding a note'); return; }
+  const myEmail = CURRENT_USER?.email || '';
+  const btn = document.querySelector(`#fmsTimelineOverlay button[onclick="fmsAddOrderNote(${orderId})"]`);
+  if(!fmsNotesIsAdmin()){
+    const involved = await fmsIsInvolvedInOrder(orderId);
+    if(!involved){ fmsToast('❌ Only people involved in this order can add notes'); return; }
+  }
+  fmsBtnLoading(btn, '⏳ Saving...');
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fms_order_notes`, {
+      method: 'POST',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({ order_id: orderId, note_text: noteText, created_by: myEmail, created_at: new Date().toISOString() })
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      fmsToast('❌ Error: ' + errText.slice(0,120));
+      fmsBtnReset(btn);
+      return;
+    }
+    if(input) input.value = '';
+    fmsToast('✅ Note added!');
+    await fmsOpenTimeline(orderId); // re-render with new note included
+  } catch(e){
+    fmsToast('❌ Error: ' + e.message);
+    fmsBtnReset(btn);
+  }
+}
+
+// ── Delete a note — default: only the person who wrote it (MIS/PC can delete any) ──
+async function fmsDeleteOrderNote(noteId, orderId, noteCreatedBy){
+  const myEmail = (CURRENT_USER?.email || '').toLowerCase().trim();
+  const isOwner = (noteCreatedBy || '').toLowerCase().trim() === myEmail;
+  if(!fmsNotesIsAdmin() && !isOwner){ fmsToast('❌ You can only delete your own notes'); return; }
+  if(!confirm('Delete this note? This cannot be undone.')) return;
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fms_order_notes?id=eq.${noteId}`, {
+      method: 'DELETE',
+      headers: SB_HDRS()
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      fmsToast('❌ Error: ' + errText.slice(0,120));
+      return;
+    }
+    fmsToast('🗑️ Note deleted');
+    await fmsOpenTimeline(orderId); // re-render without deleted note
+  } catch(e){
+    fmsToast('❌ Error: ' + e.message);
+  }
 }
 
 // ── Edit Order — reopen New Order form pre-filled ──────────────────────────
@@ -9029,8 +9300,8 @@ async function fmsEditOrder(orderId){
   // Close timeline first
   fmsCloseTimeline();
 
-  // Open New Order form
-  await fmsOpenNewOrder();
+  // Open New Order form (isEdit=true skips draft restore)
+  await fmsOpenNewOrder(true);
 
   // Pre-fill all fields
   setTimeout(() => {
@@ -9064,12 +9335,14 @@ async function fmsEditOrder(orderId){
     }
 
     // Location
-    if(o.location_type === 'outside'){
-      fmsSelectLocation('other', 'Other', document.querySelector('#fmsLocationGrid label:last-child'));
+    const locSel = document.getElementById('fmsLocationSelect');
+    if(o.location_type === 'outside' && locSel){
+      locSel.value = 'other';
+      fmsLocationSelectChange();
       document.getElementById('fmsLocationManual').value = o.location_manual || '';
-    } else if(o.location_id){
-      const locLabel = document.querySelector(`#fmsLocationGrid label input[value="${o.location_id}"]`);
-      if(locLabel) fmsSelectLocation(o.location_id, '', locLabel.closest('label'));
+    } else if(o.location_id && locSel){
+      locSel.value = String(o.location_id);
+      fmsLocationSelectChange();
     }
 
     // Assign support
@@ -9111,6 +9384,7 @@ async function fmsUpdateOrder(orderId){
   if(!soNumber){ fmsToast('❌ SO Number required'); fmsBtnReset(_submitBtn); return; }
   if(!productItems.length){ fmsToast('❌ Add at least one product'); fmsBtnReset(_submitBtn); return; }
   if(!_fmsSelectedLocation){ fmsToast('❌ Select a location'); fmsBtnReset(_submitBtn); return; }
+  if(_fmsSelectedLocation.id === 'other' && !locManual){ fmsToast('❌ Enter location name'); fmsBtnReset(_submitBtn); return; }
 
   const payload = {
     client_id:           clientId ? parseInt(clientId) : null,
@@ -9162,6 +9436,7 @@ This cannot be undone.`)) return;
     await fetch(`${SUPABASE_URL}/rest/v1/fms_assignments?order_id=eq.${orderId}`,   { method:'DELETE', headers:SB_HDRS() });
     await fetch(`${SUPABASE_URL}/rest/v1/fms_configuration?order_id=eq.${orderId}`, { method:'DELETE', headers:SB_HDRS() });
     await fetch(`${SUPABASE_URL}/rest/v1/fms_installation?order_id=eq.${orderId}`,  { method:'DELETE', headers:SB_HDRS() });
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_order_notes?order_id=eq.${orderId}`,   { method:'DELETE', headers:SB_HDRS() });
     await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${orderId}`,              { method:'DELETE', headers:SB_HDRS() });
 
     fmsToast('🗑️ Order deleted');
