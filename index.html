@@ -6269,6 +6269,10 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     <span style="color:var(--muted);font-size:14px;">🔍</span>
     <input type="text" id="mp-search-input" placeholder="Search GPS company..." oninput="mpRenderTable()">
   </div>
+  <div class="mp-search-wrap">
+    <span style="color:var(--muted);font-size:14px;">🔍</span>
+    <input type="text" id="mp-odoo-search-input" placeholder="Search Odoo customer..." oninput="mpRenderTable()">
+  </div>
 </div>
 
 <div class="mp-table-wrap">
@@ -18399,10 +18403,12 @@ function mpUpdateProgress(){
 
 function mpRenderTable(){
   const search = (document.getElementById('mp-search-input')?.value||'').toLowerCase();
+  const odooSearch = (document.getElementById('mp-odoo-search-input')?.value||'').toLowerCase();
   _mpFiltered = _mpData.filter(r=>{
     if(_mpStatus==='mapped'   && !r.is_mapped) return false;
     if(_mpStatus==='unmapped' &&  r.is_mapped) return false;
     if(search && !r.gps_name.toLowerCase().includes(search)) return false;
+    if(odooSearch && !(r.canonical_name||'').toLowerCase().includes(odooSearch)) return false;
     return true;
   }).sort((a,b)=>(b.total_vehicles||0)-(a.total_vehicles||0));
 
