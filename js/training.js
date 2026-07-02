@@ -11,6 +11,929 @@ const TRAINING_QUIZ_MAP = {
   'cool bus training':    `openModuleQuiz('coolbus')`,
   'smart fleet training': `openModuleQuiz('smartfleet')`,
 };
+/* ═══════════════════════════════════════════
+   OTHER MODULE QUIZZES (Odoo, PC, Click Task, Cool Bus, Smart Fleet)
+═══════════════════════════════════════════ */
+
+const MODULE_QUIZZES = {
+  presales: {
+    title: 'Pre-Sales Training',
+    subtitle: 'Pre-Sales Process',
+    color: '#e879f9',
+    icon: '🤝',
+    supabaseModule: 'Pre-Sales',
+    driveUrl: 'https://drive.google.com/drive/folders/',
+    questions: []
+  },
+  odoo: {
+    title: 'Odoo Quiz',
+    subtitle: 'Odoo ERP System',
+    color: '#00d4ff',
+    icon: '🔷',
+    supabaseModule: 'Odoo',
+    driveUrl: 'https://drive.google.com/drive/folders/187nbxRXlOR2D-HpIlhAN3lJRu8tv66qC',
+    questions: []
+  },
+  pc: {
+    title: 'PC Training Quiz',
+    subtitle: 'Process Coordinator',
+    color: '#00d4aa',
+    icon: '💼',
+    supabaseModule: 'PC',
+    driveUrl: 'https://drive.google.com/drive/folders/1dhF8EERqrulmyBh7hIUMGOg9ppLTEHKD',
+    questions: []
+  },
+  clicktask: {
+    title: 'Click Task Quiz',
+    subtitle: 'Click Task App',
+    color: '#a855f7',
+    icon: '✔️',
+    supabaseModule: 'Click Task',
+    driveUrl: 'https://drive.google.com/drive/folders/1ojAyM6eGOm7xZ2eVzmn7d2vu-ZrPuglO',
+    questions: []
+  },
+  coolbus: {
+    title: 'Cool Bus Quiz',
+    subtitle: 'Cool Bus Operations',
+    color: '#f97316',
+    icon: '🚌',
+    driveUrl: 'https://drive.google.com/drive/folders/10HnwdiyB3AKUcOatkmSXrdw1hf8Nrbf3',
+    questions: []
+  },
+  smartfleet: {
+    title: 'Smart Fleet Quiz',
+    subtitle: 'Smart Fleet System',
+    color: '#22c55e',
+    icon: '🚛',
+    supabaseModule: 'Smart Fleet',
+    driveUrl: 'https://drive.google.com/drive/folders/1dMDdfvZRwoneI0YDYlQ9mYoNttiNSHaW',
+    questions: []
+  }
+};
+
+let moduleQuizActive = null;
+let moduleQuizQIndex = 0;
+let moduleQuizAnswers = [];
+let moduleQuizCurrentKey = null;
+
+/* ═══════════════════════════════════════════
+   ODOO MODULE-WISE VIDEO SYSTEM
+═══════════════════════════════════════════ */
+const ODOO_SUB_MODULES = [
+  { key: 'purchase',   label: 'Purchase',       icon: '🛒', color: '#f97316', desc: 'Vendor orders, RFQ, purchase orders and procurement management.' },
+  { key: 'sales',      label: 'Pre Sales',       icon: '🤝', color: '#e879f9', desc: 'Pre-Sales process — lead handling, demos, proposals and client communication.', moduleOverride: 'Pre Sales' },
+  { key: 'inventory',  label: 'Inventory',      icon: '📦', color: '#3b82f6', desc: 'Stock management, warehouse operations and product transfers.' },
+  { key: 'accounting', label: 'Accounting',     icon: '💳', color: '#a855f7', desc: 'Invoices, payments, journal entries and financial reports.' },
+  { key: 'crm',        label: 'CRM',            icon: '🤝', color: '#e879f9', desc: 'Customer pipeline, leads, opportunities and follow-ups.' },
+  { key: 'pos',        label: 'Point of Sale',  icon: '🏪', color: '#f0a500', desc: 'Retail counter sales and POS session management.' },
+  { key: 'hr',         label: 'HR',             icon: '👥', color: '#00d4aa', desc: 'Employee records, attendance, leaves and payroll.' },
+  { key: 'all',        label: 'All Videos',     icon: '🎬', color: '#00d4ff', desc: 'All Odoo training videos in one place.' },
+];
+
+// Videos data store for each odoo sub-module
+const odooSubModuleVideosData = {};
+
+function openOdooModuleSelect() {
+  logActivity({event_type:'training_module_open',event_detail:'Opened Odoo Training',page_name:'training',card_name:'Odoo Training'});
+  const ov = document.getElementById('module-quiz-overlay');
+  ov.style.display = 'flex';
+  const screen = document.getElementById('module-quiz-screen');
+  screen.innerHTML = `
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:12px;">
+      <div style="width:44px;height:44px;border-radius:12px;background:rgba(0,212,255,0.15);border:1.5px solid rgba(0,212,255,0.35);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🔷</div>
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--text);">Odoo Training</div>
+        <div style="font-size:0.83rem;color:var(--muted);">Choose a module to watch videos</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${ODOO_SUB_MODULES.map(m => `
+        <div onclick="openOdooSubModuleVideos('${m.key}')"
+          style="cursor:pointer;padding:14px 16px;border-radius:12px;border:1.5px solid ${m.color}44;background:${m.color}12;display:flex;align-items:center;gap:14px;transition:all 0.18s;"
+          onmouseover="this.style.borderColor='${m.color}bb';this.style.background='${m.color}22'"
+          onmouseout="this.style.borderColor='${m.color}44';this.style.background='${m.color}12'">
+          <div style="width:44px;height:44px;border-radius:10px;background:${m.color}28;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;">${m.icon}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;color:var(--text);font-size:0.96rem;">${m.label}</div>
+            <div style="font-size:0.79rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.desc}</div>
+          </div>
+          <div style="width:32px;height:32px;border-radius:50%;background:${m.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="color:#fff;font-size:0.8rem;margin-left:2px;">▶</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <!-- Quiz Button -->
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+      <button onclick="openModuleQuiz('odoo')" style="width:100%;padding:13px;border-radius:12px;border:1.5px solid rgba(0,212,255,0.4);background:rgba(0,212,255,0.1);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;transition:all 0.18s;"
+        onmouseover="this.style.borderColor='rgba(0,212,255,0.9)';this.style.background='rgba(0,212,255,0.18)'"
+        onmouseout="this.style.borderColor='rgba(0,212,255,0.4)';this.style.background='rgba(0,212,255,0.1)'">
+        <span style="font-size:1.4rem;">📝</span>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:700;color:var(--text);font-size:0.94rem;">Odoo Quiz</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:1px;">10 Questions • Multiple Choice</div>
+        </div>
+        <span style="color:#00d4ff;font-size:1.1rem;">→</span>
+      </button>
+    </div>
+  `;
+}
+
+function openOdooSubModuleVideos(subKey) {
+  const sub = ODOO_SUB_MODULES.find(m => m.key === subKey);
+  if (!sub) return;
+  // training_submodule_open removed — module_open is sufficient
+  const screen = document.getElementById('module-quiz-screen');
+  screen.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <button onclick="openOdooModuleSelect()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;padding:0;line-height:1;">←</button>
+      <div style="width:38px;height:38px;border-radius:10px;background:${sub.color}28;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">${sub.icon}</div>
+      <div>
+        <div style="font-size:1.02rem;font-weight:800;color:var(--text);">${sub.label}</div>
+        <div style="font-size:0.79rem;color:var(--muted);">Odoo Training Videos</div>
+      </div>
+    </div>
+    <div style="position:relative;margin-bottom:12px;">
+      <input type="text" id="odoo-sub-search-${subKey}"
+        placeholder="Search videos..."
+        oninput="filterOdooSubVideos('${subKey}')"
+        style="width:100%;padding:10px 14px 10px 38px;border-radius:10px;border:1.5px solid ${sub.color}40;background:var(--surface2);color:var(--text);font-size:0.9rem;font-family:inherit;outline:none;transition:border-color 0.18s;box-sizing:border-box;"
+        onfocus="this.style.borderColor='${sub.color}bb'" onblur="this.style.borderColor='${sub.color}40'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${sub.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </div>
+    <div id="odoo-sub-cards-${subKey}" style="display:flex;flex-direction:column;gap:10px;">
+      <div style="text-align:center;padding:24px;color:var(--muted);font-size:0.92rem;">Loading...</div>
+    </div>
+    <div id="odoo-sub-playerbox-${subKey}" style="display:none;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <button onclick="backToOdooSubList('${subKey}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;padding:0;line-height:1;">←</button>
+        <div>
+          <div id="odoo-sub-vtitle-${subKey}" style="font-size:1.02rem;font-weight:800;color:var(--text);"></div>
+          <div style="font-size:0.8rem;color:var(--muted);margin-top:2px;">Odoo — ${sub.label}</div>
+        </div>
+      </div>
+      <video id="odoo-sub-player-${subKey}" controls controlsList="nodownload noplaybackrate" disablePictureInPicture
+        style="width:100%;border-radius:12px;background:#000;max-height:55vh;" preload="metadata">
+        Your browser does not support the video tag.
+      </video>
+      <div id="odoo-sub-vdesc-${subKey}" style="margin-top:12px;font-size:0.87rem;color:var(--muted);line-height:1.65;"></div>
+    </div>
+  `;
+  // Hide player box (cards is default)
+  document.getElementById(`odoo-sub-playerbox-${subKey}`).style.display = 'none';
+  fetchOdooSubVideos(subKey);
+}
+
+async function fetchOdooSubVideos(subKey) {
+  const sub = ODOO_SUB_MODULES.find(m => m.key === subKey);
+  const cardsEl = document.getElementById(`odoo-sub-cards-${subKey}`);
+  if (!cardsEl) return;
+
+  try {
+    await CN.load();
+    const section  = CN.getSection('Training');
+    const odooNode = section
+      ? CN.getCategories(section.id).find(c => (c.name||'').toLowerCase().includes('odoo'))
+      : null;
+
+    let files = [];
+    if (odooNode) {
+      if (subKey === 'all') {
+        // All files directly under Odoo Training node
+        files = CN.getFiles(odooNode.id);
+      } else {
+        // Try to find matching sub-node (e.g. "Purchase", "Sales", "Inventory"…)
+        const subNode = CN.getCategories(odooNode.id).find(c =>
+          (c.name||'').toLowerCase() === (sub.label||'').toLowerCase()
+        );
+        files = subNode ? CN.getFiles(subNode.id) : CN.getFiles(odooNode.id);
+      }
+    }
+
+    odooSubModuleVideosData[subKey] = files.map(f => ({ id: f.id, Title: f.name, Video_URL: f.url }));
+    renderOdooSubCards(subKey);
+  } catch(err) {
+    if (cardsEl) cardsEl.innerHTML = `<div style="text-align:center;padding:20px;color:#ef4444;font-size:0.9rem;">Failed to load videos.<br><span style="font-size:0.78rem;color:var(--muted);">${err.message}</span></div>`;
+  }
+}
+
+function renderOdooSubCards(subKey) {
+  const sub = ODOO_SUB_MODULES.find(m => m.key === subKey);
+  const cardsEl = document.getElementById(`odoo-sub-cards-${subKey}`);
+  if (!cardsEl) return;
+  const data = odooSubModuleVideosData[subKey] || [];
+  if (!data.length) {
+    cardsEl.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.9rem;">No videos found for this module.<br><span style="font-size:0.78rem;">Add SubModule = '${sub.label}' in Supabase.</span></div>`;
+    return;
+  }
+  cardsEl.innerHTML = data.map((row, idx) => {
+    const safeTitle = (row.Title||'').toLowerCase().replace(/"/g,'&quot;');
+    const rowId = row.id || row.ID || '';
+    const delBtnHtml = rowId ? `<button onclick="event.stopPropagation();confirmDeleteTrainingVideo(${rowId},'${safeTitle}','${subKey}')" title="Delete video"
+      style="width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
+      onmouseover="this.style.background='rgba(239,68,68,0.28)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+    </button>` : '';
+    return `
+      <div data-vtitle="${safeTitle}" onclick="playOdooSubVideo('${subKey}',${idx})"
+        style="cursor:pointer;padding:14px;border-radius:12px;border:1.5px solid ${sub.color}44;background:${sub.color}12;transition:all 0.18s;"
+        onmouseover="this.style.borderColor='${sub.color}bb';this.style.background='${sub.color}22'"
+        onmouseout="this.style.borderColor='${sub.color}44';this.style.background='${sub.color}12'">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:44px;height:44px;border-radius:10px;background:${sub.color}28;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">${sub.icon}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;color:var(--text);font-size:0.94rem;">${row.Title||'Untitled'}</div>
+            <div style="font-size:0.79rem;color:var(--muted);margin-top:2px;">Odoo — ${sub.label}</div>
+          </div>
+          ${delBtnHtml}
+          <div style="width:34px;height:34px;border-radius:50%;background:${sub.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="color:#fff;font-size:0.8rem;margin-left:2px;">▶</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function playOdooSubVideo(subKey, idx) {
+  const row = (odooSubModuleVideosData[subKey]||[])[idx];
+  if (!row) return;
+  const sub = ODOO_SUB_MODULES.find(m => m.key === subKey);
+  document.getElementById(`odoo-sub-vtitle-${subKey}`).textContent = `${sub.icon} ${row.Title}`;
+  document.getElementById(`odoo-sub-vdesc-${subKey}`).textContent = sub.desc;
+  document.getElementById(`odoo-sub-cards-${subKey}`).style.display = 'none';
+  const searchWrap = document.querySelector(`#odoo-sub-search-${subKey}`)?.parentElement;
+  if (searchWrap) searchWrap.style.display = 'none';
+  document.getElementById(`odoo-sub-playerbox-${subKey}`).style.display = 'block';
+
+  const url = row.Video_URL || '';
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  const videoEl = document.getElementById(`odoo-sub-player-${subKey}`);
+
+  if (ytMatch) {
+    // YouTube: show thumbnail + watch button (embedding often restricted)
+    const videoId = ytMatch[1];
+    const thumbUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    if (videoEl) videoEl.style.display = 'none';
+    // Remove old iframe if any
+    const oldIframe = document.getElementById(`odoo-sub-yt-${subKey}`);
+    if (oldIframe) oldIframe.remove();
+    // Create or update YT card
+    let ytCard = document.getElementById(`odoo-sub-ytcard-${subKey}`);
+    if (!ytCard) {
+      ytCard = document.createElement('div');
+      ytCard.id = `odoo-sub-ytcard-${subKey}`;
+      if (videoEl) videoEl.after(ytCard);
+    }
+    ytCard.style.display = 'block';
+    ytCard.innerHTML = `
+      <div style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;background:#000;" onclick="logActivity({event_type:'video_play',event_detail:'YouTube: ${row.Title}',video_title:'${row.Title}',page_name:'training',card_name:'Odoo - ${subKey}',metadata:{source:'youtube',url:'${watchUrl}'}});window.open('${watchUrl}','_blank')">
+        <img src="${thumbUrl}" alt="${row.Title}" style="width:100%;display:block;border-radius:12px;max-height:55vh;object-fit:cover;" onerror="this.style.minHeight='180px';this.style.background='#111';">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);border-radius:12px;">
+          <div style="width:64px;height:64px;background:#ff0000;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:12px;box-shadow:0 4px 20px rgba(255,0,0,0.5);">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <div style="color:#fff;font-weight:700;font-size:0.95rem;text-align:center;padding:0 16px;">Watch on YouTube</div>
+          <div style="color:rgba(255,255,255,0.7);font-size:0.78rem;margin-top:4px;">Click to open in new tab</div>
+        </div>
+      </div>
+      <a href="${watchUrl}" target="_blank" rel="noopener"
+        onclick="logActivity({event_type:'video_play',event_detail:'YouTube: ${row.Title}',video_title:'${row.Title}',page_name:'training',card_name:'Odoo - ${subKey}',metadata:{source:'youtube',url:'${watchUrl}'}})"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:12px;border-radius:10px;background:#ff0000;color:#fff;font-weight:700;font-size:0.92rem;text-decoration:none;transition:opacity 0.18s;"
+        onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+        YouTube par Dekhein
+      </a>`;
+  } else {
+    // Supabase/direct video
+    pauseAllVideosExcept(`odoo-sub-player-${subKey}`);
+    const ytCard = document.getElementById(`odoo-sub-ytcard-${subKey}`);
+    if (ytCard) ytCard.style.display = 'none';
+    const oldIframe = document.getElementById(`odoo-sub-yt-${subKey}`);
+    if (oldIframe) { oldIframe.src = ''; oldIframe.style.display = 'none'; }
+    if (videoEl) { videoEl.style.display = ''; videoEl.src = url; videoEl.load();
+      _actTrackVideo(videoEl, row.Title || subKey); } // ACTIVITY TRACKING
+  }
+}
+
+function backToOdooSubList(subKey) {
+  const v = document.getElementById(`odoo-sub-player-${subKey}`);
+  if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+  const iframeEl = document.getElementById(`odoo-sub-yt-${subKey}`);
+  if (iframeEl) { iframeEl.src = ''; iframeEl.style.display = 'none'; }
+  const ytCard = document.getElementById(`odoo-sub-ytcard-${subKey}`);
+  if (ytCard) ytCard.style.display = 'none';
+  document.getElementById(`odoo-sub-playerbox-${subKey}`).style.display = 'none';
+  document.getElementById(`odoo-sub-cards-${subKey}`).style.display = 'flex';
+  const searchWrap = document.querySelector(`#odoo-sub-search-${subKey}`)?.parentElement;
+  if (searchWrap) searchWrap.style.display = 'block';
+}
+
+function filterOdooSubVideos(subKey) {
+  const inp = document.getElementById(`odoo-sub-search-${subKey}`);
+  if (!inp) return;
+  const q = inp.value.toLowerCase().trim();
+  const container = document.getElementById(`odoo-sub-cards-${subKey}`);
+  if (!container) return;
+  const cards = container.querySelectorAll('[data-vtitle]');
+  let visible = 0;
+  cards.forEach(c => {
+    const t = c.getAttribute('data-vtitle') || '';
+    if (!q || t.includes(q)) { c.style.display = ''; visible++; } else { c.style.display = 'none'; }
+  });
+}
+
+function openModuleQuiz(moduleKey) {
+  moduleQuizCurrentKey = moduleKey;
+  moduleQuizActive = MODULE_QUIZZES[moduleKey];
+  const _modMeta = MODULE_QUIZZES[moduleKey];
+  if (_modMeta) logActivity({event_type:'training_module_open',event_detail:'Opened module: '+_modMeta.title,page_name:'training',card_name:_modMeta.title});
+  const ov = document.getElementById('module-quiz-overlay');
+  ov.style.display = 'flex';
+  showModuleQuizMenu();
+}
+
+// ── Per-module video data store ──
+const moduleVideosData = {};
+
+// ── Generic: fetch videos for a module from content_nodes + files ──
+async function fetchModuleVideos(key) {
+  const mod = MODULE_QUIZZES[key];
+  const cardsEl = document.getElementById(`modvid-cards-${key}`);
+  if (!cardsEl) return;
+  cardsEl.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.92rem;">Loading...</div>`;
+  try {
+    await CN.load();
+    const section = CN.getSection('Training');
+    const label   = (mod.label || key).toLowerCase();
+    const cat     = section
+      ? CN.getCategories(section.id).find(c => (c.name||'').toLowerCase().includes(label))
+      : null;
+    const files = cat ? CN.getFiles(cat.id) : [];
+    moduleVideosData[key] = files.map(f => ({ id: f.id, Title: f.name, Video_URL: f.url }));
+    renderModuleVideoCards(key);
+  } catch(err) {
+    if (cardsEl) cardsEl.innerHTML = `<div style="text-align:center;padding:20px;color:#ef4444;font-size:0.9rem;">Failed to load videos.<br><span style="font-size:0.78rem;color:var(--muted);">${err.message}</span></div>`;
+  }
+}
+
+// ── Search filter for generic module video lists (Odoo, PC, ClickTask, CoolBus, SmartFleet) ──
+function filterModuleVideos(key) {
+  const inp = document.getElementById('modvid-search-' + key);
+  if (!inp) return;
+  const q = inp.value.toLowerCase().trim();
+  const container = document.getElementById('modvid-cards-' + key);
+  if (!container) return;
+  const cards = container.querySelectorAll('[data-vtitle]');
+  let visible = 0;
+  cards.forEach(c => {
+    const title = c.getAttribute('data-vtitle') || '';
+    if (!q || title.includes(q)) { c.style.display = ''; visible++; }
+    else { c.style.display = 'none'; }
+  });
+  // No-results message
+  let nrEl = document.getElementById('modvid-nores-' + key);
+  if (visible === 0 && q && cards.length > 0) {
+    if (!nrEl) {
+      nrEl = document.createElement('div');
+      nrEl.id = 'modvid-nores-' + key;
+      nrEl.style.cssText = 'text-align:center;padding:20px;color:var(--muted);font-size:0.9rem;';
+      container.appendChild(nrEl);
+    }
+    nrEl.textContent = 'No videos found for "' + inp.value.trim() + '".';
+    nrEl.style.display = '';
+  } else if (nrEl) {
+    nrEl.style.display = 'none';
+  }
+}
+
+// ── Search filter for MIS video list ──
+function filterMISVideos() {
+  const inp = document.getElementById('mis-video-search');
+  if (!inp) return;
+  const q = inp.value.toLowerCase().trim();
+  const container = document.getElementById('mis-video-cards');
+  if (!container) return;
+  const cards = container.querySelectorAll('[data-vtitle]');
+  let visible = 0;
+  cards.forEach(c => {
+    const title = c.getAttribute('data-vtitle') || '';
+    if (!q || title.includes(q)) { c.style.display = ''; visible++; }
+    else { c.style.display = 'none'; }
+  });
+  let nrEl = document.getElementById('mis-video-nores');
+  if (visible === 0 && q && cards.length > 0) {
+    if (!nrEl) {
+      nrEl = document.createElement('div');
+      nrEl.id = 'mis-video-nores';
+      nrEl.style.cssText = 'text-align:center;padding:20px;color:var(--muted);font-size:0.9rem;';
+      container.appendChild(nrEl);
+    }
+    nrEl.textContent = 'No videos found for "' + inp.value.trim() + '".';
+    nrEl.style.display = '';
+  } else if (nrEl) {
+    nrEl.style.display = 'none';
+  }
+}
+
+function renderModuleVideoCards(key) {
+  const mod = MODULE_QUIZZES[key];
+  const cardsEl = document.getElementById(`modvid-cards-${key}`);
+  if (!cardsEl) return;
+  const data = moduleVideosData[key] || [];
+  if (!data.length) {
+    cardsEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);">No videos found.<br><span style="font-size:0.8rem;">Add videos with Module = '${mod.supabaseModule}' in Supabase.</span></div>`;
+    return;
+  }
+  cardsEl.innerHTML = data.map((row, idx) => {
+    const meta = getMISVideoMeta(row.Title);
+    const safeTitle = (row.Title||'').toLowerCase().replace(/"/g,'&quot;');
+    const rowId = row.id || row.ID || '';
+    return `
+      <div data-vtitle="${safeTitle}" onclick="playModuleVideo('${key}',${idx})"
+           style="cursor:pointer;padding:16px;border-radius:12px;border:1.5px solid ${mod.color}44;background:${mod.color}12;transition:all 0.18s;"
+           onmouseover="this.style.borderColor='${mod.color}bb';this.style.background='${mod.color}22'"
+           onmouseout="this.style.borderColor='${mod.color}44';this.style.background='${mod.color}12'">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:48px;height:48px;border-radius:10px;background:${mod.color}28;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">${meta.icon}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;color:var(--text);font-size:0.97rem;">${row.Title}</div>
+            <div style="font-size:0.81rem;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Training Video</div>
+          </div>
+          ${rowId ? '<button onclick="event.stopPropagation();confirmDeleteTrainingVideo('+rowId+',\''+safeTitle+'\',\''+key+'\');" title="Delete" style="width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" onmouseover="this.style.background=\'rgba(239,68,68,0.28)\'" onmouseout="this.style.background=\'rgba(239,68,68,0.12)\'"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"3 6 5 6 21 6\"/><path d=\"M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6\"/><path d=\"M10 11v6M14 11v6\"/><path d=\"M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2\"/></svg></button>' : ''}
+          <div style="width:36px;height:36px;border-radius:50%;background:${mod.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="color:#fff;font-size:0.85rem;margin-left:2px;">▶</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  // Re-apply search filter if user already typed something before re-render
+  if (typeof filterModuleVideos === 'function') filterModuleVideos(key);
+}
+
+function playModuleVideo(key, idx) {
+  const row = (moduleVideosData[key] || [])[idx];
+  if (!row) return;
+  const meta = getMISVideoMeta(row.Title);
+  document.getElementById(`modvid-title-${key}`).textContent = `${meta.icon} ${row.Title}`;
+  document.getElementById(`modvid-desc-${key}`).textContent = meta.desc;
+  document.getElementById(`modvid-list-${key}`).style.display = 'none';
+  document.getElementById(`modvid-playerbox-${key}`).style.display = 'block';
+
+  // ── YouTube URL detect karo ──
+  const url = row.Video_URL || '';
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  const playerBox = document.getElementById(`modvid-player-wrap-${key}`) || document.getElementById(`modvid-player-${key}`)?.parentElement;
+
+  if (ytMatch) {
+    // YouTube: show thumbnail + watch button (embedding often restricted)
+    const videoId = ytMatch[1];
+    const thumbUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const videoEl = document.getElementById(`modvid-player-${key}`);
+    if (videoEl) videoEl.style.display = 'none';
+    const oldIframe = document.getElementById(`modvid-yt-iframe-${key}`);
+    if (oldIframe) oldIframe.remove();
+    let ytCard = document.getElementById(`modvid-ytcard-${key}`);
+    if (!ytCard) {
+      ytCard = document.createElement('div');
+      ytCard.id = `modvid-ytcard-${key}`;
+      if (videoEl) videoEl.after(ytCard);
+    }
+    ytCard.style.display = 'block';
+    ytCard.innerHTML = `
+      <div style="position:relative;border-radius:12px;overflow:hidden;cursor:pointer;background:#000;" onclick="logActivity({event_type:'video_play',event_detail:'YouTube: ${row.Title}',video_title:'${row.Title}',page_name:'training',card_name:'${key}',metadata:{source:'youtube',url:'${watchUrl}'}});window.open('${watchUrl}','_blank')">
+        <img src="${thumbUrl}" alt="${row.Title}" style="width:100%;display:block;border-radius:12px;max-height:55vh;object-fit:cover;" onerror="this.style.minHeight='180px';this.style.background='#111';">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);border-radius:12px;">
+          <div style="width:64px;height:64px;background:#ff0000;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:12px;box-shadow:0 4px 20px rgba(255,0,0,0.5);">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <div style="color:#fff;font-weight:700;font-size:0.95rem;text-align:center;padding:0 16px;">Watch on YouTube</div>
+          <div style="color:rgba(255,255,255,0.7);font-size:0.78rem;margin-top:4px;">Click to open in new tab</div>
+        </div>
+      </div>
+      <a href="${watchUrl}" target="_blank" rel="noopener"
+        onclick="logActivity({event_type:'video_play',event_detail:'YouTube: ${row.Title}',video_title:'${row.Title}',page_name:'training',card_name:'${key}',metadata:{source:'youtube',url:'${watchUrl}'}})"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:12px;border-radius:10px;background:#ff0000;color:#fff;font-weight:700;font-size:0.92rem;text-decoration:none;transition:opacity 0.18s;"
+        onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+        YouTube par Dekhein
+      </a>`;
+  } else {
+    // Supabase/direct video URL
+    pauseAllVideosExcept(`modvid-player-${key}`);
+    const videoEl = document.getElementById(`modvid-player-${key}`);
+    const iframeEl = document.getElementById(`modvid-yt-iframe-${key}`);
+    if (iframeEl) { iframeEl.src = ''; iframeEl.style.display = 'none'; }
+    if (videoEl) { videoEl.style.display = ''; videoEl.src = url; videoEl.load();
+      _actTrackVideo(videoEl, row.Title || key); } // ACTIVITY TRACKING
+
+    // Download button — sirf allowed users ke liye
+    const dlWrap = document.getElementById(`modvid-dl-wrap-${key}`);
+    if (dlWrap && _canDownloadVideo() && url) {
+      dlWrap.innerHTML = `<a href="${url}" download="${row.Title || 'video'}.mp4" target="_blank"
+        style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:8px;background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.35);color:#00d4aa;font-size:0.82rem;font-weight:700;text-decoration:none;">
+        ⬇️ Download Video
+      </a>`;
+    }
+  }
+}
+
+function backToModuleVideoList(key) {
+  const v = document.getElementById(`modvid-player-${key}`);
+  if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+  const iframeEl = document.getElementById(`modvid-yt-iframe-${key}`);
+  if (iframeEl) { iframeEl.src = ''; iframeEl.style.display = 'none'; }
+  const ytCard = document.getElementById(`modvid-ytcard-${key}`);
+  if (ytCard) ytCard.style.display = 'none';
+  document.getElementById(`modvid-playerbox-${key}`).style.display = 'none';
+  document.getElementById(`modvid-list-${key}`).style.display = 'block';
+}
+
+function switchModuleTab(key, tab) {
+  const vTab = document.getElementById(`modvid-vtab-${key}`);
+  const qTab = document.getElementById(`modvid-qtab-${key}`);
+  const btnV = document.getElementById(`modvid-btn-v-${key}`);
+  const btnQ = document.getElementById(`modvid-btn-q-${key}`);
+  const mod = MODULE_QUIZZES[key];
+  if (!vTab || !qTab) return;
+  if (tab === 'videos') {
+    vTab.style.display = 'block'; qTab.style.display = 'none';
+    btnV.style.background = `${mod.color}2e`; btnV.style.color = mod.color; btnV.style.fontWeight = '800';
+    btnQ.style.background = 'transparent'; btnQ.style.color = 'var(--muted)'; btnQ.style.fontWeight = '700';
+    const v = document.getElementById(`modvid-player-${key}`);
+    if (v) v.pause();
+  } else {
+    vTab.style.display = 'none'; qTab.style.display = 'block';
+    btnQ.style.background = `${mod.color}2e`; btnQ.style.color = mod.color; btnQ.style.fontWeight = '800';
+    btnV.style.background = 'transparent'; btnV.style.color = 'var(--muted)'; btnV.style.fontWeight = '700';
+  }
+}
+
+function showModuleQuizMenu() {
+  const mod = moduleQuizActive;
+  const key = moduleQuizCurrentKey;
+  const borderColor = mod.color + '55';
+  const bgColor = mod.color + '14';
+  const quizOnly = _quizOnlyMode;
+
+  // ── Modules with Supabase videos → Videos + Quiz tabs ──
+  if (mod.supabaseModule) {
+    document.getElementById('module-quiz-screen').innerHTML = `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:1.15rem;font-weight:800;color:var(--text);margin-bottom:4px;">${mod.icon} ${mod.title.replace(' Quiz','')}</div>
+        <div style="font-size:0.85rem;color:var(--muted);">${quizOnly ? 'Test your knowledge!' : 'Watch videos or test your knowledge!'}</div>
+      </div>
+      ${quizOnly ? '' : `
+      <div style="display:flex;gap:0;margin-bottom:18px;border-radius:12px;overflow:hidden;border:1.5px solid ${mod.color}40;">
+        <button id="modvid-btn-v-${key}" onclick="switchModuleTab('${key}','videos')"
+          style="flex:1;padding:10px 0;border:none;background:${mod.color}2e;color:${mod.color};font-weight:800;font-size:0.95rem;cursor:pointer;font-family:inherit;">▶ Videos</button>
+        <button id="modvid-btn-q-${key}" onclick="switchModuleTab('${key}','quiz')"
+          style="flex:1;padding:10px 0;border:none;background:transparent;color:var(--muted);font-weight:700;font-size:0.95rem;cursor:pointer;font-family:inherit;">📝 Quiz</button>
+      </div>
+      <!-- Videos Tab -->
+      <div id="modvid-vtab-${key}">
+        <div id="modvid-list-${key}">
+          <div style="font-size:0.82rem;font-weight:700;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:12px;">Training Videos</div>
+          <div style="position:relative;margin-bottom:12px;">
+            <input type="text" id="modvid-search-${key}"
+              placeholder="Search videos..."
+              oninput="filterModuleVideos('${key}')"
+              style="width:100%;padding:10px 14px 10px 38px;border-radius:10px;border:1.5px solid ${mod.color}40;background:var(--surface2);color:var(--text);font-size:0.9rem;font-family:inherit;outline:none;transition:border-color 0.18s;box-sizing:border-box;"
+              onfocus="this.style.borderColor='${mod.color}bb'" onblur="this.style.borderColor='${mod.color}40'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${mod.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+          </div>
+          <div id="modvid-cards-${key}" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="text-align:center;padding:24px;color:var(--muted);font-size:0.92rem;">Loading...</div>
+          </div>
+        </div>
+        <div id="modvid-playerbox-${key}" style="display:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <button onclick="backToModuleVideoList('${key}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;padding:0;line-height:1;">←</button>
+            <div>
+              <div id="modvid-title-${key}" style="font-size:1.02rem;font-weight:800;color:var(--text);"></div>
+              <div style="font-size:0.8rem;color:var(--muted);margin-top:2px;">Training Video</div>
+            </div>
+          </div>
+          <video id="modvid-player-${key}" controls
+            controlsList="nodownload noplaybackrate" disablePictureInPicture
+            style="width:100%;border-radius:12px;background:#000;max-height:55vh;" preload="metadata">
+            Your browser does not support the video tag.
+          </video>
+          ${_canDownloadVideo() ? `<div id="modvid-dl-wrap-${key}" style="margin-top:10px;text-align:right;"></div>` : ''}
+          <div id="modvid-desc-${key}" style="margin-top:12px;font-size:0.87rem;color:var(--muted);line-height:1.65;"></div>
+        </div>
+      </div>`}
+
+      <!-- Quiz Tab -->
+      <div id="modvid-qtab-${key}" style="display:block;">
+        <div style="font-size:0.80rem;font-weight:700;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:12px;">Take the Quiz</div>
+        <button onclick="startModuleQuiz()" style="width:100%;text-align:left;padding:18px;border-radius:12px;border:1.5px solid ${borderColor};background:${bgColor};cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.borderColor='${mod.color}'" onmouseout="this.style.borderColor='${borderColor}'">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <span style="font-size:2rem;">${mod.icon}</span>
+            <div style="flex:1;">
+              <div style="font-weight:700;color:var(--text);font-size:0.97rem;margin-bottom:3px;">${mod.subtitle}</div>
+              <div style="font-size:0.78rem;color:var(--muted);">10 Questions • Multiple Choice</div>
+            </div>
+            <span style="color:${mod.color};font-size:1.2rem;">→</span>
+          </div>
+        </button>
+      </div>
+    `;
+    if (!quizOnly) fetchModuleVideos(key);
+    _quizOnlyMode = false;
+    return;
+  }
+
+  // ── Other modules (PC, Click Task, Cool Bus, SmartFleet) → Drive button + Quiz ──
+  document.getElementById('module-quiz-screen').innerHTML = `
+    <div style="margin-bottom:20px;">
+      <div style="font-size:1.15rem;font-weight:800;color:var(--text);margin-bottom:4px;">${mod.icon} ${mod.title.replace(' Quiz','')}</div>
+      <div style="font-size:0.85rem;color:var(--muted);">${quizOnly ? 'Test your knowledge!' : 'Watch the videos, then test your knowledge!'}</div>
+    </div>
+    ${quizOnly ? '' : `
+    <div style="margin-bottom:20px;">
+      <a href="${mod.driveUrl}" target="_blank" style="text-decoration:none;">
+        <button style="width:100%;padding:12px;border-radius:10px;border:1.5px solid rgba(240,165,0,0.4);background:rgba(240,165,0,0.1);color:#f0a500;font-weight:700;font-size:0.88rem;cursor:pointer;font-family:inherit;">📁 Open Drive Videos</button>
+      </a>
+    </div>`}
+    <div style="font-size:0.80rem;font-weight:700;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:12px;">Take the Quiz</div>
+    <button onclick="startModuleQuiz()" style="width:100%;text-align:left;padding:18px;border-radius:12px;border:1.5px solid ${borderColor};background:${bgColor};cursor:pointer;font-family:inherit;transition:all 0.18s;" onmouseover="this.style.borderColor='${mod.color}'" onmouseout="this.style.borderColor='${borderColor}'">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span style="font-size:2rem;">${mod.icon}</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;color:var(--text);font-size:0.97rem;margin-bottom:3px;">${mod.subtitle}</div>
+          <div style="font-size:0.78rem;color:var(--muted);">10 Questions • Multiple Choice</div>
+        </div>
+        <span style="color:${mod.color};font-size:1.2rem;">→</span>
+      </div>
+    </button>
+  `;
+  _quizOnlyMode = false;
+}
+
+function startModuleQuiz() {
+  moduleQuizQIndex = 0;
+  moduleQuizAnswers = [];
+  renderModuleQuestion();
+}
+
+function closeModuleQuiz() {
+  _quizOnlyMode = false;
+  document.getElementById('module-quiz-overlay').style.display = 'none';
+  // Stop any playing module video
+  document.querySelectorAll('[id^="modvid-player-"]').forEach(v => {
+    if (v && v.pause) { v.pause(); v.removeAttribute('src'); v.load(); }
+  });
+}
+
+function renderModuleQuestion() {
+  const mod = moduleQuizActive;
+  const q = mod.questions[moduleQuizQIndex];
+  const total = mod.questions.length;
+  const screen = document.getElementById('module-quiz-screen');
+  screen.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+      <button onclick="showModuleQuizMenu()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;padding:0;">←</button>
+      <div>
+        <div style="font-weight:700;font-size:1.05rem;color:var(--text);">${mod.icon} ${mod.title}</div>
+        <div style="font-size:0.80rem;color:var(--muted);">${mod.subtitle}</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:0.82rem;color:var(--muted);">Question ${moduleQuizQIndex+1} of ${total}</span>
+      <span style="font-size:0.82rem;font-weight:700;color:${mod.color};">${Math.round((moduleQuizQIndex/total)*100)}% done</span>
+    </div>
+    <div style="background:var(--border);border-radius:4px;height:5px;margin-bottom:22px;">
+      <div style="background:${mod.color};height:5px;border-radius:4px;width:${(moduleQuizQIndex/total)*100}%;transition:width 0.3s;"></div>
+    </div>
+    <div style="font-size:1.03rem;font-weight:600;color:var(--text);margin-bottom:20px;line-height:1.55;">${q.q}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;" id="mq-options">
+      ${q.opts.map((opt,i)=>`
+        <button onclick="selectModuleAnswer(${i})" id="mq-opt-${i}" style="text-align:left;padding:13px 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:0.91rem;transition:all 0.18s;font-family:inherit;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--border);font-weight:700;font-size:0.75rem;margin-right:10px;">${['A','B','C','D'][i]}</span>${opt}
+        </button>
+      `).join('')}
+    </div>
+    <div id="mq-next-area" style="margin-top:18px;display:none;">
+      <button onclick="nextModuleQuestion()" style="width:100%;padding:13px;border-radius:10px;border:none;background:${mod.color};color:#fff;font-weight:700;font-size:0.97rem;cursor:pointer;font-family:inherit;">
+        ${moduleQuizQIndex < total-1 ? 'Next Question →' : 'Submit Quiz 🎯'}
+      </button>
+    </div>
+  `;
+}
+
+function selectModuleAnswer(idx) {
+  const mod = moduleQuizActive;
+  const q = mod.questions[moduleQuizQIndex];
+  moduleQuizAnswers[moduleQuizQIndex] = idx;
+  document.querySelectorAll('[id^="mq-opt-"]').forEach((btn,i)=>{
+    btn.disabled = true;
+    if(i===q.ans){ btn.style.background='rgba(34,197,94,0.15)';btn.style.borderColor='#22c55e';btn.style.color='#22c55e'; }
+    else if(i===idx && idx!==q.ans){ btn.style.background='rgba(239,68,68,0.15)';btn.style.borderColor='#ef4444';btn.style.color='#ef4444'; }
+  });
+  document.getElementById('mq-next-area').style.display='block';
+}
+
+function nextModuleQuestion() {
+  moduleQuizQIndex++;
+  if(moduleQuizQIndex < moduleQuizActive.questions.length){ renderModuleQuestion(); }
+  else { showModuleResult(); }
+}
+
+function showModuleResult() {
+  const mod = moduleQuizActive;
+  const total = mod.questions.length;
+  let score = 0;
+  moduleQuizAnswers.forEach((ans,i)=>{ if(ans===mod.questions[i].ans) score++; });
+  const pct = Math.round((score/total)*100);
+  const emoji = pct>=80?'🏆':pct>=60?'👍':'📚';
+  const msg = pct>=80?'Excellent Work!':pct>=60?'Good Job!':'Keep Learning!';
+  const msgColor = pct>=80?'#22c55e':pct>=60?'#f0a500':'#ef4444';
+  const modKey = Object.keys(MODULE_QUIZZES).find(k=>MODULE_QUIZZES[k].title===mod.title);
+  document.getElementById('module-quiz-screen').innerHTML = `
+    <div style="text-align:center;padding:10px 0;">
+      <div style="font-size:3.5rem;margin-bottom:10px;">${emoji}</div>
+      <div style="font-size:1.3rem;font-weight:800;color:${msgColor};margin-bottom:4px;">${msg}</div>
+      <div style="font-size:0.85rem;color:var(--muted);margin-bottom:24px;">${mod.icon} ${mod.title}</div>
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:110px;height:110px;border-radius:50%;border:6px solid ${msgColor};margin:0 auto 22px;">
+        <div>
+          <div style="font-size:1.85rem;font-weight:900;color:${msgColor};">${score}/${total}</div>
+          <div style="font-size:0.78rem;color:var(--muted);">${pct}%</div>
+        </div>
+      </div>
+      <div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:18px;max-height:220px;overflow-y:auto;">
+        <div style="font-size:0.82rem;font-weight:700;color:var(--text);margin-bottom:10px;text-align:left;">Review Answers</div>
+        ${mod.questions.map((q,i)=>`
+          <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;text-align:left;">
+            <span style="font-size:0.90rem;">${moduleQuizAnswers[i]===q.ans?'✅':'❌'}</span>
+            <div>
+              <div style="font-size:0.78rem;color:var(--text);font-weight:600;">Q${i+1}: ${q.q}</div>
+              <div style="font-size:0.75rem;color:${moduleQuizAnswers[i]===q.ans?'#22c55e':'#ef4444'};">Your answer: ${q.opts[moduleQuizAnswers[i]]}</div>
+              ${moduleQuizAnswers[i]!==q.ans?`<div style="font-size:0.75rem;color:#22c55e;">Correct: ${q.opts[q.ans]}</div>`:''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+        <button onclick="startModuleQuiz()" style="flex:1;min-width:110px;padding:11px 14px;border-radius:10px;border:1.5px solid ${mod.color};background:transparent;color:${mod.color};font-weight:700;font-size:0.88rem;cursor:pointer;font-family:inherit;">🔄 Retry</button>
+        <button onclick="showModuleQuizMenu()" style="flex:1;min-width:110px;padding:11px 14px;border-radius:10px;border:none;background:var(--surface2);color:var(--text);font-weight:600;font-size:0.85rem;cursor:pointer;font-family:inherit;">← Back</button>
+        <a href="${mod.driveUrl}" target="_blank" style="flex:1;min-width:110px;text-decoration:none;"><button style="width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-weight:600;font-size:0.85rem;cursor:pointer;font-family:inherit;">📁 Drive</button></a>
+      </div>
+    </div>
+  `;
+}
+
+
+
+const MIS_QUIZ_MODULES = {
+  fms: {
+    title: 'FMS Quiz',
+    subtitle: 'Fleet Management System',
+    color: '#f0a500',
+    icon: '🚗',
+    driveUrl: 'https://drive.google.com/drive/folders/1kJxI0w9_IfT6_dfkBlXUkjTfx47eGwcz',
+    questions: []
+  },
+  checklist: {
+    title: 'Checklist Quiz',
+    subtitle: 'Daily Operational Checklist',
+    color: '#00d4aa',
+    icon: '✅',
+    driveUrl: 'https://drive.google.com/drive/folders/1kJxI0w9_IfT6_dfkBlXUkjTfx47eGwcz',
+    questions: []
+  },
+  mis: {
+    title: 'MIS Quiz',
+    subtitle: 'Management Information System',
+    color: '#f0a500',
+    icon: '📊',
+    driveUrl: 'https://drive.google.com/drive/folders/1kJxI0w9_IfT6_dfkBlXUkjTfx47eGwcz',
+    questions: []
+  },
+  looker: {
+    title: 'Looker Studio Quiz',
+    subtitle: 'Checklist Reports in Looker Studio',
+    color: '#a855f7',
+    icon: '📈',
+    driveUrl: 'https://drive.google.com/drive/folders/1kJxI0w9_IfT6_dfkBlXUkjTfx47eGwcz',
+    questions: []
+  }
+};
+
+let currentQuizModule = null;
+let currentQuestionIndex = 0;
+let userAnswers = [];
+
+function openMISQuizMenu() {
+  logActivity({event_type:'training_module_open',event_detail:'Opened MIS Training',page_name:'training',card_name:'MIS Training'});
+  console.log('[ACT] MIS Training opened');
+  document.getElementById('mis-quiz-overlay').style.display = 'flex';
+  switchMISTab('videos');
+  fetchMISVideos();   // load from Supabase table on open
+}
+
+function closeMISQuiz() {
+  document.getElementById('mis-quiz-overlay').style.display = 'none';
+  const v = document.getElementById('mis-main-video');
+  if(v) { v.pause(); v.removeAttribute('src'); v.load(); }
+  _misQuizzesLoaded = false; // allow fresh reload next open
+}
+
+// ── Tab switching ──
+function switchMISTab(tab) {
+  const vTab = document.getElementById('mis-videos-tab');
+  const qTab = document.getElementById('mis-quiz-tab');
+  const btnV = document.getElementById('mis-tab-videos');
+  const btnQ = document.getElementById('mis-tab-quiz');
+  if(tab === 'videos') {
+    vTab.style.display = 'block'; qTab.style.display = 'none';
+    btnV.style.background = 'rgba(240,165,0,0.18)'; btnV.style.color = '#f0a500'; btnV.style.fontWeight = '800';
+    btnQ.style.background = 'transparent'; btnQ.style.color = 'var(--muted)'; btnQ.style.fontWeight = '700';
+    document.getElementById('mis-video-list').style.display = 'block';
+    document.getElementById('mis-video-player').style.display = 'none';
+    const v = document.getElementById('mis-main-video');
+    if(v) v.pause();
+  } else {
+    vTab.style.display = 'none'; qTab.style.display = 'block';
+    btnQ.style.background = 'rgba(168,85,247,0.18)'; btnQ.style.color = '#a855f7'; btnQ.style.fontWeight = '800';
+    btnV.style.background = 'transparent'; btnV.style.color = 'var(--muted)'; btnV.style.fontWeight = '700';
+    loadMISDBQuizzes();  // load quizzes from Supabase
+  }
+}
+
+// ── Load DB quizzes inside MIS overlay Quiz tab ──
+let _misQuizzesLoaded = false;
+async function loadMISDBQuizzes() {
+  if (_misQuizzesLoaded) return;  // already loaded, no re-fetch
+  _misQuizzesLoaded = true;
+
+  const loadEl  = document.getElementById('mis-db-quiz-loading');
+  const listEl  = document.getElementById('mis-db-quiz-list');
+  const emptyEl = document.getElementById('mis-db-quiz-empty');
+  if (!loadEl) return;
+
+  // Show Create Quiz button only to authorised MIS members
+  const createBtn = document.getElementById('mis-create-quiz-btn');
+  if (createBtn && _canUploadQuiz()) createBtn.style.display = 'inline-block';
+
+  loadEl.style.display = 'block';
+  listEl.innerHTML = '';
+  emptyEl.style.display = 'none';
+
+  // Inline headers — QZ_HDRS not yet defined at this point in the file
+  const _hdrs = SB_HDRS_JSON();
+
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/quizzes?select=*,content_nodes(name),questions(marks)&is_active=eq.true&order=id.desc`,
+      { headers: _hdrs }
+    );
+    let quizzes = await res.json();
+    // Only show quizzes linked to MIS Training node
+    quizzes = quizzes.filter(q =>
+      (q.content_nodes?.name || '').toLowerCase().trim() === 'mis training'
+    );
+    loadEl.style.display = 'none';
+
+    if (!Array.isArray(quizzes) || !quizzes.length) {
+      emptyEl.style.display = 'block';
+      return;
+    }
+
+    const colors = ['#a855f7','#f0a500','#00d4aa','#4e9af1','#f97316','#e879f9','#22c55e'];
+    listEl.innerHTML = quizzes.map((q, i) => {
+      const col        = colors[i % colors.length];
+      const mod        = q.content_nodes?.name || 'General';
+      const tl         = q.time_limit ? `⏱ ${q.time_limit} min` : '';
+      const totalMarks = (q.questions || []).reduce((s, qq) => s + (qq.marks || 1), 0);
+      const passingPct = q.passing_score || 60;
+      const passingMks = totalMarks > 0 ? Math.ceil((passingPct / 100) * totalMarks) : null;
+      const pass       = passingMks ? `🎯 Pass: ${passingMks}/${totalMarks} marks` : `🎯 Pass: ${passingPct}%`;
+      return `
+        <button onclick="openQuizPreview(${q.id})"
+          style="text-align:left;padding:15px 16px;border-radius:13px;border:1.5px solid ${col}33;border-top:2.5px solid ${col};background:${col}0d;cursor:pointer;font-family:inherit;width:100%;transition:all 0.18s;"
+          onmouseover="this.style.background='${col}1a';this.style.transform='translateY(-2px)'"
+          onmouseout="this.style.background='${col}0d';this.style.transform=''">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:${col}22;border:1px solid ${col}44;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">📝</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;color:var(--text);font-size:0.96rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${q.title}</div>
+              <div style="font-size:0.76rem;color:var(--muted);margin-top:3px;">📚 ${mod}${tl ? ' · ' + tl : ''} · ${pass}</div>
+            </div>
+            <span style="color:${col};font-size:1.1rem;flex-shrink:0;">→</span>
+          </div>
+        </button>`;
+    }).join('');
+
+  } catch(e) {
+    loadEl.style.display = 'none';
+    listEl.innerHTML = `<div style="color:#ef4444;text-align:center;padding:20px;font-size:0.83rem;">⚠️ Could not load quizzes: ${e.message}</div>`;
+    _misQuizzesLoaded = false; // allow retry
+  }
+}
 
 async function loadTrainingSection() {
   if (trainingDynLoaded) return;

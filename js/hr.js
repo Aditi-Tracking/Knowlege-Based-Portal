@@ -1,4 +1,6 @@
 // Section: HR Panel (loadHRSection, Mediclaim upload)
+let hrSectionLoaded = false;
+
 async function loadHRSection() {
   if (hrSectionLoaded) return;
   const loadEl = document.getElementById('hr-loading');
