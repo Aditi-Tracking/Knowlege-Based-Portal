@@ -1154,36 +1154,3 @@ function _stopConfetti() {
     }, 3000);
   });
 })();
-
-// ═══════════════════════════════════════════════════════════════
-// ANNOUNCEMENTS PANEL — Full System
-// ═══════════════════════════════════════════════════════════════
-
-let _annCurrentFilter = 'all';
-let _annLoaded = false;
-
-// ── Filter button handler ────────────────────────────────────
-function annFilter(btn, filter) {
-  _annCurrentFilter = filter;
-  document.querySelectorAll('.ann-filter').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  _renderAnnFeed();
-}
-
-// ══════════════════════════════════════════════════════════════
-//  ANNOUNCEMENT OVERLAY SYSTEM — v2 (Right Drawer from Home)
-//  Supabase table: announcements
-//  Columns: id, title, body, type (update/celeb/general),
-//           posted_by (text, e.g. "MIS Team"), created_at,
-//           pinned (boolean), active (boolean)
-// ══════════════════════════════════════════════════════════════
-
-let _annDrwLoaded   = false;
-let _annDrwUpdates  = [];   // from Supabase announcements table
-let _annDrwCelebs   = [];   // birthdays / anniversaries
-let _annDrwFilter   = 'update'; // default to Updates tab
-
-/* ── Badge count helpers ─────────────────────────────────── */
-function _annGetSeenIds() {
-  try { return JSON.parse(localStorage.getItem('annSeenIds') || '[]'); } catch(e) { return []; }
-}

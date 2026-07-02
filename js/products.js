@@ -284,30 +284,4 @@ function closeDirectoryOverlay() {
   document.body.style.overflow = '';
 }
 
-// Icon/color map keyed by lowercase title keywords
-function getMISVideoMeta(title) {
-  const t = (title || '').toLowerCase();
-  if (t.includes('checklist') || t.includes('task'))
-    return { icon: '✅', color: '#00d4aa', desc: 'Task Checklist — training on how to use checklists in daily operations.' };
-  if (t.includes('how to') && (t.includes('fms') || t.includes('fleet')))
-    return { icon: '🎯', color: '#3b82f6', desc: 'FMS step-by-step guide — learn how to use it practically.' };
-  if (t.includes('fms') || t.includes('fleet'))
-    return { icon: '🚗', color: '#f0a500', desc: 'Fleet Management System — training on vehicle tracking, trips and fuel monitoring.' };
-  if (t.includes('odoo'))
-    return { icon: '🏢', color: '#a855f7', desc: 'Odoo ERP — training on purchase, sales and inventory management.' };
-  if (t.includes('pre-sales') || t.includes('presales') || t.includes('pre sales') || t.includes('lead') || t.includes('demo') || t.includes('proposal'))
-    return { icon: '🤝', color: '#e879f9', desc: 'Pre-Sales — training on lead handling, demos, proposals and client communication.' };
-  if (t.includes('looker'))
-    return { icon: '📈', color: '#3b82f6', desc: 'Looker Studio — training on building data visualizations and dashboards.' };
-  if (t.includes('cool bus') || t.includes('coolbus'))
-    return { icon: '🚌', color: '#22c55e', desc: 'Cool Bus — training on vehicle tracking and route management.' };
-  if (t.includes('smart fleet') || t.includes('smartfleet'))
-    return { icon: '🛰️', color: '#f97316', desc: 'Smart Fleet — training on fleet monitoring and operations.' };
-  if (t.includes('pc') || t.includes('process'))
-    return { icon: '💼', color: '#ec4899', desc: 'Process Coordinator — training on coordination workflows and closing procedures.' };
-  if (t.includes('part'))
-    return { icon: '📹', color: '#6366f1', desc: 'Training video — step-by-step guide.' };
-  return { icon: '🎬', color: '#f0a500', desc: 'Training video.' };
-}
-
 // Loaded videos (array of {id, Title, Video_URL})
