@@ -656,3 +656,115 @@ function renderOverlayCard(name, link, th, fileId, nodeId) {
   </div>`;
 }
 
+function toggleTheme(){
+  const isLight = document.body.classList.toggle('light-mode');
+  localStorage.setItem('aditiTheme', isLight ? 'light' : 'dark');
+  const icon = isLight ? '☀️' : '🌙';
+  const label = isLight ? 'Light Mode' : 'Dark Mode';
+  const loginBtn = document.getElementById('loginThemeBtn');
+  const sidebarBtn = document.getElementById('sidebarThemeBtn');
+  const mobBtn = document.getElementById('mobThemeBtn');
+  if(loginBtn) loginBtn.textContent = icon + ' ' + label;
+  if(sidebarBtn) sidebarBtn.textContent = icon + ' ' + label;
+  if(mobBtn) mobBtn.textContent = icon + ' ' + (isLight ? 'Light' : 'Dark');
+  // Redraw all charts so axis/label colors update immediately
+  // First destroy existing charts, then re-render with new colors
+  try{
+    if(typeof L!=='undefined'&&L.length){
+      Object.values(Lch||{}).forEach(c=>c&&c.destroy&&c.destroy()); Lch={};
+      if(typeof lRenderCharts==='function') lRenderCharts();
+      if(typeof lRenderLB==='function') lRenderLB();
+    }
+  }catch(e){}
+  try{
+    if(typeof C!=='undefined'&&C.length){
+      Object.values(Cch||{}).forEach(c=>c&&c.destroy&&c.destroy()); Cch={};
+      const cD=typeof cGetFiltered==='function'?cGetFiltered():(C||[]);
+      if(typeof cRenderCharts==='function') cRenderCharts(cD);
+      if(typeof cRenderLB==='function') cRenderLB(cD);
+    }
+  }catch(e){}
+  try{
+    if(typeof fmsCharts!=='undefined'&&Object.keys(fmsCharts||{}).length){
+      Object.values(fmsCharts).forEach(c=>c&&c.destroy&&c.destroy()); fmsCharts={};
+      if(typeof fmsRenderCharts==='function') fmsRenderCharts();
+    }
+  }catch(e){}
+  try{
+    if(typeof tCharts!=='undefined'&&Object.keys(tCharts||{}).length){
+      Object.values(tCharts).forEach(c=>c&&c.destroy&&c.destroy()); tCharts={};
+      if(typeof tRenderCharts==='function') tRenderCharts();
+    }
+  }catch(e){}
+}
+
+// Apply saved theme on load
+(function(){
+  const saved = localStorage.getItem('aditiTheme');
+  if(saved === 'dark'){
+    // Dark mode only if explicitly saved as dark
+  } else {
+    // Default is light mode
+    document.body.classList.add('light-mode');
+    const loginBtn = document.getElementById('loginThemeBtn');
+    if(loginBtn) loginBtn.textContent = '☀️ Light Mode';
+    const mobBtn = document.getElementById('mobThemeBtn');
+    if(mobBtn) mobBtn.textContent = '☀️ Light';
+  }
+})();
+
+/* ══ ABOUT ORGANISATION — tab switcher ══ */
+function switchAbout(tab){
+  document.querySelectorAll('.about-section').forEach(s=>s.style.display='none');
+  document.querySelectorAll('#aboutTabs .about-tab').forEach(t=>t.classList.remove('active'));
+  var el=document.getElementById('about-'+tab);
+  if(el)el.style.display='block';
+  var idx={'overview':0,'locations':1,'milestones':2,'certifications':3}[tab];
+  if(idx===undefined)idx=0;
+  var tabs=document.querySelectorAll('#aboutTabs .about-tab');
+  if(tabs[idx])tabs[idx].classList.add('active');
+}
+
+/* ── MOBILE MENU SHEET ── */
+function toggleMobMenu(){
+  var sheet=document.getElementById('mobMenuSheet');
+  var overlay=document.getElementById('mobMenuOverlay');
+  if(sheet.style.display==='none'||sheet.style.display===''){
+    sheet.style.display='block';
+    overlay.style.display='block';
+    requestAnimationFrame(function(){
+      sheet.style.transform='translateY(0)';
+    });
+  } else {
+    closeMobMenu();
+  }
+}
+function closeMobMenu(){
+  var sheet=document.getElementById('mobMenuSheet');
+  var overlay=document.getElementById('mobMenuOverlay');
+  sheet.style.transform='translateY(100%)';
+  setTimeout(function(){
+    sheet.style.display='none';
+    overlay.style.display='none';
+  },280);
+}
+function toggleMMDash(){
+  var sub=document.getElementById('mmDashSub');
+  var arrow=document.getElementById('mmDashArrow');
+  if(sub.style.display==='none'||sub.style.display===''){
+    sub.style.display='block';
+    arrow.style.transform='rotate(180deg)';
+  } else {
+    sub.style.display='none';
+    arrow.style.transform='rotate(0deg)';
+  }
+}
+function mobMenuGo(panel){
+  // update active highlight in mobile menu
+  document.querySelectorAll('.mm-nav-item').forEach(function(el){el.classList.remove('mm-active');});
+  var target=document.getElementById('mm-'+panel);
+  if(target) target.classList.add('mm-active');
+  closeMobMenu();
+  switchDB(panel);
+}
+
