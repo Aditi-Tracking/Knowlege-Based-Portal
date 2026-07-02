@@ -2121,37 +2121,3 @@ async function fmsSubmitUpdatePayment(){
 
 
 
-
-
-// ============================================================
-
-
-// ═══════════════════════════════════════
-// TASK CHECKLIST DASHBOARD — Supabase Version
-// ═══════════════════════════════════════
-
-// NOTE: Google Form submissions removed — task status updates directly to Supabase DB.
-
-// ── Supabase REST API: Task done mark karo ──
-async function markTaskDone(rowId, remarks) {
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
-      {
-        method: 'PATCH',
-        headers: SB_HDRS_JSON(),
-        body: JSON.stringify({
-          actual_timestamp: new Date().toISOString(),
-          remarks: remarks || null
-        })
-      }
-    );
-    return res.ok;
-  } catch(e) {
-    alert('Update error: ' + e.message);
-    return false;
-  }
-}
-
-
-

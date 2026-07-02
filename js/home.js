@@ -1,4 +1,4 @@
-// Section: Home Dashboard (holiday card, MIS videos, org chart, portal updates)
+// Section: Home Dashboard (holiday card, MIS videos, file viewer, portal update posts)
 let misVideosData = [];
 
 // Icon/color map keyed by lowercase title keywords

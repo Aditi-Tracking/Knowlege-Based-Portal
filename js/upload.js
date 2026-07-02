@@ -1,4 +1,4 @@
-﻿// Section: Upload Modal (shared file/video upload utility for HR, Sales, Training)
+// Section: Upload Modal (shared file/video upload utility for HR, Sales, After Sales, Marketing, Products, Training)
 const UPLOAD_PASSWORD = 'aditi@upload2026'; // change as needed
 
 let _uploadSection  = null;   // e.g. 'Sales'
@@ -248,9 +248,9 @@ async function createCardOnly() {
 
     // Reset CN cache
     CN.loaded = false; CN.nodes = []; CN.files = [];
-    window.hrSectionLoaded = false; window.afterSalesLoaded = false;
-    window.salesDocsLoaded = false; window.marketingInitLoaded = false;
-    window.prodLoaded = false; window.trainingDynLoaded = false; window.hrDocsCache = {};
+    hrSectionLoaded = false; afterSalesLoaded = false;
+    salesDocsLoaded = false; marketingInitLoaded = false;
+    prodLoaded = false; trainingDynLoaded = false; hrDocsCache = {};
 
     // Clear name, refresh parent dropdown if sub
     document.getElementById('uploadNewCardName').value = '';
@@ -577,12 +577,12 @@ async function submitUpload() {
     CN.files   = [];
 
     // Reset section loaders so they re-fetch
-    window.hrSectionLoaded       = false;
-    window.afterSalesLoaded     = false;
-    window.salesDocsLoaded      = false;
-    window.marketingInitLoaded  = false;
-    window.prodLoaded = false; window.trainingDynLoaded = false;
-    window.hrDocsCache          = {};
+    hrSectionLoaded       = false;
+    afterSalesLoaded     = false;
+    salesDocsLoaded      = false;
+    marketingInitLoaded  = false;
+    prodLoaded = false; trainingDynLoaded = false;
+    hrDocsCache          = {};
 
     // Auto-close and reload after 1.5s
     setTimeout(() => {
@@ -662,8 +662,8 @@ async function _submitYoutubeLink(ytUrl, displayName, newCardName, submitBtn) {
     _uploadSetStatus('✅ YouTube link saved successfully!', '#00d4aa');
 
     CN.loaded=false; CN.nodes=[]; CN.files=[];
-    window.hrSectionLoaded=false; window.afterSalesLoaded=false; window.salesDocsLoaded=false;
-    window.marketingInitLoaded=false; window.prodLoaded=false; window.trainingDynLoaded=false; window.hrDocsCache={};
+    hrSectionLoaded=false; afterSalesLoaded=false; salesDocsLoaded=false;
+    marketingInitLoaded=false; prodLoaded=false; trainingDynLoaded=false; hrDocsCache={};
 
     setTimeout(() => {
       closeUploadModal();
@@ -781,13 +781,13 @@ async function _doDeleteCard(nodeId, cardName) {
 
     // 4. Refresh caches
     CN.loaded = false; CN.nodes = []; CN.files = [];
-    window.hrSectionLoaded = false;
-    window.afterSalesLoaded = false;
-    window.salesDocsLoaded = false;
-    window.marketingInitLoaded = false;
-    window.prodLoaded = false;
-    window.trainingDynLoaded = false;
-    window.hrDocsCache = {};
+    hrSectionLoaded = false;
+    afterSalesLoaded = false;
+    salesDocsLoaded = false;
+    marketingInitLoaded = false;
+    prodLoaded = false;
+    trainingDynLoaded = false;
+    hrDocsCache = {};
 
     // 5. Close any open overlay
     ['hrDocsOverlay','salesDocsOverlay','afterSalesOverlay','marketingOverlay'].forEach(id => {
@@ -846,13 +846,13 @@ async function _doDeleteFile(fileId, fileUrl) {
 
     // 3. Refresh CN cache
     CN.loaded = false; CN.nodes = []; CN.files = [];
-    window.hrDocsCache = {};
-    window.hrSectionLoaded = false;
-    window.afterSalesLoaded = false;
-    window.salesDocsLoaded = false;
-    window.marketingInitLoaded = false;
-    window.prodLoaded = false;
-    window.trainingDynLoaded = false;
+    hrDocsCache = {};
+    hrSectionLoaded = false;
+    afterSalesLoaded = false;
+    salesDocsLoaded = false;
+    marketingInitLoaded = false;
+    prodLoaded = false;
+    trainingDynLoaded = false;
 
     // 4. Remove card from DOM immediately
     const card = document.querySelector(`[data-file-id="${fileId}"]`);

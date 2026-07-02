@@ -148,10 +148,3 @@ function closeSalesOverlay() {
   document.getElementById('salesDocsOverlay').style.display = 'none';
   document.body.style.overflow = '';
 }
-
-// ═══════════════════════════════════════════════════════════
-// MARKETING PANEL — Supabase Marketing table → overlay
-// Table: Marketing | Columns: Type, Category, Module, Link
-// Filter: Category = 'Marketing Brochure'
-// ═══════════════════════════════════════════════════════════
-let marketingDataCache = {};

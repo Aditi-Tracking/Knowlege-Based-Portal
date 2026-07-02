@@ -1,4 +1,4 @@
-﻿// Section: Training & Quiz System (loadTrainingSection, DB quizzes, grading, admin)
+// Section: Training & Quiz System (loadTrainingSection, DB quizzes, grading, admin)
 // ── Training: load dynamic cards from content_nodes ──────────────────────
 let trainingDynLoaded = false;
 
