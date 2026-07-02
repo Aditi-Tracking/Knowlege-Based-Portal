@@ -1,4 +1,6 @@
 // Section: Products (loadProducts, product overlay, org chart, directory)
+let prodLoaded = false;
+
 async function loadProducts() {
   if (prodLoaded) return;
   prodLoaded = true;

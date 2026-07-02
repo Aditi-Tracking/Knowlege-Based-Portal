@@ -1,4 +1,20 @@
 // Section: Marketing (loadMarketingCounts)
+let marketingInitLoaded = false;
+
+const MKT_THEME = {
+  color: '#f0a500',
+  bg:    'rgba(240,165,0,0.12)',
+  border:'rgba(240,165,0,0.3)'
+};
+
+// Category → theme color map
+const MKT_CAT_THEME = {
+  'Marketing Brochure': { color:'#f0a500', bg:'rgba(240,165,0,0.12)',   border:'rgba(240,165,0,0.3)',   icon:'📄' },
+  'Solution Videos':    { color:'#a855f7', bg:'rgba(168,85,247,0.12)',  border:'rgba(168,85,247,0.3)',  icon:'🎬' },
+  'Short Explainer':    { color:'#00d4aa', bg:'rgba(0,212,170,0.12)',   border:'rgba(0,212,170,0.3)',   icon:'▶️' },
+};
+
+// Marketing panel khulte hi count badge update karo — teeno categories ke liye
 async function loadMarketingCounts() {
   if (marketingInitLoaded) return;
   marketingInitLoaded = true;
@@ -150,12 +166,3 @@ function openMyResultsFromOverlay(nodeId) {
   closeMarketingOverlay();
   setTimeout(() => openMyQuizResults(nodeId), 80);
 }
-
-// ═══════════════════════════════════════════════════════════
-// PRODUCTS PANEL — Supabase Videos Only
-// ═══════════════════════════════════════════════════════════
-let prodLoaded = false;
-
-// ── Generic CN panel loader (Finance / Compliance / Referral) ─────────────
-// Loads content_nodes cards for a section name into a standard panel layout.
-const _simplePanelLoaded = {};

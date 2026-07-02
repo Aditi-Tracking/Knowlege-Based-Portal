@@ -484,6 +484,10 @@ const rI=e=>rN(e).charAt(0).toUpperCase();
   }
 })();
 
+// ── Generic CN panel loader (Finance / Compliance / Referral) ─────────────
+// Loads content_nodes cards for a section name into a standard panel layout.
+const _simplePanelLoaded = {};
+
 // --- Shared: loadSimpleCNPanel ---
 async function loadSimpleCNPanel(panelKey, sectionName) {
   if (_simplePanelLoaded[panelKey]) return;
