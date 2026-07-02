@@ -1,4 +1,29 @@
 // Section: FMS O2D (fmsInit, orders, pipeline, installation tracker)
+// ═══════════════════════════════════════════════════
+// FMS Installation Tracker — Dashboard Logic
+// For PC = Yes → DELAYED | For PC = No → REMAINING
+// ═══════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════════════
+// ║  [NEW FMS MODULE JS] — Supabase-backed Installation Tracker
+// ║  Tables: fms_orders, fms_assignments, fms_configuration,
+// ║          fms_installation, fms_products, fms_locations
+// ╚══════════════════════════════════════════════════════════════════════════
+
+// ── State ──────────────────────────────────────────────────────────────────
+let _fmsOrders = [], _fmsFiltered = [], _fmsProducts = [], _fmsLocations = [];
+let _fmsCurrentOrder = null;
+let _fmsPage = 1;
+const FMS_PER_PAGE = 20;
+let _fmsLoaded = false;
+let _fmsSelectedLocation = null; // {id, name} or {id:'other', name:'Other'}
+let _fmsClientSearchTimeout = null;
+let _fmsEmpMap = { 'outsource':'Outsource', 'self_installed':'Self Installed by Client' }; // email → name cache
+
+// ── Config persons — Anish (Mumbai) + Kush (Goa) — both do device configuration ──
+const FMS_ANISH_EMAIL = 'support_1@adititracking.com';
+const FMS_KUSH_EMAIL  = 'supportgoa1@adititracking.com';
+const FMS_CONFIG_EMAILS = [FMS_ANISH_EMAIL, FMS_KUSH_EMAIL];
+
 const _fmsOrigSwitchDB = typeof switchDB === 'function' ? switchDB : null;
 switchDB = function(id){
   if(_fmsOrigSwitchDB) _fmsOrigSwitchDB(id);
@@ -2128,41 +2153,5 @@ async function markTaskDone(rowId, remarks) {
   }
 }
 
-// Department → sheet mapping removed (Supabase se direct fetch hoga)
-// Managing Director/MIS/PC = fetch all (owner role check rahega)
-let tAllData=[], tFiltered=[], tPage=1, tLoaded=false;
-let tActiveKpi=null, tActivePerson=null, tActiveDept=null, tActiveStatus=null, tActiveFreq=null, tActiveDateFrom=null, tActiveDateTo=null, tActiveLocation=null;
-
-function tParseDate(v){
-  if(!v) return '';
-  let s=String(v).trim();
-  // dd/mm/yyyy
-  let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if(m) return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
-  // yyyy-mm-dd
-  m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(m) return m[0].slice(0,10);
-  return s.slice(0,10);
-}
-const T_PER_PAGE=20;
-let tCharts={};
-
-// ── Supabase paginated fetch — 1000 row limit bypass karo ──
-async function tFetchAllPages(baseUrl){
-  const BATCH = 1000;
-  let all = [];
-  let offset = 0;
-  while(true){
-    const url = `${baseUrl}&limit=${BATCH}&offset=${offset}`;
-    const res = await fetch(url, { headers: SB_HDRS() });
-    const batch = await res.json();
-    if(!Array.isArray(batch) || batch.length === 0) break;
-    all.push(...batch); // FIX: avoid creating new array every iteration
-    if(batch.length < BATCH) break; // last page
-    offset += BATCH;
-    if(offset > 100000) break; // safety cap at 100k
-  }
-  return all;
-}
 
 

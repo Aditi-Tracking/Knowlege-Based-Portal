@@ -1,4 +1,11 @@
 // Section: Collection Dashboard (loadColl, charts, filters, table)
+const C_URL='https://script.google.com/macros/s/AKfycbw4EZ2NFdBKvFYhnHpLTta9u28GCoYK9OkcZnwetgFYILTwlPJb1_uDl6y52VQYR29g/exec';
+const C_COLS=['#f0a500','#00d4aa','#ff5c7c','#4e9af1','#a78bfa','#f97316'];
+let C=[],Cf=[],Cch={},Cp=1,Csk=null,Csd=1;
+let C_person='',C_month='',C_loc='',C_kpi=null;
+let C_tSearch='',C_tDate='',C_tStatus='';
+const CPP=20;
+
 async function loadColl(){
   document.getElementById('cTxt').textContent='Fetching data from Google Sheet...';
   try{
@@ -282,31 +289,3 @@ function cRenderTable(){
   bar.innerHTML=h;
 }
 function cGoPage(p){const tp=Math.ceil((Cf.length||1)/CPP);if(p<1||p>tp)return;Cp=p;cRenderTable();document.querySelector('#panel-collection .table-card').scrollIntoView({behavior:'smooth',block:'start'});}
-
-
-// ═══════════════════════════════════════════════════
-// FMS Installation Tracker — Dashboard Logic
-// For PC = Yes → DELAYED | For PC = No → REMAINING
-// ═══════════════════════════════════════════════════
-// ╔══════════════════════════════════════════════════════════════════════════
-// ║  [NEW FMS MODULE JS] — Supabase-backed Installation Tracker
-// ║  Tables: fms_orders, fms_assignments, fms_configuration,
-// ║          fms_installation, fms_products, fms_locations
-// ╚══════════════════════════════════════════════════════════════════════════
-
-// ── State ──────────────────────────────────────────────────────────────────
-let _fmsOrders = [], _fmsFiltered = [], _fmsProducts = [], _fmsLocations = [];
-let _fmsCurrentOrder = null;
-let _fmsPage = 1;
-const FMS_PER_PAGE = 20;
-let _fmsLoaded = false;
-let _fmsSelectedLocation = null; // {id, name} or {id:'other', name:'Other'}
-let _fmsClientSearchTimeout = null;
-let _fmsEmpMap = { 'outsource':'Outsource', 'self_installed':'Self Installed by Client' }; // email → name cache
-
-// ── Config persons — Anish (Mumbai) + Kush (Goa) — both do device configuration ──
-const FMS_ANISH_EMAIL = 'support_1@adititracking.com';
-const FMS_KUSH_EMAIL  = 'supportgoa1@adititracking.com';
-const FMS_CONFIG_EMAILS = [FMS_ANISH_EMAIL, FMS_KUSH_EMAIL];
-
-// ── Hook into switchDB ─────────────────────────────────────────────────────

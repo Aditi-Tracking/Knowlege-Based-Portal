@@ -172,13 +172,3 @@ function lRenderTable(){
 }
 function lGoPage(p){const tp=Math.ceil(Lf.length/LPP);if(p<1||p>tp)return;Lp=p;lRenderTable();document.querySelector('#panel-leads .table-card').scrollIntoView({behavior:'smooth',block:'start'});}
 
-// ═══════════════════════════════════
-// COLLECTION DASHBOARD
-// ═══════════════════════════════════
-const C_URL='https://script.google.com/macros/s/AKfycbw4EZ2NFdBKvFYhnHpLTta9u28GCoYK9OkcZnwetgFYILTwlPJb1_uDl6y52VQYR29g/exec';
-const C_COLS=['#f0a500','#00d4aa','#ff5c7c','#4e9af1','#a78bfa','#f97316'];
-let C=[],Cf=[],Cch={},Cp=1,Csk=null,Csd=1;
-let C_person='',C_month='',C_loc='',C_kpi=null;
-let C_tSearch='',C_tDate='',C_tStatus='';
-const CPP=20;
-
