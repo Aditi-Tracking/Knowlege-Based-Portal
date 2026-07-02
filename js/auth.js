@@ -2253,13 +2253,13 @@ async function loadPerformers() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// NEW JOINERS — Emp_id 66 to 77
+// NEW JOINERS — Emp_id 78, 80
 // ═══════════════════════════════════════════════════════════
 async function loadNewJoiners() {
   const grid = document.getElementById('newJoinersGrid');
   if (!grid) return;
   try {
-    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id,Employee_name,Employee_Dept,Location,avatar_url,Link&Emp_id=gte.66&Emp_id=lte.77&order=Emp_id.asc`;
+    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id,Employee_name,Employee_Dept,Location,avatar_url,Link&Emp_id=in.(78,80)&order=Emp_id.asc`;
     const res = await fetch(url, { headers: SB_HDRS() });
     const rows = await res.json();
     if (!Array.isArray(rows) || rows.length === 0) {
