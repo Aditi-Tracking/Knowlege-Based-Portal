@@ -1,4 +1,58 @@
 // Section: CRM Vehicle Dashboard (loadCRMDashboard, server switch, vehicle data, alerts)
+let _crmLoaded=false, _crmServer='both', _crmTier='', _crmStatus='';
+let _crmData=[], _crmSelectedIdx=null;
+
+function _canAccessCRM(){
+  if(!CURRENT_USER)return false;
+  return (PERMISSIONS.can_view_crm||'false')!=='false';
+}
+function _getCRMAccessLevel(){
+  if(!CURRENT_USER)return'none';
+  const p=PERMISSIONS.can_view_crm||'false';
+  if(p==='false')return'none';
+  // Check if ALL individual server permissions are ON (meaning truly full access)
+  const rawRole=String(CURRENT_USER.rawRole||CURRENT_USER.role||'').toLowerCase().trim();
+  const isSuperAdmin=(rawRole==='owner'||rawRole==='managing director'||rawRole==='mis');
+  // Super admins with can_view_crm=true AND no explicit server restrictions = full access
+  // But if any server toggle is explicitly set to 'true', we check them all
+  const hasAnyServerPerm=(
+    PERMISSIONS.crm_server_premium==='true'||
+    PERMISSIONS.crm_server_pro==='true'||
+    PERMISSIONS.crm_server_goa==='true'||
+    PERMISSIONS.crm_server_bangalore==='true'||
+    PERMISSIONS.crm_server_gujarat==='true'
+  );
+  // Super admins with NO server-level toggles set = full access (default)
+  if(isSuperAdmin&&!hasAnyServerPerm)return'all';
+  // Super admins WITH server toggles set = respect those toggles
+  if(isSuperAdmin&&hasAnyServerPerm)return'restricted';
+  // Regular users with can_view_crm=true = restricted (must have explicit server perms)
+  if(p==='true')return'restricted';
+  return p;
+}
+function _canViewCRMChanges(){
+  if(!CURRENT_USER)return false;
+  // Full access users always see it
+  if(_getCRMAccessLevel()==='all') return true;
+  return (PERMISSIONS.can_view_crm_changes||'false')==='true';
+}
+function _getCRMAllowedServers(){
+  const lvl=_getCRMAccessLevel();
+  if(lvl==='all')return['both','Premium Server','PRO Server','Goa Server','Bangalore Server','Gujarat Server'];
+  if(lvl==='none')return[];
+  // For restricted — always check individual server permissions
+  const map={
+    'Premium Server':  PERMISSIONS.crm_server_premium    ||'false',
+    'PRO Server':      PERMISSIONS.crm_server_pro        ||'false',
+    'Goa Server':      PERMISSIONS.crm_server_goa        ||'false',
+    'Bangalore Server':PERMISSIONS.crm_server_bangalore  ||'false',
+    'Gujarat Server':  PERMISSIONS.crm_server_gujarat    ||'false',
+  };
+  const allowed=Object.keys(map).filter(k=>map[k]==='true');
+  if(allowed.length>1)allowed.unshift('both');
+  return allowed;
+}
+
 function _applyCRMNavVisibility(){
   const el=document.getElementById('nav-crm'),mm=document.getElementById('mm-crm'),show=_canAccessCRM();
   if(el)el.style.display=show?'flex':'none';

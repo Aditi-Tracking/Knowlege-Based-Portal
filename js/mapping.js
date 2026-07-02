@@ -1,4 +1,22 @@
 // Section: Customer Mapping (loadMappingDashboard, GPS-Odoo mapping)
+const _MAPI = 'https://knowlege-based-portal-production.up.railway.app';
+let _mpData        = [];
+let _mpFiltered    = [];
+let _mpRegion      = 'All';
+let _mpStatus      = 'all';
+let _mpAllowedRgns = [];
+let _mpCanEdit     = false;
+let _mpLoaded      = false;
+let _mpInlineTimer = null;
+
+function _applyMappingNavVisibility(){
+  const canView = PERMISSIONS.can_view_mapping === 'true';
+  const el = document.getElementById('nav-mapping');
+  const mm = document.getElementById('mm-mapping');
+  if(el) el.style.display = canView ? 'flex' : 'none';
+  if(mm) mm.style.display = canView ? 'flex' : 'none';
+}
+
 async function loadMappingDashboard(){
   if(_mpLoaded) return;
   _mpLoaded = true;

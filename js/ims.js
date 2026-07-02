@@ -20,6 +20,26 @@ let _imsDonutChart   = null;
 let _imsRefInterval  = null;
 let _imsLocation     = 'hq'; // 'hq' | 'goa' | 'gujarat' | 'bangalore'
 
+function _imsGetAPI() {
+  if (_imsLocation === 'goa')       return IMS_GOA_API;
+  if (_imsLocation === 'gujarat')   return IMS_GUJARAT_API;
+  if (_imsLocation === 'bangalore') return IMS_BANGALORE_API;
+  return IMS_API_URL; // HQ
+}
+
+// ── Role ──────────────────────────────────────────────────────────
+function _canAccessIMS() {
+  return PERMISSIONS.can_view_ims === 'true';
+}
+
+function _applyIMSNavVisibility() {
+  const show = PERMISSIONS.can_view_ims === 'true';
+  const el   = document.getElementById('nav-ims');
+  const mmEl = document.getElementById('mm-ims');
+  if (el)   el.style.display   = show ? 'flex' : 'none';
+  if (mmEl) mmEl.style.display = show ? 'flex' : 'none';
+}
+
 function _imsEffDateIdx() {
   if (!_imsDateHdrs.length) return null;
   if (_imsDateIdx >= 0 && _imsDateIdx < _imsDateHdrs.length) return _imsDateIdx;
