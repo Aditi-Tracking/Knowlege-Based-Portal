@@ -3005,35 +3005,38 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     </div>
     <div class="db-content">
       <div class="section-title">Company Documents</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
+      <div id="resources-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
 
-        <!-- Company Docs & Certifications -->
-        <div onclick="resourcesShowDocs()" style="text-decoration:none;cursor:pointer;">
-          <div class="home-card" style="--card-top:#818cf8;padding:1.5rem;">
-            <div class="hc-icon" style="background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            </div>
-            <div class="hc-name" style="font-size:1.12rem;">Company Docs &amp; Certifications</div>
-            <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">ISO certificates, company documents, GST, EPFO, ESIC, NSIC, Prof Tax — all official folders.</div>
-            <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
-              <span style="font-size:0.82rem;font-weight:600;color:#818cf8;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);padding:4px 12px;border-radius:20px;">📂 View Documents</span>
+        <!-- MD-only: Company Docs & Certifications + NDA's — hidden for everyone else -->
+        <div id="resources-md-only" style="display:contents;">
+          <!-- Company Docs & Certifications -->
+          <div onclick="resourcesShowDocs()" style="text-decoration:none;cursor:pointer;">
+            <div class="home-card" style="--card-top:#818cf8;padding:1.5rem;">
+              <div class="hc-icon" style="background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </div>
+              <div class="hc-name" style="font-size:1.12rem;">Company Docs &amp; Certifications</div>
+              <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">ISO certificates, company documents, GST, EPFO, ESIC, NSIC, Prof Tax — all official folders.</div>
+              <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:0.82rem;font-weight:600;color:#818cf8;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);padding:4px 12px;border-radius:20px;">📂 View Documents</span>
+              </div>
             </div>
           </div>
+
+          <!-- NDA's -->
+          <a href="https://drive.google.com/drive/folders/1tme02gBZJDPYTkLPMfbZ_t-j7O7VH01s" target="_blank" style="text-decoration:none;">
+            <div class="home-card" style="--card-top:#f472b6;padding:1.5rem;">
+              <div class="hc-icon" style="background:rgba(244,114,182,0.12);border-color:rgba(244,114,182,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              </div>
+              <div class="hc-name" style="font-size:1.12rem;">NDA's</div>
+              <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">Non-Disclosure Agreements — confidential contracts with employees, clients &amp; partners.</div>
+              <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:0.82rem;font-weight:600;color:#f472b6;background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
+              </div>
+            </div>
+          </a>
         </div>
-
-        <!-- NDA's -->
-        <a href="https://drive.google.com/drive/folders/1tme02gBZJDPYTkLPMfbZ_t-j7O7VH01s" target="_blank" style="text-decoration:none;">
-          <div class="home-card" style="--card-top:#f472b6;padding:1.5rem;">
-            <div class="hc-icon" style="background:rgba(244,114,182,0.12);border-color:rgba(244,114,182,0.3);width:52px;height:52px;border-radius:14px;margin-bottom:16px;">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-            </div>
-            <div class="hc-name" style="font-size:1.12rem;">NDA's</div>
-            <div class="hc-desc" style="font-size:0.91rem;line-height:1.6;">Non-Disclosure Agreements — confidential contracts with employees, clients &amp; partners.</div>
-            <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
-              <span style="font-size:0.82rem;font-weight:600;color:#f472b6;background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.3);padding:4px 12px;border-radius:20px;">📁 Open Drive Folder</span>
-            </div>
-          </div>
-        </a>
 
       </div>
     </div>

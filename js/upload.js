@@ -265,6 +265,10 @@ async function createCardOnly() {
         'Marketing':   () => { marketingInitLoaded=false; loadMarketingCounts(); },
         'Products':    () => { prodLoaded=false; loadProducts(); },
         'Training':    () => { trainingDynLoaded=false; loadTrainingSection(); },
+        'Resources':   () => loadResourcesUploads(),
+        'IT Admin':    () => { _simplePanelLoaded.itadmin=false; loadSimpleCNPanel('itadmin','IT Admin'); },
+        'Finance':     () => { _simplePanelLoaded.finance=false; loadSimpleCNPanel('finance','Finance'); },
+        'Compliance':  () => { _simplePanelLoaded.compliance=false; loadSimpleCNPanel('compliance','Compliance'); },
       };
       if (panelMap[_uploadSection]) panelMap[_uploadSection]();
     }, 1200);
@@ -595,6 +599,10 @@ async function submitUpload() {
         'Marketing':   () => { marketingInitLoaded=false; loadMarketingCounts(); },
         'Products':    () => { prodLoaded=false; loadProducts(); },
         'Training':    () => { trainingDynLoaded=false; loadTrainingSection(); },
+        'Resources':   () => loadResourcesUploads(),
+        'IT Admin':    () => { _simplePanelLoaded.itadmin=false; loadSimpleCNPanel('itadmin','IT Admin'); },
+        'Finance':     () => { _simplePanelLoaded.finance=false; loadSimpleCNPanel('finance','Finance'); },
+        'Compliance':  () => { _simplePanelLoaded.compliance=false; loadSimpleCNPanel('compliance','Compliance'); },
       };
       if (panelMap[_uploadSection]) panelMap[_uploadSection]();
     }, 1600);
@@ -674,6 +682,10 @@ async function _submitYoutubeLink(ytUrl, displayName, newCardName, submitBtn) {
         'Marketing':   () => { marketingInitLoaded=false; loadMarketingCounts(); },
         'Products':    () => { prodLoaded=false; loadProducts(); },
         'Training':    () => { trainingDynLoaded=false; loadTrainingSection(); },
+        'Resources':   () => loadResourcesUploads(),
+        'IT Admin':    () => { _simplePanelLoaded.itadmin=false; loadSimpleCNPanel('itadmin','IT Admin'); },
+        'Finance':     () => { _simplePanelLoaded.finance=false; loadSimpleCNPanel('finance','Finance'); },
+        'Compliance':  () => { _simplePanelLoaded.compliance=false; loadSimpleCNPanel('compliance','Compliance'); },
       };
       if (panelMap[_uploadSection]) panelMap[_uploadSection]();
     }, 1400);
@@ -804,6 +816,10 @@ async function _doDeleteCard(nodeId, cardName) {
     else if (panelId === 'panel-marketing')  { marketingInitLoaded=false; loadMarketingCounts(); }
     else if (panelId === 'panel-products')   { prodLoaded=false; loadProducts(); }
     else if (panelId === 'panel-training')   { trainingDynLoaded=false; loadTrainingSection(); }
+    else if (panelId === 'panel-resources')  loadResourcesUploads();
+    else if (panelId === 'panel-itadmin')    { _simplePanelLoaded.itadmin=false; loadSimpleCNPanel('itadmin','IT Admin'); }
+    else if (panelId === 'panel-finance')    { _simplePanelLoaded.finance=false; loadSimpleCNPanel('finance','Finance'); }
+    else if (panelId === 'panel-compliance') { _simplePanelLoaded.compliance=false; loadSimpleCNPanel('compliance','Compliance'); }
 
     alert(`✅ "${cardName}" and all its files have been deleted!`);
 
@@ -871,6 +887,10 @@ async function _doDeleteFile(fileId, fileUrl) {
     else if (panelId === 'panel-aftersales') { afterSalesLoaded=false; loadAfterSales(); }
     else if (panelId === 'panel-marketing')  { marketingInitLoaded=false; loadMarketingCounts(); }
     else if (panelId === 'panel-products')   { prodLoaded=false; loadProducts(); }
+    else if (panelId === 'panel-resources')  loadResourcesUploads();
+    else if (panelId === 'panel-itadmin')    { _simplePanelLoaded.itadmin=false; loadSimpleCNPanel('itadmin','IT Admin'); }
+    else if (panelId === 'panel-finance')    { _simplePanelLoaded.finance=false; loadSimpleCNPanel('finance','Finance'); }
+    else if (panelId === 'panel-compliance') { _simplePanelLoaded.compliance=false; loadSimpleCNPanel('compliance','Compliance'); }
 
     alert('✅ File deleted successfully.');
   } catch(e) {

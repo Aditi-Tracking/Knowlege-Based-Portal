@@ -416,6 +416,7 @@ function switchDB(id, fromPopState){
   if(id==='announcements') { /* handled by override below */ }
   if(id==='activitylog') { loadActivityLog(); }
   if(id==='itadmin')    { loadSimpleCNPanel('itadmin',    'IT Admin');   }
+  if(id==='resources')  { loadResourcesUploads(); }
   // Training panel needs no data loading — just shows static links
   // Push history state so back button returns to home
   if(!fromPopState){
@@ -488,6 +489,36 @@ const rI=e=>rN(e).charAt(0).toUpperCase();
 // Loads content_nodes cards for a section name into a standard panel layout.
 const _simplePanelLoaded = {};
 
+// --- Shared: renders a single content_nodes category as a home-card ───────
+function _renderCNCard(cat, i) {
+  const th    = cnTheme(i);
+  const name  = cat.name || 'Category';
+  const count = CN.totalFiles(cat.id);
+  const safe  = name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  return `
+  <div style="position:relative;">
+    ${_isMIS() ? `        <button onclick="event.stopPropagation();confirmDeleteCard(${cat.id},'${safe}')" title="Delete"
+      style="position:absolute;top:10px;right:10px;z-index:3;width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+      onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+    </button>` : ''}
+    <div class="home-card" style="--card-top:${th.color};cursor:pointer;"
+      onclick="_hideAssessmentTab();switchMktTab('videos');cnOpenOverlay(${cat.id},'${safe}','marketingOverlay','mktOverlayTitle','mktOverlaySub','mktOverlayGrid','mktOverlayLoader','mktOverlayEmpty')"
+      onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.3)';this.style.borderColor='${th.color}'"
+      onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
+      <div class="hc-icon" style="background:${th.bg};border-color:${th.border};color:${th.color};">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="hc-name">${name}</div>
+      <div class="hc-desc" style="font-size:0.88rem;line-height:1.55;color:var(--muted);">${getCNCardDesc(name)}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+        <span class="hc-status live" style="background:${th.bg};color:${th.color};border:1px solid ${th.border};">📂 ${count} file${count===1?'':'s'}</span>
+        <span style="font-size:0.78rem;font-weight:600;color:${th.color};">View →</span>
+      </div>
+    </div>
+  </div>`;
+}
+
 // --- Shared: loadSimpleCNPanel ---
 async function loadSimpleCNPanel(panelKey, sectionName) {
   if (_simplePanelLoaded[panelKey]) return;
@@ -512,39 +543,42 @@ async function loadSimpleCNPanel(panelKey, sectionName) {
       return;
     }
     if (loadingEl) loadingEl.style.display = 'none';
-    gridEl.innerHTML = cats.map((cat, i) => {
-      const th    = cnTheme(i);
-      const name  = cat.name || 'Category';
-      const count = CN.totalFiles(cat.id);
-      const safe  = name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-      return `
-      <div style="position:relative;">
-        ${_isMIS() ? `        <button onclick="event.stopPropagation();confirmDeleteCard(${cat.id},'${safe}')" title="Delete"
-          style="position:absolute;top:10px;right:10px;z-index:3;width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;"
-          onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-        </button>` : ''}
-        <div class="home-card" style="--card-top:${th.color};cursor:pointer;"
-          onclick="_hideAssessmentTab();switchMktTab('videos');cnOpenOverlay(${cat.id},'${safe}','marketingOverlay','mktOverlayTitle','mktOverlaySub','mktOverlayGrid','mktOverlayLoader','mktOverlayEmpty')"
-          onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.3)';this.style.borderColor='${th.color}'"
-          onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
-          <div class="hc-icon" style="background:${th.bg};border-color:${th.border};color:${th.color};">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <div class="hc-name">${name}</div>
-          <div class="hc-desc" style="font-size:0.88rem;line-height:1.55;color:var(--muted);">${getCNCardDesc(name)}</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
-            <span class="hc-status live" style="background:${th.bg};color:${th.color};border:1px solid ${th.border};">📂 ${count} file${count===1?'':'s'}</span>
-            <span style="font-size:0.78rem;font-weight:600;color:${th.color};">View →</span>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
+    gridEl.innerHTML = cats.map((cat, i) => _renderCNCard(cat, i)).join('');
     gridEl.style.display = 'grid';
   } catch(e) {
     if (loadingEl) loadingEl.style.display = 'none';
     if (emptyEl)   { emptyEl.style.display = 'block'; emptyEl.textContent = '⚠️ ' + e.message; }
   }
+}
+
+// --- Resources (Documents tab) — uploaded doc cards go next to the static cards ---
+async function loadResourcesUploads() {
+  const gridEl = document.getElementById('resources-grid');
+  if (!gridEl) return;
+
+  // "Company Docs & Certifications" + "NDA's" — MD (owner) only.
+  // MD sees ONLY these 2 static cards; everyone else sees ONLY uploaded/dynamic folders.
+  const isMD   = CURRENT_USER && CURRENT_USER.role === 'owner';
+  const mdOnly = document.getElementById('resources-md-only');
+  if (mdOnly) mdOnly.style.display = isMD ? 'contents' : 'none';
+
+  // Clear out any previously injected dynamic cards first
+  gridEl.querySelectorAll('.res-dyn-card').forEach(el => el.remove());
+  if (isMD) return; // MD never sees uploaded folders here
+
+  try {
+    await CN.load();
+    const section = CN.getSection('Resources');
+    if (!section) return;
+    const cats = CN.getCategories(section.id);
+    cats.forEach((cat, i) => {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = _renderCNCard(cat, i);
+      const cardEl = wrap.firstElementChild;
+      cardEl.classList.add('res-dyn-card');
+      gridEl.appendChild(cardEl);
+    });
+  } catch(e) {}
 }
 
 // ═══════════════════════════════════════════════════════════
