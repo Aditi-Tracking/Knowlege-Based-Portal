@@ -11,6 +11,116 @@ const TRAINING_QUIZ_MAP = {
   'cool bus training':    `openModuleQuiz('coolbus')`,
   'smart fleet training': `openModuleQuiz('smartfleet')`,
 };
+let misVideosData = [];
+
+// Icon/color map keyed by lowercase title keywords
+function getMISVideoMeta(title) {
+  const t = (title || '').toLowerCase();
+  if (t.includes('checklist') || t.includes('task'))
+    return { icon: '✅', color: '#00d4aa', desc: 'Task Checklist — training on how to use checklists in daily operations.' };
+  if (t.includes('how to') && (t.includes('fms') || t.includes('fleet')))
+    return { icon: '🎯', color: '#3b82f6', desc: 'FMS step-by-step guide — learn how to use it practically.' };
+  if (t.includes('fms') || t.includes('fleet'))
+    return { icon: '🚗', color: '#f0a500', desc: 'Fleet Management System — training on vehicle tracking, trips and fuel monitoring.' };
+  if (t.includes('odoo'))
+    return { icon: '🏢', color: '#a855f7', desc: 'Odoo ERP — training on purchase, sales and inventory management.' };
+  if (t.includes('pre-sales') || t.includes('presales') || t.includes('pre sales') || t.includes('lead') || t.includes('demo') || t.includes('proposal'))
+    return { icon: '🤝', color: '#e879f9', desc: 'Pre-Sales — training on lead handling, demos, proposals and client communication.' };
+  if (t.includes('looker'))
+    return { icon: '📈', color: '#3b82f6', desc: 'Looker Studio — training on building data visualizations and dashboards.' };
+  if (t.includes('cool bus') || t.includes('coolbus'))
+    return { icon: '🚌', color: '#22c55e', desc: 'Cool Bus — training on vehicle tracking and route management.' };
+  if (t.includes('smart fleet') || t.includes('smartfleet'))
+    return { icon: '🛰️', color: '#f97316', desc: 'Smart Fleet — training on fleet monitoring and operations.' };
+  if (t.includes('pc') || t.includes('process'))
+    return { icon: '💼', color: '#ec4899', desc: 'Process Coordinator — training on coordination workflows and closing procedures.' };
+  if (t.includes('part'))
+    return { icon: '📹', color: '#6366f1', desc: 'Training video — step-by-step guide.' };
+  return { icon: '🎬', color: '#f0a500', desc: 'Training video.' };
+}
+
+// ── Fetch MIS videos from content_nodes + files tables ──
+async function fetchMISVideos() {
+  const cardsEl = document.getElementById('mis-video-cards');
+  cardsEl.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:0.92rem;">Loading...</div>`;
+  try {
+    await CN.load();
+    const section = CN.getSection('Training');
+    const cat = section
+      ? CN.getCategories(section.id).find(c => (c.name||'').toLowerCase().includes('mis'))
+      : null;
+    const files = cat ? CN.getFiles(cat.id) : [];
+    misVideosData = files.map(f => ({ id: f.id, Title: f.name, Video_URL: f.url }));
+    renderMISVideoCards(misVideosData);
+  } catch(err) {
+    cardsEl.innerHTML = `<div style="text-align:center;padding:20px;color:#ef4444;font-size:0.9rem;">Failed to load videos.<br><span style="font-size:0.78rem;color:var(--muted);">${err.message}</span></div>`;
+  }
+}
+
+function renderMISVideoCards(data) {
+  const cardsEl = document.getElementById('mis-video-cards');
+  if (!data || data.length === 0) {
+    cardsEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);">No videos found.</div>`;
+    return;
+  }
+
+  cardsEl.innerHTML = data.map((row, idx) => {
+    const meta = getMISVideoMeta(row.Title);
+    const safeTitle = (row.Title||'').toLowerCase().replace(/"/g,'&quot;');
+    const rowId = row.id || row.ID || '';
+    const delBtnHtml = rowId ? `<button onclick="event.stopPropagation();confirmDeleteTrainingVideo(${rowId},'${safeTitle}',null)" title="Delete video"
+      style="width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
+      onmouseover="this.style.background='rgba(239,68,68,0.28)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+    </button>` : '';
+    return `
+      <div data-vtitle="${safeTitle}" onclick="playMISVideo(${idx})"
+           style="cursor:pointer;padding:16px;border-radius:12px;border:1.5px solid ${meta.color}44;background:${meta.color}12;transition:all 0.18s;"
+           onmouseover="this.style.borderColor='${meta.color}bb';this.style.background='${meta.color}22'"
+           onmouseout="this.style.borderColor='${meta.color}44';this.style.background='${meta.color}12'">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:48px;height:48px;border-radius:10px;background:${meta.color}28;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">${meta.icon}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;color:var(--text);font-size:1.00rem;">${row.Title}</div>
+            <div style="font-size:0.81rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Training Video</div>
+          </div>
+          ${delBtnHtml}
+          <div style="width:36px;height:36px;border-radius:50%;background:${meta.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="color:#fff;font-size:0.85rem;margin-left:2px;">▶</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  // Re-apply search filter if user already typed something before re-render
+  if (typeof filterMISVideos === 'function') filterMISVideos();
+}
+
+// ── Play video by index ──
+function playMISVideo(idx) {
+  const row  = misVideosData[idx];
+  if (!row) return;
+  const meta = getMISVideoMeta(row.Title);
+
+  document.getElementById('mis-video-title').textContent    = `${meta.icon} ${row.Title}`;
+  document.getElementById('mis-video-subtitle').textContent = 'Training Video';
+  document.getElementById('mis-video-desc').textContent     = meta.desc;
+
+  const videoEl = document.getElementById('mis-main-video');
+  pauseAllVideosExcept('mis-main-video');
+  videoEl.src = row.Video_URL;   // direct URL from DB column
+  videoEl.load();
+
+  document.getElementById('mis-video-list').style.display   = 'none';
+  document.getElementById('mis-video-player').style.display = 'block';
+}
+
+function backToMISVideoList() {
+  const v = document.getElementById('mis-main-video');
+  if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+  document.getElementById('mis-video-player').style.display = 'none';
+  document.getElementById('mis-video-list').style.display   = 'block';
+}
+
 /* ═══════════════════════════════════════════
    OTHER MODULE QUIZZES (Odoo, PC, Click Task, Cool Bus, Smart Fleet)
 ═══════════════════════════════════════════ */

@@ -298,3 +298,231 @@ async function loadHRSection() {
   }
 }
 
+// ══════════════════════════════════════════════════════════
+// HOLIDAY LIST  — Supabase fetch, location-wise filter
+// ══════════════════════════════════════════════════════════
+let _holidayAllData = [];   // raw data from Supabase
+let _holidayFetched = false;
+
+async function loadHolidayCard() {
+  if (_holidayFetched) { renderHolidayCard(); return; }
+  try {
+    // Holiday List RLS policy is on 'anon' role — always use anon key (not user JWT)
+    const anonHdrs = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Accept': 'application/json' };
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Holiday%20List?select=*&order=Date.asc`,
+      { headers: anonHdrs }
+    );
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    _holidayAllData = await res.json();
+    _holidayFetched = true;
+  } catch(e) {
+    document.getElementById('holidayLoading').innerHTML =
+      `<span style="color:var(--accent3);">⚠️ Failed to load holiday data. (${e.message})</span>`;
+    return;
+  }
+  renderHolidayCard();
+}
+
+function _holLocClass(loc) {
+  const l = (loc||'').toLowerCase();
+  if (l.includes('goa'))       return 'hol-branch-goa';
+  if (l.includes('bangalore') || l.includes('bengaluru')) return 'hol-branch-bangalore';
+  if (l.includes('gujarat'))   return 'hol-branch-gujarat';
+  if (l.includes('mumbai'))    return 'hol-branch-mumbai';
+  return 'hol-branch-all';
+}
+
+function _holNormLoc(loc) {
+  const l = (loc||'').toLowerCase().trim();
+  if (l.includes('goa'))       return 'Goa';
+  if (l.includes('bangalore') || l.includes('bengaluru')) return 'Bangalore';
+  if (l.includes('gujarat') || l.includes('surat') || l.includes('ahmedabad')) return 'Gujarat';
+  if (l.includes('mumbai') || l.includes('head office')) return 'Mumbai';
+  return loc || 'All';
+}
+
+function renderHolidayCard(branchFilter) {
+  const isOwner = CURRENT_USER && (CURRENT_USER.role === 'owner' ||
+    ['managing director','mis','pc','executive assistant','ea'].includes((CURRENT_USER.rawRole||'').toLowerCase()));
+
+  // Show branch tabs for Managing Director/mis/pc
+  const tabsEl = document.getElementById('holidayBranchTabs');
+  if (isOwner) tabsEl.style.display = 'flex';
+
+  // Determine which location to show
+  const empLoc = _holNormLoc(
+    (CURRENT_USER && CURRENT_USER.location) ? CURRENT_USER.location : 'Mumbai'
+  );
+
+  // Badge
+  const badgeEl = document.getElementById('holidayBranchBadge');
+  if (isOwner) {
+    const bf = branchFilter || 'Mumbai';
+    badgeEl.textContent = '📍 ' + bf;
+  } else {
+    badgeEl.textContent = '📍 ' + empLoc;
+  }
+
+  // Filter data
+  let rows = _holidayAllData;
+  if (isOwner) {
+    const bf = branchFilter || 'Mumbai';
+    rows = rows.filter(r => _holNormLoc(r['Location']) === bf);
+  } else if (!isOwner) {
+    // Employee: sirf apni location ke holidays
+    rows = rows.filter(r => {
+      const rl = _holNormLoc(r['Location']);
+      return rl === empLoc;
+    });
+  }
+
+  // Sort by date
+  rows = [...rows].sort((a,b) => new Date(a['Date']) - new Date(b['Date']));
+
+  // Build table
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  let nextHol = null;
+
+  const tbody = document.getElementById('holidayTbody');
+  if (!rows.length) {
+    tbody.innerHTML = '';
+    document.getElementById('holidayLoading').style.display = 'none';
+    document.getElementById('holidayTableWrap').style.display = 'none';
+    document.getElementById('holidayEmpty').style.display = 'block';
+    document.getElementById('nextHolidayBanner').style.display = 'none';
+    return;
+  }
+
+  let html = '';
+  let sr = 1;
+  rows.forEach(r => {
+    const hDate = new Date(r['Date']);
+    hDate.setHours(0,0,0,0);
+    const diff = Math.round((hDate - today) / 86400000);
+    let statusClass, statusLabel, rowClass = 'hol-row';
+
+    if (diff < 0) {
+      statusClass = 'hol-status-past'; statusLabel = 'Past'; rowClass += ' past';
+    } else if (diff === 0) {
+      statusClass = 'hol-status-today'; statusLabel = '🎉 Today!'; rowClass += ' today';
+    } else {
+      statusClass = 'hol-status-upcoming'; statusLabel = 'Upcoming';
+      if (!nextHol) nextHol = { ...r, diff };
+    }
+
+    const locNorm = _holNormLoc(r['Location']);
+    const locClass = _holLocClass(r['Location']);
+    const dateStr = hDate.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+
+    html += `<tr class="${rowClass}">
+      <td style="padding:9px 12px;color:var(--muted);font-size:0.78rem;">${sr++}</td>
+      <td style="padding:9px 12px;font-weight:600;color:var(--text);">${r['Holiday']||'—'}</td>
+      <td style="padding:9px 12px;color:var(--text2);white-space:nowrap;">${dateStr}</td>
+      <td style="padding:9px 12px;color:var(--text2);">${r['Day']||'—'}</td>
+      <td style="padding:9px 12px;"><span class="hol-branch-pill ${locClass}">${locNorm}</span></td>
+      <td style="padding:9px 12px;"><span class="hol-status-badge ${statusClass}">${statusLabel}</span></td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = html;
+  document.getElementById('holidayLoading').style.display = 'none';
+  document.getElementById('holidayTableWrap').style.display = 'block';
+  document.getElementById('holidayEmpty').style.display = 'none';
+
+  // Next holiday banner
+  if (nextHol) {
+    const nd = new Date(nextHol['Date']);
+    const dateStr2 = nd.toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' });
+    document.getElementById('nextHolName').textContent = nextHol['Holiday'];
+    document.getElementById('nextHolMeta').textContent = `${nextHol['Day']}, ${dateStr2} • ${_holNormLoc(nextHol['Location'])}`;
+    document.getElementById('nextHolDays').textContent = nextHol.diff;
+    document.getElementById('nextHolidayBanner').style.display = 'flex';
+  } else {
+    document.getElementById('nextHolidayBanner').style.display = 'none';
+  }
+}
+
+function filterHolidayBranch(branch) {
+  // Update active tab
+  document.querySelectorAll('.hol-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.branch === branch);
+  });
+  renderHolidayCard(branch);
+}
+
+// Auto-load when home panel is shown
+(function() {
+  const _origShowPortal = typeof showPortal === 'function' ? showPortal : null;
+  // Hook into panel navigation
+  const _origNavClick = typeof navClick === 'function' ? navClick : null;
+  // Watch for home panel visibility
+  const _homeObs = new MutationObserver(() => {
+    const hp = document.getElementById('panel-home');
+    if (hp && hp.classList.contains('active')) {
+      if (!_holidayFetched && typeof SUPABASE_URL !== 'undefined') {
+        loadHolidayCard();
+      }
+    }
+  });
+  const hpEl = document.getElementById('panel-home');
+  if (hpEl) {
+    _homeObs.observe(hpEl, { attributes: true, attributeFilter: ['class'] });
+  }
+  // Also try on DOMContentLoaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        if (typeof SUPABASE_URL !== 'undefined' && typeof CURRENT_USER !== 'undefined' && CURRENT_USER) {
+          loadHolidayCard();
+        }
+      }, 1500);
+    });
+  } else {
+    setTimeout(() => {
+      const hp2 = document.getElementById('panel-home');
+      if (hp2 && hp2.classList.contains('active') && typeof SUPABASE_URL !== 'undefined') {
+        if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER) loadHolidayCard();
+      }
+    }, 1500);
+  }
+})();
+
+// Also expose so showPortal can call it
+function maybeLoadHolidayCard() {
+  if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER && typeof SUPABASE_URL !== 'undefined') {
+    loadHolidayCard();
+  }
+}
+
+function openHolidayOverlay() {
+  _actOnCardOpen('Holiday List'); // ACTIVITY TRACKING
+  const overlay = document.getElementById('holidayOverlay');
+  if (overlay) {
+    overlay.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER && typeof SUPABASE_URL !== 'undefined') {
+      loadHolidayCard();
+    }
+  }
+}
+
+function closeHolidayOverlay() {
+  _actOnCardClose(); // ACTIVITY TRACKING
+  const overlay = document.getElementById('holidayOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
+
+// Close holiday overlay on backdrop click
+document.addEventListener('DOMContentLoaded', function() {
+  const hOverlay = document.getElementById('holidayOverlay');
+  if (hOverlay) {
+    hOverlay.addEventListener('click', function(e) {
+      if (e.target === hOverlay) closeHolidayOverlay();
+    });
+  }
+});

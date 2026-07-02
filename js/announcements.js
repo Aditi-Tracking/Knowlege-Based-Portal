@@ -971,3 +971,143 @@ document.addEventListener('DOMContentLoaded', function() {
   // Keyboard ESC to close overlay
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAnnOverlay(); });
 });
+// --- Portal Update Posts (MIS feature) ---
+let _editingAnnId = null; // null = new post, number = edit mode
+
+function openPostUpdateModal() {
+  _editingAnnId = null;
+  document.getElementById('postUpdateTitle').value = '';
+  document.getElementById('postUpdateBody').value = '';
+  document.getElementById('postUpdateError').style.display = 'none';
+  // Modal heading aur button text reset
+  const heading = document.getElementById('postUpdateHeading');
+  if (heading) heading.textContent = '✨ Post Update';
+  const btn = document.getElementById('postUpdateSubmitBtn');
+  if (btn) btn.textContent = '🚀 Publish Update';
+  document.getElementById('postUpdateModal').style.display = 'block';
+  document.getElementById('postUpdateBackdrop').style.display = 'block';
+  setTimeout(()=>document.getElementById('postUpdateTitle').focus(), 100);
+}
+
+function editPortalUpdate(id) {
+  if (!CURRENT_USER || PERMISSIONS.can_post_announcements !== 'true') return;
+  const ann = _annDrwUpdates.find(a => a.id === id);
+  if (!ann) { alert('Update not found.'); return; }
+  _editingAnnId = id;
+  document.getElementById('postUpdateTitle').value = ann.title || '';
+  document.getElementById('postUpdateBody').value  = ann.body  || '';
+  document.getElementById('postUpdateError').style.display = 'none';
+  // Modal heading aur button update karo
+  const heading = document.getElementById('postUpdateHeading');
+  if (heading) heading.textContent = '✏️ Edit Update';
+  const btn = document.getElementById('postUpdateSubmitBtn');
+  if (btn) btn.textContent = '💾 Save Changes';
+  document.getElementById('postUpdateModal').style.display = 'block';
+  document.getElementById('postUpdateBackdrop').style.display = 'block';
+  setTimeout(()=>document.getElementById('postUpdateTitle').focus(), 100);
+}
+
+function closePostUpdateModal() {
+  document.getElementById('postUpdateModal').style.display = 'none';
+  document.getElementById('postUpdateBackdrop').style.display = 'none';
+}
+
+async function submitPortalUpdate() {
+  const title = (document.getElementById('postUpdateTitle').value || '').trim();
+  const body  = (document.getElementById('postUpdateBody').value || '').trim();
+  const errEl = document.getElementById('postUpdateError');
+  const btn   = document.getElementById('postUpdateSubmitBtn');
+
+  errEl.style.display = 'none';
+  if (!title) { errEl.textContent = '⚠️ Title is required.'; errEl.style.display = 'block'; return; }
+  if (!body)  { errEl.textContent = '⚠️ Message cannot be empty.'; errEl.style.display = 'block'; return; }
+
+  const isEditing = !!_editingAnnId;
+  btn.disabled = true;
+  btn.textContent = isEditing ? 'Saving…' : 'Publishing…';
+
+  try {
+    const hdrs = {
+      ...SB_HDRS(),
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    };
+
+    let res;
+    if (isEditing) {
+      // ── EDIT mode: PATCH existing row ──
+      const payload = { title, body };
+      res = await fetch(
+        SUPABASE_URL + '/rest/v1/portal_update_text?id=eq.' + _editingAnnId,
+        { method: 'PATCH', headers: hdrs, body: JSON.stringify(payload) }
+      );
+    } else {
+      // ── NEW post: INSERT ──
+      const postedBy = (CURRENT_USER && CURRENT_USER.name) || 'MIS Team';
+      const payload = { title, body, posted_by: postedBy };
+      res = await fetch(
+        SUPABASE_URL + '/rest/v1/portal_update_text',
+        { method: 'POST', headers: hdrs, body: JSON.stringify(payload) }
+      );
+    }
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || res.statusText);
+    }
+
+    // Local data bhi update karo (immediate UI refresh)
+    if (isEditing) {
+      const idx = _annDrwUpdates.findIndex(a => a.id === _editingAnnId);
+      if (idx !== -1) { _annDrwUpdates[idx].title = title; _annDrwUpdates[idx].body = body; }
+    }
+
+    // Refresh the feed
+    _annDrwLoaded = false;
+    _annDrwUpdates = [];
+    _editingAnnId = null;
+    closePostUpdateModal();
+    document.getElementById('annDrwFeed').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:0.85rem;">Refreshing…</div>';
+    await _annDrwLoad();
+    annDrwFilter('update');
+
+    if (!isEditing) {
+      // ── Push sirf new post pe ──
+      osSendPush('New Announcement', title + '\nOpen the portal to view — learn.adititracking.com');
+    }
+  } catch(e) {
+    errEl.textContent = '❌ Error: ' + (e.message || 'Please try again.');
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = isEditing ? '💾 Save Changes' : '🚀 Publish Update';
+  }
+}
+
+/* ══ DELETE PORTAL UPDATE ══ */
+async function deletePortalUpdate(id) {
+  if (!CURRENT_USER || CURRENT_USER.rawRole !== 'mis') return;
+  if (!confirm('Are you sure you want to delete this update?')) return;
+
+  // Card turant fade karo
+  const card = document.getElementById('ann-card-' + id);
+  if (card) { card.style.opacity = '0.4'; card.style.pointerEvents = 'none'; }
+
+  try {
+    const hdrs = { ...SB_HDRS(), 'Content-Type': 'application/json' };
+    const res = await fetch(
+      SUPABASE_URL + '/rest/v1/portal_update_text?id=eq.' + id,
+      { method: 'DELETE', headers: hdrs }
+    );
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || res.statusText);
+    }
+    // Local list se bhi hatao
+    _annDrwUpdates = _annDrwUpdates.filter(a => a.id !== id);
+    _annDrwRender();
+  } catch(e) {
+    if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
+    alert('Delete error: ' + (e.message || 'Please try again.'));
+  }
+}

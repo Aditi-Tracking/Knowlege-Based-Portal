@@ -768,3 +768,223 @@ function mobMenuGo(panel){
   switchDB(panel);
 }
 
+// ============================================================
+
+
+/* ────────────────────────────────────────────────────────────
+   FILE VIEWER — opens Google Drive folders/files inside portal
+   ──────────────────────────────────────────────────────────── */
+
+// Convert any Google Drive URL to its embeddable form
+function toDriveEmbedUrl(url){
+  if(!url) return url;
+  try{
+    // 1) Folder URL:  /drive/folders/FOLDER_ID  →  embeddedfolderview
+    var folderMatch = url.match(/\/drive\/folders\/([a-zA-Z0-9_-]+)/);
+    if(folderMatch){
+      return 'https://drive.google.com/embeddedfolderview?id=' + folderMatch[1] + '#grid';
+    }
+    // 2) File URL:  /file/d/FILE_ID/...  →  /preview
+    var fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if(fileMatch){
+      return 'https://drive.google.com/file/d/' + fileMatch[1] + '/preview';
+    }
+    // 3) Google Docs / Sheets / Slides  →  /preview
+    var docMatch = url.match(/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([a-zA-Z0-9_-]+)/);
+    if(docMatch){
+      return 'https://docs.google.com/' + docMatch[1] + '/d/' + docMatch[2] + '/preview';
+    }
+    // 4) open?id=ID  →  file preview
+    var openMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if(openMatch && url.indexOf('drive.google.com')>=0){
+      return 'https://drive.google.com/file/d/' + openMatch[1] + '/preview';
+    }
+  }catch(e){}
+  return url; // fallback: raw URL
+}
+
+// Detect direct video file from URL
+function isDirectVideoUrl(url){
+  if(!url) return false;
+  var ext = url.split('?')[0].split('#')[0].split('.').pop().toLowerCase();
+  return ['mp4','webm','mov','m4v','ogg','ogv'].indexOf(ext) >= 0;
+}
+
+// Open any URL inside the in-page viewer modal
+
+// ═══════════════════════════════════════════════════════════
+// DIRECTORY DOC — Seedha Supabase se link fetch karke open karo
+// ═══════════════════════════════════════════════════════════
+async function openDirectoryDoc(module, displayName) {
+  closeDirectoryOverlay();
+  try {
+    await CN.load();
+    const hrSection = CN.getSection('HR');
+    let fileData = null;
+    if (hrSection) {
+      const cats = CN.getCategories(hrSection.id);
+      const dirCat = cats.find(c => (c.name||'').toLowerCase().includes('director'));
+      if (dirCat) {
+        const subCats = CN.getCategories(dirCat.id);
+        const match = subCats.find(c => (c.name||'').toLowerCase().includes(module.trim().toLowerCase()));
+        if (match) {
+          const files = CN.getFiles(match.id);
+          if (files.length) fileData = files[0];
+        }
+        // Also try direct files of directory node
+        if (!fileData) {
+          const direct = CN.getFiles(dirCat.id);
+          if (direct.length) fileData = direct[0];
+        }
+      }
+    }
+    if (fileData && fileData.url) {
+      openFileViewer(fileData.url, fileData.name || displayName || 'Document');
+    } else {
+      alert('No file found for ' + (displayName || module) + '. Please add files in the files table.');
+    }
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function openFileViewer(url, title){
+  if(!url) return;
+
+  // Track file/video open
+  const _isYT  = /(?:youtube\.com|youtu\.be)/i.test(url);
+  const _isVid = /\.(mp4|webm|mov)(\?|$)/i.test(url);
+  const _isPdf = /\.pdf(\?|$)/i.test(url);
+  const _evType = _isYT || _isVid ? 'video_play' : 'file_open';
+  logActivity({
+    event_type:   _evType,
+    event_detail: (_isYT ? 'YouTube: ' : _isVid ? 'Video: ' : _isPdf ? 'PDF: ' : 'File: ') + (title||url),
+    page_name:    _actPageName || 'unknown',
+    card_name:    _actCardName || '',
+    video_title:  (_isYT || _isVid) ? (title||url) : null,
+    file_name:    (!_isYT && !_isVid) ? (title||url) : null,
+  });
+
+  // YouTube link → seedha new tab mein kholo (iframe mein nahi chalega)
+  if(_isYT) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
+  var ov = document.getElementById('file-viewer-overlay');
+  if(!ov) return;
+
+  document.getElementById('file-viewer-title').textContent = title || 'Documents';
+
+  var body    = document.getElementById('file-viewer-body');
+  var frame   = document.getElementById('file-viewer-frame');
+  var loading = document.getElementById('file-viewer-loading');
+  var mask    = document.getElementById('file-viewer-dl-mask');
+  var mask2   = document.getElementById('file-viewer-dl-mask2');
+
+  // If it's a direct video file, render a <video> tag instead of iframe
+  if(isDirectVideoUrl(url)){
+    frame.src = 'about:blank';
+    frame.style.display = 'none';
+    loading.style.display = 'none';
+    if(mask)  mask.style.display  = 'none';
+    if(mask2) mask2.style.display = 'none';
+    // Training video jaisa exact approach — static HTML element, direct src set, sirf load()
+    var vid = document.getElementById('file-viewer-video');
+    vid.style.display = 'block';
+    pauseAllVideosExcept('file-viewer-video');
+    vid.src = url;   // playModuleVideo jaisa — seedha src assign
+    vid.load();      // sirf load — no autoplay (training video approach)
+  } else {
+    // Document / folder → iframe with embeddable URL
+    var vid = document.getElementById('file-viewer-video');
+    if(vid){ try{vid.pause();}catch(e){} vid.removeAttribute('src'); vid.load(); vid.style.display='none'; }
+
+    // Mobile/PWA detect: Android Chrome iframe mein PDF "Open" button + pencil aata hai
+    // Fix: mobile par seedha Google Drive preview new tab mein kholo
+    var isIPad = /iPad/i.test(navigator.userAgent)
+             || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var isPhone = /Android|iPhone|iPod|Mobile/i.test(navigator.userAgent) && !isIPad;
+    var isMobile = isPhone;
+
+    if(isMobile){
+      // Modal band karo aur Google Drive preview seedha new tab mein kholo
+      ov.style.display = 'none';
+      document.body.style.overflow = '';
+      // Drive embed URL ki jagah original preview URL use karo
+      var mobileUrl = toDriveEmbedUrl(url);
+      window.open(mobileUrl, '_blank');
+      return;
+    }
+
+    frame.style.display = 'block';
+    loading.style.display = 'flex';
+    var embedUrl = toDriveEmbedUrl(url);
+    // Add #toolbar=0 hint (works on Chrome native PDF viewer; harmless otherwise)
+    if(embedUrl.indexOf('#') === -1) embedUrl += '#toolbar=0';
+    frame.src = embedUrl;
+
+    var isGoogle = /drive\.google\.com|docs\.google\.com/.test(embedUrl);
+    // Safari detect karo
+    var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if(isGoogle){
+      if(isSafari){
+        // Safari fix: toolbar clip nahi karte — seedha normal size rakhte hain
+        // Safari mein calc(100% + 128px) scroll tod deta hai
+        frame.style.top    = '0';
+        frame.style.height = '100%';
+        if(mask)  mask.style.display  = 'none';
+        if(mask2) mask2.style.display = 'none';
+      } else {
+        // 🔒 CLIP TOOLBAR: shift iframe UP by 64px so Google's toolbar is outside visible area.
+        //     Parent has overflow:hidden so the shifted-off part is invisible & unclickable.
+        frame.style.top    = '-64px';
+        frame.style.height = 'calc(100% + 128px)'; // extend bottom too to hide any bottom bar
+        if(mask)  mask.style.display  = 'block';   // backup mask in case clip fails
+        if(mask2) mask2.style.display = 'block';
+      }
+    } else {
+      frame.style.top    = '0';
+      frame.style.height = '100%';
+      if(mask)  mask.style.display  = 'none';
+      if(mask2) mask2.style.display = 'none';
+    }
+  }
+
+  ov.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFileViewer(){
+  var frame = document.getElementById('file-viewer-frame');
+  if(frame) frame.src = 'about:blank';
+  var vid = document.getElementById('file-viewer-video');
+  if(vid){ try{vid.pause();}catch(e){} vid.removeAttribute('src'); vid.load(); vid.style.display='none'; }
+  document.getElementById('file-viewer-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Click outside modal to close
+document.getElementById('file-viewer-overlay').addEventListener('click', function(e){
+  if(e.target === this) closeFileViewer();
+});
+
+// Escape key closes file viewer
+document.addEventListener('keydown', function(e){
+  var ov = document.getElementById('file-viewer-overlay');
+  var isOpen = ov && ov.style.display === 'flex';
+  if(e.key === 'Escape' && isOpen){ closeFileViewer(); return; }
+});
+
+/* Auto-intercept: any <a> tag pointing to drive.google.com or docs.google.com
+   with a data-inline-view attribute (or matching folder/file pattern) opens
+   inside the viewer instead of a new tab. This is a safety net — primary
+   hookup is the onclick handler added on each link below. */
+document.addEventListener('click', function(e){
+  var a = e.target.closest && e.target.closest('a[data-inline-view]');
+  if(!a) return;
+  e.preventDefault();
+  var title = a.getAttribute('data-title') ||
+              (a.querySelector('.hc-name') ? a.querySelector('.hc-name').textContent.trim() : 'Documents');
+  openFileViewer(a.href, title);
+});
