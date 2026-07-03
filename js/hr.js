@@ -77,19 +77,6 @@ async function openHRDocsOverlay(module) {
   }
 }
 
-function renderHRDocs(items, th, module) {
-  document.getElementById('hrDocsLoader').style.display = 'none';
-  document.getElementById('hrDocsSub').textContent = items.length + ' file' + (items.length===1?'':'s');
-  if (!items.length) { document.getElementById('hrDocsEmpty').style.display='block'; return; }
-  const grid = document.getElementById('hrDocsGrid');
-  grid.innerHTML = items.map(row => {
-    const name  = (row.Doc_Name || row.name || 'Document').trim();
-    const link  = (row.Doc_Link || row.url  || '').trim();
-    const fid   = row.id || row.fileId || undefined;
-    return renderOverlayCard(name, link, th, fid);
-  }).join('');
-}
-
 function closeHRDocsOverlay() {
   _actOnCardClose(); // ACTIVITY TRACKING
   document.getElementById('hrDocsOverlay').style.display = 'none';
@@ -99,23 +86,11 @@ function closeHRDocsOverlay() {
 // ═══════════════════════════════════════════════════════════
 // MEDICLAIM UPLOAD — HR can upload files directly
 // ═══════════════════════════════════════════════════════════
-const MEDICLAIM_UPLOAD_PASSWORD = 'hr@aditi2026';  // Change this to your preferred password
 const MEDICLAIM_BUCKET = 'Documents';
 const MEDICLAIM_FOLDER = 'Mediclaim';
 
 function triggerMediclaimUpload() {
   alert('Mediclaim upload is being migrated to the new system. Coming soon!');
-  return;
-  // --- original code below (disabled) ---
-  // Password gate
-  const pwd = prompt('Enter HR password to upload:');
-  if (pwd === null) return;  // User cancelled
-  if (pwd !== MEDICLAIM_UPLOAD_PASSWORD) {
-    alert('Incorrect password. Upload cancelled.');
-    return;
-  }
-  // Trigger file picker
-  document.getElementById('hrDocsFileInput').click();
 }
 
 // Wire up file input change handler after DOM ready
