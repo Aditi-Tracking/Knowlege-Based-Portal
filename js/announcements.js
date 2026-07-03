@@ -832,15 +832,6 @@ function _annTimeLabel(dateStr) {
   return Math.floor(diffDays/365) + ' years ago';
 }
 
-// ── Build tag HTML ────────────────────────────────────────────
-function _annBuildTags(tags, color) {
-  if (!tags || !tags.length) return '';
-  const bg = color ? color + '18' : 'rgba(240,165,0,0.1)';
-  const cl = color || '#f0a500';
-  const brd = color ? color + '35' : 'rgba(240,165,0,0.25)';
-  return tags.map(t => `<span class="ann-tag" style="background:${bg};color:${cl};border:1px solid ${brd};">${t}</span>`).join('');
-}
-
 // ── Build a person chip ───────────────────────────────────────
 function _annPersonChip(p, emoji, extraText, clickFn, color) {
   const bg = color ? color + '15' : 'rgba(240,165,0,0.12)';

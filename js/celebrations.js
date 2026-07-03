@@ -260,24 +260,9 @@ function _renderCelebBanner(birthdays, anniversaries) {
          <span id="bannerSeeWishesBadge" style="background:rgba(255,255,255,0.3);color:#fff;border-radius:20px;padding:1px 8px;font-size:0.78rem;font-weight:800;min-width:20px;text-align:center;">...</span>
        </button>`;
   } else {
-    // Check if user has already wished ALL celebrants today
-    const allCelebs = [
-      ...birthdays.map(p => ({ ...p, celebType: 'birthday' })),
-      ...anniversaries.map(p => ({ ...p, celebType: 'anniversary' }))
-    ];
-    const alreadyWishedAll = allCelebs.length > 0 && allCelebs.every(p =>
-      localStorage.getItem(_wishKey(p.email || p.name, p.celebType))
-    );
-    if (alreadyWishedAll) {
-      actionBtnHTML = `<button class="celeb-wish-all-btn" disabled
-        style="background:linear-gradient(135deg,#00d4aa,#22c55e);cursor:default;opacity:0.9;display:flex;align-items:center;gap:8px;">
-        ✅ Wished!
-      </button>`;
-    } else {
-      actionBtnHTML = `<button class="celeb-wish-all-btn" onclick="_openWishAllPopup()">
-        🎉 Wish Them!
-      </button>`;
-    }
+    // Real state is resolved async below (DB is authoritative) — render a
+    // neutral placeholder first so we never flash the wrong wished/not-wished state.
+    actionBtnHTML = `<button class="celeb-wish-all-btn" id="bannerWishBtn" disabled style="opacity:0.6;">⏳ Checking…</button>`;
   }
 
   banner.innerHTML = `
@@ -299,6 +284,33 @@ function _renderCelebBanner(birthdays, anniversaries) {
   // For users who have already wished, check if birthday person replied
   if (!iAmCelebrant) {
     _checkAndShowReplyOnHome(birthdays, anniversaries);
+    _updateBannerWishButton(birthdays, anniversaries);
+  }
+}
+
+// ── Resolve the banner's real Wished!/Wish Them! state via DB (async, no flash) ──
+async function _updateBannerWishButton(birthdays, anniversaries) {
+  const allCelebs = [
+    ...birthdays.map(p => ({ ...p, celebType: 'birthday' })),
+    ...anniversaries.map(p => ({ ...p, celebType: 'anniversary' }))
+  ];
+  if (!allCelebs.length) return;
+
+  const results = await Promise.all(allCelebs.map(p => _hasAlreadyWished(p, p.celebType)));
+  const alreadyWishedAll = results.every(Boolean);
+
+  const btn = document.getElementById('bannerWishBtn');
+  if (!btn) return; // banner may have re-rendered since
+
+  if (alreadyWishedAll) {
+    btn.outerHTML = `<button class="celeb-wish-all-btn" id="bannerWishBtn" disabled
+      style="background:linear-gradient(135deg,#00d4aa,#22c55e);cursor:default;opacity:0.9;display:flex;align-items:center;gap:8px;">
+      ✅ Wished!
+    </button>`;
+  } else {
+    btn.outerHTML = `<button class="celeb-wish-all-btn" id="bannerWishBtn" onclick="_openWishAllPopup()">
+      🎉 Wish Them!
+    </button>`;
   }
 }
 
@@ -317,8 +329,8 @@ async function _checkAndShowReplyOnHome(birthdays, anniversaries) {
   ];
 
   for (const person of allPeople) {
-    const wKey = _wishKey(person.email || person.name, person.celebType);
-    if (!localStorage.getItem(wKey)) continue; // user hasn't wished this person
+    const already = await _hasAlreadyWished(person, person.celebType);
+    if (!already) continue; // user hasn't wished this person
 
     try {
       const fromEmpId = _getEmpId(CURRENT_USER.email || CURRENT_USER.name);
@@ -363,6 +375,55 @@ function _wishKey(toEmail, type) {
   return `wish_${type}_${toEmail}_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
 }
 
+// ── Stable cache key for a wish-check result ────────────────────
+function _wishCheckKey(toPerson, type) {
+  return type + '_' + (toPerson.empId || toPerson.email || toPerson.name);
+}
+
+// ── In-memory, same-session cache — never persisted, never shared across users ──
+let _wishCheckCache = {};
+
+// ── DB-backed check: has CURRENT_USER already wished this person today? (authoritative) ──
+async function _hasAlreadyWished(toPerson, type) {
+  if (!CURRENT_USER) return false;
+  const cacheKey = _wishCheckKey(toPerson, type);
+  if (_wishCheckCache[cacheKey] !== undefined) return _wishCheckCache[cacheKey];
+
+  const today = new Date().toISOString().split('T')[0];
+  const hdrs  = SB_HDRS();
+  const fromEmpId = _getEmpId(CURRENT_USER.email || CURRENT_USER.name);
+  const toEmpId   = toPerson.empId || _getEmpId(toPerson.email || toPerson.name);
+  let found = false;
+
+  try {
+    // Strategy 1: emp_id match (most reliable)
+    if (fromEmpId && toEmpId) {
+      const url = `${SUPABASE_URL}/rest/v1/birthday_wishes?select=id&from_emp_id=eq.${fromEmpId}&to_emp_id=eq.${toEmpId}&wish_date=eq.${today}&type=eq.${type}&limit=1`;
+      const res = await fetch(url, { headers: hdrs });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length) found = true;
+      }
+    }
+    // Strategy 2: email fallback (emp_id sometimes null on either side)
+    if (!found) {
+      const fromEmail = encodeURIComponent((CURRENT_USER.email || '').trim());
+      const toEmail   = encodeURIComponent((toPerson.email    || '').trim());
+      if (fromEmail && toEmail) {
+        const url2 = `${SUPABASE_URL}/rest/v1/birthday_wishes?select=id&from_email=ilike.${fromEmail}&to_email=ilike.${toEmail}&wish_date=eq.${today}&type=eq.${type}&limit=1`;
+        const res2 = await fetch(url2, { headers: hdrs });
+        if (res2.ok) {
+          const rows2 = await res2.json();
+          if (Array.isArray(rows2) && rows2.length) found = true;
+        }
+      }
+    }
+  } catch (e) {}
+
+  _wishCheckCache[cacheKey] = found;
+  return found;
+}
+
 // ── Open popup (type: birthday-self / birthday-others / anniversary-self / anniversary-others) ──
 function _openCelebPopup(type, person, years) {
   _celebCurrentPerson = person;
@@ -384,6 +445,11 @@ function _openCelebPopup(type, person, years) {
   if (wishSent)   wishSent.style.display   = 'none';
   if (alreadyEl)  alreadyEl.style.display  = 'none';
   if (msBox)      msBox.style.display      = 'none';
+
+  // Reset send button — otherwise a stuck "Sending..." state from a previous
+  // popup (e.g. a failed banner update) would persist across reopens
+  const sendBtn = document.getElementById('celebSendBtn');
+  if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '🎉 Send Wish!'; }
 
   const inp = document.getElementById('celebWishInput');
   if (inp) { inp.value = ''; inp.style.borderColor = 'var(--border)'; }
@@ -431,14 +497,12 @@ function _openCelebPopup(type, person, years) {
     subEl.textContent   = `Today is ${firstName}'s special day! 🎊 Send a warm wish and make their birthday extra special!`;
     topBar.style.background    = 'linear-gradient(90deg,#f0a500,#ffcc44,#ff5c7c,#f0a500)';
     topBar.style.backgroundSize = '300%';
-    // Check already wished
-    const wKey = _wishKey(person.email || person.name, 'birthday');
-    if (localStorage.getItem(wKey)) {
-      alreadyEl.style.display = 'block';
-      
-    } else {
-      wishBox.style.display = 'block';
-    }
+    // Check already wished (DB-backed — localStorage would leak across users
+    // sharing a browser). Both stay hidden until resolved, so nothing wrong flashes.
+    _hasAlreadyWished(person, 'birthday').then(already => {
+      if (already) { alreadyEl.style.display = 'block'; }
+      else         { wishBox.style.display   = 'block'; }
+    });
 
   } else if (type === 'anniversary-others') {
     emojiEl.textContent = '🥳';
@@ -449,14 +513,11 @@ function _openCelebPopup(type, person, years) {
     if (y > 0) { msBox.style.display = 'block'; msBadge.innerHTML = `⭐ ${_celebOrdinal(y)} Work Anniversary`; }
     topBar.style.background    = 'linear-gradient(90deg,#4e9af1,#00d4aa,#4e9af1)';
     topBar.style.backgroundSize = '300%';
-    // Check already wished
-    const wKey2 = _wishKey(person.email || person.name, 'anniversary');
-    if (localStorage.getItem(wKey2)) {
-      alreadyEl.style.display = 'block';
-      
-    } else {
-      wishBox.style.display = 'block';
-    }
+    // Check already wished (DB-backed, same as birthday branch above)
+    _hasAlreadyWished(person, 'anniversary').then(already => {
+      if (already) { alreadyEl.style.display = 'block'; }
+      else         { wishBox.style.display   = 'block'; }
+    });
   }
 
   overlay.style.display = 'flex';
@@ -938,6 +999,13 @@ function closeCelebPopup() {
   _celebCurrentPerson = null;
 }
 
+// ── Close My Wishes modal ──────────────────────────────────────
+function closeMyWishesModal() {
+  const overlay = document.getElementById('myWishesOverlay');
+  if (overlay) overlay.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
 // Close on backdrop click
 document.addEventListener('DOMContentLoaded', function() {
   const ov = document.getElementById('celebPopupOverlay');
@@ -1006,24 +1074,32 @@ async function sendWish() {
       // Prevent duplicate wish today
       const wKey = _wishKey(toEmail || toName, finalType);
       localStorage.setItem(wKey, '1');
-      // Update banner button to "Wished ✅" without page reload
-      const wishBannerBtn = document.querySelector('.celeb-wish-all-btn');
-      if (wishBannerBtn && !wishBannerBtn.disabled) {
-        // Check if all celebrants are now wished
-        const allC = [
-          ...(window._celebBannerBdays||[]).map(p=>({...p,celebType:'birthday'})),
-          ...(window._celebBannerAnnis||[]).map(p=>({...p,celebType:'anniversary'}))
-        ];
-        const allDone = allC.every(p => localStorage.getItem(_wishKey(p.email||p.name, p.celebType)));
-        if (allDone) {
-          wishBannerBtn.innerHTML = '✅ Wished!';
-          wishBannerBtn.disabled = true;
-          wishBannerBtn.style.background = 'linear-gradient(135deg,#00d4aa,#22c55e)';
-          wishBannerBtn.style.cursor = 'default';
-          wishBannerBtn.style.opacity = '0.9';
-          wishBannerBtn.onclick = null;
+      // Warm the in-memory cache so this exact wish doesn't trigger a redundant DB call below
+      _wishCheckCache[_wishCheckKey(_celebCurrentPerson, finalType)] = true;
+
+      // Update banner button to "Wished ✅" without page reload — isolated in its
+      // own try/catch so a failure or slow check here can never block the success
+      // message below; the wish is already saved by this point regardless.
+      try {
+        const wishBannerBtn = document.getElementById('bannerWishBtn');
+        if (wishBannerBtn && !wishBannerBtn.disabled) {
+          // Check if all celebrants are now wished (DB-backed, authoritative)
+          const allC = [
+            ...(window._celebBannerBdays||[]).map(p=>({...p,celebType:'birthday'})),
+            ...(window._celebBannerAnnis||[]).map(p=>({...p,celebType:'anniversary'}))
+          ];
+          const results = await Promise.all(allC.map(p => _hasAlreadyWished(p, p.celebType)));
+          const allDone = results.every(Boolean);
+          if (allDone) {
+            wishBannerBtn.innerHTML = '✅ Wished!';
+            wishBannerBtn.disabled = true;
+            wishBannerBtn.style.background = 'linear-gradient(135deg,#00d4aa,#22c55e)';
+            wishBannerBtn.style.cursor = 'default';
+            wishBannerBtn.style.opacity = '0.9';
+            wishBannerBtn.onclick = null;
+          }
         }
-      }
+      } catch (bannerErr) {}
 
       // Show success
       if (wishBox) wishBox.style.display = 'none';
