@@ -9,8 +9,7 @@ let _uploadCats     = [];     // content_node categories for this section
 // ── Open modal ───────────────────────────────────────────────────────────
 async function openUploadModal(sectionName) {
   // Role gate — only MIS can upload
-  const _role = CURRENT_USER ? String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim() : '';
-  if (_role !== 'mis') {
+  if (!_isMIS()) {
     alert('⛔ Upload access is restricted to MIS users only.');
     return;
   }
@@ -703,8 +702,7 @@ async function _submitYoutubeLink(ytUrl, displayName, newCardName, submitBtn) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function confirmDeleteCard(nodeId, cardName) {
-  const _role = CURRENT_USER ? String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim() : '';
-  if (_role !== 'mis') { alert('⛔ Delete access is restricted to MIS users only.'); return; }
+  if (!_isMIS()) { alert('⛔ Delete access is restricted to MIS users only.'); return; }
   if (!confirm(`⚠️ "${cardName}" and all its files will be permanently deleted.\nAre you sure?`)) return;
   await _doDeleteCard(nodeId, cardName);
 }
@@ -829,8 +827,7 @@ async function _doDeleteCard(nodeId, cardName) {
 }
 
 async function confirmDeleteFile(fileId, fileUrl) {
-  const _role = CURRENT_USER ? String(CURRENT_USER.rawRole || CURRENT_USER.role || '').toLowerCase().trim() : '';
-  if (_role !== 'mis') { alert('⛔ Delete access is restricted to MIS users only.'); return; }
+  if (!_isMIS()) { alert('⛔ Delete access is restricted to MIS users only.'); return; }
   if (!confirm('⚠️ This file will be permanently deleted. Are you sure?')) return;
   await _doDeleteFile(fileId, fileUrl);
 }
