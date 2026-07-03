@@ -1089,7 +1089,7 @@ function fmsCloseSupportOverlay(){
 // ── FMS Toast — standalone (doesn't depend on showToast) ─────────────────
 function fmsToast(msg, duration=3200){
   // Try global showToast first
-  if(typeof showToast === 'function'){ fmsToast(msg); return; }
+  if(typeof showToast === 'function'){ showToast(msg); return; }
   // Fallback: create our own toast
   const existing = document.getElementById('_fmsToast');
   if(existing) existing.remove();
