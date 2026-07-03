@@ -283,5 +283,3 @@ function closeDirectoryOverlay() {
   document.getElementById('directoryOverlay').style.display = 'none';
   document.body.style.overflow = '';
 }
-
-// Loaded videos (array of {id, Title, Video_URL})
