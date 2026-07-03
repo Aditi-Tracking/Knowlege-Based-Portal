@@ -84,20 +84,6 @@ function lGetCF(){return L.filter(r=>{
   if(Lcf.product){const ps=(r['Hero Product']||'').split(/[,\/]/).map(p=>p.trim().replace(/\s+/g,'').toUpperCase());if(!ps.includes(Lcf.product))return false;}
   return true;
 });}
-// ── Global chart colour helper ──────────────────────────────────────────────
-// Returns { tc, gc, gridDisplay } based on current theme
-function chartColors(){
-  const isLight=document.body.classList.contains('light-mode');
-  const tc = isLight ? '#000000' : '#ffffff';
-  const gc = isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.08)';
-  if(typeof Chart !== 'undefined'){
-    Chart.defaults.color = tc;
-    Chart.defaults.borderColor = gc;
-  }
-  return { tc, gc, noGrid: false };
-}
-// ────────────────────────────────────────────────────────────────────────────
-
 function lRenderKPIs(){
   const t=L.length,w=L.filter(r=>r['Lead Status']==='Won').length,h=L.filter(r=>r['LeadType']==='Hot').length,wa=L.filter(r=>r['LeadType']==='Warm').length,c=L.filter(r=>r['LeadType']==='Cold').length;
   const rev=L.filter(r=>r['Lead Status']==='Won').reduce((s,r)=>s+(+r['Order Value']||0),0);

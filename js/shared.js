@@ -436,3 +436,16 @@ function renderOverlayCard(name, link, th, fileId, nodeId) {
     </a>
   </div>`;
 }
+
+// ── Global chart colour helper ──────────────────────────────────────────────
+// Returns { tc, gc, gridDisplay } based on current theme
+function chartColors(){
+  const isLight=document.body.classList.contains('light-mode');
+  const tc = isLight ? '#000000' : '#ffffff';
+  const gc = isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.08)';
+  if(typeof Chart !== 'undefined'){
+    Chart.defaults.color = tc;
+    Chart.defaults.borderColor = gc;
+  }
+  return { tc, gc, noGrid: false };
+}
