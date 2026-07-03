@@ -361,3 +361,78 @@ function _cnRenderOverlayContent(nodeId, catName, th, gridId, subId, emptyId, pa
     }
   };
 }
+
+// ═══════════════════════════════════════════════════════════
+// SHARED OVERLAY CARD RENDERER — used by HR, Sales, After Sales, Marketing
+// ═══════════════════════════════════════════════════════════
+function renderOverlayCard(name, link, th, fileId, nodeId) {
+  const ext   = (link||'').split('?')[0].split('.').pop().toLowerCase();
+  const isYt  = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/.test(link||'');
+  const ytId  = isYt ? (link||'').match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)?.[1] : null;
+  const isVid = ['mp4','webm','mov'].includes(ext);
+  const isPdf = ext === 'pdf';
+  const label = isYt ? '▶ YouTube' : isVid ? '🎬 Video' : isPdf ? '📄 PDF' : '📁 Open';
+  const fileIcon = isYt
+    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="#ff0000"><path d="M23.5 6.2a3 3 0 00-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 00.5 6.2 31 31 0 000 12a31 31 0 00.5 5.8 3 3 0 002.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 002.1-2.1A31 31 0 0024 12a31 31 0 00-.5-5.8z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="white"/></svg>`
+    : isVid
+    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`
+    : isPdf
+    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`
+    : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+
+  const safeLink = (link||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  const safeName = (name||'Document').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  const delFileBtn = (fileId && _isMIS()) ? `<button onclick="event.stopPropagation();event.preventDefault();confirmDeleteFile(${fileId},'${safeLink}')" title="Delete file"
+    style="position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;transition:all 0.18s;"
+    onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+  </button>` : '';
+
+  // YouTube card — show thumbnail prominently
+  if (isYt && ytId) {
+    return `
+    <div style="position:relative;display:flex;flex-direction:column;" data-file-id="${fileId||''}">
+      ${delFileBtn}
+      <div onclick="openFileViewer('${safeLink}','${safeName}')" style="cursor:pointer;border-radius:16px;overflow:hidden;border:1.5px solid var(--border);border-top:3px solid #ff0000;transition:all 0.22s;background:var(--surface2);"
+        onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.22)';this.style.borderColor='#ff0000'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
+        <div style="position:relative;">
+          <img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" alt="${name}" style="width:100%;display:block;aspect-ratio:16/9;object-fit:cover;" onerror="this.style.display='none'"/>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+            <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,0,0,0.88);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px 14px;">
+          <div style="font-size:0.87rem;font-weight:700;color:var(--text);line-height:1.4;margin-bottom:8px;">${name}</div>
+          <span style="font-size:0.70rem;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(255,0,0,0.1);color:#ff4444;border:1px solid rgba(255,0,0,0.25);">▶ YouTube</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return `
+  <div style="position:relative;display:flex;flex-direction:column;" data-file-id="${fileId||''}">
+    ${delFileBtn}
+    <a href="${link}" onclick="openFileViewer('${safeLink}','${safeName}');return false;" style="text-decoration:none;display:flex;cursor:pointer;">
+      <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:16px;
+                  padding:20px 16px;cursor:pointer;transition:all 0.22s;
+                  border-top:3px solid ${th.color};
+                  display:flex;flex-direction:column;width:100%;min-height:148px;"
+           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 30px rgba(0,0,0,0.22)';this.style.borderColor='${th.color}'"
+           onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor=''">
+        <div style="width:42px;height:42px;border-radius:11px;background:${th.bg};border:1px solid ${th.border};
+                    display:flex;align-items:center;justify-content:center;margin-bottom:14px;
+                    flex-shrink:0;color:${th.color};">${fileIcon}</div>
+        <div style="font-size:0.87rem;font-weight:700;color:var(--text);line-height:1.45;
+                    flex:1;margin-bottom:14px;">${name}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
+          <span style="font-size:0.70rem;font-weight:700;padding:4px 11px;border-radius:20px;
+                       background:${th.bg};color:${th.color};border:1px solid ${th.border};">${label}</span>
+          <span style="font-size:0.78rem;font-weight:600;color:${th.color};">↗</span>
+        </div>
+      </div>
+    </a>
+  </div>`;
+}
