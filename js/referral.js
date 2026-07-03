@@ -539,19 +539,6 @@ async function loadAdminOpeningsList(){
   }
 }
 
-async function toggleOpeningStatus(id, newStatus){
-  try{
-    await fetch(`${SUPABASE_URL}/rest/v1/job_openings?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: { ...SB_HDRS(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ status: newStatus })
-    });
-    _refOpeningsLoaded = false;
-    loadReferralOpenings();
-    loadAdminOpeningsList();
-  } catch(e){ alert('Could not update: ' + e.message); }
-}
-
 async function deleteOpening(id, title){
   if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
   try{
