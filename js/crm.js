@@ -655,9 +655,6 @@ function crmChgRenderDetail(rows, type){
     </div>`).join('');
 }
 
-// Legacy stubs so nothing breaks
-function crmChgRenderTable(){}
-function crmChgFilterTable(){}
 // ── END VEHICLE CHANGES ───────────────────────────────────────
 function crmSwitchTier(t){
   _crmTier=t;
