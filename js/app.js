@@ -186,13 +186,6 @@ function closeProfileModal(){
   const md=document.getElementById('profileModal');        if(md) md.style.display='none';
 }
 
-// Download access — in emails ko Training Videos download karne ki permission hai
-const VIDEO_DOWNLOAD_EMAILS = [
-  'care3@adititracking.com',   // Akshay More
-  'mis@adititracking.com',     // Hemant (MIS)
-  'mis1@adititracking.com',    // Krishna (MIS)
-  'chirag@adititracking.com',  // Managing Director
-];
 function _canDownloadVideo() {
   if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
   return PERMISSIONS.can_download_video === 'true';
