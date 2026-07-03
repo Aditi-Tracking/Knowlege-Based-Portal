@@ -132,21 +132,6 @@ async function openMarketingOverlay(category) {
   }
 }
 
-function renderMarketingDocs(items, th) {
-  document.getElementById('mktOverlayLoader').style.display = 'none';
-  document.getElementById('mktOverlaySub').textContent = items.length + ' file' + (items.length === 1 ? '' : 's');
-  if (!items.length) {
-    document.getElementById('mktOverlayEmpty').style.display = 'block';
-    return;
-  }
-  const grid = document.getElementById('mktOverlayGrid');
-  grid.innerHTML = items.map(row => {
-    const name = (row.Module || 'Document').trim();
-    const link = (row.Link   || '').trim();
-    return renderOverlayCard(name, link, th);
-  }).join('');
-}
-
 function closeMarketingOverlay() {
   document.getElementById('marketingOverlay').style.display = 'none';
   document.body.style.overflow = '';
