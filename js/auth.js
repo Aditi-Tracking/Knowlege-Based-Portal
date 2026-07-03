@@ -442,6 +442,79 @@ function doLogout(){
   }, 400);
 }
 
+(function initIdleTimeout() {
+  const IDLE_LIMIT  = 3 * 60 * 60 * 1000;  // 3 hours idle = logout
+  const WARN_BEFORE = 5  * 60 * 1000;       // warn 5 minutes before logout
+
+  let lastActivity = Date.now();
+  let warnShown    = false;
+  let logoutDone   = false;
+
+  ['click', 'keydown', 'scroll', 'touchstart'].forEach(ev => {
+    document.addEventListener(ev, () => {
+      lastActivity = Date.now();
+      if (warnShown) {
+        warnShown  = false;
+        logoutDone = false;
+        const w = document.getElementById('_idleWarn');
+        if (w) { w.style.opacity = '0'; setTimeout(() => w && w.remove(), 300); }
+      }
+    }, { passive: true });
+  });
+
+  function showIdleWarning() {
+    if (warnShown) return;
+    warnShown = true;
+    const w = document.createElement('div');
+    w.id = '_idleWarn';
+    w.style.cssText = `
+      position:fixed;bottom:28px;right:24px;z-index:999990;
+      background:#1e1b14;border:1.5px solid #f0a500;
+      border-radius:16px;padding:16px 20px;
+      font-family:'DM Sans',sans-serif;
+      box-shadow:0 8px 32px rgba(0,0,0,0.55);
+      display:flex;align-items:flex-start;gap:13px;
+      opacity:0;transition:opacity 0.35s;max-width:340px;
+    `;
+    w.innerHTML = `
+      <span style="font-size:1.6rem;line-height:1;margin-top:2px;">⏱️</span>
+      <div style="flex:1;">
+        <div style="font-size:0.92rem;font-weight:700;color:#f0a500;margin-bottom:4px;">Session Expiring Soon</div>
+        <div style="font-size:0.81rem;color:#c8cdd8;line-height:1.5;">
+          You will be automatically logged out in <strong style="color:#fff;">5 minutes</strong> due to inactivity.
+        </div>
+        <div style="font-size:0.78rem;color:#8a909e;margin-top:5px;">Click anywhere to stay logged in.</div>
+      </div>
+      <button onclick="(function(){var w=document.getElementById('_idleWarn');if(w){w.style.opacity='0';setTimeout(function(){w&&w.remove();},300);}})()"
+        style="background:none;border:none;color:#8a909e;cursor:pointer;font-size:1.1rem;padding:0;line-height:1;margin-top:2px;flex-shrink:0;">✕</button>
+    `;
+    document.body.appendChild(w);
+    requestAnimationFrame(() => w.style.opacity = '1');
+  }
+
+  function doIdleLogout() {
+    if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return;
+    if (logoutDone) return;
+    logoutDone = true;
+    const w = document.getElementById('_idleWarn');
+    if (w) w.remove();
+    if (typeof showToast === 'function') {
+      showToast('🔒 Session expired due to inactivity. Please log in again.', 'warning', 5000);
+    }
+    setTimeout(() => {
+      if (typeof doLogout === 'function') doLogout();
+      else { _sbAuth.auth.signOut().catch(() => {}); location.reload(); }
+    }, 1800);
+  }
+
+  setInterval(() => {
+    if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return;
+    const idleMs = Date.now() - lastActivity;
+    if (!warnShown  && idleMs >= (IDLE_LIMIT - WARN_BEFORE)) showIdleWarning();
+    if (!logoutDone && idleMs >= IDLE_LIMIT)                  doIdleLogout();
+  }, 10000);
+})();
+
 
 
 
