@@ -2246,23 +2246,3 @@ window.addEventListener('focus', tMaybeLiveSync);
 setInterval(function(){
   if(!document.hidden) tMaybeLiveSync();
 }, TASKS_LIVE_POLL_MS);
-
-
-// ============================================================
-
-
-// ╔══════════════════════════════════════════════════════════════════════════
-// ║  [AUTH / LOGIN JS] — Login, logout, session management
-// ║  doLogin()    = Email+password se Supabase Auth se login karo
-// ║  doLogout()   = Session clear karo, login page dikhao
-// ║  _currentToken = Login ke baad user JWT yahan store hota hai
-// ║  CURRENT_USER  = Logged-in user ka object (name, email, role etc.)
-// ║  PERMISSIONS   = User ki permissions ka object (loaded after login)
-// ║  Agar login na ho raha ho: Supabase Auth > Users check karo
-// ╚══════════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════
-// LOGIN SYSTEM
-// ═══════════════════════════════════
-// USERS_URL (Google Sheet) removed — employee data now fetched from Supabase Employee_details table
-
-// ── Supabase Auth Client ──

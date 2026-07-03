@@ -903,45 +903,6 @@ function showModuleResult() {
 
 
 
-const MIS_QUIZ_MODULES = {
-  fms: {
-    title: 'FMS Quiz',
-    subtitle: 'Fleet Management System',
-    color: '#f0a500',
-    icon: '🚗',
-    driveUrl: 'https://drive.google.com/drive/folders/1kJxI0w9_IfT6_dfkBlXUkjTfx47eGwcz',
-    questions: []
-  },
-  checklist: {
-    title: 'Checklist Quiz',
-    subtitle: 'Daily Operational Checklist',
-    color: '#00d4aa',
-    icon: '✅',
-    driveUrl: 'https://drive.google.com/drive/folders/1kJxI0w9_IfT6_dfkBlXUkjTfx47eGwcz',
-    questions: []
-  },
-  mis: {
-    title: 'MIS Quiz',
-    subtitle: 'Management Information System',
-    color: '#f0a500',
-    icon: '📊',
-    driveUrl: 'https://drive.google.com/drive/folders/1kJxI0w9_IfT6_dfkBlXUkjTfx47eGwcz',
-    questions: []
-  },
-  looker: {
-    title: 'Looker Studio Quiz',
-    subtitle: 'Checklist Reports in Looker Studio',
-    color: '#a855f7',
-    icon: '📈',
-    driveUrl: 'https://drive.google.com/drive/folders/1kJxI0w9_IfT6_dfkBlXUkjTfx47eGwcz',
-    questions: []
-  }
-};
-
-let currentQuizModule = null;
-let currentQuestionIndex = 0;
-let userAnswers = [];
-
 function openMISQuizMenu() {
   logActivity({event_type:'training_module_open',event_detail:'Opened MIS Training',page_name:'training',card_name:'MIS Training'});
   console.log('[ACT] MIS Training opened');
