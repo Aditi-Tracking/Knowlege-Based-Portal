@@ -847,14 +847,6 @@ function _isMIS() {
   return PERMISSIONS.can_upload_files === 'true';
 }
 
-// Quiz admin access — email (Hemant & Krishna) + Emp_id (Pranali & Saajan Jain)
-const _QUIZ_UPLOAD_EMAILS = [
-  'mis@adititracking.com',   // Hemant
-  'mis1@adititracking.com',  // Krishna
-];
-// Emp_id se access — Chirag (1), Hemant (2), Krishna (3), Pranali (15), Saajan Jain (19), Hetal (34), Savita (35)
-const _QUIZ_UPLOAD_EMP_IDS = [1, 2, 3, 15, 19, 34, 35];
-
 function _canUploadQuiz() {
   if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
   return PERMISSIONS.can_upload_quiz === 'true';
