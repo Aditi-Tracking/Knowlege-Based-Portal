@@ -443,13 +443,7 @@ function doLogout(){
 }
 
 
-// ── Supabase Config ──
-// ── Global Supabase header helpers (defined early — see initHistory block above) ──
 
-function _canUploadQuiz() {
-  if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
-  return PERMISSIONS.can_upload_quiz === 'true';
-}
 
 
 

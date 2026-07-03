@@ -1,4 +1,9 @@
 // Section: Training & Quiz System (loadTrainingSection, DB quizzes, grading, admin)
+function _canUploadQuiz() {
+  if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return false;
+  return PERMISSIONS.can_upload_quiz === 'true';
+}
+
 // ── Training: load dynamic cards from content_nodes ──────────────────────
 let trainingDynLoaded = false;
 
