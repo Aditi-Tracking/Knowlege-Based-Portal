@@ -1904,7 +1904,7 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 .vrm-val{font-size:0.88rem;font-weight:600;color:var(--text);word-break:break-word;}
 .vrm-section-title{font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
 .vrm-submit{width:100%;padding:13px;border-radius:10px;border:none;font-size:0.92rem;font-weight:800;cursor:pointer;font-family:inherit;margin-top:14px;}
-@media(max-width:640px){
+@media(max-width:768px){
   .vf-grid,.vf-nv-grid,.vrm-grid{grid-template-columns:1fr;}
   #vrKpiRow{grid-template-columns:repeat(2,1fr)!important;}
 }
