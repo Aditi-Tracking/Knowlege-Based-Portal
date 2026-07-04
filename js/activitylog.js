@@ -349,6 +349,8 @@ function _canAccessActLog() {
 function _applyActLogNavVisibility() {
   const el = document.getElementById('nav-activitylog');
   if (el) el.style.display = _canAccessActLog() ? 'flex' : 'none';
+  const mmEl = document.getElementById('mm-activitylog');
+  if (mmEl) mmEl.style.display = _canAccessActLog() ? 'flex' : 'none';
 }
 
 async function loadActivityLog(forceRefresh) {

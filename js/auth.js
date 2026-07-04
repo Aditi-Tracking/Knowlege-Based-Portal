@@ -346,9 +346,12 @@ function showPortal(){
   _applyActLogNavVisibility();
   // Access Control nav — only for owner or MIS role
   const _acpNav = document.getElementById('nav-adminperms');
-  if (_acpNav) {
+  const _acpMobNav = document.getElementById('mm-adminperms');
+  if (_acpNav || _acpMobNav) {
     const _rawRole = String((CURRENT_USER && (CURRENT_USER.rawRole || CURRENT_USER.role)) || '').toLowerCase().trim();
-    _acpNav.style.display = (_rawRole === 'owner' || _rawRole === 'mis') ? '' : 'none';
+    const _hasAccess = (_rawRole === 'owner' || _rawRole === 'mis');
+    if (_acpNav) _acpNav.style.display = _hasAccess ? '' : 'none';
+    if (_acpMobNav) _acpMobNav.style.display = _hasAccess ? 'flex' : 'none';
   }
   // Fetch employee profile photo from Supabase → home page pe dikhao
   fetchUserProfilePhoto();
