@@ -399,10 +399,12 @@ function restrictEmployee(){
 function _applyUploadVisibility() {
   const canUpload = PERMISSIONS.can_upload_files === 'true';
   if (!canUpload) {
-    // Hide every upload button
+    // Hide every upload button (CN system only — Task Checklist's own
+    // upload button is excluded, it's gated separately and open to all)
     document.querySelectorAll('button').forEach(btn => {
+      if (btn.id === 'taskUploadSubmitBtn') return;
       const oc = btn.getAttribute('onclick') || '';
-      if (btn.textContent.trim() === 'Upload' || oc.includes('openUploadModal')) {
+      if (oc.includes('openUploadModal')) {
         btn.style.display = 'none';
       }
     });
