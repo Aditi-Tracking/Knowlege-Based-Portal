@@ -264,56 +264,56 @@
   <div class="sidebar-nav-scroll">
 
     <!-- HOME -->
-    <div class="nav-item active" onclick="switchDB('home')" id="nav-home">
+    <div class="nav-item active" onclick="switchDB('home')" id="nav-home" title="Home">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span>
       <span class="nav-label">Home</span>
     </div>
 
     <!-- DASHBOARDS ACCORDION -->
-    <div class="nav-item nav-accordion-trigger" onclick="toggleDashboardAccordion()" id="nav-dashboards-trigger">
+    <div class="nav-item nav-accordion-trigger" onclick="toggleDashboardAccordion()" id="nav-dashboards-trigger" title="Dashboards">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
       <span class="nav-label">Dashboards</span>
       <span class="nav-accordion-arrow" id="dashAccordionArrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
     </div>
     <div class="nav-sub-group" id="dashboardSubGroup" style="display:none;">
-      <div class="nav-item nav-sub-item" onclick="switchDB('leads')" id="nav-leads">
+      <div class="nav-item nav-sub-item" onclick="switchDB('leads')" id="nav-leads" title="Lead Tracking">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">Lead Tracking</span><span class="nav-badge live">Live</span>
       </div>
       <!-- Enterprise Lead — permission-gated, see can_view_enterprise -->
-      <div class="nav-item nav-sub-item" onclick="switchDB('enterprise')" id="nav-enterprise" style="display:none;">
+      <div class="nav-item nav-sub-item" onclick="switchDB('enterprise')" id="nav-enterprise" style="display:none;" title="Enterprise Lead">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">Enterprise Lead</span><span class="nav-badge live" style="background:rgba(240,165,0,0.18);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">Live</span>
       </div>
-      <div class="nav-item nav-sub-item" onclick="switchDB('collection')" id="nav-collection">
+      <div class="nav-item nav-sub-item" onclick="switchDB('collection')" id="nav-collection" title="Collection">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">Collection</span><span class="nav-badge live">Live</span>
       </div>
-      <div class="nav-item nav-sub-item" onclick="switchDB('fms')" id="nav-fms">
+      <div class="nav-item nav-sub-item" onclick="switchDB('fms')" id="nav-fms" title="FMS O2D">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">FMS O2D</span><span class="nav-badge live">Live</span>
       </div>
-      <div class="nav-item nav-sub-item" onclick="switchDB('tasks')" id="nav-tasks">
+      <div class="nav-item nav-sub-item" onclick="switchDB('tasks')" id="nav-tasks" title="Task Checklist">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">Task Checklist</span><span class="nav-badge live">Live</span>
       </div>
       <!-- IMS — MIS · Managing Director · PC only -->
-      <div class="nav-item nav-sub-item" onclick="switchDB('ims')" id="nav-ims" style="display:none;">
+      <div class="nav-item nav-sub-item" onclick="switchDB('ims')" id="nav-ims" style="display:none;" title="IMS">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">IMS</span><span class="nav-badge live" style="background:rgba(245,166,35,0.18);color:#f5a623;border:1px solid rgba(245,166,35,0.35);">Live</span>
       </div>
-      <div class="nav-item nav-sub-item" onclick="switchDB('mapping')" id="nav-mapping" style="display:none;">
+      <div class="nav-item nav-sub-item" onclick="switchDB('mapping')" id="nav-mapping" style="display:none;" title="Customer Mapping">
         <span class="nav-icon">🗺️</span>
         <span class="nav-label">Customer Mapping</span><span class="nav-badge live">Live</span>
       </div>
-      <div class="nav-item nav-sub-item" onclick="switchDB('crm')" id="nav-crm" style="display:none;">
+      <div class="nav-item nav-sub-item" onclick="switchDB('crm')" id="nav-crm" style="display:none;" title="CRM Vehicle">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">CRM Vehicle</span><span class="nav-badge live" style="background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.35);">Live</span>
       </div>
     </div>
 
     <!-- ANNOUNCEMENTS -->
-    <div class="nav-item" onclick="switchDB('announcements')" id="nav-announcements" style="position:relative;display:none;">
+    <div class="nav-item" onclick="switchDB('announcements')" id="nav-announcements" style="position:relative;display:none;" title="Announcements">
       <span class="nav-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
@@ -324,7 +324,7 @@
     </div>
 
     <!-- ACTIVITY LOG — MIS & Managing Director only -->
-    <div class="nav-item" onclick="switchDB('activitylog')" id="nav-activitylog" style="display:none;">
+    <div class="nav-item" onclick="switchDB('activitylog')" id="nav-activitylog" style="display:none;" title="Activity Log">
       <span class="nav-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -338,7 +338,7 @@
     </div>
 
     <!-- ACCESS CONTROL — MIS only, shown/hidden by JS -->
-    <div class="nav-item" onclick="switchDB('adminperms')" id="nav-adminperms" style="display:none;">
+    <div class="nav-item" onclick="switchDB('adminperms')" id="nav-adminperms" style="display:none;" title="Access Control">
       <span class="nav-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -349,73 +349,73 @@
     </div>
 
     <!-- ABOUT ORGANISATION -->
-    <div class="nav-item" onclick="switchDB('about')" id="nav-about">
+    <div class="nav-item" onclick="switchDB('about')" id="nav-about" title="About Organisation">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><circle cx="12" cy="14" r="3"/></svg></span>
       <span class="nav-label">About Organisation</span>
     </div>
 
     <!-- HR -->
-    <div class="nav-item" onclick="switchDB('hr')" id="nav-hr">
+    <div class="nav-item" onclick="switchDB('hr')" id="nav-hr" title="HR">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></span>
       <span class="nav-label">HR</span><span class="nav-badge" style="background:rgba(168,85,247,0.18);color:#a855f7;border:1px solid rgba(168,85,247,0.35);">Policy</span>
     </div>
 
     <!-- SALES -->
-    <div class="nav-item" onclick="switchDB('sales')" id="nav-sales">
+    <div class="nav-item" onclick="switchDB('sales')" id="nav-sales" title="Sales">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></span>
       <span class="nav-label">Sales</span><span class="nav-badge" style="background:rgba(0,212,170,0.18);color:#00d4aa;border:1px solid rgba(0,212,170,0.35);">SOP</span>
     </div>
 
     <!-- AFTER SALES -->
-    <div class="nav-item" onclick="switchDB('aftersales')" id="nav-aftersales">
+    <div class="nav-item" onclick="switchDB('aftersales')" id="nav-aftersales" title="After Sales">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
       <span class="nav-label">After Sales</span>
     </div>
 
     <!-- FINANCE -->
-    <div class="nav-item" onclick="switchDB('finance')" id="nav-finance">
+    <div class="nav-item" onclick="switchDB('finance')" id="nav-finance" title="Finance">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
       <span class="nav-label">Finance</span>
     </div>
 
     <!-- PRODUCTS -->
-    <div class="nav-item" onclick="switchDB('products')" id="nav-products">
+    <div class="nav-item" onclick="switchDB('products')" id="nav-products" title="Products">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
       <span class="nav-label">Products</span><span class="nav-badge live" style="background:rgba(168,85,247,0.18);color:#a855f7;border:1px solid rgba(168,85,247,0.35);">New</span>
     </div>
 
     <!-- MARKETING -->
-    <div class="nav-item" onclick="switchDB('marketing')" id="nav-marketing">
+    <div class="nav-item" onclick="switchDB('marketing')" id="nav-marketing" title="Marketing">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg></span>
       <span class="nav-label">Marketing</span><span class="nav-badge" style="background:rgba(78,154,241,0.18);color:#4e9af1;border:1px solid rgba(78,154,241,0.35);">Media</span>
     </div>
 
     <!-- IT & ADMIN -->
-    <div class="nav-item" onclick="switchDB('itadmin')" id="nav-itadmin">
+    <div class="nav-item" onclick="switchDB('itadmin')" id="nav-itadmin" title="IT &amp; Admin">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
       <span class="nav-label">IT &amp; Admin</span>
     </div>
 
     <!-- TRAINING -->
-    <div class="nav-item" onclick="switchDB('training')" id="nav-training">
+    <div class="nav-item" onclick="switchDB('training')" id="nav-training" title="Training">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>
       <span class="nav-label">Training</span><span class="nav-badge live" style="background:rgba(249,115,22,0.18);color:#f97316;border:1px solid rgba(249,115,22,0.35);">Videos</span>
     </div>
 
     <!-- COMPLIANCE -->
-    <div class="nav-item" onclick="switchDB('compliance')" id="nav-compliance">
+    <div class="nav-item" onclick="switchDB('compliance')" id="nav-compliance" title="Compliance">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
       <span class="nav-label">Compliance</span>
     </div>
 
     <!-- DOCUMENTS -->
-    <div class="nav-item" onclick="switchDB('resources')" id="nav-resources">
+    <div class="nav-item" onclick="switchDB('resources')" id="nav-resources" title="Documents">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span>
       <span class="nav-label">Documents</span><span class="nav-badge live" style="background:rgba(20,184,166,0.18);color:#14b8a6;border:1px solid rgba(20,184,166,0.35);">Docs</span>
     </div>
 
     <!-- REFERRAL -->
-    <div class="nav-item" onclick="switchDB('referral')" id="nav-referral">
+    <div class="nav-item" onclick="switchDB('referral')" id="nav-referral" title="Referral">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span>
       <span class="nav-label">Referral</span>
     </div>
@@ -689,7 +689,7 @@
         <span class="mm-subdot"></span><span class="mm-label">FMS O2D</span>
         <span class="mm-badge mm-badge-live">Live</span>
       </button>
-      <button class="mm-nav-item mm-sub" onclick="mobMenuGo('tasks')">
+      <button class="mm-nav-item mm-sub" id="mm-tasks" onclick="mobMenuGo('tasks')">
         <span class="mm-subdot"></span><span class="mm-label">Task Checklist</span>
         <span class="mm-badge mm-badge-live">Live</span>
       </button>
@@ -4663,128 +4663,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
      ╚═══════════════════════════════════════════════════════════════════════ -->
 <!-- ════════ CRM VEHICLE DASHBOARD PANEL ════════ -->
 <div class="dashboard-panel" id="panel-crm">
-<style>
-#panel-crm .crm-topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:20px 24px 0;}
-#panel-crm .crm-access-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;}
-#panel-crm .crm-pill-all{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);}
-#panel-crm .crm-pill-tier{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);}
-#panel-crm .crm-srv{display:flex;gap:6px;}
-#panel-crm .crm-srv-btn{padding:7px 18px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;}
-#panel-crm .crm-srv-btn:hover{border-color:var(--accent);color:var(--accent);}
-#panel-crm .crm-srv-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-#panel-crm .crm-srv-btn.both-active{background:#7c3aed;color:#fff;border-color:#7c3aed;}
-#panel-crm .crm-chg-qbtn{padding:6px 14px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;}
-#panel-crm .crm-chg-qbtn:hover{border-color:#6366f1;color:#6366f1;}
-#panel-crm .crm-chg-qbtn.active{background:#6366f1;color:#fff;border-color:#6366f1;}
-/* KPI delta indicators */
-.crm-kpi-delta{font-size:0.80rem;font-weight:700;margin-top:6px;min-height:18px;display:flex;align-items:center;gap:3px;}.crm-kpi-delta.up{color:#10b981;}
-.crm-kpi-delta.down{color:#ef4444;}
-.crm-kpi-delta.neutral{color:var(--muted);}
-/* Vehicle changes detail panel */
-#chg-added-card:hover{background:rgba(16,185,129,0.15)!important;transform:translateY(-1px);}
-#chg-removed-card:hover{background:rgba(239,68,68,0.15)!important;transform:translateY(-1px);}
-.chg-company-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;margin-bottom:4px;background:var(--surface);border:1px solid var(--border);}
-.chg-company-row:hover{border-color:var(--accent);}
-.chg-company-name{font-size:0.82rem;font-weight:600;color:var(--text);}
-.chg-company-count{font-size:0.82rem;font-weight:800;}
-.chg-company-count.added{color:#10b981;}
-.chg-company-count.removed{color:#ef4444;}
-#crm-changes-section{display:none;}/* hidden until permission check */
-#panel-crm .crm-tier-row{display:flex;gap:6px;flex-wrap:wrap;padding:0 24px;}
-#panel-crm .crm-tier-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;font-family:'DM Sans',sans-serif;transition:all .18s;}
-#panel-crm .crm-t-all{background:var(--surface2);color:var(--muted);border-color:var(--border);}
-#panel-crm .crm-t-all.active{background:var(--text);color:var(--bg);}
-#panel-crm .crm-t-plat{background:rgba(99,102,241,0.1);color:#6366f1;border-color:rgba(99,102,241,0.3);}
-#panel-crm .crm-t-plat.active{background:#6366f1;color:#fff;}
-#panel-crm .crm-t-gold{background:rgba(245,158,11,0.1);color:#d97706;border-color:rgba(245,158,11,0.3);}
-#panel-crm .crm-t-gold.active{background:#f59e0b;color:#fff;}
-#panel-crm .crm-t-silv{background:var(--surface2);color:var(--muted);border-color:var(--border);}
-#panel-crm .crm-t-silv.active{background:var(--muted);color:#fff;}
-/* Customer churn alerts banner */
-#crm-alerts-banner{display:none;}
-.crm-alert-card{display:flex;align-items:center;justify-content:space-between;gap:14px;background:rgba(255,92,124,0.08);border:1px solid rgba(255,92,124,0.28);border-radius:10px;padding:12px 16px;margin-bottom:8px;}
-.crm-alert-left{display:flex;align-items:center;gap:10px;}
-.crm-alert-icon{font-size:1.05rem;}
-.crm-alert-text{font-size:0.84rem;color:var(--text);}
-.crm-alert-text b{color:var(--accent3);}
-.crm-alert-sub{font-size:0.71rem;color:var(--muted);margin-top:2px;}
-.crm-alert-ack-btn{font-size:0.72rem;font-weight:600;padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .15s;}
-.crm-alert-ack-btn:hover{background:var(--accent3);color:#fff;border-color:var(--accent3);}
-/* Cards */
-#panel-crm .crm-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;padding:0 24px;}
-#panel-crm .crm-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
-#panel-crm .crm-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
-#panel-crm .crm-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.15);}
-#panel-crm .crm-card.no-click{cursor:default;}
-#panel-crm .crm-card.no-click:hover{transform:none;box-shadow:none;}
-#panel-crm .crm-card.active-filter{border-color:var(--accent);box-shadow:0 0 0 2px rgba(10,123,196,0.2);}
-#panel-crm .crm-c-customers::before{background:#7c3aed;}
-#panel-crm .crm-c-total::before{background:#0a7bc4;}
-#panel-crm .crm-c-active::before{background:linear-gradient(90deg,#10b981,#f59e0b,#64748b);}
-#panel-crm .crm-c-run::before{background:#10b981;}
-#panel-crm .crm-c-idle::before{background:#f59e0b;}
-#panel-crm .crm-c-stop::before{background:#64748b;}
-#panel-crm .crm-c-inac::before{background:#ef4444;}
-#panel-crm .crm-card-num{font-size:2rem;font-weight:800;line-height:1;margin:8px 0 4px;font-family:'DM Sans',sans-serif;}
-#panel-crm .crm-c-customers .crm-card-num{color:#7c3aed;}
-#panel-crm .crm-c-total    .crm-card-num{color:#0a7bc4;}
-#panel-crm .crm-c-active   .crm-card-num{color:#10b981;}
-#panel-crm .crm-c-run      .crm-card-num{color:#10b981;}
-#panel-crm .crm-c-idle     .crm-card-num{color:#f59e0b;}
-#panel-crm .crm-c-stop     .crm-card-num{color:#64748b;}
-#panel-crm .crm-c-inac     .crm-card-num{color:#ef4444;}
-#panel-crm .crm-card-lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
-#panel-crm .crm-card-sub{font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);}
-#panel-crm .crm-active-pills{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
-#panel-crm .crm-ap{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:600;}
-#panel-crm .crm-ap-run{background:rgba(16,185,129,0.12);color:#10b981;}
-#panel-crm .crm-ap-idle{background:rgba(245,158,11,0.12);color:#d97706;}
-#panel-crm .crm-ap-stop{background:rgba(100,116,139,0.12);color:#64748b;}
-/* Selected company panel */
-#panel-crm .crm-selected-bar{display:none;margin:0 24px 12px;padding:12px 16px;background:var(--surface2);border:1.5px solid var(--accent);border-radius:12px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-#panel-crm .crm-selected-bar.show{display:flex;}
-#panel-crm .crm-sel-name{font-weight:700;color:var(--text);font-size:14px;}
-#panel-crm .crm-sel-stats{display:flex;gap:10px;flex-wrap:wrap;}
-#panel-crm .crm-sel-stat{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;}
-#panel-crm .crm-sel-clear{padding:5px 12px;border:1.5px solid var(--border);background:var(--surface);border-radius:8px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;}
-#panel-crm .crm-sel-clear:hover{border-color:#ef4444;color:#ef4444;}
-/* Search */
-#panel-crm .crm-search-row{display:flex;gap:10px;padding:0 24px;flex-wrap:wrap;align-items:center;}
-#panel-crm .crm-search{flex:1;min-width:200px;padding:9px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--text);outline:none;transition:.2s;}
-#panel-crm .crm-search:focus{border-color:var(--accent);}
-#panel-crm .crm-count{font-size:13px;color:var(--muted);}
-#panel-crm .crm-count-badge{background:var(--accent);color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:700;margin-left:4px;}
-/* Table */
-#panel-crm .crm-tbl-wrap{padding:0 24px 24px;overflow-x:auto;}
-#panel-crm table{width:100%;border-collapse:collapse;font-size:13px;}
-#panel-crm thead th{background:var(--surface2);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);white-space:nowrap;border-bottom:2px solid var(--border);}
-#panel-crm tbody td{padding:11px 14px;border-bottom:1px solid var(--border);white-space:nowrap;transition:background .1s;}
-#panel-crm tbody tr{cursor:pointer;transition:background .12s;}
-#panel-crm tbody tr:hover td{background:rgba(59,130,246,0.06);}
-#panel-crm tbody tr.crm-row-selected td{background:rgba(59,130,246,0.1);border-left:3px solid var(--accent);}
-#panel-crm tbody tr:last-child td{border-bottom:none;}
-#panel-crm .crm-tier-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
-#panel-crm .tb-plat{background:rgba(99,102,241,0.12);color:#6366f1;}
-#panel-crm .tb-gold{background:rgba(245,158,11,0.12);color:#b45309;}
-#panel-crm .tb-silv{background:var(--surface2);color:var(--muted);}
-#panel-crm .crm-bar{display:flex;height:4px;border-radius:4px;overflow:hidden;width:80px;gap:1px;margin-top:4px;}
-#panel-crm .crm-bar-run{background:#10b981;}
-#panel-crm .crm-bar-idle{background:#f59e0b;}
-#panel-crm .crm-bar-stop{background:#64748b;}
-#panel-crm .crm-bar-inac{background:#ef4444;}
-#panel-crm .crm-emp-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--surface2);border-radius:20px;font-size:12px;color:var(--muted);}
-#panel-crm .crm-emp-dot{width:6px;height:6px;border-radius:50%;}
-/* Clickable num cells */
-#panel-crm .crm-num-clickable{border-radius:6px;padding:2px 6px;transition:background .15s;cursor:pointer;}
-#panel-crm .crm-num-clickable:hover{background:rgba(59,130,246,0.12);}
-#panel-crm .crm-num-clickable.highlighted{background:rgba(59,130,246,0.18);outline:2px solid var(--accent);}
-@media(max-width:768px){
-  #panel-crm .crm-topbar{padding:14px 16px 0;}
-  #panel-crm .crm-cards{padding:0 16px;grid-template-columns:repeat(2,1fr);}
-  #panel-crm .crm-search-row,#panel-crm .crm-tier-row,#panel-crm .crm-tbl-wrap,#panel-crm .crm-selected-bar{padding-left:16px;padding-right:16px;}
-  #panel-crm .crm-selected-bar{margin-left:16px;margin-right:16px;}
-}
-</style>
 
   <div class="db-header" style="padding:20px 24px 16px;">
     <div>
@@ -4987,50 +4865,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <!-- CUSTOMER MAPPING PANEL                                      -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div class="dashboard-panel" id="panel-mapping">
-<style>
-#panel-mapping{padding:0;}
-#panel-mapping .mp-header{padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
-#panel-mapping .mp-title{font-size:1.3rem;font-weight:700;color:var(--text);}
-#panel-mapping .mp-progress{font-size:0.82rem;color:var(--muted);background:var(--surface2);padding:4px 12px;border-radius:20px;border:1px solid var(--border);}
-#panel-mapping .mp-filters{display:flex;gap:8px;padding:14px 24px 0;flex-wrap:wrap;align-items:center;}
-#panel-mapping .mp-region-btn{padding:6px 14px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;}
-#panel-mapping .mp-region-btn:hover{border-color:#10b981;color:#10b981;}
-#panel-mapping .mp-region-btn.active{background:#10b981;color:#fff;border-color:#10b981;}
-#panel-mapping .mp-status-btn{padding:6px 14px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;}
-#panel-mapping .mp-status-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-#panel-mapping .mp-search{flex:1;min-width:180px;padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;}
-#panel-mapping .mp-search:focus{outline:none;border-color:#10b981;}
-#panel-mapping .mp-table-wrap{padding:14px 24px 24px;overflow-x:auto;}
-#panel-mapping table.mp-tbl{width:100%;border-collapse:collapse;font-size:13px;}
-#panel-mapping table.mp-tbl th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap;}
-#panel-mapping table.mp-tbl td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
-#panel-mapping table.mp-tbl tr:hover td{background:var(--surface2);}
-#panel-mapping .mp-tier-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;}
-#panel-mapping .mp-tier-plat{background:rgba(99,102,241,0.15);color:#6366f1;}
-#panel-mapping .mp-tier-gold{background:rgba(245,158,11,0.15);color:#d97706;}
-#panel-mapping .mp-tier-silv{background:rgba(107,114,128,0.15);color:#6b7280;}
-#panel-mapping .mp-mapped-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;}
-#panel-mapping .mp-mapped-yes{background:rgba(16,185,129,0.15);color:#10b981;}
-#panel-mapping .mp-mapped-no{background:rgba(239,68,68,0.12);color:#ef4444;}
-#panel-mapping .mp-inline-search{width:100%;padding:5px 8px;border:none;background:transparent;color:var(--text);font-size:12px;box-sizing:border-box;}
-#panel-mapping .mp-inline-search:focus{outline:none;}
-#panel-mapping .mp-kpi-row{display:flex;gap:16px;padding:16px 24px 0;flex-wrap:wrap;}
-#panel-mapping .mp-kpi{flex:1;min-width:140px;padding:16px 20px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:all .18s;position:relative;overflow:hidden;}
-#panel-mapping .mp-kpi:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.1);}
-#panel-mapping .mp-kpi.active{border-width:2px;}
-#panel-mapping .mp-kpi-label{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
-#panel-mapping .mp-kpi-val{font-size:1.8rem;font-weight:800;line-height:1;}
-#panel-mapping .mp-kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;}
-#panel-mapping .mp-kpi-bar{position:absolute;bottom:0;left:0;height:3px;border-radius:0 0 12px 12px;}
-#panel-mapping .mp-search-wrap{position:relative;display:flex;align-items:center;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:0 12px;gap:8px;min-width:220px;}
-#panel-mapping .mp-search-wrap:focus-within{border-color:#10b981;}
-#panel-mapping .mp-search-wrap input{flex:1;padding:8px 0;border:none;background:transparent;color:var(--text);font-size:13px;}
-#panel-mapping .mp-search-wrap input:focus{outline:none;}
-#panel-mapping table.mp-tbl tr:nth-child(even) td{background:rgba(0,0,0,0.02);}
-#panel-mapping table.mp-tbl tr:hover td{background:rgba(99,102,241,0.06)!important;}
-#panel-mapping .mp-veh-badge{display:inline-flex;align-items:center;justify-content:center;min-width:36px;padding:3px 8px;border-radius:20px;font-size:12px;font-weight:700;background:rgba(16,185,129,0.12);color:#10b981;}
-#panel-mapping .mp-veh-zero{background:rgba(107,114,128,0.1);color:var(--muted);}
-</style>
 
 <div class="mp-header">
   <div>

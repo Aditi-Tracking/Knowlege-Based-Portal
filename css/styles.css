@@ -1230,7 +1230,7 @@
   padding:60px 40px;
   position:relative;
 }
-@media(min-width:900px){.lp-left{display:none;}}
+@media(min-width:900px){.lp-left{display:flex;}}
 
 .lp-brand-tag{
   background:rgba(240,165,0,0.1);
@@ -1272,7 +1272,7 @@
   background:linear-gradient(to bottom, transparent 5%, rgba(240,165,0,0.15) 30%, rgba(240,165,0,0.15) 70%, transparent 95%);
   flex-shrink:0;display:none;
 }
-@media(min-width:900px){.lp-divider{display:none;}}
+@media(min-width:900px){.lp-divider{display:flex;}}
 
 .lp-right{
   flex:1;display:flex;align-items:center;justify-content:center;
@@ -1655,6 +1655,12 @@ body.light-mode .lp-tagline span{background:linear-gradient(135deg,#d48b00,#f0a5
 #panel-mapping table.mp-tbl tr:hover td{background:rgba(99,102,241,0.06)!important;}
 #panel-mapping .mp-veh-badge{display:inline-flex;align-items:center;justify-content:center;min-width:36px;padding:3px 8px;border-radius:20px;font-size:12px;font-weight:700;background:rgba(16,185,129,0.12);color:#10b981;}
 #panel-mapping .mp-veh-zero{background:rgba(107,114,128,0.1);color:var(--muted);}
+@media(max-width:768px){
+  #panel-mapping .mp-header{padding:14px 16px 0;}
+  #panel-mapping .mp-kpi{flex:0 0 calc(50% - 8px);min-width:0;}
+  #panel-mapping .mp-kpi-row,#panel-mapping .mp-filters,#panel-mapping .mp-table-wrap{padding-left:16px;padding-right:16px;}
+  #panel-mapping .mp-search-wrap{min-width:100% !important;}
+}
 
 
 /* ── CELEBRATION POPUP ANIMATIONS ── */
