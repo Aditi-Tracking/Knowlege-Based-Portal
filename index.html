@@ -2513,8 +2513,8 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <table class="fms-table" id="fmsPipelineTable">
           <thead>
             <tr>
-              <th style="width:100px;text-align:left;padding:0.5rem 0.75rem;">SO Number</th>
-              <th style="width:120px;text-align:left;padding:0.5rem 0.75rem;">Client</th>
+              <th style="width:110px;text-align:left;padding:0.5rem 0.75rem;">SO Number</th>
+              <th style="width:190px;text-align:left;padding:0.5rem 0.75rem;">Client</th>
               <th colspan="11" style="padding:0.5rem 0.75rem;">
                 <div style="display:flex;align-items:center;padding:0 0;">
                   <div style="flex:1;display:flex;justify-content:space-around;font-size:0.7rem;font-weight:700;">
@@ -2526,7 +2526,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
                   </div>
                 </div>
               </th>
-              <th style="width:85px;text-align:center;border-left:1px solid var(--border2);padding:0.5rem 0.5rem;">Action</th>
+              <th style="width:110px;text-align:center;border-left:1px solid var(--border2);padding:0.5rem 0.5rem;">Action</th>
             </tr>
           </thead>
           <tbody id="fmsTableBody">
@@ -2687,7 +2687,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.88rem;color:var(--text);padding:7px 14px;border-radius:8px;border:1px solid var(--border);flex:1;justify-content:center;" onclick="fmsSupportToggleCfg(true)">
           <input type="radio" name="fmsCfgRequired" value="yes" checked style="accent-color:#fb923c;"> ⚙️ Yes — Send for Configuration
         </label>
-        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.88rem;color:var(--text);padding:7px 14px;border-radius:8px;border:1px solid var(--border);flex:1;justify-content:center;" onclick="fmsSupportToggleCfg(false)">
+        <label id="fmsCfgNoOption" style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.88rem;color:var(--text);padding:7px 14px;border-radius:8px;border:1px solid var(--border);flex:1;justify-content:center;" onclick="fmsSupportToggleCfg(false)">
           <input type="radio" name="fmsCfgRequired" value="no" style="accent-color:#a855f7;"> 👷 No — Direct to Engineer
         </label>
       </div>
@@ -2921,6 +2921,62 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         💾 Update Payment
       </button>
       <button onclick="fmsCloseUpdatePayment()" style="padding:0.6rem 1rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FMS OVERLAY 8 — REASSIGN SUPPORT PERSON
+══════════════════════════════════════════════════════ -->
+<div class="fms-overlay-backdrop" id="fmsReassignOverlay">
+  <div class="fms-overlay-box" style="max-width:420px;">
+    <button onclick="fmsCloseReassignOverlay()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:#4e9af1;margin-bottom:0.9rem;">🔁 Reassign Order</div>
+    <div id="fmsReassignOrderInfo" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.9rem;margin-bottom:0.9rem;font-size:0.84rem;color:var(--text);line-height:1.8;"></div>
+
+    <div class="fms-form-group">
+      <label class="fms-form-label">Reassign To *</label>
+      <select id="fmsReassignTo" class="fms-form-input">
+        <option value="">Select support person...</option>
+      </select>
+    </div>
+    <div class="fms-form-group">
+      <label class="fms-form-label">Notes <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+      <textarea id="fmsReassignNotes" class="fms-form-input" rows="2" placeholder="Reason for reassignment..."></textarea>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+      <button id="fmsReassignSubmitBtn" onclick="fmsSubmitReassign()" style="flex:1;padding:0.6rem;border-radius:10px;border:none;background:#4e9af1;color:#000;font-weight:700;cursor:pointer;font-family:inherit;">
+        🔁 Reassign
+      </button>
+      <button onclick="fmsCloseReassignOverlay()" style="padding:0.6rem 1rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FMS OVERLAY 9 — COMPLETE CERTIFICATION (Anish — pure Esim/E-Sim & Vltd orders)
+══════════════════════════════════════════════════════ -->
+<div class="fms-overlay-backdrop" id="fmsCertificationOverlay">
+  <div class="fms-overlay-box" style="max-width:420px;">
+    <button onclick="fmsCloseCertificationOverlay()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:#00d4aa;margin-bottom:0.9rem;">📶 Complete Certification</div>
+    <div id="fmsCertificationOrderInfo" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.9rem;margin-bottom:0.9rem;font-size:0.84rem;color:var(--text);line-height:1.8;"></div>
+
+    <div class="fms-form-group">
+      <label class="fms-form-label">Certified Quantity * <span style="color:var(--muted);font-weight:400;">(max <span id="fmsCertMax">0</span>)</span></label>
+      <input type="number" id="fmsCertifiedQty" class="fms-form-input" placeholder="0" min="1">
+    </div>
+    <div class="fms-form-group">
+      <label class="fms-form-label">Notes <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+      <textarea id="fmsCertNotes" class="fms-form-input" rows="2" placeholder="Any remarks..."></textarea>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+      <button id="fmsCertificationSubmitBtn" onclick="fmsSubmitCertification()" style="flex:1;padding:0.6rem;border-radius:10px;border:none;background:#00d4aa;color:#000;font-weight:700;cursor:pointer;font-family:inherit;">
+        🎉 Complete Certification
+      </button>
+      <button onclick="fmsCloseCertificationOverlay()" style="padding:0.6rem 1rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">Cancel</button>
     </div>
   </div>
 </div>

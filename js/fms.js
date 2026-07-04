@@ -23,6 +23,7 @@ let _fmsEmpMap = { 'outsource':'Outsource', 'self_installed':'Self Installed by 
 const FMS_ANISH_EMAIL = 'support_1@adititracking.com';
 const FMS_KUSH_EMAIL  = 'supportgoa1@adititracking.com';
 const FMS_CONFIG_EMAILS = [FMS_ANISH_EMAIL, FMS_KUSH_EMAIL];
+const FMS_VINAYAK_EMAIL = 'support_2@adititracking.com';
 
 const _fmsOrigSwitchDB = typeof switchDB === 'function' ? switchDB : null;
 switchDB = function(id){
@@ -133,7 +134,6 @@ async function fmsLoadOrders(){
       }
     }
 
-    fmsUpdateKPIs();
     fmsApplyFilters();
   } catch(e){
     console.error('FMS load error:', e);
@@ -147,7 +147,7 @@ function fmsUpdateKPIs(){
   let totalPendingAmt = 0;
   let pendingAmtOrders = 0;
 
-  _fmsOrders.forEach(o => {
+  _fmsFiltered.forEach(o => {
     counts.total++;
     if(counts[o.status] !== undefined) counts[o.status]++;
 
@@ -177,7 +177,7 @@ function fmsUpdateKPIs(){
   document.getElementById('fmsKpiPendingPaymentCount').textContent = `${pendingAmtOrders} order${pendingAmtOrders!==1?'s':''}`;
 
   // Total Amount KPI
-  const totalAmt = _fmsOrders.reduce((s,o) => s+(parseFloat(o.order_amount)||0), 0);
+  const totalAmt = _fmsFiltered.reduce((s,o) => s+(parseFloat(o.order_amount)||0), 0);
   document.getElementById('fmsKpiTotalAmount').textContent = fmt(totalAmt);
 }
 
@@ -216,6 +216,7 @@ function fmsApplyFilters(){
 
   document.getElementById('fmsTableCount').textContent = `${_fmsFiltered.length} order${_fmsFiltered.length!==1?'s':''}`;
   _fmsPage = 1;
+  fmsUpdateKPIs();
   fmsRenderTable();
 }
 
@@ -262,6 +263,74 @@ function fmsStepStateMap(status){
   return map[status] || ['active','pending','pending','pending','pending'];
 }
 
+// ── Certification products — Esim / E-Sim and Vltd Certificate (Anish-only workflow) ──
+const FMS_CERT_PRODUCT_NAMES = ['E-Sim and Vltd Certificate', 'Esim'];
+
+const FMS_CERT_ELIGIBLE_EMAILS = [
+  'support_1@adititracking.com',      // Anish
+  'supportgoa1@adititracking.com',    // Kush
+  'techsupport@adititracking.com',    // Sakshi
+  'supportahd1@adititracking.com',    // Kinchit
+  'supportahd2@adititracking.com',    // Bhumit
+  'support.south@adititracking.com',  // Ankush
+];
+
+// Live constraint: once a cert product is picked in ANY row, disable regular-product
+// options in every OTHER row (and vice versa) — enforced per-row so a row can still
+// freely switch between its own compatible category.
+function fmsProductSelectChanged(){
+  const selects = [...document.querySelectorAll('.fms-product-row .fms-product-select')];
+
+  selects.forEach(sel => {
+    const others = selects.filter(s => s !== sel);
+    const hasCertElsewhere    = others.some(s => s.value && FMS_CERT_PRODUCT_NAMES.includes(s.selectedOptions[0]?.text));
+    const hasRegularElsewhere = others.some(s => s.value && !FMS_CERT_PRODUCT_NAMES.includes(s.selectedOptions[0]?.text));
+
+    [...sel.options].forEach(opt => {
+      if(!opt.value) return; // leave the "Select product..." placeholder alone
+      const isCertOpt = FMS_CERT_PRODUCT_NAMES.includes(opt.text);
+      opt.disabled = isCertOpt ? hasRegularElsewhere : hasCertElsewhere;
+    });
+  });
+
+  fmsUpdateAssignSupportOptions(); // Part B — same change handler
+}
+
+function fmsIsCertOrder(order){
+  let items;
+  try{ items = JSON.parse(order.product_items || '[]'); } catch(e){ items = []; }
+  if(!items.length) return false;
+  return items.every(i => FMS_CERT_PRODUCT_NAMES.includes(i.product_name));
+}
+
+// Sum of quantities for products NOT in the certification list — the real
+// install/config target. For 'none'-type orders (no items or no cert products)
+// this equals order.quantity exactly, since every product row is non-cert.
+function fmsNonCertQuantity(order){
+  let items;
+  try{ items = JSON.parse(order.product_items || '[]'); } catch(e){ items = []; }
+  if(!items.length) return parseInt(order.quantity) || 0;
+  return items.filter(i => !FMS_CERT_PRODUCT_NAMES.includes(i.product_name)).reduce((s,i) => s + (i.quantity||0), 0);
+}
+
+// Sum of quantities for cert-only products — the certification target.
+function fmsCertQuantity(order){
+  let items;
+  try{ items = JSON.parse(order.product_items || '[]'); } catch(e){ items = []; }
+  if(!items.length) return 0;
+  return items.filter(i => FMS_CERT_PRODUCT_NAMES.includes(i.product_name)).reduce((s,i) => s + (i.quantity||0), 0);
+}
+
+// Cumulative certified_qty across ALL fms_certification rows for this order
+// (certification is additive/audit-trail — never overwritten, only inserted).
+async function fmsCertifiedSoFar(orderId){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fms_certification?order_id=eq.${orderId}&select=certified_qty`, { headers: SB_HDRS() });
+    const rows = await res.json();
+    return rows.reduce((s,r) => s + (parseInt(r.certified_qty)||0), 0);
+  } catch(e){ return 0; }
+}
+
 function fmsStepBadge(state){
   if(state==='done')   return `<span style="display:inline-block;padding:0px 6px;border-radius:20px;font-size:0.55rem;font-weight:700;background:#dcfce7;color:#16a34a;">Done</span>`;
   if(state==='active') return `<span style="display:inline-block;padding:0px 6px;border-radius:20px;font-size:0.55rem;font-weight:700;background:#fef9c3;color:#ca8a04;">Next</span>`;
@@ -274,7 +343,7 @@ function fmsBuildPipelineRow(o, states){
   //   Row 2 — circle + connecting line (the actual pipeline)
   //   Row 3 — Done/Next/Pend badge under each circle
   const n = FMS_STEPS.length;
-  const CIRCLE = 30; // px
+  const CIRCLE = 26; // px
 
   // Time-between-steps, same source as the detail view used to show
   const tatArr = [
@@ -299,7 +368,7 @@ function fmsBuildPipelineRow(o, states){
       circleBorder = step.color;
       circleOp     = '1';
       glow         = '';
-      checkmark    = `<div style="position:absolute;top:-2px;right:-2px;width:13px;height:13px;border-radius:50%;background:#22c55e;border:1.5px solid var(--surface);display:flex;align-items:center;justify-content:center;font-size:0.45rem;color:#fff;font-weight:900;">✓</div>`;
+      checkmark    = `<div style="position:absolute;top:-2px;right:-2px;width:11px;height:11px;border-radius:50%;background:#22c55e;border:1.5px solid var(--surface);display:flex;align-items:center;justify-content:center;font-size:0.42rem;color:#fff;font-weight:900;">✓</div>`;
     } else if(isActive){
       circleBg     = 'var(--surface)';
       circleBorder = step.color;
@@ -316,7 +385,7 @@ function fmsBuildPipelineRow(o, states){
 
     // Row 2 — circle (fixed width column, matches Row 1 & Row 3 circle columns)
     circleRow += `<div style="width:${CIRCLE}px;flex-shrink:0;display:flex;justify-content:center;">
-      <div style="position:relative;width:${CIRCLE}px;height:${CIRCLE}px;border-radius:50%;background:${circleBg};border:2px solid ${circleBorder};display:flex;align-items:center;justify-content:center;font-size:0.8rem;opacity:${circleOp};${glow}">
+      <div style="position:relative;width:${CIRCLE}px;height:${CIRCLE}px;border-radius:50%;background:${circleBg};border:2px solid ${circleBorder};display:flex;align-items:center;justify-content:center;font-size:0.75rem;opacity:${circleOp};${glow}">
         ${step.icon}${checkmark}
       </div>
     </div>`;
@@ -336,15 +405,15 @@ function fmsBuildPipelineRow(o, states){
         ? `<span style="font-size:0.6rem;font-weight:700;color:${isDone?step.color:'var(--muted)'};background:${isDone?step.color+'14':'rgba(255,255,255,0.04)'};border:1px solid ${isDone?step.color+'33':'var(--border2)'};border-radius:20px;padding:1px 7px;white-space:nowrap;">⏱ ${tatVal}</span>`
         : '';
 
-      tatRow += `<div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:16px;">${tatChip}</div>`;
-      circleRow += `<div style="flex:1;display:flex;align-items:center;">
+      tatRow += `<div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;min-height:16px;">${tatChip}</div>`;
+      circleRow += `<div style="flex:1;min-width:0;display:flex;align-items:center;">
         <div style="width:100%;height:2.5px;background:${lineColor};opacity:${lineOp};border-radius:2px;"></div>
       </div>`;
-      badgeRow += `<div style="flex:1;"></div>`;
+      badgeRow += `<div style="flex:1;min-width:0;"></div>`;
     }
   });
 
-  return [`<td colspan="11" style="padding:0.28rem 0.75rem;vertical-align:middle;">
+  return [`<td colspan="11" style="padding:0.18rem 0.75rem;vertical-align:middle;">
     <div style="display:flex;align-items:center;width:100%;margin-bottom:2px;">${tatRow}</div>
     <div style="display:flex;align-items:center;width:100%;">${circleRow}</div>
     <div style="display:flex;align-items:flex-start;width:100%;margin-top:3px;">${badgeRow}</div>
@@ -373,6 +442,7 @@ function fmsRenderTable(){
   const isOverride = p.fms_override==='true'||CURRENT_USER?.rawRole==='mis'||CURRENT_USER?.rawRole==='managing director';
   const isSupport  = p.fms_support==='true';
   const isConfig   = p.fms_config==='true'||FMS_CONFIG_EMAILS.includes(myEmail);
+  const isPC       = CURRENT_USER?.rawRole==='pc';
 
   tbody.innerHTML = page.map(o => {
     const locName  = o.location_type==='outside'?(o.location_manual||'Outside'):(_fmsLocations.find(l=>l.id===o.location_id)?.location_name||'—');
@@ -383,7 +453,11 @@ function fmsRenderTable(){
     // Action button
     let actionBtn = `<button onclick="fmsOpenTimeline(${o.id})" class="fms-action-btn info" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">👁 View</button>`;
     if(o.status==='pending_support'&&(isSupport&&myEmail===(o.assigned_to_support||'').toLowerCase()||isOverride)){
-      actionBtn=`<button onclick="fmsOpenSupportOverlay(${o.id})" class="fms-action-btn primary" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">➡️ Assign</button>`;
+      if(fmsIsCertOrder(o)){
+        actionBtn=`<button onclick="fmsOpenCertificationOverlay(${o.id})" class="fms-action-btn primary" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">📶 Certify</button>`;
+      } else {
+        actionBtn=`<button onclick="fmsOpenSupportOverlay(${o.id})" class="fms-action-btn primary" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">➡️ Assign</button>`;
+      }
     } else if(o.status==='pending_config'&&(isConfig&&FMS_CONFIG_EMAILS.includes(myEmail)||isOverride)){
       actionBtn=`<button onclick="fmsOpenConfigOverlay(${o.id})" class="fms-action-btn" style="background:#2563eb;color:#fff;font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">💾 Config</button>`;
     } else if(o.status==='pending_engineer'&&(isSupport&&myEmail===(o.assigned_to_support||'').toLowerCase()||isOverride)){
@@ -392,40 +466,24 @@ function fmsRenderTable(){
       actionBtn=`<button onclick="fmsOpenInstallUpdate(${o.id})" class="fms-action-btn success" style="font-size:0.75rem;padding:0.3rem 0.8rem;white-space:nowrap;">🔧 Update</button>`;
     }
 
-    // Edit + Delete for MIS/Owner
-    const editDeleteBtns = isOverride ? `
-      <div style="display:flex;gap:4px;margin-top:4px;">
-        <button onclick="event.stopPropagation();fmsEditOrder(${o.id})" style="flex:1;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.7rem;cursor:pointer;font-family:inherit;" title="Edit Order">✏️</button>
-        <button onclick="event.stopPropagation();fmsDeleteOrder(${o.id})" style="flex:1;padding:2px 6px;border-radius:6px;border:1px solid rgba(255,92,124,0.3);background:transparent;color:#ff5c7c;font-size:0.7rem;cursor:pointer;font-family:inherit;" title="Delete Order">🗑️</button>
-      </div>` : '';
-
-    // Update Payment button — CRM can update their own orders' payment
-    const canUpdatePayment = myEmail === (o.created_by||'').toLowerCase().trim();
-    const updatePaymentBtn = canUpdatePayment ? `
-      <div style="margin-top:4px;">
-        <button onclick="event.stopPropagation();fmsOpenUpdatePayment(${o.id})" style="width:100%;padding:2px 6px;border-radius:6px;border:1px solid rgba(0,212,170,0.35);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.7rem;cursor:pointer;font-family:inherit;" title="Update Payment">💰 Payment</button>
-      </div>` : '';
-
     return `<tr onclick="fmsOpenTimeline(${o.id})" style="cursor:pointer;">
-      <td style="padding:0.28rem 0.75rem;border-left:3px solid transparent;vertical-align:middle;">
+      <td style="padding:0.18rem 0.75rem;border-left:3px solid transparent;vertical-align:middle;">
         <div style="display:flex;align-items:center;gap:5px;">
           <span style="font-weight:700;color:var(--accent);font-size:0.82rem;">${o.so_number||'—'}</span>
           ${o.payment_proof_url ? fmsProofLinks(o.payment_proof_url, 'font-size:0.85rem;') : ''}
         </div>
         <div style="font-size:0.65rem;color:var(--muted);">${created} · <strong>${o.quantity||0}</strong> units</div>
       </td>
-      <td style="padding:0.28rem 0.75rem;vertical-align:middle;">
+      <td style="padding:0.18rem 0.75rem;vertical-align:middle;">
         <div style="display:flex;align-items:center;gap:5px;">
-          <span style="font-weight:600;font-size:0.82rem;color:var(--text);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.client_name||'—'}</span>
+          <span style="font-weight:600;font-size:0.82rem;color:var(--text);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.client_name||'—'}</span>
           ${o.client_type==='nbd'?`<span style="font-size:0.58rem;font-weight:700;background:rgba(240,165,0,0.15);color:#f0a500;border:1px solid rgba(240,165,0,0.3);border-radius:20px;padding:1px 5px;flex-shrink:0;">NBD</span>`:''}
         </div>
-        <div style="font-size:0.65rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:115px;">${locName} · ${fmsEmpName(o.assigned_to_support)}</div>
+        <div style="font-size:0.65rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:175px;">${locName} · ${fmsEmpName(o.assigned_to_support)}</div>
       </td>
       ${pipeline.join('')}
-      <td style="padding:0.28rem 0.5rem;text-align:center;vertical-align:middle;border-left:1px solid var(--border2);" onclick="event.stopPropagation()">
+      <td style="padding:0.18rem 0.5rem;text-align:center;vertical-align:middle;border-left:1px solid var(--border2);" onclick="event.stopPropagation()">
         ${actionBtn}
-        ${editDeleteBtns}
-        ${updatePaymentBtn}
       </td>
     </tr>`;
   }).join('');
@@ -498,14 +556,15 @@ function fmsAddProductRow(){
   row.className = 'fms-product-row';
   row.style.cssText = 'display:flex;gap:8px;align-items:center;';
   row.innerHTML = `
-    <select class="fms-form-input fms-product-select" style="flex:2;">
+    <select class="fms-form-input fms-product-select" style="flex:2;" onchange="fmsProductSelectChanged()">
       <option value="">Select product...</option>
       ${_fmsProducts.map(p => `<option value="${p.id}">${p.product_name}</option>`).join('')}
     </select>
     <input type="number" class="fms-form-input fms-product-qty" placeholder="Qty" min="1" style="flex:0.7;max-width:90px;" value="1">
-    <button type="button" onclick="this.closest('.fms-product-row').remove()" style="padding:0.55rem 0.7rem;border-radius:8px;border:1px solid rgba(255,92,124,0.4);background:rgba(255,92,124,0.1);color:#ff5c7c;cursor:pointer;font-size:0.9rem;flex-shrink:0;">✕</button>
+    <button type="button" onclick="this.closest('.fms-product-row').remove();fmsProductSelectChanged()" style="padding:0.55rem 0.7rem;border-radius:8px;border:1px solid rgba(255,92,124,0.4);background:rgba(255,92,124,0.1);color:#ff5c7c;cursor:pointer;font-size:0.9rem;flex-shrink:0;">✕</button>
   `;
   container.appendChild(row);
+  fmsProductSelectChanged(); // sync a freshly-added empty row against existing selections
 }
 
 function fmsGetProductItems(){
@@ -521,6 +580,7 @@ function fmsGetProductItems(){
 const FMS_DRAFT_KEY = 'fmsNewOrderDraft_v1';
 let _fmsDraftSaveTimer = null;
 let _fmsDraftListenersAttached = false;
+let _fmsSupportPersonsCache = []; // [{email,name}] — populated by fmsLoadSupportPersons, reused by fmsUpdateAssignSupportOptions
 
 function fmsSaveDraft(){
   try{
@@ -588,6 +648,7 @@ function fmsRestoreDraftIfAny(){
       });
     }
   }
+  fmsProductSelectChanged(); // sync dropdown constraints for the restored draft
   fmsToast('📝 Restored your unsaved draft from earlier');
 }
 
@@ -601,6 +662,18 @@ function fmsAttachDraftListeners(){
 }
 
 async function fmsOpenNewOrder(isEdit){
+  // Reset submit button + title to defaults first. fmsEditOrder() calls this function
+  // (with isEdit=true) then overrides these afterward for edit mode — without this reset,
+  // editing any order once would leave the New Order form permanently stuck showing
+  // "Update Order" and calling fmsUpdateOrder() instead of creating a new order.
+  const _submitBtn = document.querySelector('#fmsNewOrderOverlay button[onclick="fmsSubmitNewOrder()"]');
+  if(_submitBtn){
+    _submitBtn.onclick = fmsSubmitNewOrder;
+    _submitBtn.textContent = '📤 Submit Order';
+  }
+  const _titleEl = document.querySelector('#fmsNewOrderOverlay div[style*="Playfair"]');
+  if(_titleEl) _titleEl.innerHTML = '📋 New Installation Order';
+
   // Init product rows — start with 1 row
   const rowsContainer = document.getElementById('fmsProductRows');
   if(rowsContainer){
@@ -707,17 +780,38 @@ async function fmsLoadSupportPersons(selectId){
       { headers: SB_HDRS() }
     );
     const rows = await res.json();
+    _fmsSupportPersonsCache = rows.filter(r => r.Email_Id).map(r => ({ email: (r.Email_Id||'').toLowerCase().trim(), name: r.Employee_name || r.Email_Id }));
     const sel = document.getElementById(selectId);
     if(!sel) return;
     sel.innerHTML = '<option value="">Select support person...</option>';
-    rows.forEach(emp => {
-      if(!emp.Email_Id) return;
+    _fmsSupportPersonsCache.forEach(p => {
       const opt = document.createElement('option');
-      opt.value = (emp.Email_Id||'').toLowerCase().trim();
-      opt.textContent = emp.Employee_name || emp.Email_Id;
+      opt.value = p.email;
+      opt.textContent = p.name;
       sel.appendChild(opt);
     });
   } catch(e){ console.error('Load support persons error:', e); }
+}
+
+// Detects whether the New Order form's current product selection is cert-only.
+function fmsFormIsCertOnly(){
+  const items = fmsGetProductItems();
+  if(!items.length) return false;
+  return items.every(i => FMS_CERT_PRODUCT_NAMES.includes(i.product_name));
+}
+
+// Rebuilds #fmsAssignSupport from the cached full list, or the 6-person cert list
+// when the form's current products are cert-only. Purely client-side — no fetch.
+function fmsUpdateAssignSupportOptions(){
+  const sel = document.getElementById('fmsAssignSupport');
+  if(!sel) return;
+  const currentVal = sel.value;
+  const list = fmsFormIsCertOnly()
+    ? FMS_CERT_ELIGIBLE_EMAILS.map(email => ({ email, name: fmsEmpName(email) }))
+    : _fmsSupportPersonsCache;
+  sel.innerHTML = '<option value="">Select support person...</option>' +
+    list.map(p => `<option value="${p.email}">${p.name}</option>`).join('');
+  if(list.some(p => p.email === currentVal)) sel.value = currentVal;
 }
 
 async function fmsLoadEngineers(selectId){
@@ -738,6 +832,27 @@ async function fmsLoadEngineers(selectId){
       opt.textContent = r.Employee_name || r.Email_Id;
       sel.appendChild(opt);
     });
+    // Vinayak (Support dept) also does engineer work — add him manually without
+    // touching his department record. Skip if he's already in the Service Engineer
+    // list (e.g. if he's moved to that department later, avoiding a duplicate).
+    if(!rows.some(r => (r.Email_Id||'').toLowerCase().trim() === FMS_VINAYAK_EMAIL)){
+      let vinayakName = fmsEmpName(FMS_VINAYAK_EMAIL);
+      if(vinayakName === FMS_VINAYAK_EMAIL){
+        // _fmsEmpMap didn't have him for some reason — fetch his name once and cache it
+        try{
+          const vRes = await fetch(`${SUPABASE_URL}/rest/v1/Employee_details?Email_Id=eq.${encodeURIComponent(FMS_VINAYAK_EMAIL)}&select=Employee_name`, { headers: SB_HDRS() });
+          const vRows = await vRes.json();
+          if(vRows[0]?.Employee_name){
+            vinayakName = vRows[0].Employee_name;
+            _fmsEmpMap[FMS_VINAYAK_EMAIL] = vinayakName;
+          }
+        } catch(e){}
+      }
+      const optVinayak = document.createElement('option');
+      optVinayak.value = FMS_VINAYAK_EMAIL;
+      optVinayak.textContent = vinayakName;
+      sel.appendChild(optVinayak);
+    }
     // Extra non-employee options — Outsource / Self Installed by Client
     const optOutsource = document.createElement('option');
     optOutsource.value = 'outsource';
@@ -780,6 +895,9 @@ async function fmsSubmitNewOrder(){
   if(!soNumber){ fmsToast('❌ SO Number required'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
   if(!quantity || quantity < 1){ fmsToast('❌ Add at least one product with quantity'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
   if(!productItems.length){ fmsToast('❌ Add at least one product'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
+  const hasCertItem    = productItems.some(i => FMS_CERT_PRODUCT_NAMES.includes(i.product_name));
+  const hasRegularItem = productItems.some(i => !FMS_CERT_PRODUCT_NAMES.includes(i.product_name));
+  if(hasCertItem && hasRegularItem){ fmsToast('❌ Certificate and other products cannot be in the same order'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
   if(!_fmsSelectedLocation){ fmsToast('❌ Select a location'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
   if(_fmsSelectedLocation.id === 'other' && !locManual){ fmsToast('❌ Enter location name'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
   if(!assignTo){ fmsToast('❌ Assign to support person'); fmsBtnReset(_submitBtn); _fmsSubmitting=false; return; }
@@ -1078,11 +1196,162 @@ async function fmsOpenSupportOverlay(orderId){
   // Reset radio to "Yes - Config required"
   const radios = document.querySelectorAll('input[name="fmsCfgRequired"]');
   if(radios[0]) radios[0].checked = true;
+
+  // Pure certification orders must go through Anish — hide the "Direct to Engineer"
+  // bypass entirely so they can't skip certification (see fmsSupportSubmit's pure-cert branch)
+  const noOptionLabel = document.getElementById('fmsCfgNoOption');
+  const isPureCert = fmsIsCertOrder(o);
+  if(noOptionLabel) noOptionLabel.style.display = isPureCert ? 'none' : 'flex';
+  if(radios[1]) radios[1].disabled = isPureCert;
+
   document.getElementById('fmsSupportOverlay').classList.add('open');
 }
 
 function fmsCloseSupportOverlay(){
   document.getElementById('fmsSupportOverlay').classList.remove('open');
+}
+
+// ── REASSIGN SUPPORT PERSON ────────────────────────────────────────────────
+async function fmsOpenReassignOverlay(orderId){
+  _fmsCurrentOrder = _fmsOrders.find(o => o.id === orderId);
+  if(!_fmsCurrentOrder) return;
+  const o = _fmsCurrentOrder;
+
+  document.getElementById('fmsReassignOrderInfo').innerHTML = `
+    <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Client:</strong> ${o.client_name||'—'}</div>
+    <div><strong>Currently Assigned To:</strong> ${fmsEmpName(o.assigned_to_support)}</div>
+  `;
+
+  await fmsLoadSupportPersons('fmsReassignTo');
+  // Drop the currently-assigned person from the list — reassigning to yourself makes no sense
+  const sel = document.getElementById('fmsReassignTo');
+  if(sel){
+    const currentEmail = (o.assigned_to_support||'').toLowerCase().trim();
+    [...sel.options].forEach(opt => { if(opt.value === currentEmail) opt.remove(); });
+  }
+  document.getElementById('fmsReassignNotes').value = '';
+  document.getElementById('fmsReassignOverlay').classList.add('open');
+}
+
+function fmsCloseReassignOverlay(){
+  document.getElementById('fmsReassignOverlay').classList.remove('open');
+}
+
+async function fmsSubmitReassign(){
+  if(!_fmsCurrentOrder) return;
+  const btn = document.getElementById('fmsReassignSubmitBtn');
+  const newAssignee = document.getElementById('fmsReassignTo').value;
+  if(!newAssignee){ fmsToast('❌ Select a support person'); return; }
+
+  fmsBtnLoading(btn, '⏳ Reassigning...');
+  const notes   = document.getElementById('fmsReassignNotes').value.trim();
+  const myEmail = CURRENT_USER?.email || '';
+  const myName  = fmsEmpName(myEmail);
+  const now     = new Date().toISOString();
+  const order   = _fmsCurrentOrder;
+
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${order.id}`, {
+      method: 'PATCH',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({ assigned_to_support: newAssignee })
+    });
+
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_assignments`, {
+      method: 'POST',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({
+        order_id: order.id,
+        step: order.current_step || 1,
+        assigned_from: myEmail,
+        assigned_to: newAssignee,
+        notes: notes ? `Reassigned by ${myName}: ${notes}` : `Reassigned by ${myName}`,
+        assigned_at: now
+      })
+    });
+
+    fmsToast(`✅ Reassigned to ${fmsEmpName(newAssignee)}!`);
+    fmsBtnSuccess(btn, '✅ Done!', 'fmsReassignOverlay');
+    setTimeout(() => fmsLoadOrders(), 950);
+  } catch(e){
+    fmsBtnReset(btn);
+    fmsToast('❌ Error: ' + e.message);
+  }
+}
+
+// ── CERTIFICATION (Anish — pure Esim/E-Sim & Vltd Certificate orders) ──────
+async function fmsOpenCertificationOverlay(orderId){
+  _fmsCurrentOrder = _fmsOrders.find(o => o.id === orderId);
+  if(!_fmsCurrentOrder) return;
+  const o = _fmsCurrentOrder;
+  const target = fmsCertQuantity(o);
+  const certifiedSoFar = await fmsCertifiedSoFar(o.id);
+  const remaining = Math.max(target - certifiedSoFar, 0);
+
+  document.getElementById('fmsCertificationOrderInfo').innerHTML = `
+    <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Client:</strong> ${o.client_name||'—'}</div>
+    <div><strong>Products:</strong> ${fmsProductNames(o.product_ids, o.product_items)}</div>
+    <div><strong>Certified so far:</strong> <span style="color:#00d4aa;font-weight:700;">${certifiedSoFar} / ${target}</span></div>
+  `;
+  const qtyInput = document.getElementById('fmsCertifiedQty');
+  qtyInput.value = remaining;
+  qtyInput.max = remaining;
+  document.getElementById('fmsCertMax').textContent = remaining;
+  document.getElementById('fmsCertNotes').value = '';
+  document.getElementById('fmsCertificationOverlay').classList.add('open');
+}
+
+function fmsCloseCertificationOverlay(){
+  document.getElementById('fmsCertificationOverlay').classList.remove('open');
+}
+
+async function fmsSubmitCertification(){
+  if(!_fmsCurrentOrder) return;
+  const btn = document.getElementById('fmsCertificationSubmitBtn');
+  const certQty = parseInt(document.getElementById('fmsCertifiedQty').value) || 0;
+  if(!certQty || certQty < 1){ fmsToast('❌ Enter certified quantity'); return; }
+
+  fmsBtnLoading(btn, '⏳ Completing...');
+  const notes   = document.getElementById('fmsCertNotes').value.trim();
+  const myEmail = CURRENT_USER?.email || '';
+  const now     = new Date().toISOString();
+  const order   = _fmsCurrentOrder;
+
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/fms_certification`, {
+      method: 'POST',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({ order_id: order.id, certified_qty: certQty, certified_by: myEmail, notes: notes || null, certified_at: now })
+    });
+
+    const target = fmsCertQuantity(order);
+    const certifiedSoFar = await fmsCertifiedSoFar(order.id);
+
+    if(certifiedSoFar >= target){
+      await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${order.id}`, {
+        method: 'PATCH',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({ status: 'completed', current_step: 5, step5_completed_at: now })
+      });
+
+      await fetch(`${SUPABASE_URL}/rest/v1/fms_assignments`, {
+        method: 'POST',
+        headers: SB_HDRS_JSON(),
+        body: JSON.stringify({ order_id: order.id, step: 2, assigned_from: myEmail, assigned_to: myEmail, notes: 'Certification only — completed directly', assigned_at: now })
+      });
+
+      fmsToast('🎉 Certification completed — order closed!');
+      fmsBtnSuccess(btn, '🎉 Completed!', 'fmsCertificationOverlay');
+      setTimeout(() => fmsLoadOrders(), 950);
+    } else {
+      fmsToast(`✅ ${certifiedSoFar}/${target} certified so far — keep going`);
+      fmsBtnReset(btn);
+      fmsOpenCertificationOverlay(order.id);
+    }
+  } catch(e){
+    fmsBtnReset(btn);
+    fmsToast('❌ Error: ' + e.message);
+  }
 }
 
 
@@ -1174,6 +1443,15 @@ async function fmsSupportSubmit(){
     if(cfgRequired){
       // ── Send to selected config person (Anish or Kush) ──
       const configPersonEmail = document.getElementById('fmsSupportConfigPerson')?.value || FMS_ANISH_EMAIL;
+
+      // Pure certification order routed to Anish — skip normal config entirely
+      if(configPersonEmail === FMS_ANISH_EMAIL && fmsIsCertOrder(_fmsCurrentOrder)){
+        fmsBtnReset(btn);
+        fmsCloseSupportOverlay();
+        fmsOpenCertificationOverlay(_fmsCurrentOrder.id);
+        return;
+      }
+
       await fetch(`${SUPABASE_URL}/rest/v1/fms_orders?id=eq.${_fmsCurrentOrder.id}`, {
         method: 'PATCH',
         headers: SB_HDRS_JSON(),
@@ -1231,7 +1509,7 @@ async function fmsOpenConfigOverlay(orderId){
   _fmsCurrentOrder = _fmsOrders.find(o => o.id === orderId);
   if(!_fmsCurrentOrder) return;
   const o = _fmsCurrentOrder;
-  const totalQty = parseInt(o.quantity) || 0;
+  const totalQty = fmsNonCertQuantity(o); // device-config target — cert products excluded
 
   document.getElementById('fmsConfigOrderInfo').innerHTML = `
     <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Client:</strong> ${o.client_name||'—'}</div>
@@ -1271,7 +1549,7 @@ function fmsCloseConfigOverlay(){
 
 // Auto calculate not-configured + progress bar
 function fmsCfgAutoCalc(){
-  const total = parseInt(_fmsCurrentOrder?.quantity) || 0;
+  const total = _fmsCurrentOrder ? fmsNonCertQuantity(_fmsCurrentOrder) : 0;
   let cfgVal = parseInt(document.getElementById('fmsConfiguredQty').value) || 0;
 
   // Cap at total
@@ -1355,9 +1633,9 @@ async function fmsOpenEngineerOverlay(orderId){
   document.getElementById('fmsEngineerOrderInfo').innerHTML = `
     <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Client:</strong> ${o.client_name||'—'}</div>
     <div><strong>Products:</strong> ${fmsProductNames(o.product_ids, o.product_items)}</div>
-    <div><strong>Total Qty:</strong> <span style="color:#a855f7;font-weight:700;">${o.quantity}</span></div>
+    <div><strong>Total Qty:</strong> <span style="color:#a855f7;font-weight:700;">${fmsNonCertQuantity(o)}</span></div>
   `;
-  const engTotal = parseInt(o.quantity) || 0;
+  const engTotal = fmsNonCertQuantity(o);
   document.getElementById('fmsDevicesInstalled').value = '';
   document.getElementById('fmsDevicesInstalled').max = engTotal;
   document.getElementById('fmsDevicesPending').value = engTotal;
@@ -1374,18 +1652,18 @@ function fmsCloseEngineerOverlay(){
 async function fmsSubmitEngineerAssign(){
   if(!_fmsCurrentOrder) return;
   const engBtnStart = document.querySelector('#fmsEngineerOverlay button[onclick="fmsSubmitEngineerAssign()"]');
-  fmsBtnLoading(engBtnStart, '⏳ Assigning...');
   const engineerEmail = document.getElementById('fmsEngineerSelect').value;
+  if(!engineerEmail){ fmsToast('❌ Select an engineer'); return; }
+
+  fmsBtnLoading(engBtnStart, '⏳ Assigning...');
   const installed = parseInt(document.getElementById('fmsDevicesInstalled').value) || 0;
-  const totalQtyEng = parseInt(_fmsCurrentOrder?.quantity) || 0;
+  const totalQtyEng = fmsNonCertQuantity(_fmsCurrentOrder);
   const pending = totalQtyEng - installed;
   const notes         = document.getElementById('fmsInstallNotes').value.trim();
   const myEmail       = CURRENT_USER?.email || '';
   const now           = new Date().toISOString();
 
-  if(!engineerEmail){ fmsToast('❌ Select an engineer'); return; }
-
-  const isCompleted = installed >= (_fmsCurrentOrder.quantity || 0) && installed > 0;
+  const isCompleted = installed >= fmsNonCertQuantity(_fmsCurrentOrder) && installed > 0;
 
   try{
     // Insert installation record
@@ -1453,7 +1731,7 @@ async function fmsOpenInstallUpdate(orderId){
     document.getElementById('fmsUpdateNotes').value     = '';
   } catch(e){}
 
-  const totalQty = parseInt(o.quantity) || 0;
+  const totalQty = fmsNonCertQuantity(o);
   document.getElementById('fmsInstallUpdateInfo').innerHTML = `
     <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Client:</strong> ${o.client_name||'—'}</div>
     <div><strong>Total Qty Required:</strong> <span style="color:#06b6d4;font-weight:700;">${totalQty}</span></div>
@@ -1469,7 +1747,7 @@ async function fmsOpenInstallUpdate(orderId){
 }
 
 function fmsInstAutoCalc(){
-  const total = parseInt(_fmsCurrentOrder?.quantity) || 0;
+  const total = _fmsCurrentOrder ? fmsNonCertQuantity(_fmsCurrentOrder) : 0;
   let installed = parseInt(document.getElementById('fmsUpdateInstalled').value) || 0;
   if(installed > total){ installed = total; document.getElementById('fmsUpdateInstalled').value = total; }
   if(installed < 0){ installed = 0; document.getElementById('fmsUpdateInstalled').value = 0; }
@@ -1484,7 +1762,7 @@ function fmsInstAutoCalc(){
 }
 
 function fmsEngAutoCalc(){
-  const total = parseInt(_fmsCurrentOrder?.quantity) || 0;
+  const total = _fmsCurrentOrder ? fmsNonCertQuantity(_fmsCurrentOrder) : 0;
   let installed = parseInt(document.getElementById('fmsDevicesInstalled').value) || 0;
   if(installed > total){ installed = total; document.getElementById('fmsDevicesInstalled').value = total; }
   if(installed < 0){ installed = 0; document.getElementById('fmsDevicesInstalled').value = 0; }
@@ -1504,12 +1782,12 @@ async function fmsSubmitInstallUpdate(){
   const instBtnStart = document.querySelector('#fmsInstallUpdateOverlay button[onclick="fmsSubmitInstallUpdate()"]');
   fmsBtnLoading(instBtnStart, '⏳ Updating...');
   const installed = parseInt(document.getElementById('fmsUpdateInstalled').value) || 0;
-  const totalQtyInst = parseInt(_fmsCurrentOrder?.quantity) || 0;
+  const totalQtyInst = fmsNonCertQuantity(_fmsCurrentOrder);
   const pending = totalQtyInst - installed;
   const notes     = document.getElementById('fmsUpdateNotes').value.trim();
   const myEmail   = CURRENT_USER?.email || '';
   const now       = new Date().toISOString();
-  const isCompleted = installed >= (_fmsCurrentOrder.quantity || 0) && installed > 0;
+  const isCompleted = installed >= fmsNonCertQuantity(_fmsCurrentOrder) && installed > 0;
 
   try{
     // Update installation record
@@ -1560,37 +1838,50 @@ async function fmsOpenTimeline(orderId){
     📋 Order: <span style="color:var(--accent);">${o.so_number}</span> &nbsp; ${fmsStatusLabel(o.status)}
   `;
 
-  // Edit/Delete — MIS/Owner only
+  // Action buttons — Payment / Edit / Delete / Reassign, same permission rules as fmsRenderTable's old table-row buttons
   const tlActions = document.getElementById('fmsTimelineActions');
-  const _isMISOwner = CURRENT_USER?.rawRole==='mis' || CURRENT_USER?.rawRole==='managing director';
+  const _tlPerms = PERMISSIONS || {};
+  const _isOverride = _tlPerms.fms_override==='true' || CURRENT_USER?.rawRole==='mis' || CURRENT_USER?.rawRole==='managing director';
+  const _isPC = CURRENT_USER?.rawRole==='pc';
   const _myEmailLower = (CURRENT_USER?.email||'').toLowerCase().trim();
   const _isOrderCreator = _myEmailLower === (o.created_by||'').toLowerCase().trim();
+  const _isAssignedToMe = _myEmailLower === (o.assigned_to_support||'').toLowerCase().trim();
 
   if(tlActions){
     let btns = '';
     // Payment update — CRM/order creator can update
-    if(_isOrderCreator || _isMISOwner){
+    if(_isOrderCreator || _isOverride){
       btns += `<button onclick="fmsCloseTimeline();fmsOpenUpdatePayment(${orderId})" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">💰 Payment</button>`;
     }
     // Edit/Delete — MIS/Owner only
-    if(_isMISOwner){
+    if(_isOverride){
       btns += `<button onclick="fmsEditOrder(${orderId})" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">✏️ Edit</button>`;
       btns += `<button onclick="fmsDeleteOrder(${orderId})" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(255,92,124,0.4);background:rgba(255,92,124,0.08);color:#ff5c7c;font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">🗑️ Delete</button>`;
+    }
+    // Reassign — assigned support person, or MIS/PC/override, only while still unactioned
+    if((_isAssignedToMe || _isOverride || _isPC) && o.status === 'pending_support'){
+      btns += `<button onclick="fmsCloseTimeline();fmsOpenReassignOverlay(${orderId})" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(78,154,241,0.4);background:rgba(78,154,241,0.08);color:#4e9af1;font-size:0.82rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">🔁 Reassign</button>`;
     }
     tlActions.innerHTML = btns;
   }
 
   // Load data
-  const [assignRes, configRes, installRes, notesRes] = await Promise.all([
+  const [assignRes, configRes, installRes, notesRes, certRes] = await Promise.all([
     fetch(`${SUPABASE_URL}/rest/v1/fms_assignments?order_id=eq.${orderId}&order=assigned_at`, { headers: SB_HDRS() }),
     fetch(`${SUPABASE_URL}/rest/v1/fms_configuration?order_id=eq.${orderId}&order=configured_at.desc&limit=1`, { headers: SB_HDRS() }),
     fetch(`${SUPABASE_URL}/rest/v1/fms_installation?order_id=eq.${orderId}&order=created_at.desc&limit=1`, { headers: SB_HDRS() }),
     fetch(`${SUPABASE_URL}/rest/v1/fms_order_notes?order_id=eq.${orderId}&order=created_at.asc`, { headers: SB_HDRS() }).catch(()=>null),
+    fetch(`${SUPABASE_URL}/rest/v1/fms_certification?order_id=eq.${orderId}&order=certified_at.desc`, { headers: SB_HDRS() }).catch(()=>null),
   ]);
   const assignments = await assignRes.json();
   const config  = (await configRes.json())[0] || null;
   const install = (await installRes.json())[0] || null;
   const orderNotes = notesRes && notesRes.ok ? await notesRes.json() : [];
+  const certRows = certRes && certRes.ok ? await certRes.json() : [];
+  const cert = certRows[0] || null;
+  const certifiedSoFar = certRows.reduce((s,r) => s + (parseInt(r.certified_qty)||0), 0);
+  const certTarget = fmsCertQuantity(o);
+  const isCertOrder = fmsIsCertOrder(o);
 
   // ── Notes access — default: anyone involved in THIS order (creator, assigned support,
   //    config person, engineer) can add a note; they can delete only their OWN notes.
@@ -1650,6 +1941,20 @@ async function fmsOpenTimeline(orderId){
       info: o.status==='completed' ? '🎉 Order Completed' : '⏳ Pending'
     },
   ];
+
+  // Pure certification orders never really go through Config/Installation —
+  // repurpose the Configuration tile to show certification status instead,
+  // and relabel Installation so it doesn't misleadingly show blank/pending info.
+  if(isCertOrder){
+    stepDefs[2] = {
+      icon:'📶', label:'Certification', color:'#00d4aa',
+      state: o.status==='completed' ? 'done' : (step>=2 ? 'active' : 'pending'),
+      tat: null,
+      time: fmtDt(cert?.certified_at),
+      info: certTarget > 0 ? `✓ ${certifiedSoFar}/${certTarget} certified${cert ? ` by ${fmsEmpName(cert.certified_by)}` : ''}` : '⏳ Pending'
+    };
+    stepDefs[3] = { ...stepDefs[3], info: 'N/A — Certification only' };
+  }
 
   // ── HORIZONTAL PIPELINE with TAT on line ──
   let pipeHtml = '<div style="display:flex;align-items:flex-start;width:100%;padding:0.5rem 0;">';
@@ -1883,6 +2188,7 @@ async function fmsEditOrder(orderId){
         });
       } catch(e){}
     }
+    fmsProductSelectChanged(); // sync dropdown constraints for the order being edited
 
     // Location
     const locSel = document.getElementById('fmsLocationSelect');
@@ -1933,6 +2239,9 @@ async function fmsUpdateOrder(orderId){
 
   if(!soNumber){ fmsToast('❌ SO Number required'); fmsBtnReset(_submitBtn); return; }
   if(!productItems.length){ fmsToast('❌ Add at least one product'); fmsBtnReset(_submitBtn); return; }
+  const hasCertItem    = productItems.some(i => FMS_CERT_PRODUCT_NAMES.includes(i.product_name));
+  const hasRegularItem = productItems.some(i => !FMS_CERT_PRODUCT_NAMES.includes(i.product_name));
+  if(hasCertItem && hasRegularItem){ fmsToast('❌ Certificate and other products cannot be in the same order'); fmsBtnReset(_submitBtn); return; }
   if(!_fmsSelectedLocation){ fmsToast('❌ Select a location'); fmsBtnReset(_submitBtn); return; }
   if(_fmsSelectedLocation.id === 'other' && !locManual){ fmsToast('❌ Enter location name'); fmsBtnReset(_submitBtn); return; }
 
@@ -2114,7 +2423,7 @@ async function fmsSubmitUpdatePayment(){
 }
 
 // Close overlays on backdrop click
-['fmsNewOrderOverlay','fmsSupportOverlay','fmsConfigOverlay','fmsEngineerOverlay','fmsInstallUpdateOverlay','fmsTimelineOverlay','fmsUpdatePaymentOverlay'].forEach(id => {
+['fmsNewOrderOverlay','fmsSupportOverlay','fmsConfigOverlay','fmsEngineerOverlay','fmsInstallUpdateOverlay','fmsTimelineOverlay','fmsUpdatePaymentOverlay','fmsReassignOverlay','fmsCertificationOverlay'].forEach(id => {
   const el = document.getElementById(id);
   if(el) el.addEventListener('click', function(e){ if(e.target === this) this.classList.remove('open'); });
 });
