@@ -820,10 +820,7 @@ function openFileViewer(url, title){
 
     // Mobile/PWA detect: Android Chrome iframe mein PDF "Open" button + pencil aata hai
     // Fix: mobile par seedha Google Drive preview new tab mein kholo
-    var isIPad = /iPad/i.test(navigator.userAgent)
-             || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    var isPhone = /Android|iPhone|iPod|Mobile/i.test(navigator.userAgent) && !isIPad;
-    var isMobile = isPhone;
+    var isMobile = isMobileDevice();
 
     if(isMobile){
       // Modal band karo aur Google Drive preview seedha new tab mein kholo

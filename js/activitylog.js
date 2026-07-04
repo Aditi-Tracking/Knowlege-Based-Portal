@@ -102,14 +102,13 @@ let _actVideoEl       = null; // currently tracked <video> element
 async function logActivity(data) {
   try {
     if (typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return;
-    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
     const fullPayload = {
       emp_id:                  _actEmpId || undefined,               // numeric FK (int)
       employee_email:          CURRENT_USER.email || null,           // new email column
       event_type:              data.event_type              || 'unknown',
       event_detail:            data.event_detail            || '',
       session_id:              _ACT_SESSION_ID,
-      device:                  isMobile ? 'mobile' : 'desktop',
+      device:                  (isMobileDevice() || isTabletDevice()) ? 'mobile' : 'desktop',
       page_name:               data.page_name               || _actPageName || '',
       card_name:               data.card_name               || null,
       duration_seconds:        data.duration_seconds        ?? null,

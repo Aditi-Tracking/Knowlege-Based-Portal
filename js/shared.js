@@ -144,6 +144,60 @@ function _isMIS() {
   return PERMISSIONS.can_upload_files === 'true';
 }
 
+// ============================================================
+// SCROLL FIX — MacBook / Desktop scroll restore safety net
+// Agar kisi modal ke baad body scroll band reh jaye toh yeh
+// automatically restore kar deta hai.
+// ============================================================
+(function() {
+  // Observe all fixed/overlay modals — jab bhi koi hide ho, scroll restore karo
+  const observer = new MutationObserver(function(mutations) {
+    // Check karo koi bhi visible modal hai ya nahi
+    const allModals = document.querySelectorAll(
+      '[id$="Modal"],[id$="Overlay"],[id$="modal"],[id$="overlay"],[id$="Panel"]'
+    );
+    let anyVisible = false;
+    allModals.forEach(function(m) {
+      const style = window.getComputedStyle(m);
+      if (style.display !== 'none' && style.visibility !== 'hidden') {
+        const pos = style.position;
+        if (pos === 'fixed' || pos === 'absolute') {
+          anyVisible = true;
+        }
+      }
+    });
+    if (!anyVisible) {
+      document.body.style.overflow = '';
+    }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
+
+  // ESC key se bhi scroll restore ho
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      setTimeout(function() {
+        const anyFixed = Array.from(document.querySelectorAll('*')).some(function(el) {
+          const s = el.style;
+          return s.position === 'fixed' && s.display === 'flex' && el.style.zIndex >= 999;
+        });
+        if (!anyFixed) {
+          document.body.style.overflow = '';
+        }
+      }, 150);
+    }
+  });
+
+  // Page switch (nav item click) pe bhi scroll restore karo
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.nav-item') || e.target.closest('.mob-nav-item')) {
+      setTimeout(function() {
+        document.body.style.overflow = '';
+      }, 100);
+    }
+  });
+})();
+
 // ── Card descriptions — naam se description milta hai ────────────────────
 const CN_CARD_DESCRIPTIONS = {
   // ── HR ──
