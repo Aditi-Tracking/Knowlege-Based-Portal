@@ -782,10 +782,18 @@ function fmtDateTime(val){
   }catch(e){ return String(val); }
 }
 
+// ── Delete-Tasks access — checkboxes/Select-All must stay hidden unless granted ──
+function tCanDeleteTasks(){
+  return !!(PERMISSIONS && PERMISSIONS.can_delete_tasks === 'true');
+}
+
 function tRenderTable(){
   const start=(tPage-1)*T_PER_PAGE;
   const pg=tFiltered.slice(start,start+T_PER_PAGE);
   document.getElementById('tTblCnt').textContent=tFiltered.length+' tasks';
+  const _canDelete = tCanDeleteTasks();
+  const _selectAllEl = document.getElementById('tSelectAll');
+  if(_selectAllEl) _selectAllEl.style.display = _canDelete ? '' : 'none';
   // Supabase version: Google Form URLs removed — inline remarks input se direct DB update
   const buildPrefillUrl = function(r){ return null; };
   document.getElementById('tTblBody').innerHTML=pg.map((r,i)=>{
@@ -869,7 +877,7 @@ function tRenderTable(){
         }
       </div>`;
     return `<tr>
-      <td style="padding:0;width:30px;text-align:center;"><input type="checkbox" class="t-row-cb" data-id="${r['_id']}" onchange="tOnCheckChange()" style="width:13px;height:13px;cursor:pointer;margin:0;"></td>
+      <td style="padding:0;width:30px;text-align:center;">${_canDelete ? `<input type="checkbox" class="t-row-cb" data-id="${r['_id']}" onchange="tOnCheckChange()" style="width:13px;height:13px;cursor:pointer;margin:0;">` : ''}</td>
       <td style="padding:8px 4px;"><div style="font-weight:600;font-size:0.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Name']||'')}">${r['Name']||'—'}</div></td>
       <td style="padding:8px 8px;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Task']||'').replace(/"/g,'')}${_needsAttach?' (Attachment Mandatory)':''}">${r['Task']||'—'}${_needsAttach?'<span title="Attachment Mandatory" style="color:#ff5c7c;font-weight:900;margin-left:3px;">*</span>':''}</td>
       <td style="padding:9px 6px;font-size:0.82rem;color:${isOngoing?'#00d4ff':'var(--muted)'}">
