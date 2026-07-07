@@ -4081,13 +4081,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <select class="filter-select" id="tFDept" onchange="tApply()"><option value="">All Departments</option></select>
       <select class="filter-select" id="tFPerson" onchange="tApply()"><option value="">All People</option></select>
       <select class="filter-select" id="tFFreq" onchange="tApply()"><option value="">All Frequency</option></select>
-      <select class="filter-select" id="tFLocation" onchange="tApply()" style="display:none">
-        <option value="">All Locations</option>
-        <option value="Mumbai">🏙️ Mumbai (HO)</option>
-        <option value="Gujarat">🏭 Gujarat</option>
-        <option value="Goa">🌴 Goa</option>
-        <option value="Bangalore">🏢 Bangalore</option>
-      </select>
+      <select class="filter-select" id="tFLocation" onchange="tApply()" style="display:none"><option value="">All Locations</option></select>
       <select class="filter-select" id="tFStatus" onchange="tApply()">
         <option value="">All Status</option>
         <option value="done">✅ Done</option>

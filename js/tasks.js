@@ -653,12 +653,30 @@ function tPopulateFilters(){
   const depts=[...new Set(tAllData.map(r=>r['Department']).filter(Boolean))].sort();
   const persons=[...new Set(tAllData.map(r=>r['Name']).filter(Boolean))].sort();
   const freqs=[...new Set(tAllData.map(r=>String(r['Freq']||'').trim()).filter(Boolean))].sort();
+  const locations=[...new Set(tAllData.map(r=>String(r['_location']||'').trim()).filter(Boolean))].sort();
   document.getElementById('tFDept').innerHTML='<option value="">All Departments</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
   document.getElementById('tFPerson').innerHTML='<option value="">All People</option>'+persons.map(p=>`<option value="${p}">${p}</option>`).join('');
   document.getElementById('tFFreq').innerHTML='<option value="">All Frequency</option>'+freqs.map(f=>`<option value="${f}">${f}</option>`).join('');
-  // Show location filter only for Managing Director/mis/pc
+  // Show location filter for Managing Director(owner)/MIS/PC/Process Coordinator.
+  // 'pc' and 'Process Coordinator' are two distinct role values in the data — NOT
+  // interchangeable — so both are checked independently. rawRole is normalized to
+  // lowercase+trim here (matching this file's own _canUndoTask/tCanViewUploads
+  // pattern) since 'Process Coordinator' may be stored with different casing/spacing
+  // than the exact-case comparisons the _isPrivilegedDate check below still uses.
   const locEl=document.getElementById('tFLocation');
-  if(locEl && CURRENT_USER && CURRENT_USER.role==='owner'){
+  if(locEl){
+    const _prevLoc = locEl.value;
+    locEl.innerHTML='<option value="">All Locations</option>'+locations.map(l=>`<option value="${l}">${l}</option>`).join('');
+    if(locations.includes(_prevLoc)) locEl.value=_prevLoc;
+  }
+  const _locRawRole = String((CURRENT_USER && CURRENT_USER.rawRole) || '').toLowerCase().trim();
+  const _canSeeLocation = CURRENT_USER && (
+    CURRENT_USER.role === 'owner' ||
+    _locRawRole === 'mis' ||
+    _locRawRole === 'pc' ||
+    _locRawRole === 'process coordinator'
+  );
+  if(locEl && _canSeeLocation){
     locEl.style.display='';
   } else if(locEl){
     locEl.style.display='none';
