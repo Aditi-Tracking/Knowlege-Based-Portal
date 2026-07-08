@@ -82,6 +82,19 @@ def m2o_name(v):
     return v[1] if isinstance(v, (list, tuple)) and len(v) > 1 else None
 
 
+def to_odoo_datetime_str(value):
+    """Odoo XML-RPC domain filters require naive 'YYYY-MM-DD HH:MM:SS'
+    strings — no 'T' separator, no timezone offset, no microseconds. Odoo
+    treats naive datetimes as UTC, so any tz-aware value must be converted
+    to UTC before the tzinfo is dropped. Supabase returns timestamptz
+    columns (like sync_state.last_synced_at) as ISO strings with a '+00:00'
+    offset, which Odoo's domain validator rejects outright."""
+    dt = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
 def get_last_synced_at():
     res = supabase.table("sync_state").select("last_synced_at").eq("job_name", JOB_NAME).execute()
     if res.data:
@@ -193,13 +206,19 @@ def main():
 
     run_started_at = datetime.now(timezone.utc).isoformat()
 
+    # Both dates must be naive 'YYYY-MM-DD HH:MM:SS' before hitting Odoo's
+    # domain validator — ODOO_LEADS_START_DATE already is, but is routed
+    # through the same helper as a safety net against future edits.
+    create_date_floor = to_odoo_datetime_str(ODOO_LEADS_START_DATE)
+
     last_synced_at = get_last_synced_at()
     if last_synced_at:
-        print(f"Incremental run — last synced at {last_synced_at}")
-        domain = ["&", ("create_date", ">=", ODOO_LEADS_START_DATE), ("write_date", ">=", last_synced_at)]
+        write_date_floor = to_odoo_datetime_str(last_synced_at)
+        print(f"Incremental run — last synced at {last_synced_at} (odoo filter: write_date >= {write_date_floor})")
+        domain = ["&", ("create_date", ">=", create_date_floor), ("write_date", ">=", write_date_floor)]
     else:
-        print(f"FIRST RUN for this job — pulling all leads created >= {ODOO_LEADS_START_DATE} (no upper bound).")
-        domain = [("create_date", ">=", ODOO_LEADS_START_DATE)]
+        print(f"FIRST RUN for this job — pulling all leads created >= {create_date_floor} (no upper bound).")
+        domain = [("create_date", ">=", create_date_floor)]
     print(f"Domain: {domain}")
 
     try:
