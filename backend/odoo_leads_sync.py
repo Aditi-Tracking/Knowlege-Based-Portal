@@ -19,6 +19,14 @@ derived at query time from stage_name + is_active:
 This script's only responsibility is writing stage_name and is_active
 accurately — it does not compute or write any won/lost/status value itself.
 
+WON DETECTION (odoo) — driven by crm.stage.is_won, not by name-matching.
+Some pipelines have more than one stage that counts as won (e.g. a repeat-
+business stage) which isn't literally named "Won". Any stage flagged
+is_won=True in Odoo has its stage_name normalized to the literal string
+"Won" when written here, so stage_name = 'Won' stays a reliable filter
+for every consumer of this table regardless of how many won-type stages
+exist in Odoo.
+
 Required env vars (never hardcode):
     ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_API_KEY
     SUPABASE_URL, SUPABASE_KEY   (service_role key — bypasses RLS for writes)
@@ -110,16 +118,20 @@ def set_last_synced_at(ts_iso):
 
 def fetch_stage_sequence_map():
     """crm.stage id -> sequence, plus the 'Demo' stage's own sequence
-    (looked up by name, never hardcoded — stages can get reordered)."""
-    stages = execute("crm.stage", "search_read", [], fields=["id", "name", "sequence"])
+    (looked up by name, never hardcoded — stages can get reordered), plus
+    crm.stage id -> is_won so won-detection doesn't rely on stage naming."""
+    stages = execute("crm.stage", "search_read", [], fields=["id", "name", "sequence", "is_won"])
     seq_map = {s["id"]: s["sequence"] for s in stages}
+    won_map = {s["id"]: bool(s.get("is_won")) for s in stages}
+    won_stage_names = [s["name"] for s in stages if s.get("is_won")]
+    print(f"Won-flagged stage(s): {won_stage_names}")
     demo_stage = next((s for s in stages if s["name"].strip().lower() == "demo"), None)
     if not demo_stage:
         print("WARNING: no stage literally named 'Demo' found in this Odoo instance — "
               "demo_given will be False for every Odoo row this run.")
-        return seq_map, None
+        return seq_map, None, won_map
     print(f"Demo stage: id={demo_stage['id']} sequence={demo_stage['sequence']}")
-    return seq_map, demo_stage["sequence"]
+    return seq_map, demo_stage["sequence"], won_map
 
 
 def fetch_user_emails(user_ids):
@@ -148,10 +160,13 @@ def fetch_won_revenue_map(won_lead_ids):
     return revenue_map
 
 
-def map_lead(lead, stage_seq_map, demo_seq, user_email_map, revenue_map):
+def map_lead(lead, stage_seq_map, demo_seq, user_email_map, revenue_map, won_map):
     stage_id = m2o_id(lead.get("stage_id"))
-    stage_name = m2o_name(lead.get("stage_id"))
-    is_won = (stage_name or "").strip() == "Won"
+    stage_name_raw = m2o_name(lead.get("stage_id"))
+    is_won = won_map.get(stage_id, False) if stage_id is not None else False
+    # Normalize any won-flagged stage to the literal 'Won' so stage_name = 'Won'
+    # stays a complete filter downstream, regardless of the stage's real name.
+    stage_name = "Won" if is_won else stage_name_raw
 
     demo_given = False
     if demo_seq is not None and stage_id is not None:
@@ -235,15 +250,15 @@ def main():
         set_last_synced_at(run_started_at)
         return
 
-    stage_seq_map, demo_seq = fetch_stage_sequence_map()
+    stage_seq_map, demo_seq, won_map = fetch_stage_sequence_map()
 
     user_ids = {m2o_id(l.get("user_id")) for l in leads if m2o_id(l.get("user_id")) is not None}
     user_email_map = fetch_user_emails(user_ids)
 
-    won_lead_ids = [l["id"] for l in leads if m2o_name(l.get("stage_id")) == "Won"]
+    won_lead_ids = [l["id"] for l in leads if won_map.get(m2o_id(l.get("stage_id")), False)]
     revenue_map = fetch_won_revenue_map(won_lead_ids)
 
-    mapped = [map_lead(l, stage_seq_map, demo_seq, user_email_map, revenue_map) for l in leads]
+    mapped = [map_lead(l, stage_seq_map, demo_seq, user_email_map, revenue_map, won_map) for l in leads]
 
     inserted = 0
     errors = []
