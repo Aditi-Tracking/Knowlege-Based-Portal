@@ -51,7 +51,12 @@ SUPABASE_URL  = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY  = os.environ.get("SUPABASE_KEY", "")
 
 # Hard floor — leads created before this are never pulled, first run included.
-ODOO_LEADS_START_DATE = "2026-06-01 00:00:00"
+# Expressed in UTC, but chosen to equal midnight IST (UTC+5:30) on 2026-06-01,
+# not midnight UTC — Odoo's own UI groups/displays creation dates in the
+# browser's local timezone (IST here), so a UTC-midnight floor silently
+# excludes leads created between 12:00-5:30 AM IST on the 1st (their UTC
+# create_date still reads as the prior day).
+ODOO_LEADS_START_DATE = "2026-05-31 18:30:00"
 JOB_NAME = "odoo_leads_sync"
 BATCH = 500
 
