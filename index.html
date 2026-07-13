@@ -2221,6 +2221,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   <div class="error-banner" id="leadsErr"></div>
   <div class="db-loading" id="leadsLoad"><div class="loader-logo">SMARTFLEET</div><div class="loader-bar"><div class="loader-fill"></div></div><div class="loader-text" id="leadsTxt">Loading...</div></div>
   <div class="db-content" id="leadsCont" style="display:none">
+    <div class="lsrc-group">
+      <button class="lsrc-btn active" onclick="lSetSource('',this)">Both</button>
+      <button class="lsrc-btn" onclick="lSetSource('google_sheets',this)">Google Sheet</button>
+      <button class="lsrc-btn" onclick="lSetSource('odoo',this)">Odoo</button>
+    </div>
     <div class="section-title">Key Performance Indicator</div>
     <div class="kpi-grid" id="lKpiGrid"></div>
     <div class="section-title">Lead Analytics</div>

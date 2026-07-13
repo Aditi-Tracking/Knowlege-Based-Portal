@@ -1,9 +1,9 @@
 // Section: SmartFleet Dashboard (loadLeads, charts, filters, table)
 // Data source: Supabase `leads_normalized` view (Odoo + Sheets synced leads, funnel_stage normalized).
-let L=[],Lf=[],Lch={},Lp=1,Lsk=null,Lsd=1,Ltype='',Lkpi=null;
+let L=[],L_ALL=[],Lf=[],Lch={},Lp=1,Lsk=null,Lsd=1,Ltype='',Lkpi=null,Lsys='';
 let Lcf={source:null,team:null,product:null,lostReason:null};
 const LPP=15;
-const LEADS_FIELDS='lead_name,contact_name,phone,email,funnel_stage,demo_reached,quotation_reached,salesperson_name,salesperson_email,team_name,source_channel,hero_product,city,lead_created_at,lead_updated_at,demo_given,quotation_sent,calls_made,order_value,won_revenue,probability,activity_state,is_active,lost_reason_name';
+const LEADS_FIELDS='lead_name,contact_name,phone,email,funnel_stage,demo_reached,quotation_reached,source_system,salesperson_name,salesperson_email,team_name,source_channel,hero_product,city,lead_created_at,lead_updated_at,demo_given,quotation_sent,calls_made,order_value,won_revenue,probability,activity_state,is_active,lost_reason_name';
 
 // Compact Indian-style money format — Cr for 1,00,00,000+, L for 1,00,000+, K for 1,000+, else plain.
 function lFmtINR(v){
@@ -49,7 +49,7 @@ async function loadLeads(){
   try{
     const rows=await _leadsFetchAll();
     if(!Array.isArray(rows)||!rows.length)throw new Error('No leads found in leads_normalized');
-    L=rows.map(r=>{
+    L_ALL=rows.map(r=>{
       const n={...r};
       n['probability']=n['probability']!=null?parseFloat(n['probability'])||0:0;
       n['order_value']=n['order_value']!=null?parseFloat(n['order_value'])||null:null;
@@ -59,6 +59,7 @@ async function loadLeads(){
       n['RepName']=n['salesperson_name']||rN(n['salesperson_email'])||null;
       return n;
     }).filter(r=>r['contact_name']||r['lead_name']);
+    L=Lsys?L_ALL.filter(r=>r['source_system']===Lsys):L_ALL;
     document.getElementById('leadsLoad').style.display='none';document.getElementById('leadsCont').style.display='block';
     document.getElementById('leadsSync').textContent='Sync: '+new Date().toLocaleTimeString('en-IN');
     document.getElementById('leadsErr').style.display='none';
@@ -66,6 +67,17 @@ async function loadLeads(){
   }catch(e){document.getElementById('leadsLoad').style.display='none';document.getElementById('leadsCont').style.display='block';document.getElementById('leadsErr').style.display='block';document.getElementById('leadsErr').textContent='⚠️ Data load failed: '+e.message;}
 }
 async function refreshLeads(){const b=document.getElementById('leadsRefBtn');b.classList.add('spinning');Object.values(Lch).forEach(c=>c&&c.destroy&&c.destroy());Lch={};document.getElementById('leadsLoad').style.display='flex';document.getElementById('leadsCont').style.display='none';await loadLeads();b.classList.remove('spinning');}
+// Google Sheet / Odoo / Both — top-of-page data-source switch. Filters the whole dashboard (KPIs, charts, table).
+function lSetSource(sys,btn){
+  Lsys=sys;
+  document.querySelectorAll('#panel-leads .lsrc-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  L=Lsys?L_ALL.filter(r=>r['source_system']===Lsys):L_ALL;
+  Lkpi=null;Ltype='';Lcf={source:null,team:null,product:null,lostReason:null};
+  document.querySelectorAll('#panel-leads .filter-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  Object.values(Lch).forEach(c=>c&&c.destroy&&c.destroy());Lch={};
+  lBuildFilters();lRenderAll();lBadge();
+}
 function lBuildFilters(){
   const src=[...new Set(L.map(r=>r['source_channel']).filter(Boolean))].sort();
   const team=[...new Set(L.map(r=>r['team_name']).filter(Boolean))].sort();
