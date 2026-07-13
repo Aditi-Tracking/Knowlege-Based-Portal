@@ -5323,11 +5323,12 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
-      <button class="vr-fbtn active" id="vrf-all"      onclick="vrSetFilter('all',this)">All</button>
-      <button class="vr-fbtn"        id="vrf-onhold"   onclick="vrSetFilter('On Hold',this)">🔒 On Hold</button>
-      <button class="vr-fbtn"        id="vrf-approved" onclick="vrSetFilter('Approved',this)">✅ Approved</button>
-      <button class="vr-fbtn"        id="vrf-declined" onclick="vrSetFilter('Declined',this)">❌ Declined</button>
-      <button class="vr-fbtn"        id="vrf-paid"     onclick="vrSetFilter('Paid',this)">💳 Paid</button>
+      <button class="vr-fbtn active" id="vrf-all"      data-mode="all"      onclick="vrSetFilter('all',this)">All</button>
+      <button class="vr-fbtn"        id="vrf-onhold"   data-mode="On Hold"  onclick="vrSetFilter('On Hold',this)">🔒 On Hold</button>
+      <button class="vr-fbtn"        id="vrf-approved" data-mode="Approved" onclick="vrSetFilter('Approved',this)">✅ Approved</button>
+      <button class="vr-fbtn"        id="vrf-declined" data-mode="Declined" onclick="vrSetFilter('Declined',this)">❌ Declined</button>
+      <button class="vr-fbtn"        id="vrf-paid"     data-mode="Paid"     onclick="vrSetFilter('Paid',this)">💳 Paid</button>
+      <button class="vr-fbtn"        id="vrf-unpaid"   data-mode="Unpaid"   onclick="vrSetFilter('Unpaid',this)">⏳ Unpaid</button>
       <button id="vrBulkPayBtn" onclick="vrBulkPay()" style="display:none;padding:6px 13px;border-radius:8px;border:1px solid rgba(59,130,246,0.4);background:rgba(59,130,246,0.12);color:#3b82f6;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;">💳 Pay Selected</button>
       <button onclick="loadVendorRequests(true)" style="padding:6px 13px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>

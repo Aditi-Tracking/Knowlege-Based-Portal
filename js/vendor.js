@@ -17,7 +17,7 @@
 // ║  _vrAll = All requests array (local cache)
 // ╚══════════════════════════════════════════════════════════════════════════
 // ── STATE ──────────────────────────────────────────
-let _vrAll=[], _vrFiltered=[], _vrFilterMode='all', _vrCurId=null, _vrNameMap={}, _vrVendors=[], _vrLoaded=false, _vrRecurSourceId=null;
+let _vrAll=[], _vrFiltered=[], _vrFilterModes=new Set(), _vrCurId=null, _vrNameMap={}, _vrVendors=[], _vrLoaded=false, _vrRecurSourceId=null;
 let _vrFilterVendor='', _vrFilterRequester='', _vrVendorFilterList=[], _vrRequesterFilterList=[];
 
 // ── ROLE HELPERS ───────────────────────────────────
@@ -179,20 +179,36 @@ function _vrReqFilterSelect(email,name){
   document.getElementById('vrReqFilterDropdown').style.display='none';
   _vrApplyFilter();
 }
+// Multi-select filter chips: click toggles a chip on/off, so 2+ can be active together
+// (e.g. "On Hold" + "Approved" shows rows matching either). "All" clears every chip.
 function vrSetFilter(mode,btn){
-  _vrFilterMode=mode;
-  document.querySelectorAll('.vr-fbtn').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');
+  if(mode==='all'){
+    _vrFilterModes.clear();
+  }else if(_vrFilterModes.has(mode)){
+    _vrFilterModes.delete(mode);
+  }else{
+    _vrFilterModes.add(mode);
+  }
+  // Re-sync every chip's active state from the Set (not just the one just clicked) —
+  // otherwise picking a 2nd chip would visually un-highlight the 1st.
+  document.querySelectorAll('.vr-fbtn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode==='all'?_vrFilterModes.size===0:_vrFilterModes.has(b.dataset.mode));
+  });
   _vrApplyFilter();
 }
 function vrApplyFilter(){_vrApplyFilter();}
 function _vrApplyFilter(){
   const q=(document.getElementById('vrSearch')?.value||'').toLowerCase().trim();
+  const STATUS_TAGS=['On Hold','Approved','Declined'];
+  const PAY_TAGS=['Paid','Unpaid'];
+  const activeStatus=[..._vrFilterModes].filter(m=>STATUS_TAGS.includes(m));
+  const activePay=[..._vrFilterModes].filter(m=>PAY_TAGS.includes(m));
   _vrFiltered=_vrAll.filter(r=>{
-    if(_vrFilterMode==='On Hold'&&r.status!=='On Hold')return false;
-    if(_vrFilterMode==='Approved'&&r.status!=='Approved')return false;
-    if(_vrFilterMode==='Declined'&&r.status!=='Declined')return false;
-    if(_vrFilterMode==='Paid'&&r.payment_status!=='Paid')return false;
+    if(activeStatus.length&&!activeStatus.includes(r.status||'On Hold'))return false;
+    if(activePay.length){
+      const isPaid=r.payment_status==='Paid';
+      if(!activePay.some(p=>p==='Paid'?isPaid:!isPaid))return false;
+    }
     if(_vrFilterVendor&&r.vendor_name!==_vrFilterVendor)return false;
     if(_vrFilterRequester&&String(r.submitted_by||'').toLowerCase().trim()!==_vrFilterRequester)return false;
     if(q){const name=(_vrNameMap[String(r.submitted_by||'').toLowerCase()]||r.submitted_by||'').toLowerCase();const hay=[r.vendor_name,r.product_name,r.location,r.submitted_by,name,String(r.amount||'')].join(' ').toLowerCase();if(!hay.includes(q))return false;}
