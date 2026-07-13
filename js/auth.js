@@ -24,7 +24,7 @@ let PERMISSIONS  = {};   // populated from Python backend after login
 const _PAPI = 'https://knowlege-based-portal-production.up.railway.app';
 function warmupAPIs(){
   // Warm-up ping to Google Apps Scripts (fire & forget)
-  [L_URL,C_URL].forEach(url=>{
+  [C_URL].forEach(url=>{
     fetch(url+'?ping=1',{method:'GET',mode:'cors'}).catch(()=>{});
   });
 }
@@ -385,7 +385,7 @@ function restrictEmployee(){
   document.querySelectorAll('#panel-home .home-card:not(.disabled)').forEach(card => {
     const txt = card.textContent;
     let show  = true;
-    if (txt.includes('Lead Tracking') && PERMISSIONS.can_view_leads      !== 'true') show = false;
+    if (txt.includes('SmartFleet') && PERMISSIONS.can_view_leads      !== 'true') show = false;
     if (txt.includes('Collection')    && PERMISSIONS.can_view_collection  !== 'true') show = false;
     if (txt.includes('FMS')           && PERMISSIONS.can_view_fms         !== 'true') show = false;
     if (txt.includes('IMS')           && PERMISSIONS.can_view_ims         !== 'true') show = false;

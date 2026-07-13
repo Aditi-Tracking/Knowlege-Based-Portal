@@ -236,9 +236,9 @@
       <span class="nav-accordion-arrow" id="dashAccordionArrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
     </div>
     <div class="nav-sub-group" id="dashboardSubGroup" style="display:none;">
-      <div class="nav-item nav-sub-item" onclick="switchDB('leads')" id="nav-leads" title="Lead Tracking">
+      <div class="nav-item nav-sub-item" onclick="switchDB('leads')" id="nav-leads" title="SmartFleet">
         <span class="nav-sub-dot"></span>
-        <span class="nav-label">Lead Tracking</span><span class="nav-badge live">Live</span>
+        <span class="nav-label">SmartFleet</span><span class="nav-badge live">Live</span>
       </div>
       <!-- Enterprise Lead — permission-gated, see can_view_enterprise -->
       <div class="nav-item nav-sub-item" onclick="switchDB('enterprise')" id="nav-enterprise" style="display:none;" title="Enterprise Lead">
@@ -634,7 +634,7 @@
     <!-- Dash sub-items -->
     <div id="mmDashSub" style="display:none;padding-left:16px;">
       <button class="mm-nav-item mm-sub" id="mm-leads" onclick="mobMenuGo('leads')">
-        <span class="mm-subdot"></span><span class="mm-label">Lead Tracking</span>
+        <span class="mm-subdot"></span><span class="mm-label">SmartFleet</span>
         <span class="mm-badge mm-badge-live">Live</span>
       </button>
       <button class="mm-nav-item mm-sub" id="mm-enterprise" onclick="mobMenuGo('enterprise')" style="display:none;">
@@ -2202,16 +2202,16 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 </div>
 
 <!-- ╔═══════════════════════════════════════════════════════════════════════
-     ║  [PANEL LEADS] — Sales Lead Tracking Dashboard
+     ║  [PANEL LEADS] — Sales SmartFleet Dashboard
      ║  Sirf Managing Director (owner) ko dikhta hai
-     ║  KPI cards, charts (lead type, source, solution), leaderboard, table sab hai
-     ║  Data Odoo se aata hai via Flask API (L_URL)
-     ║  JS: loadLeads() / refreshLeads() (~line 6423)
+     ║  KPI cards, charts (status, source, team, daily volume, hero product), table sab hai
+     ║  Data Supabase `leads_normalized` view se aata hai (Odoo + Sheets synced, funnel_stage normalized)
+     ║  JS: loadLeads() / refreshLeads() (js/leads.js)
      ╚═══════════════════════════════════════════════════════════════════════ -->
-<!-- LEAD TRACKING PANEL -->
+<!-- SMARTFLEET PANEL -->
 <div class="dashboard-panel" id="panel-leads">
   <div class="db-header">
-    <div><div class="db-title"><span>Aditi</span> Lead Tracking<span style="font-size:0.67rem;font-weight:400;color:var(--muted);margin-left:8px;letter-spacing:0.05em;font-family:'DM Sans',sans-serif;">SALES INTELLIGENCE</span></div><div class="db-breadcrumb">Portal → Lead Tracking Dashboard</div></div>
+    <div><div class="db-title"><span>Aditi</span> SmartFleet<span style="font-size:0.67rem;font-weight:400;color:var(--muted);margin-left:8px;letter-spacing:0.05em;font-family:'DM Sans',sans-serif;">SALES INTELLIGENCE</span></div><div class="db-breadcrumb">Portal → SmartFleet Dashboard</div></div>
     <div class="header-right">
       
       <button class="refresh-btn" onclick="refreshLeads()" id="leadsRefBtn"><span id="leadsRefIco"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></span> Refresh</button>
@@ -2219,51 +2219,54 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     </div>
   </div>
   <div class="error-banner" id="leadsErr"></div>
-  <div class="db-loading" id="leadsLoad"><div class="loader-logo">LEAD TRACKING</div><div class="loader-bar"><div class="loader-fill"></div></div><div class="loader-text" id="leadsTxt">Loading...</div></div>
+  <div class="db-loading" id="leadsLoad"><div class="loader-logo">SMARTFLEET</div><div class="loader-bar"><div class="loader-fill"></div></div><div class="loader-text" id="leadsTxt">Loading...</div></div>
   <div class="db-content" id="leadsCont" style="display:none">
     <div class="section-title">Key Performance Indicator</div>
     <div class="kpi-grid" id="lKpiGrid"></div>
     <div class="section-title">Lead Analytics</div>
-    <div id="lCFBadge" style="display:none;align-items:center;background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.25);border-radius:10px;padding:8px 16px;margin-bottom:14px;font-size:0.88rem;color:var(--text);gap:4px;flex-wrap:wrap;"></div>
+    <div id="lCFBadge" style="display:none;align-items:center;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;padding:8px 16px;margin-bottom:14px;font-size:0.88rem;color:var(--text);gap:4px;flex-wrap:wrap;"></div>
     <div class="charts-grid">
-      <div class="chart-card"><div class="chart-title"><span class="dot"></span> Lead Temperature</div><div class="chart-wrap"><canvas id="lChTemp"></canvas></div></div>
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent2)"></span> Source Breakdown</div><div class="chart-wrap"><canvas id="lChSrc"></canvas></div></div>
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent3)"></span> Solution Mix</div><div class="chart-wrap"><canvas id="lChSol"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#3b82f6"></span> Monthly Trend</div><div class="chart-wrap"><canvas id="lChFunnel"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#3b82f6"></span> Source Breakdown</div><div class="chart-wrap"><canvas id="lChSrc"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#3b82f6"></span> Team Breakdown</div><div class="chart-wrap"><canvas id="lChSol"></canvas></div></div>
     </div>
     <div class="section-title">Deep Insights</div>
     <div class="charts-grid2">
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#a78bfa"></span> Daily Lead Volume</div><div class="chart-wrap"><canvas id="lChDay"></canvas></div></div>
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent3)"></span> Hero Product Demand</div><div class="chart-wrap"><canvas id="lChProd"></canvas></div></div>
-      
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#3b82f6"></span> Daily Lead Volume</div><div class="chart-wrap"><canvas id="lChDay"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#10b981"></span> Hero Product Demand (Won)</div><div class="chart-wrap"><canvas id="lChProd"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#ef4444"></span> Lost Reasons</div><div class="chart-wrap"><canvas id="lChLost"></canvas></div></div>
     </div>
-    <div class="insights-grid">
-      <div class="insight-card"><div class="insight-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg> Revenue</div><div id="lRevIns"></div></div>
-      <div class="insight-card"><div class="insight-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Pipeline</div><div id="lPipeIns"></div></div>
-      <div class="insight-card"><div class="insight-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Action Required</div><div id="lActIns"></div></div>
+    <div class="insights-grid" style="grid-template-columns:1fr;">
+      <div class="insight-card">
+        <div class="insight-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <span style="display:flex;align-items:center;gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> Sales Rep Performance</span>
+          <select class="filter-select" id="lRepPerfSel" onchange="lRenderRepLB()" style="font-size:0.78rem;padding:5px 10px;text-transform:none;letter-spacing:normal;font-weight:500;"><option value="">Select Sales Rep...</option></select>
+        </div>
+        <div id="lRepLB"></div>
+      </div>
     </div>
     <div class="section-title">Lead Explorer</div>
     <div class="filters-bar">
       <span class="filter-label">Filter:</span>
       <input class="filter-input" id="lSearch" placeholder="Search customer, phone, email..." oninput="lApply()">
       <select class="filter-select" id="lFSrc" onchange="lApply()"><option value="">All Sources</option></select>
-      <select class="filter-select" id="lFSol" onchange="lApply()"><option value="">All Solutions</option></select>
+      <select class="filter-select" id="lFTeam" onchange="lApply()"><option value="">All Teams</option></select>
       <select class="filter-select" id="lFRep" onchange="lApply()"><option value="">All Reps</option></select>
-      <span class="filter-label">Type:</span>
+      <span class="filter-label">Stage:</span>
       <button class="filter-btn active" onclick="lSetType('',this)">All</button>
-      <button class="filter-btn" onclick="lSetType('Hot',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg> Hot</button>
-      <button class="filter-btn" onclick="lSetType('Warm',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> Warm</button>
-      <button class="filter-btn" onclick="lSetType('Cold',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 7l-5-5-5 5"/><path d="M17 17l-5 5-5-5"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M7 7l-5 5 5 5"/><path d="M17 7l5 5-5 5"/></svg> Cold</button>
       <button class="filter-btn" onclick="lSetType('Won',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Won</button>
+      <button class="filter-btn" onclick="lSetType('Pending',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg> Pending</button>
+      <button class="filter-btn" onclick="lSetType('Lost',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Lost</button>
       <button class="reset-btn" onclick="lReset()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset</button>
     </div>
     <div class="table-card">
       <div class="table-header"><span class="table-title">All Leads</span><span class="table-count" id="lTblCnt">—</span></div>
       <div class="table-scroll"><table><thead><tr>
-        <th onclick="lSort('CustomerName')">CUSTOMER ↕</th><th onclick="lSort('Source')">SOURCE ↕</th>
-        <th onclick="lSort('Solution')">SOLUTION ↕</th><th>HERO PRODUCT</th>
-        <th onclick="lSort('WinChances')">WIN % ↕</th><th>TYPE</th><th>DEMO</th>
-        <th>FOLLOW-UPS</th><th>QUOTATION</th><th onclick="lSort('Won')">STATUS ↕</th>
-        <th onclick="lSort('Order Value')">ORDER VALUE ↕</th><th>SALES REP</th>
+        <th onclick="lSort('contact_name')">CUSTOMER ↕</th><th onclick="lSort('source_channel')">SOURCE ↕</th>
+        <th>SALES REP</th><th>HERO PRODUCT</th>
+        <th onclick="lSort('probability')">PROBABILITY ↕</th><th onclick="lSort('Stage')">STAGE ↕</th><th>CALLS</th>
+        <th>DEMO</th><th>QUOTATION</th>
+        <th onclick="lSort('revenue')">REVENUE ↕</th>
       </tr></thead><tbody id="lTblBody"></tbody></table></div>
       <div class="pagination" id="lPagBar"></div>
     </div>

@@ -535,6 +535,7 @@
   /* ── KPI CARDS ── */
   .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:20px;}
   #tKpiGrid{grid-template-columns:repeat(6,1fr) !important;}
+  #lKpiGrid{grid-template-columns:repeat(7,1fr) !important;}
   .kpi-card{
     background:var(--surface);border:1px solid var(--border);
     border-radius:var(--radius);padding:18px 14px 14px;
@@ -711,6 +712,10 @@
   .page-btn.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
   .page-btn:hover:not(.active){border-color:var(--accent);color:var(--accent);}
   .page-info{font-size:0.79rem;color:var(--muted);margin-right:6px;}
+  .page-ellipsis{color:var(--muted);padding:0 3px;font-size:0.80rem;}
+  #panel-leads .table-scroll::-webkit-scrollbar{height:10px;}
+  #panel-leads .table-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
+  #panel-leads .table-scroll::-webkit-scrollbar-thumb:hover{background:var(--accent);}
   .empty-state{text-align:center;padding:36px;color:var(--muted);font-size:0.89rem;}
   .prog-wrap{display:flex;align-items:center;gap:8px;}
   .prog-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
@@ -1858,4 +1863,61 @@ body.light-mode .lp-grid{background-image:linear-gradient(rgba(0,0,0,0.04) 1px,t
   .vf-grid,.vf-nv-grid,.vrm-grid{grid-template-columns:1fr;}
   #vrKpiRow{grid-template-columns:repeat(2,1fr)!important;}
 }
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  SMARTFLEET DASHBOARD — professional UI refresh                       ║
+   ║  Scoped entirely under #panel-leads so Enterprise/Collection/FMS/etc.  ║
+   ║  keep their existing look untouched. Backgrounds stay on var(--surface)║
+   ║  (white in light mode) — only borders/shadows/typography/accents change║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+#panel-leads .chart-card,#panel-leads .insight-card,#panel-leads .table-card{
+  border-color:var(--border);border-radius:14px;
+  box-shadow:0 1px 2px rgba(15,23,42,0.05),0 1px 1px rgba(15,23,42,0.03);
+}
+#panel-leads .chart-card::after{display:none;}
+
+/* KPI cards — one white "sales summary" style card wrapping pastel-filled tiles inside it */
+#panel-leads .kpi-grid{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:18px;box-shadow:0 1px 2px rgba(15,23,42,0.05),0 1px 1px rgba(15,23,42,0.03);
+}
+#panel-leads .kpi-card::before,#panel-leads .kpi-card::after{content:none;display:none;}
+#panel-leads .kpi-card{
+  border:none;border-radius:14px;box-shadow:none;
+  padding:18px 16px;transition:transform 0.2s,box-shadow 0.2s;
+}
+#panel-leads .kpi-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(15,23,42,0.12);}
+#panel-leads .kpi-card.kpi-active{box-shadow:0 0 0 2px var(--card-accent,#3b82f6);}
+#panel-leads .sf-tile-icon{
+  width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:1.05rem;margin-bottom:12px;color:#fff;
+}
+#panel-leads .kpi-label{font-weight:700;letter-spacing:0.02em;text-transform:none;color:var(--text2);font-size:0.8rem;}
+#panel-leads .kpi-value{color:var(--text)!important;font-variant-numeric:tabular-nums;font-weight:800;font-size:1.65rem;}
+#panel-leads .kpi-sub{font-size:0.76rem;}
+
+#panel-leads .chart-card{padding:18px;transition:box-shadow 0.2s,border-color 0.2s;}
+#panel-leads .chart-card:hover{box-shadow:0 6px 20px rgba(15,23,42,0.07);border-color:var(--border);}
+#panel-leads .chart-title{font-family:'DM Sans',sans-serif;font-weight:700;letter-spacing:0.01em;padding-bottom:10px;border-bottom:1px solid var(--border2);margin-bottom:16px;}
+#panel-leads .chart-title .dot{width:8px;height:8px;box-shadow:none;}
+#panel-leads .section-title{font-family:'DM Sans',sans-serif;font-weight:800;letter-spacing:0.1em;padding-left:10px;border-left:3px solid #3b82f6;}
+
+/* Table */
+#panel-leads thead th{background:var(--surface2);font-weight:700;letter-spacing:0.06em;border-bottom:2px solid #3b82f6;}
+#panel-leads tbody tr:nth-child(even){background:rgba(100,116,139,0.035);}
+#panel-leads tbody tr:hover{background:rgba(37,99,235,0.05);}
+#panel-leads tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 #3b82f6;}
+#panel-leads .table-title{font-family:'DM Sans',sans-serif;font-weight:800;}
+
+/* Badges — muted professional recolor (scoped so Enterprise/Referral badges stay as they were) */
+#panel-leads .badge-won{background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.25);}
+#panel-leads .badge-lost{background:rgba(239,68,68,0.1);color:#ef4444;border-color:rgba(239,68,68,0.25);}
+#panel-leads .badge-open{background:rgba(100,116,139,0.1);color:#64748b;border-color:rgba(100,116,139,0.22);}
+
+/* Filters / pagination — swap the neon accent for the primary indigo */
+#panel-leads .filter-btn.active,#panel-leads .filter-btn:hover{background:#3b82f6;border-color:#3b82f6;color:#fff;}
+#panel-leads .page-btn.active{background:#3b82f6;border-color:#3b82f6;color:#fff;}
+#panel-leads .page-btn:hover:not(.active){border-color:#3b82f6;color:#3b82f6;}
+#panel-leads .reset-btn:hover{border-color:#ef4444;color:#ef4444;}
+#panel-leads .filter-select:focus,#panel-leads .filter-input:focus{border-color:#3b82f6;}
 

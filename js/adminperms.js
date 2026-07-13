@@ -13,7 +13,7 @@
 let _acpUsers = [], _acpAllKeys = [], _acpLoaded = false;
 
 const _permLabels = {
-  can_view_leads:         '📊 Lead Tracking Dashboard',
+  can_view_leads:         '📊 SmartFleet Dashboard',
   can_view_enterprise:    '🏢 Enterprise Lead Dashboard',
   can_view_collection:    '💰 Collection Dashboard',
   can_view_fms:           '🔧 FMS Installation Tracker',

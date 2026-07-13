@@ -4,7 +4,7 @@
 // ═══════════════════════════════════
 let lLoaded=false,cLoaded=false,enLoaded=false;
 // Pre-fetch data caches
-let _leadsCache=null, _collCache=null, _tasksCache=null, _fmsCache=null;
+let _collCache=null, _tasksCache=null, _fmsCache=null;
 
 function prefetchAllData(){
   const _isOwner = CURRENT_USER && CURRENT_USER.role === 'owner';
@@ -22,11 +22,17 @@ function prefetchAllData(){
     });
   }
 
-  // Managing Director/MIS/PC: also fetch leads, collection, FMS in background
+  // Managing Director/MIS/PC: also fetch collection in background
   if(_isOwner){
-    if(!_leadsCache) fetch(L_URL).then(r=>r.json()).then(d=>{_leadsCache=d;}).catch(()=>{});
     if(!_collCache)  fetch(C_URL).then(r=>r.json()).then(d=>{_collCache=d;}).catch(()=>{});
-    // FMS now uses Supabase directly — no prefetch needed
+    // FMS uses Supabase directly — no prefetch needed
+  }
+
+  // SmartFleet — prefetch in background so the panel opens instantly (no loading screen) on click
+  const _canViewLeads = _isOwner || (typeof PERMISSIONS!=='undefined' && PERMISSIONS.can_view_leads==='true');
+  if(_canViewLeads && !lLoaded){
+    lLoaded=true;
+    setTimeout(()=>{ try{ loadLeads(); }catch(e){ } }, 0);
   }
 }
 function toggleUserPopup(e){
@@ -458,9 +464,8 @@ const SB_HDRS_AUTH      = SB_HDRS;
 const SB_HDRS_AUTH_JSON = SB_HDRS_JSON;
 
 // ═══════════════════════════════════
-// LEAD TRACKING DASHBOARD
+// SMARTFLEET DASHBOARD (Supabase leads_normalized view — see js/leads.js)
 // ═══════════════════════════════════
-const L_URL='https://script.google.com/macros/s/AKfycbxsC_glUfbC5RJSs0BPFYQI5jbsM5p6VeIraKcl-cO8zC8VjVnLqFYQuumhRP69oEy2/exec';
 const REP_MAP={'supportmum@adititracking.com':{name:'Support MUM',color:'#f0a500',bg:'rgba(240,165,0,0.2)'},'salesmumbai@adititracking.com':{name:'Sales Mumbai',color:'#00d4aa',bg:'rgba(0,212,170,0.2)'},'salesgoa@adititracking.com':{name:'Sales Goa',color:'#ff5c7c',bg:'rgba(255,92,124,0.2)'},'salesgujarat@adititracking.com':{name:'Sales Gujarat',color:'#a78bfa',bg:'rgba(167,139,250,0.2)'},'coolbus.enterprise@adititracking.com':{name:'CoolBus',color:'#4e9af1',bg:'rgba(78,154,241,0.2)'}};
 const rN=e=>REP_MAP[e]?.name||(String(e||'')).split('@')[0];
 const rC=e=>REP_MAP[e]?.color||'#888';
