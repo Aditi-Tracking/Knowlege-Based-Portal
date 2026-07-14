@@ -138,19 +138,21 @@ async function loadPerformers() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// NEW JOINERS — Emp_id 78, 80
+// NEW JOINERS — Emp_id 8, 81, 78, 80 (fixed display order — Vipul, Sowbhagya, Ankita, Disha)
 // ═══════════════════════════════════════════════════════════
+const NEW_JOINER_ORDER = [8, 81, 78, 80];
 async function loadNewJoiners() {
   const grid = document.getElementById('newJoinersGrid');
   if (!grid) return;
   try {
-    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id,Employee_name,Employee_Dept,Location,avatar_url,Link&Emp_id=in.(78,80)&order=Emp_id.asc`;
+    const url = `${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id,Employee_name,Employee_Dept,Location,avatar_url,Link&Emp_id=in.(${NEW_JOINER_ORDER.join(',')})`;
     const res = await fetch(url, { headers: SB_HDRS() });
-    const rows = await res.json();
+    let rows = await res.json();
     if (!Array.isArray(rows) || rows.length === 0) {
       grid.innerHTML = '<div style="color:var(--muted);font-size:0.84rem;padding:10px 0;">No new joiners to show right now.</div>';
       return;
     }
+    rows = NEW_JOINER_ORDER.map(id => rows.find(r => r['Emp_id'] === id)).filter(Boolean);
     grid.innerHTML = '';
     rows.forEach(row => {
       const name = row['Employee_name'] || 'New Joiner';
