@@ -70,7 +70,7 @@ async function refreshLeads(){const b=document.getElementById('leadsRefBtn');b.c
 // Google Sheet / Odoo / Both — top-of-page data-source switch. Filters the whole dashboard (KPIs, charts, table).
 function lSetSource(sys,btn){
   Lsys=sys;
-  document.querySelectorAll('#panel-leads .lsrc-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#panel-leads .lsrc-group .lsrc-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   L=Lsys?L_ALL.filter(r=>r['source_system']===Lsys):L_ALL;
   Lkpi=null;Ltype='';Lcf={source:null,team:null,product:null,lostReason:null};
@@ -85,8 +85,6 @@ function lBuildFilters(){
   const s1=document.getElementById('lFSrc');s1.innerHTML='<option value="">All Sources</option>';src.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;s1.appendChild(o);});
   const s2=document.getElementById('lFTeam');s2.innerHTML='<option value="">All Teams</option>';team.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;s2.appendChild(o);});
   const s3=document.getElementById('lFRep');s3.innerHTML='<option value="">All Sales Rep</option>';rep.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;s3.appendChild(o);});
-  const s4=document.getElementById('lRepPerfSel');
-  if(s4){const cur=s4.value;s4.innerHTML='<option value="">Select Sales Rep...</option>';rep.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;s4.appendChild(o);});if(rep.includes(cur))s4.value=cur;}
 }
 function lRenderAll(){lRenderKPIs();lRenderCharts();lRenderInsights();lApply();}
 function lToday(){return new Date().toISOString().slice(0,10);}
@@ -179,37 +177,47 @@ function lRenderCharts(){
 function lRenderInsights(){
   lRenderRepLB();
 }
-// Sales Rep Performance — pick a rep from the top-right dropdown, see their Total/Demo/Quotation/Won/Revenue.
+// Performance of Sales Rep — collapsed by default (just the toggle button).
+// Toggle ON: card expands, showing every sales employee's Total/Demo/Quotation/Won/Revenue at once,
+// ranked by Revenue (highest earner on top) so it's obvious at a glance who's carrying the numbers.
+let lRepAllMode=false;
+function lToggleRepAll(btn){
+  lRepAllMode=!lRepAllMode;
+  btn.classList.toggle('active',lRepAllMode);
+  lRenderRepLB();
+}
 function lRenderRepLB(){
-  const sel=document.getElementById('lRepPerfSel');
-  const chosen=sel?sel.value:'';
   const box=document.getElementById('lRepLB');
-  if(!chosen){
-    box.innerHTML='<div style="padding:22px 4px;text-align:center;color:var(--muted);font-size:0.85rem;">👆 Select a sales rep above to view their performance</div>';
-    return;
-  }
-  const rows=L.filter(r=>(r['RepName']||'Unassigned')===chosen);
-  if(!rows.length){box.innerHTML='<div style="padding:22px 4px;text-align:center;color:var(--muted);font-size:0.85rem;">No data for this rep</div>';return;}
-  const email=rows.find(r=>r['salesperson_email'])?.['salesperson_email'];
-  const s={total:0,demo:0,quoted:0,won:0,revenue:0};
-  rows.forEach(r=>{
+  if(!lRepAllMode){box.innerHTML='';return;}
+  const reps={};
+  L.forEach(r=>{
+    const key=r['salesperson_email']||r['RepName']||'unassigned';
+    if(!reps[key])reps[key]={name:r['RepName']||'Unassigned',email:r['salesperson_email'],total:0,demo:0,quoted:0,won:0,revenue:0};
+    const s=reps[key];
     s.total++;
     if(r['demo_reached']===true)s.demo++;
     if(r['quotation_reached']===true)s.quoted++;
     if(r['Stage']==='Won'){s.won++;s.revenue+=(r['won_revenue']??r['order_value']??0);}
   });
-  box.innerHTML=`
-    <div class="lb-row" style="border-bottom:none;">
-      <div class="rep-dot" style="background:${rB(email)};color:${rC(email)};width:38px;height:38px;font-size:0.98rem">${chosen.charAt(0).toUpperCase()}</div>
-      <div style="flex:1;min-width:100px;font-size:1rem;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:12px">${chosen}</div>
-      <div style="display:flex;gap:32px;flex-shrink:0">
-        <div style="text-align:center;min-width:56px"><div style="font-size:1.4rem;font-weight:700;color:var(--text)">${s.total}</div><div style="font-size:0.7rem;color:var(--muted)">TOTAL</div></div>
-        <div style="text-align:center;min-width:56px"><div style="font-size:1.4rem;font-weight:700;color:#3b82f6">${s.demo}</div><div style="font-size:0.7rem;color:var(--muted)">DEMO</div></div>
-        <div style="text-align:center;min-width:60px"><div style="font-size:1.4rem;font-weight:700;color:#60a5fa">${s.quoted}</div><div style="font-size:0.7rem;color:var(--muted)">QUOTE</div></div>
-        <div style="text-align:center;min-width:56px"><div style="font-size:1.4rem;font-weight:700;color:#10b981">${s.won}</div><div style="font-size:0.7rem;color:var(--muted)">WON</div></div>
-        <div style="text-align:center;min-width:100px"><div style="font-size:1.4rem;font-weight:700;color:var(--text)">₹${lFmtINR(s.revenue)}</div><div style="font-size:0.7rem;color:var(--muted)">REVENUE</div></div>
+  const board=Object.values(reps).sort((a,b)=>b.revenue-a.revenue);
+  box.innerHTML=board.map((b,i)=>{
+    const avgOrder=b.won?b.revenue/b.won:0;
+    const convRate=b.total?(b.won/b.total*100):0;
+    return`
+    <div class="lb-row">
+      <span style="font-size:0.9rem;width:22px;flex-shrink:0">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
+      <div class="rep-dot" style="background:${rB(b.email)};color:${rC(b.email)}">${b.name.charAt(0).toUpperCase()}</div>
+      <div style="width:170px;flex-shrink:0;font-size:1rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:9px">${b.name}</div>
+      <div style="display:flex;flex:1;justify-content:space-between;">
+        <div style="text-align:center;min-width:44px"><div style="font-size:1.1rem;font-weight:700;color:var(--text)">${b.total}</div><div style="font-size:0.66rem;color:var(--muted)">TOTAL</div></div>
+        <div style="text-align:center;min-width:44px"><div style="font-size:1.1rem;font-weight:700;color:#3b82f6">${b.demo}</div><div style="font-size:0.66rem;color:var(--muted)">DEMO</div></div>
+        <div style="text-align:center;min-width:48px"><div style="font-size:1.1rem;font-weight:700;color:#60a5fa">${b.quoted}</div><div style="font-size:0.66rem;color:var(--muted)">QUOTE</div></div>
+        <div style="text-align:center;min-width:44px"><div style="font-size:1.1rem;font-weight:700;color:#10b981">${b.won}</div><div style="font-size:0.66rem;color:var(--muted)">WON</div></div>
+        <div style="text-align:center;min-width:76px"><div style="font-size:1.1rem;font-weight:700;color:var(--text)">₹${lFmtINR(avgOrder)}</div><div style="font-size:0.66rem;color:var(--muted)">AVG ORDER</div></div>
+        <div style="text-align:center;min-width:60px"><div style="font-size:1.1rem;font-weight:700;color:#8b5cf6">${convRate.toFixed(0)}%</div><div style="font-size:0.66rem;color:var(--muted)">CONVERSION</div></div>
+        <div style="text-align:center;min-width:76px"><div style="font-size:1.1rem;font-weight:700;color:var(--text)">₹${lFmtINR(b.revenue)}</div><div style="font-size:0.66rem;color:var(--muted)">REVENUE</div></div>
       </div>
-    </div>`;
+    </div>`;}).join('');
 }
 function lSetType(v,b){Ltype=v;document.querySelectorAll('#panel-leads .filter-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');lApply();}
 function lApply(){

@@ -1887,6 +1887,12 @@ body.light-mode .lp-grid{background-image:linear-gradient(rgba(0,0,0,0.04) 1px,t
 }
 #panel-leads .lsrc-btn:hover{color:var(--text);}
 #panel-leads .lsrc-btn.active{background:#3b82f6;color:#fff;box-shadow:0 1px 3px rgba(59,130,246,0.4);}
+
+/* Standalone toggle (Performance of Sales Rep) sits alone, not inside .lsrc-group's pill container —
+   give it its own visible background so it reads as a button even when off. */
+#panel-leads #lRepAllBtn{background:rgba(59,130,246,0.1);color:#3b82f6;padding:8px 20px;}
+#panel-leads #lRepAllBtn:hover{background:rgba(59,130,246,0.18);color:#3b82f6;}
+#panel-leads #lRepAllBtn.active{background:#3b82f6;color:#fff;}
 #panel-leads .chart-card::after{display:none;}
 
 /* KPI cards — one white "sales summary" style card wrapping pastel-filled tiles inside it */
