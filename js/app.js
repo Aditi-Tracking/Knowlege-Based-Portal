@@ -366,7 +366,7 @@ function switchDB(id, fromPopState){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
   // Auto-open dashboard accordion when a sub-dashboard is selected
-  var dashPanels=['leads','enterprise','collection','fms','tasks','ims','crm','mapping'];
+  var dashPanels=['leads','enterprise','collection','fms','tasks','ims','crm','mapping','renewals'];
   if(dashPanels.indexOf(id)>=0){
     var grp=document.getElementById('dashboardSubGroup');
     var arrow=document.getElementById('dashAccordionArrow');
@@ -409,6 +409,7 @@ function switchDB(id, fromPopState){
   if(id==='crm')      { loadCRMDashboard(); }
   if(id==='mapping')   { loadMappingDashboard(); }
   if(id==='adminperms') { loadAdminPermsPanel(); }
+  if(id==='renewals')   { loadRenewals(); }
   if(id==='finance')    { loadSimpleCNPanel('finance',    'Finance').then(()=>_injectPurchaseCard()); }
   if(id==='compliance') { loadSimpleCNPanel('compliance', 'Compliance'); }
   if(id==='referral')   { initReferralProgramme(); }

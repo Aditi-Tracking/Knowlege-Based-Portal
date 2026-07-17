@@ -270,6 +270,12 @@
         <span class="nav-sub-dot"></span>
         <span class="nav-label">CRM Vehicle</span><span class="nav-badge live" style="background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.35);">Live</span>
       </div>
+      <!-- RENEWALS & COLLECTIONS — MIS or matching crm_persons only, shown/hidden by JS. Single entry point for the whole module (lands on Overview tab by default). -->
+      <div class="nav-item nav-sub-item" onclick="switchDB('renewals')" id="nav-renewals" style="display:none;" title="Renewals & Collections">
+        <span class="nav-sub-dot"></span>
+        <span class="nav-label">Renewals &amp; Collections</span>
+        <span class="nav-badge" id="renewalsUnmatchedBadge" style="display:none;background:rgba(255,92,124,0.18);color:#ff5c7c;border:1px solid rgba(255,92,124,0.35);">0</span>
+      </div>
     </div>
 
     <!-- ANNOUNCEMENTS -->
@@ -664,6 +670,11 @@
       <button class="mm-nav-item mm-sub" id="mm-crm" onclick="mobMenuGo('crm')" style="display:none;">
         <span class="mm-subdot"></span><span class="mm-label">CRM Vehicle</span>
         <span class="mm-badge" style="margin-left:auto;background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.35);">Live</span>
+      </button>
+      <!-- Renewals & Collections — MIS or matching crm_persons only, shown/hidden by JS. Single entry point for the whole module (lands on Overview tab by default). -->
+      <button class="mm-nav-item mm-sub" id="mm-renewals" onclick="mobMenuGo('renewals')" style="display:none;">
+        <span class="mm-subdot"></span><span class="mm-label">Renewals &amp; Collections</span>
+        <span class="mm-badge" id="renewalsUnmatchedBadgeMob" style="display:none;margin-left:auto;background:rgba(255,92,124,0.18);color:#ff5c7c;border:1px solid rgba(255,92,124,0.35);">0</span>
       </button>
     </div>
 
@@ -4143,6 +4154,217 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 </div>
 
 <!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL RENEWALS] — Renewals & Collections (MIS: all 5 tabs;
+     ║  CRM persons: My Customers only, no tab bar rendered)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
+<div class="dashboard-panel" id="panel-renewals">
+  <style>
+    #panel-renewals .ru-columns-menu summary{list-style:none;}
+    #panel-renewals .ru-columns-menu summary::-webkit-details-marker{display:none;}
+    #panel-renewals .ru-scroll-top{height:18px;border-bottom:1px solid var(--border);}
+    #panel-renewals .ru-scroll-top-spacer{height:1px;}
+    #panel-renewals tbody tr[id^="ruCustRow-"]:hover{cursor:pointer;}
+    /* Tighter cell spacing for the merged My Customers table specifically —
+       it packs far more columns (up to 6 optional + Action + 10 dates) than
+       other tables in this panel, so the app-wide table padding reads as
+       too loose here. Scoped to this one table so Upload/Unmatched/
+       Unassigned Pool keep their existing spacing. */
+    #ruMyCustomersBody td{padding:6px 9px;line-height:1.3;}
+    #ruMyCustomersBody thead th{padding:6px 9px;}
+    /* Thicker, easier-to-grab horizontal scrollbar for both the top sync strip
+       and the real (bottom) scroller — the app-wide 4px bar is too thin to
+       drag reliably on this especially-wide table. Scoped here so other
+       tables in the app keep their existing thin scrollbar. */
+    #ruMyCustomersBody .table-scroll{scrollbar-width:auto;}
+    #ruMyCustomersBody .table-scroll::-webkit-scrollbar{height:12px;}
+    #ruMyCustomersBody .table-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
+
+    /* Call-log popup — segmented Connected/Not Connected control. Native
+       radios stay in the DOM (for :checked state + existing onchange wiring)
+       but are visually hidden; the label itself is what gets the fill. */
+    .ru-seg-option{position:relative;}
+    .ru-seg-option input{position:absolute;opacity:0;pointer-events:none;}
+    .ru-seg-option:hover{background:var(--surface2);}
+    .ru-seg-yes:has(input:checked){background:#00d4aa;color:#04231d;}
+    .ru-seg-no:has(input:checked){background:#ff5c7c;color:#2b0510;}
+    .ru-call-save-btn:hover{filter:brightness(1.08);}
+    .ru-call-cancel-btn:hover{background:var(--surface2);color:var(--text2);}
+  </style>
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>aditi</span> Renewals &amp; Collections</div>
+      <div class="db-breadcrumb">Home › Renewals &amp; Collections</div>
+    </div>
+  </div>
+  <div class="db-content">
+
+    <!-- Tab buttons injected here at runtime by ruRenderTabBar() — which tabs
+         appear (or whether the bar renders at all) depends on role. -->
+    <div id="ruTabBar" style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;"></div>
+
+    <!-- MY CUSTOMERS — visible to MIS and matching crm_persons -->
+    <div id="ruTab-myCustomers" style="display:none;">
+      <div id="ruMyCustomersBody">
+        <p style="color:var(--muted);font-size:0.88rem;">Loading…</p>
+      </div>
+    </div>
+
+    <!-- UPLOAD — relocated as-is from the old standalone panel-renewalsUpload, ids unchanged -->
+    <div id="ruTab-upload" style="display:none;">
+      <div id="ruDropZone" style="border:2px dashed var(--border);border-radius:14px;padding:36px 20px;text-align:center;cursor:pointer;transition:all 0.18s;margin-bottom:20px;"
+           onclick="document.getElementById('ruFileInput').click()">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);margin-bottom:10px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div id="ruDropLabel" style="font-weight:700;font-size:0.92rem;color:var(--text);">Click to choose or drag &amp; drop the Accounts Excel file</div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-top:4px;">.xlsx or .xls only</div>
+        <input type="file" id="ruFileInput" accept=".xlsx,.xls" style="display:none;" onchange="ruHandleFileSelect(this.files[0])">
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+        <button id="ruSubmitBtn" onclick="ruUpload()" disabled
+          style="padding:10px 22px;border-radius:10px;border:none;background:#00d4aa;color:#04231d;font-weight:700;font-size:0.86rem;cursor:pointer;font-family:inherit;opacity:0.5;">
+          Upload &amp; Process
+        </button>
+      </div>
+
+      <div id="ruStatus" style="display:none;padding:16px;border-radius:12px;border:1px solid var(--border);margin-bottom:24px;">
+        <div id="ruStatusText" style="font-weight:600;font-size:0.88rem;"></div>
+        <div id="ruStatusSummary" style="margin-top:8px;font-size:0.84rem;color:var(--muted);"></div>
+      </div>
+
+      <div class="db-title" style="font-size:1rem;margin-bottom:10px;">Upload History</div>
+      <div class="table-scroll">
+        <table style="width:100%;border-collapse:collapse;font-size:0.84rem;">
+          <thead><tr><th style="text-align:left;padding:8px;">File</th><th style="text-align:left;padding:8px;">Uploaded</th><th style="text-align:left;padding:8px;">Assumed Paid</th></tr></thead>
+          <tbody id="ruHistoryBody"><tr><td colspan="3" style="padding:12px;color:var(--muted);">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RESOLVE UNMATCHED — relocated as-is from the old standalone panel-renewalsUnmatched, ids unchanged -->
+    <div id="ruTab-unmatched" style="display:none;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+        <span id="ruUnmatchedCount" style="font-size:0.84rem;font-weight:700;color:#ff5c7c;background:rgba(255,92,124,0.12);border:1px solid rgba(255,92,124,0.3);border-radius:20px;padding:5px 14px;">0 unresolved</span>
+      </div>
+      <div class="table-scroll">
+        <table style="width:100%;border-collapse:collapse;font-size:0.84rem;">
+          <thead><tr>
+            <th style="text-align:left;padding:8px;">Raw Name</th>
+            <th style="text-align:right;padding:8px;">Grand Total</th>
+            <th style="text-align:right;padding:8px;">0-30</th>
+            <th style="text-align:right;padding:8px;">31-60</th>
+            <th style="text-align:right;padding:8px;">61-90</th>
+            <th style="text-align:right;padding:8px;">Above 90</th>
+            <th style="text-align:left;padding:8px;">Batch Date</th>
+            <th style="text-align:left;padding:8px;">Assign To</th>
+            <th style="text-align:left;padding:8px;">Category</th>
+            <th style="text-align:center;padding:8px;">Action</th>
+          </tr></thead>
+          <tbody id="ruUnmatchedBody"><tr><td colspan="10" style="padding:12px;color:var(--muted);">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- UNASSIGNED POOL — MIS-only -->
+    <div id="ruTab-unassignedPool" style="display:none;">
+      <div id="ruUnassignedPoolBody">
+        <p style="color:var(--muted);font-size:0.88rem;">Loading…</p>
+      </div>
+    </div>
+
+    <!-- OVERVIEW — MIS-only; built in a later stage -->
+    <div id="ruTab-overview" style="display:none;">
+      <div id="ruOverviewBody">
+        <p style="color:var(--muted);font-size:0.88rem;">Loading…</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- RENEWALS — My Customers row detail (billing/contact info + Reassign + Call History).
+     Two-column layout/breakpoint mirrors .fms-overlay-box.fms-timeline-box's
+     existing pattern (css/styles.css) — same 900px collapse, same
+     max-height:68vh-per-column + border-left→border-top swap — rather than
+     inventing a new one. -->
+<style>
+  #ruCustomerDetailOverlay .fms-overlay-box{box-shadow:var(--shadow-lg);animation:ruModalPopIn 0.2s ease-out;}
+  @keyframes ruModalPopIn{from{opacity:0;transform:translateY(10px) scale(0.98);}to{opacity:1;transform:translateY(0) scale(1);}}
+  /* Higher-specificity #id+.class selector, not just .ru-detail-box alone —
+     needs to reliably beat .fms-overlay-box's own max-height/overflow-y
+     regardless of stylesheet source order. */
+  #ruCustomerDetailOverlay .ru-detail-box{max-width:760px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+  .ru-detail-columns{display:flex;gap:1.2rem;flex:1;min-height:0;}
+  .ru-detail-col-left{flex:1;min-width:0;overflow-y:auto;max-height:68vh;padding-right:8px;}
+  .ru-detail-col-right{flex:1;min-width:0;overflow-y:auto;max-height:68vh;border-left:1px solid var(--border);padding-left:1.2rem;}
+  @media (max-width:900px){
+    .ru-detail-columns{flex-direction:column;}
+    .ru-detail-col-left,.ru-detail-col-right{max-height:none;}
+    .ru-detail-col-right{border-left:none;border-top:1px solid var(--border);padding-left:0;padding-top:1rem;}
+  }
+  .ru-detail-section{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:12px;}
+  .ru-detail-section:last-child{margin-bottom:0;}
+  .ru-detail-section-title{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin-bottom:9px;}
+  .ru-detail-grid{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:0.86rem;color:var(--text);}
+  .ru-history-row{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.82rem;}
+  .ru-history-row:last-child{border-bottom:none;padding-bottom:0;}
+</style>
+<div class="fms-overlay-backdrop" id="ruCustomerDetailOverlay">
+  <div class="fms-overlay-box ru-detail-box">
+    <button onclick="ruCloseCustomerDetail()" style="position:absolute;top:14px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+    <div style="margin-bottom:1.1rem;padding-right:24px;">
+      <div id="ruCustomerDetailTitle" style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:#00d4aa;line-height:1.25;"></div>
+      <div id="ruCustomerDetailSubtitle" style="font-size:0.78rem;color:var(--muted);margin-top:3px;"></div>
+    </div>
+
+    <div class="ru-detail-columns">
+      <div class="ru-detail-col-left">
+        <div class="ru-detail-section">
+          <div class="ru-detail-section-title">Contact</div>
+          <div id="ruCustomerDetailContact" class="ru-detail-grid"></div>
+        </div>
+        <div class="ru-detail-section">
+          <div class="ru-detail-section-title">Account</div>
+          <div id="ruCustomerDetailAccount" class="ru-detail-grid"></div>
+        </div>
+        <div class="ru-detail-section">
+          <div class="ru-detail-section-title">Financial</div>
+          <div id="ruCustomerDetailFinancial" class="ru-detail-grid"></div>
+        </div>
+
+        <div class="ru-detail-section" style="background:rgba(240,165,0,0.06);border-color:rgba(240,165,0,0.25);">
+          <div class="ru-detail-section-title">Actions</div>
+          <div class="fms-form-group" style="margin-bottom:0;">
+            <label class="fms-form-label">Reassign To</label>
+            <select id="ruCustomerDetailReassign" class="fms-form-input"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="ru-detail-col-right">
+        <div class="ru-detail-section" style="margin-bottom:0;">
+          <div class="ru-detail-section-title">Call History</div>
+          <div id="ruCustomerDetailHistory"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RENEWALS — shared styled tooltip for calendar-cell call notes (replaces
+     the native `title` attribute, which can't be styled and clips at table
+     edges). Positioned via JS in ruShowCallTooltip/ruHideCallTooltip. -->
+<style>
+  #ruCallTooltip{
+    position:fixed;z-index:2000;max-width:240px;
+    background:var(--surface);color:var(--text);border:1px solid var(--border);
+    border-radius:var(--radius-sm);padding:8px 11px;font-size:0.8rem;font-weight:500;line-height:1.45;
+    box-shadow:0 8px 24px rgba(0,0,0,0.18);white-space:normal;word-wrap:break-word;
+    pointer-events:none;
+  }
+</style>
+<div id="ruCallTooltip" class="ru-call-tooltip" style="display:none;"></div>
+
+<!-- ╔═══════════════════════════════════════════════════════════════════════
      ║  [PANEL FINANCE] — Finance documents (marked "Soon" — coming soon)
      ║  Invoices, expense reports, financial docs yahan aayenge
      ╚═══════════════════════════════════════════════════════════════════════ -->
@@ -5756,5 +5978,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/celebrations.js"></script>
 <script src="js/announcements.js"></script>
 <script src="js/adminperms.js"></script>
+<script src="js/renewals.js"></script>
 <script src="js/vendor.js"></script>
 </body></html>

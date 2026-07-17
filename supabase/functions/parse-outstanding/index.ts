@@ -1,6 +1,9 @@
-// Triggered by a Supabase Database Webhook on storage.objects INSERT, filtered to
-// bucket_id = 'accounts-uploads'. Parses the uploaded Accounts Excel export and
-// reconciles it against outstanding_snapshots.
+// Triggered by trigger_parse_outstanding_fn (storage.objects INSERT, filtered to
+// bucket_id = 'accounts-uploads'). Parses the uploaded Accounts Excel export and
+// reconciles it against outstanding_snapshots. The trigger creates an import_jobs
+// row and passes its id as payload.job_id — this function reports status/summary/
+// error back against that row so the frontend can poll it directly instead of
+// inferring completion from row-count changes.
 //
 // Required secrets (set via `supabase secrets set`):
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  (auto-injected by the platform)
@@ -53,6 +56,11 @@ function parseNum(v: unknown): number {
 }
 
 Deno.serve(async (req) => {
+  // Declared outside the try block so the catch handler can still report
+  // status back against the right import_jobs row if something throws.
+  let jobId: string | undefined;
+  let supabase: ReturnType<typeof createClient> | undefined;
+
   try {
     const secret = req.headers.get("x-webhook-secret");
     if (secret !== Deno.env.get("WEBHOOK_SECRET")) {
@@ -60,19 +68,28 @@ Deno.serve(async (req) => {
     }
 
     const payload = await req.json();
+    jobId = payload?.job_id;
+
+    supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
     const record = payload?.record;
     if (!record || record.bucket_id !== BUCKET) {
       return new Response(JSON.stringify({ skipped: true, reason: "not an accounts-uploads event" }), { status: 200 });
     }
     const objectPath: string = record.name;
     if (!/\.xlsx?$/i.test(objectPath)) {
+      if (jobId) {
+        await supabase.from("import_jobs").update({
+          status: "error",
+          error_message: "Not an Excel file (.xlsx/.xls expected)",
+          completed_at: new Date().toISOString(),
+        }).eq("id", jobId);
+      }
       return new Response(JSON.stringify({ skipped: true, reason: "not an Excel file" }), { status: 200 });
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
 
     const { data: fileBlob, error: downloadError } = await supabase.storage.from(BUCKET).download(objectPath);
     if (downloadError || !fileBlob) {
@@ -84,6 +101,12 @@ Deno.serve(async (req) => {
     const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: null });
 
     if (rows.length === 0) {
+      if (jobId) {
+        await supabase.from("import_jobs").update({
+          status: "done", rows_processed: 0, matched: 0, unmatched: 0, closed: 0,
+          completed_at: new Date().toISOString(),
+        }).eq("id", jobId);
+      }
       return new Response(JSON.stringify({ rows_processed: 0, matched: 0, unmatched: 0, closed: 0 }), { status: 200 });
     }
 
@@ -103,16 +126,21 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const previousBatchDate: string | null = prevDateRow?.snapshot_date ?? null;
 
-    let previousActive: { customer_id: string; grand_total: number }[] = [];
+    let previousActive: { customer_id: string; grand_total: number; crm_customers: { billing_name: string } | null }[] = [];
     if (previousBatchDate) {
       const { data } = await supabase
         .from("outstanding_snapshots")
-        .select("customer_id, grand_total")
+        .select("customer_id, grand_total, crm_customers(billing_name)")
         .eq("snapshot_date", previousBatchDate)
         .eq("is_closed", false);
       previousActive = data ?? [];
     }
-    const previousActiveMap = new Map(previousActive.map((r) => [r.customer_id, r.grand_total]));
+    // billing_name carried alongside grand_total here purely so the closed
+    // loop below can denormalize it into import_job_closures — see that
+    // table's migration for why it's copied rather than joined live later.
+    const previousActiveMap = new Map(
+      previousActive.map((r) => [r.customer_id, { grandTotal: r.grand_total, billingName: r.crm_customers?.billing_name ?? "" }]),
+    );
 
     let matched = 0;
     let unmatched = 0;
@@ -179,7 +207,7 @@ Deno.serve(async (req) => {
     }
 
     let closed = 0;
-    for (const [customerId, prevGrandTotal] of previousActiveMap) {
+    for (const [customerId, prev] of previousActiveMap) {
       if (matchedCustomerIds.has(customerId)) continue;
       closed++;
       await supabase.from("outstanding_snapshots").upsert(
@@ -191,11 +219,34 @@ Deno.serve(async (req) => {
           bucket_61_90: 0,
           bucket_above_90: 0,
           grand_total: 0,
-          recovered_amount: prevGrandTotal,
+          recovered_amount: prev.grandTotal,
           is_closed: true,
         },
         { onConflict: "customer_id,snapshot_date" },
       );
+
+      // Auto-close behavior itself is unchanged above — this just makes
+      // which customers got closed in which import reviewable afterward,
+      // instead of only a one-time count shown right after upload.
+      if (jobId) {
+        await supabase.from("import_job_closures").insert({
+          import_job_id: jobId,
+          customer_id: customerId,
+          billing_name: prev.billingName,
+          prev_grand_total: prev.grandTotal,
+        });
+      }
+    }
+
+    if (jobId) {
+      await supabase.from("import_jobs").update({
+        status: "done",
+        rows_processed: rows.length,
+        matched,
+        unmatched,
+        closed,
+        completed_at: new Date().toISOString(),
+      }).eq("id", jobId);
     }
 
     return new Response(
@@ -203,7 +254,19 @@ Deno.serve(async (req) => {
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err?.message ?? err) }), {
+    const message = String(err?.message ?? err);
+    if (jobId && supabase) {
+      try {
+        await supabase.from("import_jobs").update({
+          status: "error",
+          error_message: message,
+          completed_at: new Date().toISOString(),
+        }).eq("id", jobId);
+      } catch (_e) {
+        // best-effort — don't let a failed status update mask the original error
+      }
+    }
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

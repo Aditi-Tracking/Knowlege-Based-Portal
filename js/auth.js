@@ -353,6 +353,8 @@ function showPortal(){
     if (_acpNav) _acpNav.style.display = _hasAccess ? '' : 'none';
     if (_acpMobNav) _acpMobNav.style.display = _hasAccess ? 'flex' : 'none';
   }
+  // Renewals & Collections nav (Upload Outstanding Data / Resolve Unmatched) — owner or MIS only
+  _applyRenewalsNavVisibility();
   // Fetch employee profile photo from Supabase → home page pe dikhao
   fetchUserProfilePhoto();
   // Performer of the Month cards load karo
