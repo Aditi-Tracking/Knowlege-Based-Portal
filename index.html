@@ -4209,6 +4209,13 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
     </div>
 
+    <!-- CLOSED/PAID — customers whose latest outstanding snapshot is 0; visible to MIS and matching crm_persons -->
+    <div id="ruTab-closedPaid" style="display:none;">
+      <div id="ruClosedPaidBody">
+        <p style="color:var(--muted);font-size:0.88rem;">Loading…</p>
+      </div>
+    </div>
+
     <!-- UPLOAD — relocated as-is from the old standalone panel-renewalsUpload, ids unchanged -->
     <div id="ruTab-upload" style="display:none;">
       <div id="ruDropZone" style="border:2px dashed var(--border);border-radius:14px;padding:36px 20px;text-align:center;cursor:pointer;transition:all 0.18s;margin-bottom:20px;"
@@ -4234,8 +4241,8 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <div class="db-title" style="font-size:1rem;margin-bottom:10px;">Upload History</div>
       <div class="table-scroll">
         <table style="width:100%;border-collapse:collapse;font-size:0.84rem;">
-          <thead><tr><th style="text-align:left;padding:8px;">File</th><th style="text-align:left;padding:8px;">Uploaded</th><th style="text-align:left;padding:8px;">Assumed Paid</th></tr></thead>
-          <tbody id="ruHistoryBody"><tr><td colspan="3" style="padding:12px;color:var(--muted);">Loading…</td></tr></tbody>
+          <thead><tr><th style="text-align:left;padding:8px;">File</th><th style="text-align:left;padding:8px;">Uploaded</th></tr></thead>
+          <tbody id="ruHistoryBody"><tr><td colspan="2" style="padding:12px;color:var(--muted);">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>

@@ -335,6 +335,7 @@ let _ruUnassignedPoolCount = 0;  // shown as a "(N)" suffix on the tab button it
 
 const RU_TABS = [
   { id: 'myCustomers',    label: 'My Customers' },
+  { id: 'closedPaid',     label: 'Closed/Paid' },
   { id: 'upload',         label: 'Upload' },
   { id: 'unmatched',      label: 'Resolve Unmatched' },
   { id: 'unassignedPool', label: 'Unassigned Pool' },
@@ -398,7 +399,11 @@ async function _ruCount(table, query) {
 
 async function _ruRefreshUnmatchedBadge() {
   try {
-    const count = await _ruCount('unmatched_import_names', 'resolved=eq.false');
+    // Reads the same deduplicated (latest-per-raw_name) view Resolve
+    // Unmatched itself displays, so the badge count never disagrees with
+    // what's actually shown there. id=not.is.null is a no-op filter (id is
+    // NOT NULL) — _ruCount always needs a non-empty query segment.
+    const count = await _ruCount('latest_unmatched_import_names', 'id=not.is.null');
     const badge = document.getElementById('renewalsUnmatchedBadge');
     const badgeMob = document.getElementById('renewalsUnmatchedBadgeMob');
     [badge, badgeMob].forEach(b => {
@@ -435,7 +440,7 @@ async function _ruRefreshUnassignedPoolBadge() {
 
 function _ruVisibleTabIds() {
   if (_ruIsMIS) return RU_TABS.map(t => t.id);
-  if (_ruCrmPerson) return ['myCustomers', 'overview'];
+  if (_ruCrmPerson) return ['myCustomers', 'closedPaid', 'overview'];
   return [];
 }
 
@@ -483,6 +488,7 @@ function ruSwitchTab(tabId) {
   if (tabId === 'upload') loadRenewalsUpload();
   else if (tabId === 'unmatched') loadRenewalsUnmatched();
   else if (tabId === 'myCustomers') loadRenewalsMyCustomers();
+  else if (tabId === 'closedPaid') loadRenewalsClosedPaid();
   else if (tabId === 'unassignedPool') loadRenewalsUnassignedPool();
   else if (tabId === 'overview') loadRenewalsOverview();
 }
@@ -634,7 +640,7 @@ function ruWatchProcessing(filePath) {
 
 async function ruLoadHistory() {
   const body = document.getElementById('ruHistoryBody');
-  body.innerHTML = '<tr><td colspan="3" style="padding:12px;color:var(--muted);">Loading…</td></tr>';
+  body.innerHTML = '<tr><td colspan="2" style="padding:12px;color:var(--muted);">Loading…</td></tr>';
   try {
     const res = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${RU_BUCKET}`, {
       method: 'POST',
@@ -648,86 +654,18 @@ async function ruLoadHistory() {
     }
     const files = await res.json();
     if (!Array.isArray(files) || !files.length) {
-      body.innerHTML = '<tr><td colspan="3" style="padding:12px;color:var(--muted);">No uploads yet.</td></tr>';
+      body.innerHTML = '<tr><td colspan="2" style="padding:12px;color:var(--muted);">No uploads yet.</td></tr>';
       return;
     }
 
-    // Joined by file_path — the same matching key ruWatchProcessing already
-    // uses to find a specific upload's import_jobs row. Storage object names
-    // are sanitized to [a-zA-Z0-9._-] at upload time (see ruUpload's
-    // safeName), so they're safe to join unquoted into an in.() filter here.
-    const jobsByFile = new Map();
-    try {
-      const jobsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/import_jobs?file_path=in.(${files.map(f => f.name).join(',')})&select=id,file_path,closed`,
-        { headers: SB_HDRS() },
-      );
-      if (jobsRes.ok) {
-        const jobs = await jobsRes.json();
-        jobs.forEach(j => jobsByFile.set(j.file_path, j));
-      }
-    } catch (e) {
-      // Supplementary — a failure here shouldn't block showing the file
-      // list itself, every row just falls back to showing "—".
-    }
-
-    body.innerHTML = files.map(f => {
-      const job = jobsByFile.get(f.name);
-      const closedCell = (job && job.closed > 0)
-        ? `<button onclick="ruToggleClosedList('${job.id}')" style="padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;">${job.closed} assumed paid · View</button>`
-        : '<span style="color:var(--muted);">—</span>';
-      return `
-        <tr>
-          <td style="padding:8px;">${_ruEsc(f.name)}</td>
-          <td style="padding:8px;">${f.created_at ? new Date(f.created_at).toLocaleString('en-IN') : '—'}</td>
-          <td style="padding:8px;">${closedCell}</td>
-        </tr>
-        ${job && job.closed > 0 ? `
-        <tr id="ruClosedPanel-${job.id}" style="display:none;">
-          <td colspan="3" style="padding:0 8px 10px;">
-            <div id="ruClosedList-${job.id}" style="max-width:420px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--surface2);font-size:0.82rem;"></div>
-          </td>
-        </tr>` : ''}
-      `;
-    }).join('');
-  } catch (e) {
-    body.innerHTML = `<tr><td colspan="3" style="padding:12px;color:var(--hot,#ff5c7c);">⚠️ Could not load history: ${e.message}</td></tr>`;
-  }
-}
-
-// Same toggle-a-hidden-row pattern as ruToggleCallPanel. Fetches the closure
-// list once on first expand (dataset.loaded caches it — collapsing/
-// re-expanding doesn't re-fetch).
-async function ruToggleClosedList(jobId) {
-  const panel = document.getElementById(`ruClosedPanel-${jobId}`);
-  if (!panel) return;
-  const opening = panel.style.display === 'none';
-  panel.style.display = opening ? 'table-row' : 'none';
-  if (!opening) return;
-
-  const listEl = document.getElementById(`ruClosedList-${jobId}`);
-  if (listEl.dataset.loaded) return;
-  listEl.innerHTML = '<p style="color:var(--muted);margin:0;">Loading…</p>';
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/import_job_closures?import_job_id=eq.${jobId}&select=billing_name,prev_grand_total&order=billing_name.asc`,
-      { headers: SB_HDRS() },
-    );
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const rows = await res.json();
-    listEl.dataset.loaded = 'true';
-    if (!rows.length) {
-      listEl.innerHTML = '<p style="color:var(--muted);margin:0;">No closures recorded for this import.</p>';
-      return;
-    }
-    listEl.innerHTML = rows.map(r => `
-      <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;">
-        <span>${_ruEsc(r.billing_name)}</span>
-        <span style="color:var(--muted);">₹${Number(r.prev_grand_total).toLocaleString('en-IN')}</span>
-      </div>
+    body.innerHTML = files.map(f => `
+      <tr>
+        <td style="padding:8px;">${_ruEsc(f.name)}</td>
+        <td style="padding:8px;">${f.created_at ? new Date(f.created_at).toLocaleString('en-IN') : '—'}</td>
+      </tr>
     `).join('');
   } catch (e) {
-    listEl.innerHTML = `<p style="color:var(--hot,#ff5c7c);margin:0;">⚠️ Could not load: ${e.message}</p>`;
+    body.innerHTML = `<tr><td colspan="2" style="padding:12px;color:var(--hot,#ff5c7c);">⚠️ Could not load history: ${e.message}</td></tr>`;
   }
 }
 
@@ -736,19 +674,25 @@ async function ruToggleClosedList(jobId) {
 // panel-renewalsUnmatched
 // ═══════════════════════════════════════════════════════════════════════
 
+let _ruUnmatchedRows = []; // in-memory lookup for raw_name by id — see ruAssign/ruIgnore
+
 async function loadRenewalsUnmatched() {
   const body = document.getElementById('ruUnmatchedBody');
   body.innerHTML = '<tr><td colspan="10" style="padding:12px;color:var(--muted);">Loading…</td></tr>';
   try {
     const [personsRes, rowsRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
-      fetch(`${SUPABASE_URL}/rest/v1/unmatched_import_names?resolved=eq.false&order=grand_total.desc&select=*`, { headers: SB_HDRS() }),
+      // One row per raw_name (the most recent still-unresolved occurrence) —
+      // see migration 0018. Older duplicate rows for the same raw_name
+      // (from a prior month's upload, still unresolved back then) stay in
+      // the underlying table but aren't shown here.
+      fetch(`${SUPABASE_URL}/rest/v1/latest_unmatched_import_names?order=grand_total.desc&select=*`, { headers: SB_HDRS() }),
     ]);
     if (!personsRes.ok) throw new Error('crm_persons: HTTP ' + personsRes.status);
-    if (!rowsRes.ok) throw new Error('unmatched_import_names: HTTP ' + rowsRes.status);
+    if (!rowsRes.ok) throw new Error('latest_unmatched_import_names: HTTP ' + rowsRes.status);
     _ruPersons = await personsRes.json();
-    const rows = await rowsRes.json();
-    ruRenderUnmatched(rows);
+    _ruUnmatchedRows = await rowsRes.json();
+    ruRenderUnmatched(_ruUnmatchedRows);
   } catch (e) {
     body.innerHTML = `<tr><td colspan="10" style="padding:12px;color:var(--hot,#ff5c7c);">⚠️ ${e.message}</td></tr>`;
   }
@@ -792,6 +736,25 @@ function ruRenderUnmatched(rows) {
   `).join('');
 }
 
+// Sweeps every OTHER still-unresolved row sharing this raw_name (stale
+// duplicates left over from a prior month's upload, back when this name was
+// already pending) so they don't linger as orphaned unresolved entries once
+// the current one is handled — see migration 0018. Best-effort: the primary
+// action (assign/ignore) has already succeeded by the time this runs, so a
+// failure here is logged, not surfaced as an error to the user.
+async function _ruSweepUnmatchedDuplicates(rawName, resolvedCustomerId) {
+  try {
+    const body = { resolved: true };
+    if (resolvedCustomerId) body.resolved_customer_id = resolvedCustomerId;
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/unmatched_import_names?raw_name=eq.${encodeURIComponent(rawName)}&resolved=eq.false`,
+      { method: 'PATCH', headers: SB_HDRS_MIN(), body: JSON.stringify(body) },
+    );
+  } catch (e) {
+    console.error('Failed to sweep duplicate unmatched rows for', rawName, e);
+  }
+}
+
 async function ruAssign(id) {
   const personId = document.getElementById(`ruPerson-${id}`).value;
   const category = document.getElementById(`ruCategory-${id}`).value;
@@ -808,8 +771,13 @@ async function ruAssign(id) {
       const errBody = await res.json().catch(() => ({}));
       throw new Error(errBody.message || ('HTTP ' + res.status));
     }
-    const row = document.getElementById(`ruRow-${id}`);
-    if (row) row.remove();
+    const newCustomerId = await res.json(); // resolve_unmatched_customer() returns the new customer's uuid directly
+
+    const row = _ruUnmatchedRows.find(r => r.id === id);
+    if (row) await _ruSweepUnmatchedDuplicates(row.raw_name, newCustomerId);
+
+    const rowEl = document.getElementById(`ruRow-${id}`);
+    if (rowEl) rowEl.remove();
     _ruRefreshUnmatchedBadge();
     const countEl = document.getElementById('ruUnmatchedCount');
     const remaining = document.querySelectorAll('#ruUnmatchedBody tr[id^="ruRow-"]').length;
@@ -822,14 +790,18 @@ async function ruAssign(id) {
 async function ruIgnore(id) {
   if (!confirm('Mark this row as resolved without creating a customer?')) return;
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/unmatched_import_names?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: SB_HDRS_MIN(),
-      body: JSON.stringify({ resolved: true }),
-    });
+    const row = _ruUnmatchedRows.find(r => r.id === id);
+    if (!row) throw new Error('row not found — try refreshing the tab');
+
+    // Scoped by raw_name (not just this id) so any older still-unresolved
+    // duplicate for the same name gets ignored too in one call.
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/unmatched_import_names?raw_name=eq.${encodeURIComponent(row.raw_name)}&resolved=eq.false`,
+      { method: 'PATCH', headers: SB_HDRS_MIN(), body: JSON.stringify({ resolved: true }) },
+    );
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const row = document.getElementById(`ruRow-${id}`);
-    if (row) row.remove();
+    const rowEl = document.getElementById(`ruRow-${id}`);
+    if (rowEl) rowEl.remove();
     _ruRefreshUnmatchedBadge();
     const countEl = document.getElementById('ruUnmatchedCount');
     const remaining = document.querySelectorAll('#ruUnmatchedBody tr[id^="ruRow-"]').length;
@@ -1023,9 +995,18 @@ function _ruRenderMyCustomersTableBody() {
 
   // MIS/owner-only filter (irrelevant/'' for a CRM person, who's already
   // scoped to their own book by the fetch itself).
-  const visibleCustomers = !_ruAssignedToFilter ? _ruMyCustomers : _ruMyCustomers.filter(c =>
+  const assignedFiltered = !_ruAssignedToFilter ? _ruMyCustomers : _ruMyCustomers.filter(c =>
     _ruAssignedToFilter === '__unassigned__' ? !c.assigned_crm_person_id : c.assigned_crm_person_id === _ruAssignedToFilter
   );
+
+  // CRM only calls customers who actually owe money — a customer with no
+  // snapshot at all (never uploaded) or a latest grand_total of 0 (paid up,
+  // via either the auto-close-missing path or the file itself reporting 0)
+  // no longer belongs here. Zero-balance customers move to the Closed/Paid
+  // tab instead; a never-uploaded customer isn't in either tab, which is a
+  // data-quality signal worth seeing in Resolve Unmatched/crm_customers
+  // directly rather than silently absorbed into "closed/paid".
+  const visibleCustomers = assignedFiltered.filter(c => c._snapshot && Number(c._snapshot.grand_total) > 0);
 
   const sections = RU_CATEGORY_ORDER.map(cat => {
     const inCat = visibleCustomers.filter(c => c.category === cat);
@@ -1062,7 +1043,15 @@ function _ruRenderMyCustomersTableBody() {
     `;
   }).join('');
 
-  return sections || `<p style="color:var(--muted);font-size:0.88rem;">${_ruAssignedToFilter ? 'No customers match this filter.' : (_ruIsMIS ? 'No customers found.' : 'No customers assigned to you yet.')}</p>`;
+  if (sections) return sections;
+  if (_ruAssignedToFilter) return '<p style="color:var(--muted);font-size:0.88rem;">No customers match this filter.</p>';
+  // Distinguish "nothing assigned at all" from "assigned, but everyone's
+  // paid up" — the latter is a real, expected state now that zero-balance
+  // customers are filtered out here, not an empty book.
+  if (assignedFiltered.length) {
+    return '<p style="color:var(--muted);font-size:0.88rem;">Everyone in this book is paid up — see the Closed/Paid tab.</p>';
+  }
+  return `<p style="color:var(--muted);font-size:0.88rem;">${_ruIsMIS ? 'No customers found.' : 'No customers assigned to you yet.'}</p>`;
 }
 
 function _ruLastCallText(customer) {
@@ -1541,6 +1530,146 @@ async function ruReassign(customerId, selectEl) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// TAB: Closed/Paid — customers whose latest outstanding snapshot is 0.
+// Visible to MIS (all) and a CRM person (their own book), same scoping as
+// My Customers. Read-only — no Call/Reassign here, there's nothing to call
+// about and reassigning a paid-off customer isn't a real workflow.
+// ═══════════════════════════════════════════════════════════════════════
+
+let _ruClosedPaid = [];
+
+async function loadRenewalsClosedPaid() {
+  const container = document.getElementById('ruClosedPaidBody');
+  container.innerHTML = '<p style="color:var(--muted);font-size:0.88rem;">Loading…</p>';
+
+  try {
+    const scopeQuery = _ruIsMIS ? '' : `&assigned_crm_person_id=eq.${_ruCrmPerson.id}`;
+    const custRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/crm_customers?select=id,billing_name,category,assigned_crm_person_id&order=billing_name.asc${scopeQuery}`,
+      { headers: SB_HDRS() },
+    );
+    if (!custRes.ok) throw new Error('crm_customers: HTTP ' + custRes.status);
+    const customers = await custRes.json();
+
+    if (!customers.length) {
+      _ruClosedPaid = [];
+      container.innerHTML = `<p style="color:var(--muted);font-size:0.88rem;">${_ruIsMIS ? 'No customers found.' : 'No customers assigned to you yet.'}</p>`;
+      return;
+    }
+
+    const ids = customers.map(c => c.id).join(',');
+    const [snapRes, personsRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/latest_outstanding_snapshots?customer_id=in.(${ids})&select=customer_id,grand_total`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
+    ]);
+    if (!snapRes.ok) throw new Error('latest_outstanding_snapshots: HTTP ' + snapRes.status);
+    if (!personsRes.ok) throw new Error('crm_persons: HTTP ' + personsRes.status);
+
+    const snaps = await snapRes.json();
+    _ruAllPersons = await personsRes.json();
+    const snapMap = new Map(snaps.map(s => [s.customer_id, s]));
+
+    // Narrow to the zero-balance subset FIRST, then fetch full history only
+    // for that (usually much smaller) set — not the whole book. Bounded,
+    // unlike fetching every customer's full history would be.
+    const closedIds = customers
+      .filter(c => {
+        const snap = snapMap.get(c.id);
+        return snap && Number(snap.grand_total) === 0;
+      })
+      .map(c => c.id);
+
+    if (!closedIds.length) {
+      _ruClosedPaid = [];
+      container.innerHTML = '<p style="color:var(--muted);font-size:0.88rem;">No closed/paid customers.</p>';
+      return;
+    }
+
+    const historyRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/outstanding_snapshots?customer_id=in.(${closedIds.join(',')})&select=customer_id,snapshot_date,grand_total&order=customer_id.asc,snapshot_date.asc`,
+      { headers: SB_HDRS() },
+    );
+    if (!historyRes.ok) throw new Error('outstanding_snapshots: HTTP ' + historyRes.status);
+    const history = await historyRes.json();
+
+    const historyByCustomer = new Map();
+    history.forEach(row => {
+      if (!historyByCustomer.has(row.customer_id)) historyByCustomer.set(row.customer_id, []);
+      historyByCustomer.get(row.customer_id).push(row);
+    });
+
+    const customerById = new Map(customers.map(c => [c.id, c]));
+    _ruClosedPaid = closedIds.map(id => {
+      const info = _ruDeriveClosedInfo(historyByCustomer.get(id) || []);
+      return { ...customerById.get(id), _closedDate: info.closedDate, _priorOutstanding: info.priorOutstanding };
+    });
+
+    ruRenderClosedPaid(container);
+  } catch (e) {
+    container.innerHTML = `<p style="color:var(--hot,#ff5c7c);font-size:0.88rem;">⚠️ ${e.message}</p>`;
+  }
+}
+
+// history: that customer's full snapshot rows, ascending by date, all with
+// grand_total already confirmed 0 at the latest point. Walks back from the
+// latest row while still 0 to find where the current zero-streak began —
+// "date closed" is that transition point, not just "whatever the latest
+// snapshot happens to be dated", so a customer sitting at 0 for months
+// still shows the date they actually closed, not today's import date.
+function _ruDeriveClosedInfo(history) {
+  if (!history.length) return { closedDate: null, priorOutstanding: null };
+  let i = history.length - 1;
+  while (i > 0 && Number(history[i - 1].grand_total) === 0) i--;
+  const priorRow = i > 0 ? history[i - 1] : null;
+  return {
+    closedDate: history[i].snapshot_date,
+    priorOutstanding: priorRow ? Number(priorRow.grand_total) : null,
+  };
+}
+
+function ruRenderClosedPaid(container) {
+  if (!container) return;
+
+  const sections = RU_CATEGORY_ORDER.map(cat => {
+    const inCat = _ruClosedPaid.filter(c => c.category === cat);
+    if (!inCat.length) return '';
+
+    // Most recently closed first — the ones worth a fresh look first.
+    const sorted = [...inCat].sort((a, b) => (b._closedDate || '').localeCompare(a._closedDate || ''));
+
+    return `
+      <div class="table-card" style="margin-bottom:20px;">
+        <div class="table-header">
+          <span class="table-title">${cat} (${inCat.length})</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>Billing Name</th>
+              <th>Category</th>
+              <th style="text-align:right;">Last Outstanding</th>
+              <th>Date Closed/Paid</th>
+              ${_ruIsMIS ? '<th>Assigned To</th>' : ''}
+            </tr></thead>
+            <tbody>${sorted.map(c => `
+              <tr>
+                <td>${_ruEsc(c.billing_name)}</td>
+                <td>${_ruEsc(c.category || '—')}</td>
+                <td style="text-align:right;">${c._priorOutstanding !== null ? Number(c._priorOutstanding).toLocaleString('en-IN') : '—'}</td>
+                <td>${_ruEsc(c._closedDate || '—')}</td>
+                ${_ruIsMIS ? `<td>${_ruEsc(_ruAssignedPersonName(c) || '— Unassigned —')}</td>` : ''}
+              </tr>
+            `).join('')}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = sections || '<p style="color:var(--muted);font-size:0.88rem;">No closed/paid customers.</p>';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // TAB: Unassigned Pool — MIS-only
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -1950,3 +2079,8 @@ function _ruBuildOverviewCharts(data) {
   }
 }
 
+
+
+
+
+  
