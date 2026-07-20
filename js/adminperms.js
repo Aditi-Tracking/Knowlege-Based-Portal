@@ -19,7 +19,7 @@ const _permLabels = {
   can_view_fms:           '🔧 FMS Installation Tracker',
       fms_create:             '📋 FMS Create Order',
       fms_support:            '👷 FMS Support Actions',
-      fms_config:             '⚙️ FMS Config (Anish)',
+      fms_config:             '⚙️ FMS Config (Device Configuration)',
       fms_view_all:           '👁 FMS View All Orders',
       fms_override:           '🔑 FMS Override (MIS)',
   can_view_ims:           '📦 IMS Dashboard',

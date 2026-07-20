@@ -19,10 +19,15 @@ let _fmsSelectedLocation = null; // {id, name} or {id:'other', name:'Other'}
 let _fmsClientSearchTimeout = null;
 let _fmsEmpMap = { 'outsource':'Outsource', 'self_installed':'Self Installed by Client' }; // email → name cache
 
-// ── Config persons — Anish (Mumbai) + Kush (Goa) — both do device configuration ──
-const FMS_ANISH_EMAIL = 'support_1@adititracking.com';
-const FMS_KUSH_EMAIL  = 'supportgoa1@adititracking.com';
-const FMS_CONFIG_EMAILS = [FMS_ANISH_EMAIL, FMS_KUSH_EMAIL];
+// ── Config persons — Anish (Mumbai), Kush (Goa), Kinchit + Bhumit (Gujarat),
+// Ankush (Bangalore) — all do device configuration. Emails match
+// FMS_CERT_ELIGIBLE_EMAILS below exactly (same people, same accounts). ──
+const FMS_ANISH_EMAIL   = 'support_1@adititracking.com';
+const FMS_KUSH_EMAIL    = 'supportgoa1@adititracking.com';
+const FMS_KINCHIT_EMAIL = 'supportahd1@adititracking.com';
+const FMS_BHUMIT_EMAIL  = 'supportahd2@adititracking.com';
+const FMS_ANKUSH_EMAIL  = 'support.south@adititracking.com';
+const FMS_CONFIG_EMAILS = [FMS_ANISH_EMAIL, FMS_KUSH_EMAIL, FMS_KINCHIT_EMAIL, FMS_BHUMIT_EMAIL, FMS_ANKUSH_EMAIL];
 const FMS_VINAYAK_EMAIL = 'support_2@adititracking.com';
 
 const _fmsOrigSwitchDB = typeof switchDB === 'function' ? switchDB : null;
