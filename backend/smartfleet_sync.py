@@ -83,10 +83,16 @@ def get_ist_now():
 
 def should_take_snapshot():
     now_ist = get_ist_now()
-    return now_ist.hour == 23 and now_ist.minute >= 50
+    # Moved from :50 to :45 for safety margin — a full sync_all() cycle can
+    # take a few minutes, and the old :50 start left little room before
+    # midnight if a cycle ran long.
+    return now_ist.hour == 23 and now_ist.minute >= 45
 
 def get_snapshot_date():
     return get_ist_now().strftime('%Y-%m-%d')
+
+def get_yesterday_date():
+    return (get_ist_now() - timedelta(days=1)).strftime('%Y-%m-%d')
 
 def get_session(ip):
     session = requests.Session()
@@ -204,10 +210,10 @@ def get_tier(v):
     return "Other"
 
 def save_daily_snapshot(server_name, vehicles):
-    """Save full vehicle list snapshot — used for change detection"""
-    if not should_take_snapshot():
-        return
-
+    """Save full vehicle list snapshot — used for change detection.
+    Caller (sync_all) is responsible for only calling this during the
+    snapshot window — no time check in here, so it can't be evaluated
+    separately per-region and land on different sides of the window."""
     today = get_snapshot_date()
     snapshot_key = f"snapshot_{server_name}_{today}"
     if snapshot_key in _snapshotted_today:
@@ -215,11 +221,20 @@ def save_daily_snapshot(server_name, vehicles):
 
     print(f"  [{server_name}] 🌙 Saving daily snapshot for {today}...")
 
-    rows = []
+    # Dedupe by imeino (last-write-wins) before building rows — a source
+    # (e.g. Goa Server) can occasionally return the same imeino twice in
+    # one fetch, which would otherwise trip "ON CONFLICT DO UPDATE command
+    # cannot affect row a second time" on upsert. Same pattern sync_server()
+    # already uses for the live-data path.
+    seen = {}
     for v in vehicles:
         imei = str(v.get("Imeino", "")).strip()
         if not imei or imei.lower() == "null":
             continue
+        seen[imei] = v
+
+    rows = []
+    for imei, v in seen.items():
         rows.append({
             "snapshot_date": today,
             "region":        server_name,
@@ -234,6 +249,29 @@ def save_daily_snapshot(server_name, vehicles):
     if not rows:
         return
 
+    # Sanity guard: if today's count looks suspiciously low next to
+    # yesterday's for this same region (e.g. a credential's token failed
+    # this cycle, or something else cut the fetch short), don't lock the
+    # key — log it and let the next 5-min cycle retry. The upsert below
+    # still runs (partial data now is better than none), but skipping the
+    # lock means a later, more-complete cycle can still fill in the rest
+    # today instead of being permanently blocked by an early partial save.
+    try:
+        prev_rows = fetch_all_rows(
+            "vehicle_daily_snapshot", "imeino",
+            filters={"snapshot_date": get_yesterday_date(), "region": server_name},
+        )
+        prev_count = len(prev_rows)
+    except Exception as e:
+        print(f"  [{server_name}] Could not fetch yesterday's snapshot count: {e}")
+        prev_count = 0
+
+    partial = prev_count > 0 and len(rows) < prev_count * 0.7
+    if partial:
+        print(f"  [{server_name}] ⚠️ WARNING: today's snapshot has {len(rows)} vehicles vs "
+              f"{prev_count} yesterday — under 70% threshold. Saving what we have, but NOT "
+              f"locking the snapshot key so the next cycle retries.")
+
     saved = 0
     for i in range(0, len(rows), 500):
         chunk = rows[i:i+500]
@@ -246,13 +284,14 @@ def save_daily_snapshot(server_name, vehicles):
             print(f"  [{server_name}] Snapshot save error: {e}")
 
     print(f"  [{server_name}] ✅ Snapshot saved — {saved} vehicles")
-    _snapshotted_today.add(snapshot_key)
+
+    if not partial:
+        _snapshotted_today.add(snapshot_key)
 
 def save_daily_stats(server_name, vehicles):
-    """Save aggregated counts per server+tier — used for KPI change indicators"""
-    if not should_take_snapshot():
-        return
-
+    """Save aggregated counts per server+tier — used for KPI change indicators.
+    Caller (sync_all) is responsible for only calling this during the
+    snapshot window — see save_daily_snapshot's docstring for why."""
     today = get_snapshot_date()
     stats_key = f"stats_{server_name}_{today}"
     if stats_key in _snapshotted_today:
@@ -343,6 +382,11 @@ def reset_snapshot_tracker():
     print(f"  🔄 Snapshot tracker reset ({get_snapshot_date()})")
 
 def sync_server(server, sync_time=None):
+    """Syncs one credential's live data and returns (region_name, vehicles)
+    so sync_all() can merge multiple credentials sharing the same region
+    name (the 4 Premium Server credentials each cover a different fleet)
+    into one combined list before taking the daily snapshot — this
+    function no longer saves the snapshot/stats itself."""
     if sync_time is None:
         sync_time = datetime.now(timezone.utc).isoformat()
     print(f"\n  [{server['name']}] Syncing...")
@@ -350,7 +394,7 @@ def sync_server(server, sync_time=None):
     session = get_session(server["ip"])
     token   = get_token(server, session)
     if not token:
-        return
+        return server["name"], []
 
     vehicles = pull_vehicles(server, token, session)
     print(f"  [{server['name']}] Vehicles found: {len(vehicles)}")
@@ -366,7 +410,7 @@ def sync_server(server, sync_time=None):
 
     print(f"  [{server['name']}] Valid: {len(rows)} | Skipped: {skipped}")
     if not rows:
-        return
+        return server["name"], vehicles
 
     # Deduplicate
     seen = {}
@@ -399,9 +443,7 @@ def sync_server(server, sync_time=None):
     except Exception as e:
         print(f"  [{server['name']}] Stale cleanup error: {e}")
 
-    # 11:50 PM jobs — order matters!
-    save_daily_snapshot(server["name"], vehicles)   # 1. Save full snapshot
-    save_daily_stats(server["name"], vehicles)      # 3. Save aggregated stats
+    return server["name"], vehicles
 
 def sync_all():
     now_ist = get_ist_now()
@@ -409,21 +451,39 @@ def sync_all():
     print(f"Sync — {now_ist.strftime('%Y-%m-%d %H:%M:%S')} IST")
     print(f"{'='*50}")
 
+    # Computed once for the whole cycle, not re-evaluated per server — a
+    # full cycle across 8 credentials can take a few minutes, and checking
+    # the clock per-server let the snapshot window get crossed mid-cycle,
+    # splitting/duplicating a day's snapshot across two 5-min syncs.
+    is_snapshot_time = should_take_snapshot()
+
     refresh_tier_map()
 
+    # Keyed by region name so the 4 Premium Server credentials — each
+    # covering a different fleet, all sharing name="Premium Server" — merge
+    # into one combined list instead of the snapshot only ever reflecting
+    # whichever single credential happened to sync during the window.
+    region_vehicles = {}
     premium_sync_time = datetime.now(timezone.utc).isoformat()
     for server in SERVERS:
         if server["name"] == "Premium Server":
-            sync_server(server, sync_time=premium_sync_time)
+            region_name, vehicles = sync_server(server, sync_time=premium_sync_time)
         else:
-            sync_server(server)
+            region_name, vehicles = sync_server(server)
+        region_vehicles.setdefault(region_name, []).extend(vehicles)
+
+    if is_snapshot_time:
+        for region_name, vehicles in region_vehicles.items():
+            save_daily_snapshot(region_name, vehicles)   # 1. Save full snapshot
+            save_daily_stats(region_name, vehicles)      # 2. Save aggregated stats
+
     print(f"\nNext sync in {SYNC_EVERY_MINUTES} minutes\n")
 
 
 print("SmartFleet Sync Started!")
 print(f"Servers: Premium + PRO + Goa + Bangalore + Gujarat")
 print(f"Sync interval: every {SYNC_EVERY_MINUTES} minutes")
-print(f"Snapshot window: 11:50 PM - 11:59 PM IST daily")
+print(f"Snapshot window: 11:45 PM - 11:59 PM IST daily")
 print("Press Ctrl+C to stop\n")
 
 sync_all()
