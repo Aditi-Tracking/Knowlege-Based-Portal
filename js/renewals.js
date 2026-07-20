@@ -380,10 +380,11 @@ async function _applyRenewalsNavVisibility() {
   const hasAccess = _ruIsMIS || !!_ruCrmPerson;
   if (nav) nav.style.display = hasAccess ? '' : 'none';
   if (mm)  mm.style.display  = hasAccess ? 'flex' : 'none';
-  if (_ruIsMIS) {
-    _ruRefreshUnmatchedBadge();
-    _ruRefreshUnassignedPoolBadge();
-  }
+  // Resolve Unmatched is now visible to CRM persons too, so the unresolved
+  // count badge should reflect that for them as well — Unassigned Pool
+  // stays MIS-only (unaffected by this task), so its badge stays gated here.
+  if (hasAccess) _ruRefreshUnmatchedBadge();
+  if (_ruIsMIS) _ruRefreshUnassignedPoolBadge();
 }
 
 // Small helper — exact row count via PostgREST's Content-Range header, no rows fetched.
@@ -440,7 +441,7 @@ async function _ruRefreshUnassignedPoolBadge() {
 
 function _ruVisibleTabIds() {
   if (_ruIsMIS) return RU_TABS.map(t => t.id);
-  if (_ruCrmPerson) return ['myCustomers', 'closedPaid', 'overview'];
+  if (_ruCrmPerson) return ['myCustomers', 'closedPaid', 'unmatched', 'overview'];
   return [];
 }
 
