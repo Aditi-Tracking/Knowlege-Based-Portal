@@ -108,10 +108,18 @@ let _ruCalendarWorkingDays = _ruLoadCalendarDaysPref();
 let _ruCalendarWindowEnd = null;  // ISO date string; null means "today"
 let _ruCalendarCallsMap = null;   // Map<"customerId|date", row> for the current window; null = not loaded yet
 let _ruCalendarLoading = false;
-// Which edge to reveal on the next render — 'start' (Billing Name/leftmost
-// columns) on initial load and after "Previous", 'end' (today/latest date
-// column) after "Next", so the table opens showing who the customers are
-// rather than the date grid, but still jumps to the newest dates on demand.
+// Which edge to reveal on the next render — 'start' (scrollLeft 0) always
+// means "leftmost", 'end' means "rightmost" (see _ruSyncCalendarScroll).
+// Since date columns render newest-first (_ruCalendarDateList), leftmost is
+// now Billing Name immediately followed by the newest/today date column, and
+// rightmost is the oldest date in the current window. Both "Previous" and
+// "Next" now want 'start' for that reason, just for different reasons:
+// "Previous" always wanted Billing Name/identity columns visible (unrelated
+// to date order, unchanged from before), while "Next" wants the newest/
+// today date visible (same intent as before the reversal — it just used to
+// be the RIGHT edge when dates ran the other way). 'end' is consequently
+// unreachable now — no caller sets it — kept rather than removed in case a
+// future case genuinely wants to reveal the oldest-date edge instead.
 let _ruCalendarScrollAnchor = 'start';
 
 // Formats a Date's LOCAL calendar date as YYYY-MM-DD. Never use toISOString()
@@ -163,6 +171,14 @@ function _ruCalendarDateRange() {
   return { start, end };
 }
 
+// Newest-first (today/latest leftmost, oldest rightmost) — the single place
+// this ordering is decided. Both the header (_ruCalendarDateHeaderHtml) and
+// each row's date cells (ruCustomerRowHtml, via the `dates` this returns)
+// consume this same array in the same order, so reversing it here is the
+// only change needed to flip the visual column order; nothing downstream
+// re-sorts or assumes a direction independently. Each new day this list is
+// naturally recomputed from _ruCalendarDateRange()'s end date (today, unless
+// paged away from it) — there's no separate "insert today" step.
 function _ruCalendarDateList() {
   const { start, end } = _ruCalendarDateRange();
   const dates = [];
@@ -171,7 +187,7 @@ function _ruCalendarDateList() {
     if (!_ruIsSunday(d)) dates.push(d);
     d = _ruAddDays(d, 1);
   }
-  return dates;
+  return dates.reverse();
 }
 
 function ruCalendarNav(direction) {
@@ -187,7 +203,10 @@ function ruCalendarNav(direction) {
     newEnd = _ruAddWorkingDays(end, _ruCalendarWorkingDays);
     if (newEnd > latestWorkingDay) newEnd = latestWorkingDay;
     if (newEnd === end) return; // already showing the most recent window
-    _ruCalendarScrollAnchor = 'end';
+    // 'start', not 'end' — dates render newest-first now, so the
+    // newest/today date (what "Next" has always meant to reveal) is the
+    // LEFT edge, not the right one. See _ruCalendarScrollAnchor's comment.
+    _ruCalendarScrollAnchor = 'start';
   }
 
   _ruCalendarWindowEnd = newEnd;
