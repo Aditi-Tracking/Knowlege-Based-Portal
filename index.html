@@ -4182,6 +4182,39 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     #ruMyCustomersBody .table-scroll::-webkit-scrollbar{height:12px;}
     #ruMyCustomersBody .table-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
 
+    /* Frozen header + top scroll strip, stacked so both stay visible while
+       scrolling down through a long category list. .table-card's default
+       overflow:hidden (used app-wide for rounded-corner clipping) would make
+       the card its own scroll/clip container and break position:sticky here
+       (the card never scrolls independently — nothing height-constrained
+       for the header to "stick" against) — overflow:visible is required for
+       sticky to bubble up to the real page scroll.
+
+       IMPORTANT — position:sticky is NOT used on the real `thead th` here.
+       Verified by actually rendering it: `.table-scroll`'s overflow-x:auto
+       (needed for the wide date columns) makes IT — not the page — the
+       nearest scrolling ancestor for ANY descendant's position:sticky,
+       regardless of overflow-y. Since .table-scroll never itself scrolls
+       vertically, sticky against it produced a glitchy overlap with the
+       first row and never actually stuck to the viewport on scroll.
+       Fix: .ru-frozen-header is a SEPARATE element outside .table-scroll —
+       same technique .ru-scroll-top already used for the horizontal strip —
+       mirroring the header cells, kept in horizontal sync via JS
+       (_ruSyncCalendarScroll). The real thead stays in the table (for
+       correct column-width influence on tbody) but its row is
+       visibility:collapse'd — zero rendered height, but its cells still
+       count toward the table's column widths, so tbody isn't affected. */
+    #ruMyCustomersBody .table-card{overflow:visible;}
+    #ruMyCustomersBody .ru-scroll-top{position:sticky;top:0;z-index:3;background:var(--surface);}
+    #ruMyCustomersBody .ru-frozen-header{position:sticky;top:18px;z-index:2;overflow:hidden;background:var(--surface2);}
+    #ruMyCustomersBody .ru-frozen-header table{width:max-content;table-layout:fixed;}
+    @media (max-width:768px){
+      /* .mob-top-header is a fixed 52px bar on mobile (css/styles.css:874) —
+         offset both sticky layers below it so they don't render underneath it. */
+      #ruMyCustomersBody .ru-scroll-top{top:52px;}
+      #ruMyCustomersBody .ru-frozen-header{top:70px;}
+    }
+
     /* Call-log popup — segmented Connected/Not Connected control. Native
        radios stay in the DOM (for :checked state + existing onchange wiring)
        but are visually hidden; the label itself is what gets the fill. */
@@ -4252,7 +4285,8 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
     <!-- RESOLVE UNMATCHED — relocated as-is from the old standalone panel-renewalsUnmatched, ids unchanged -->
     <div id="ruTab-unmatched" style="display:none;">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+        <input class="filter-input" placeholder="🔍 Search raw name..." oninput="_ruFilterTableRows(this, '#ruUnmatchedBody')">
         <span id="ruUnmatchedCount" style="font-size:0.84rem;font-weight:700;color:#ff5c7c;background:rgba(255,92,124,0.12);border:1px solid rgba(255,92,124,0.3);border-radius:20px;padding:5px 14px;">0 unresolved</span>
       </div>
       <div class="table-scroll">
@@ -4357,6 +4391,16 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- RENEWALS — call screenshot lightbox (click-to-enlarge from Call History,
+     see _ruOpenScreenshotLightbox). Reuses .fms-overlay-backdrop/.open like
+     ruCustomerDetailOverlay rather than inventing a new overlay pattern. -->
+<div class="fms-overlay-backdrop" id="ruScreenshotLightbox">
+  <div class="fms-overlay-box" style="max-width:640px;padding:1rem;text-align:center;">
+    <button onclick="ruCloseScreenshotLightbox()" style="position:absolute;top:10px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+    <img id="ruScreenshotLightboxImg" style="display:none;max-width:100%;max-height:80vh;border-radius:10px;margin-top:1.2rem;">
   </div>
 </div>
 

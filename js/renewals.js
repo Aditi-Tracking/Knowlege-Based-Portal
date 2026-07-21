@@ -19,6 +19,8 @@
 // — so MIS/owner has no way to contribute to it, same limitation as Call.
 
 const RU_BUCKET = 'accounts-uploads';
+const RU_CALL_ATTACHMENTS_BUCKET = 'call-attachments';
+const RU_CALL_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024; // also enforced server-side via storage.buckets.file_size_limit
 const RU_CATEGORY_FREQ = { Platinum: 'Once a Week', Gold: 'Twice a Week', Silver: 'Thrice a Week' };
 const RU_CATEGORY_ORDER = ['Platinum', 'Gold', 'Silver'];
 // collection_calls.not_connected_reason stores the raw <select> value — map
@@ -73,7 +75,7 @@ let _ruColumnPrefs = _ruLoadColumnPrefs();
 function _ruIsColumnVisible(key) {
   const pref = _ruColumnPrefs[key];
   if (pref !== undefined) return pref;
-  return key === 'assigned_to' ? _ruIsMIS : true;
+  return key === 'assigned_to' ? (_ruIsMIS || _ruFullDataAccess) : true;
 }
 // Toggling a checkbox re-renders the whole tab (colspan depends on visible
 // column count), which recreates the <details> element from scratch — track
@@ -346,7 +348,8 @@ let _ruFile = null;
 let _ruPersons = [];
 let _ruPollTimer = null;
 let _ruIsMIS = false;
-let _ruCrmPerson = null; // { id, name } | null — set by _applyRenewalsNavVisibility()
+let _ruCrmPerson = null; // { id, name, full_data_access } | null — set by _applyRenewalsNavVisibility()
+let _ruFullDataAccess = false; // mirrors _ruCrmPerson.full_data_access — org-wide data, still CRM-person tab set (migration 0020)
 let _ruActiveTab = null;
 
 // raw_name/file names come from uploaded Excel data — untrusted — escape before innerHTML.
@@ -356,6 +359,19 @@ function _ruEsc(s) {
   })[c]);
 }
 
+// Shared by My Customers / Closed-Paid / Resolve Unmatched search boxes —
+// pure client-side row narrowing on already-loaded rows (each `tr` carries
+// its lowercased name in data-name, set at render time). Toggles display
+// instead of re-rendering the table, so the input never loses focus/cursor
+// position mid-keystroke the way a full re-render (like the Assigned To
+// filter) would.
+function _ruFilterTableRows(inputEl, containerSelector) {
+  const q = inputEl.value.trim().toLowerCase();
+  document.querySelectorAll(`${containerSelector} tr[data-name]`).forEach(row => {
+    row.style.display = (!q || row.dataset.name.includes(q)) ? '' : 'none';
+  });
+}
+
 // ── Nav visibility — MIS OR a matching (by email) active crm_persons row ───
 async function _applyRenewalsNavVisibility() {
   const nav = document.getElementById('nav-renewals');
@@ -363,15 +379,37 @@ async function _applyRenewalsNavVisibility() {
   const rawRole = String((CURRENT_USER && (CURRENT_USER.rawRole || CURRENT_USER.role)) || '').toLowerCase().trim();
   _ruIsMIS = (rawRole === 'owner' || rawRole === 'mis');
   _ruCrmPerson = null;
+  _ruFullDataAccess = false;
+
+  // Full MIS-tier Renewals access granted without reclassifying Employee_Dept
+  // (migration 0022) — e.g. Chirag, who has no crm_persons row at all. Checked
+  // before the crm_persons lookup below so it can flip _ruIsMIS to true first;
+  // that lookup stays guarded by `!_ruIsMIS` and will correctly find nothing
+  // for someone (like Chirag) who was never a CRM person to begin with.
+  if (!_ruIsMIS && CURRENT_USER && CURRENT_USER.email) {
+    try {
+      const grantRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/renewals_mis_grants?email=ilike.${encodeURIComponent(CURRENT_USER.email)}&select=email&limit=1`,
+        { headers: SB_HDRS() },
+      );
+      const grantRows = await grantRes.json();
+      if (Array.isArray(grantRows) && grantRows.length) _ruIsMIS = true;
+    } catch (e) {
+      // treat as not granted
+    }
+  }
 
   if (!_ruIsMIS && CURRENT_USER && CURRENT_USER.email) {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/crm_persons?email=ilike.${encodeURIComponent(CURRENT_USER.email)}&is_active=eq.true&select=id,name&limit=1`,
+        `${SUPABASE_URL}/rest/v1/crm_persons?email=ilike.${encodeURIComponent(CURRENT_USER.email)}&is_active=eq.true&select=id,name,full_data_access&limit=1`,
         { headers: SB_HDRS() },
       );
       const rows = await res.json();
-      if (Array.isArray(rows) && rows.length) _ruCrmPerson = rows[0];
+      if (Array.isArray(rows) && rows.length) {
+        _ruCrmPerson = rows[0];
+        _ruFullDataAccess = !!_ruCrmPerson.full_data_access;
+      }
     } catch (e) {
       // treat as no match — nav item just won't show
     }
@@ -715,7 +753,7 @@ function ruRenderUnmatched(rows) {
     Object.keys(RU_CATEGORY_FREQ).map(c => `<option value="${c}">${c}</option>`).join('');
 
   body.innerHTML = rows.map(r => `
-    <tr id="ruRow-${r.id}">
+    <tr id="ruRow-${r.id}" data-name="${_ruEsc((r.raw_name || '').toLowerCase())}">
       <td style="padding:8px;">${_ruEsc(r.raw_name)}</td>
       <td style="padding:8px;text-align:right;">${Number(r.grand_total || 0).toLocaleString('en-IN')}</td>
       <td style="padding:8px;text-align:right;">${Number(r.bucket_0_30 || 0).toLocaleString('en-IN')}</td>
@@ -825,9 +863,10 @@ async function loadRenewalsMyCustomers() {
   container.innerHTML = '<p style="color:var(--muted);font-size:0.88rem;">Loading…</p>';
 
   try {
-    // MIS/owner see every customer across every CRM person; a CRM person
-    // still only sees their own assigned book.
-    const scopeQuery = _ruIsMIS ? '' : `&assigned_crm_person_id=eq.${_ruCrmPerson.id}`;
+    // MIS/owner see every customer across every CRM person; a full-access
+    // CRM person (migration 0020) does too, just without MIS's other tabs;
+    // a regular CRM person still only sees their own assigned book.
+    const scopeQuery = (_ruIsMIS || _ruFullDataAccess) ? '' : `&assigned_crm_person_id=eq.${_ruCrmPerson.id}`;
     const custRes = await fetch(
       `${SUPABASE_URL}/rest/v1/crm_customers?select=*&order=billing_name.asc${scopeQuery}`,
       { headers: SB_HDRS() },
@@ -836,7 +875,7 @@ async function loadRenewalsMyCustomers() {
     const customers = await custRes.json();
 
     if (!customers.length) {
-      container.innerHTML = `<p style="color:var(--muted);font-size:0.88rem;">${_ruIsMIS ? 'No customers found.' : 'No customers assigned to you yet.'}</p>`;
+      container.innerHTML = `<p style="color:var(--muted);font-size:0.88rem;">${(_ruIsMIS || _ruFullDataAccess) ? 'No customers found.' : 'No customers assigned to you yet.'}</p>`;
       return;
     }
 
@@ -907,7 +946,7 @@ document.addEventListener('click', (e) => {
 });
 
 function _ruAssignedToFilterHtml() {
-  if (!_ruIsMIS) return ''; // a CRM person only ever sees their own book — nothing to filter
+  if (!_ruIsMIS && !_ruFullDataAccess) return ''; // a CRM person only ever sees their own book — nothing to filter
   const options = _ruAllPersons
     .map(p => `<option value="${p.id}" ${_ruAssignedToFilter === p.id ? 'selected' : ''}>${_ruEsc(p.name)}</option>`)
     .join('');
@@ -932,6 +971,7 @@ function ruRenderMyCustomers(container) {
   const toolbar = `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <input class="filter-input" placeholder="🔍 Search billing name..." oninput="_ruFilterTableRows(this, '#ruMyCustomersBody')">
         ${_ruColumnsMenuHtml()}
         ${_ruAssignedToFilterHtml()}
       </div>
@@ -948,37 +988,60 @@ function ruRenderMyCustomers(container) {
 }
 
 // Sizes each section's top scrollbar to match its table's real width, moves
-// both the top bar and the table to _ruCalendarScrollAnchor's edge, and keeps
-// the two in sync so dragging either one scrolls the other. Re-run on every
-// render since a full re-render (toggling a column, saving a call, nav)
-// replaces the DOM — old listeners go with it, so this always re-attaches
-// fresh ones rather than relying on anything surviving between renders.
+// the top bar/table/frozen header to _ruCalendarScrollAnchor's edge, and
+// keeps all three in horizontal sync (dragging the top strip or the real
+// table scrolls the other two). Re-run on every render since a full
+// re-render (toggling a column, saving a call, nav) replaces the DOM — old
+// listeners go with it, so this always re-attaches fresh ones rather than
+// relying on anything surviving between renders.
+//
+// The frozen header (.ru-frozen-header) is a SEPARATE <table> from the real
+// one — see the CSS comment above that class for why position:sticky can't
+// just be put on the real thead — so it has no column widths of its own to
+// inherit. Its <th> widths are force-matched here to the real table's first
+// tbody row's actual rendered <td> widths (not the real thead's, which is
+// visibility:collapse'd and can't be reliably measured). It's never user-
+// scrollable itself (overflow:hidden, no scrollbar) — it only ever follows
+// top/bottom, never drives the sync.
 function _ruSyncCalendarScroll(container) {
   requestAnimationFrame(() => {
     container.querySelectorAll('.table-card').forEach(card => {
       const bottom = card.querySelector('.table-scroll:not(.ru-scroll-top)');
       const top = card.querySelector('.ru-scroll-top');
+      const frozen = card.querySelector('.ru-frozen-header');
       if (!bottom) return;
 
+      const table = bottom.querySelector('table');
+
       if (top) {
-        const table = bottom.querySelector('table');
         const spacer = top.querySelector('.ru-scroll-top-spacer');
         if (table && spacer) spacer.style.width = `${table.scrollWidth}px`;
       }
 
+      if (frozen && table) {
+        const frozenTable = frozen.querySelector('table');
+        const frozenCells = frozen.querySelectorAll('th');
+        const firstRowCells = table.querySelector('tbody tr') ? Array.from(table.querySelector('tbody tr').children) : [];
+        if (frozenTable && firstRowCells.length && frozenCells.length === firstRowCells.length) {
+          frozenTable.style.width = `${table.scrollWidth}px`;
+          frozenCells.forEach((th, i) => { th.style.width = `${firstRowCells[i].getBoundingClientRect().width}px`; });
+        }
+      }
+
       const targetLeft = _ruCalendarScrollAnchor === 'start' ? 0 : bottom.scrollWidth;
       bottom.scrollLeft = targetLeft;
+      if (frozen) frozen.scrollLeft = targetLeft;
       if (!top) return;
       top.scrollLeft = targetLeft;
 
       let syncing = false;
       top.addEventListener('scroll', () => {
         if (syncing) return;
-        syncing = true; bottom.scrollLeft = top.scrollLeft; syncing = false;
+        syncing = true; bottom.scrollLeft = top.scrollLeft; if (frozen) frozen.scrollLeft = top.scrollLeft; syncing = false;
       });
       bottom.addEventListener('scroll', () => {
         if (syncing) return;
-        syncing = true; top.scrollLeft = bottom.scrollLeft; syncing = false;
+        syncing = true; top.scrollLeft = bottom.scrollLeft; if (frozen) frozen.scrollLeft = bottom.scrollLeft; syncing = false;
       });
     });
   });
@@ -993,6 +1056,15 @@ function _ruRenderMyCustomersTableBody() {
   const dates = _ruCalendarDateList();
   const colCount = 2 + optionalVisible.length + dates.length; // Billing Name + Action are always shown
   const dateHeaderHtml = _ruCalendarDateHeaderHtml();
+  // Shared by both the real (visibility:collapse'd) thead and the frozen
+  // header bar's mirrored row — see the CSS comment above .ru-frozen-header
+  // for why there are two of these instead of one sticky thead.
+  const headerCellsHtml = `
+    <th>Billing Name</th>
+    ${optionalVisible.map(col => `<th${col.align === 'right' ? ' style="text-align:right;"' : ''}>${col.label}</th>`).join('')}
+    <th style="text-align:center;">Action</th>
+    ${dateHeaderHtml}
+  `;
 
   // MIS/owner-only filter (irrelevant/'' for a CRM person, who's already
   // scoped to their own book by the fetch itself).
@@ -1029,14 +1101,10 @@ function _ruRenderMyCustomersTableBody() {
           <span class="table-title">${cat} (${inCat.length})${freq ? ` — ${freq}` : ''}</span>
         </div>
         <div class="table-scroll ru-scroll-top"><div class="ru-scroll-top-spacer"></div></div>
+        <div class="ru-frozen-header"><table><thead><tr>${headerCellsHtml}</tr></thead></table></div>
         <div class="table-scroll">
           <table>
-            <thead><tr>
-              <th>Billing Name</th>
-              ${optionalVisible.map(col => `<th${col.align === 'right' ? ' style="text-align:right;"' : ''}>${col.label}</th>`).join('')}
-              <th style="text-align:center;">Action</th>
-              ${dateHeaderHtml}
-            </tr></thead>
+            <thead><tr style="visibility:collapse;">${headerCellsHtml}</tr></thead>
             <tbody>${sorted.map(c => ruCustomerRowHtml(c, optionalVisible, dates, colCount)).join('')}</tbody>
           </table>
         </div>
@@ -1052,7 +1120,7 @@ function _ruRenderMyCustomersTableBody() {
   if (assignedFiltered.length) {
     return '<p style="color:var(--muted);font-size:0.88rem;">Everyone in this book is paid up — see the Closed/Paid tab.</p>';
   }
-  return `<p style="color:var(--muted);font-size:0.88rem;">${_ruIsMIS ? 'No customers found.' : 'No customers assigned to you yet.'}</p>`;
+  return `<p style="color:var(--muted);font-size:0.88rem;">${(_ruIsMIS || _ruFullDataAccess) ? 'No customers found.' : 'No customers assigned to you yet.'}</p>`;
 }
 
 function _ruLastCallText(customer) {
@@ -1224,7 +1292,7 @@ function ruCustomerRowHtml(c, optionalVisible, dates, colCount) {
   const dateCells = dates.map(d => _ruCalendarCellHtml(c.id, d)).join('');
 
   return `
-    <tr id="ruCustRow-${c.id}" onclick="ruOpenCustomerDetail('${c.id}')">
+    <tr id="ruCustRow-${c.id}" data-name="${_ruEsc((c.billing_name || '').toLowerCase())}" onclick="ruOpenCustomerDetail('${c.id}')">
       <td>${_ruEsc(c.billing_name)}</td>
       ${cells}
       <td style="text-align:center;">
@@ -1239,7 +1307,7 @@ function ruCustomerRowHtml(c, optionalVisible, dates, colCount) {
     </tr>
     <tr id="ruCallPanel-${c.id}" style="display:none;">
       <td colspan="${colCount}" style="padding:0 8px 10px;">
-        <div style="max-width:360px;border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;background:var(--surface);box-shadow:0 8px 24px rgba(0,0,0,0.18);">
+        <div id="ruCallPanelBody-${c.id}" tabindex="-1" onpaste="_ruHandleCallScreenshotPaste('${c.id}', event)" style="max-width:360px;border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;background:var(--surface);box-shadow:0 8px 24px rgba(0,0,0,0.18);outline:none;">
           <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px;">
             <label class="ru-seg-option ru-seg-yes" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 0;cursor:pointer;font-size:0.82rem;font-weight:700;color:var(--muted);transition:all 0.15s;">
               <input type="radio" name="ruConnected-${c.id}" value="yes" onchange="ruToggleConnectedFields('${c.id}', true)"> Connected
@@ -1267,6 +1335,12 @@ function ruCustomerRowHtml(c, optionalVisible, dates, colCount) {
             <input type="number" id="ruCallAmountRecovered-${c.id}" min="0" step="0.01" placeholder="0"
               style="width:100%;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--bg,transparent);color:var(--text2);font-family:inherit;font-size:0.8rem;box-sizing:border-box;">
           </div>
+          <div style="margin-top:9px;">
+            <label style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:3px;">Screenshot (optional, image only, max 5MB) <span style="color:var(--muted);font-weight:400;">— or paste a screenshot (Ctrl+V)</span></label>
+            <input type="file" id="ruCallScreenshot-${c.id}" accept="image/*" onchange="_ruPreviewCallScreenshot('${c.id}', this)"
+              style="width:100%;font-size:0.78rem;color:var(--text2);font-family:inherit;">
+            <img id="ruCallScreenshotPreview-${c.id}" style="display:none;max-width:100%;max-height:110px;border-radius:8px;margin-top:6px;border:1px solid var(--border);">
+          </div>
           <div style="display:flex;justify-content:flex-start;flex-wrap:wrap;gap:8px;margin-top:12px;">
             <button class="ru-call-save-btn" onclick="ruSaveCall('${c.id}')" style="padding:7px 16px;border-radius:8px;border:none;background:#00d4aa;color:#04231d;font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;transition:filter 0.15s;">Save Call</button>
             <button class="ru-call-cancel-btn" onclick="ruToggleCallPanel('${c.id}')" style="padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;transition:all 0.15s;">Cancel</button>
@@ -1284,7 +1358,89 @@ function ruToggleCallPanel(customerId, event) {
   if (event) event.stopPropagation();
   const panel = document.getElementById(`ruCallPanel-${customerId}`);
   if (!panel) return;
-  panel.style.display = panel.style.display === 'none' ? 'table-row' : 'none';
+  const opening = panel.style.display === 'none';
+  panel.style.display = opening ? 'table-row' : 'none';
+  // Closing (Cancel, or a prior Save) leaves a stale file selection behind
+  // otherwise — clear it so reopening the panel starts fresh, matching the
+  // radios/notes/amount fields which are also per-open-instance, not persisted.
+  if (!opening) _ruClearCallScreenshotInput(customerId);
+
+  // paste events only ever fire on whatever currently has focus (or bubble
+  // up from it) — opening the panel via the Call button doesn't move focus
+  // inside it, so without this, Ctrl+V does nothing at all until the user
+  // happens to click into Notes/Amount first. tabindex="-1" on the panel's
+  // wrapper (ruCustomerRowHtml) makes it a valid, script-focusable target
+  // (excluded from normal Tab order) so paste works the instant it opens.
+  if (opening) {
+    const panelBody = document.getElementById(`ruCallPanelBody-${customerId}`);
+    if (panelBody) panelBody.focus();
+  }
+}
+
+// Additive to the file picker, not a replacement — bound via onpaste on the
+// call panel's wrapping div, so Ctrl+V works while focused anywhere inside
+// it (notes textarea, amount field, or the panel itself), since paste events
+// bubble up from wherever focus actually is. Only intercepts when the
+// clipboard actually contains an image; a normal text paste (e.g. into
+// notes) is left alone and proceeds untouched.
+function _ruHandleCallScreenshotPaste(customerId, event) {
+  const items = event.clipboardData && event.clipboardData.items;
+  if (!items) return;
+  const imageItem = Array.from(items).find(item => item.type && item.type.startsWith('image/'));
+  if (!imageItem) return;
+
+  event.preventDefault(); // an image on the clipboard has no business landing as text somewhere
+  const file = imageItem.getAsFile();
+  if (!file) return;
+
+  const input = document.getElementById(`ruCallScreenshot-${customerId}`);
+  if (!input) return;
+
+  // A real <input type=file>'s .files is otherwise read-only — DataTransfer
+  // is the standard way to assign one programmatically. Doing it this way
+  // (rather than tracking the pasted File in a separate variable) means
+  // ruSaveCall/_ruUploadCallScreenshot's existing `input.files[0]` read
+  // keeps working completely unchanged for either a picked or pasted image.
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  _ruPreviewCallScreenshot(customerId, input);
+}
+
+// file.type is a good-faith client hint, not a guarantee — the bucket's own
+// file_size_limit/allowed_mime_types (migration 0021) is the real gate; this
+// is just to fail fast with a clear message instead of a storage 400 later.
+function _ruPreviewCallScreenshot(customerId, inputEl) {
+  const file = inputEl.files[0];
+  const preview = document.getElementById(`ruCallScreenshotPreview-${customerId}`);
+  if (!file) { preview.style.display = 'none'; preview.src = ''; return; }
+
+  if (!file.type.startsWith('image/')) {
+    alert('⚠️ Please choose an image file.');
+    inputEl.value = '';
+    preview.style.display = 'none'; preview.src = '';
+    return;
+  }
+  if (file.size > RU_CALL_ATTACHMENT_MAX_BYTES) {
+    alert('⚠️ Image is too large — max 5MB.');
+    inputEl.value = '';
+    preview.style.display = 'none'; preview.src = '';
+    return;
+  }
+  if (preview.src.startsWith('blob:')) URL.revokeObjectURL(preview.src);
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = 'block';
+}
+
+function _ruClearCallScreenshotInput(customerId) {
+  const input = document.getElementById(`ruCallScreenshot-${customerId}`);
+  const preview = document.getElementById(`ruCallScreenshotPreview-${customerId}`);
+  if (input) input.value = '';
+  if (preview) {
+    if (preview.src.startsWith('blob:')) URL.revokeObjectURL(preview.src);
+    preview.style.display = 'none';
+    preview.src = '';
+  }
 }
 
 let _ruDetailCustomerId = null; // customer currently shown in the row-detail modal, if any
@@ -1347,6 +1503,7 @@ function ruOpenCustomerDetail(customerId) {
 function ruCloseCustomerDetail() {
   document.getElementById('ruCustomerDetailOverlay').classList.remove('open');
   _ruDetailCustomerId = null;
+  _ruClearScreenshotCache();
 }
 
 // Full history for this customer, most recent first — distinct from
@@ -1355,9 +1512,14 @@ function ruCloseCustomerDetail() {
 async function _ruLoadCustomerCallHistory(customerId) {
   const container = document.getElementById('ruCustomerDetailHistory');
   container.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">Loading…</p>';
+  // Belt-and-suspenders alongside the ruCloseCustomerDetail() clear — covers
+  // the (currently theoretical, since rows behind the modal aren't
+  // clickable while it's open) case of loading a different customer's
+  // history without the modal having been closed first.
+  _ruClearScreenshotCache();
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/collection_calls?customer_id=eq.${customerId}&select=call_date,connected,not_connected_reason,conversation_notes,amount_recovered&order=call_date.desc,created_at.desc&limit=50`,
+      `${SUPABASE_URL}/rest/v1/collection_calls?customer_id=eq.${customerId}&select=call_date,connected,not_connected_reason,conversation_notes,amount_recovered,screenshot_url&order=call_date.desc,created_at.desc&limit=50`,
       { headers: SB_HDRS() },
     );
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1377,12 +1539,22 @@ function _ruRenderCustomerCallHistory(container, rows) {
     container.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">No calls logged yet.</p>';
     return;
   }
-  container.innerHTML = rows.map(r => {
+  container.innerHTML = rows.map((r, i) => {
     const dot = r.connected ? '#00d4aa' : '#ff5c7c';
     const note = r.connected
       ? (r.conversation_notes || '—')
       : (RU_NOT_CONNECTED_REASON_LABELS[r.not_connected_reason] || r.not_connected_reason || '—');
     const amount = r.amount_recovered ? `₹${Number(r.amount_recovered).toLocaleString('en-IN')}` : '';
+    // call-attachments is a private bucket (migration 0021) — a plain <img
+    // src> can't authenticate, so this starts as an empty placeholder box
+    // and gets its real image swapped in by the fetch loop right below this
+    // render (see _ruFetchScreenshotBlobUrl). Click still enlarges into the
+    // lightbox, reusing this same fetch's cached blob rather than refetching.
+    const screenshotThumb = r.screenshot_url
+      ? `<div id="ruCallThumbWrap-${i}" onclick="_ruOpenScreenshotLightbox('${r.screenshot_url}')" title="View screenshot" style="width:40px;height:40px;border-radius:8px;background:var(--surface2);flex-shrink:0;align-self:center;cursor:pointer;overflow:hidden;">
+           <img id="ruCallThumb-${i}" style="display:none;width:100%;height:100%;object-fit:cover;">
+         </div>`
+      : '';
     return `
       <div class="ru-history-row">
         <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${dot};flex-shrink:0;margin-top:4px;"></span>
@@ -1393,10 +1565,81 @@ function _ruRenderCustomerCallHistory(container, rows) {
           </div>
           <div style="color:var(--muted);margin-top:2px;overflow-wrap:anywhere;">${_ruEsc(note)}</div>
         </div>
+        ${screenshotThumb}
       </div>
     `;
   }).join('');
+
+  // Auto-load thumbnails right after the placeholders are in the DOM — one
+  // fetch per attachment, independent of each other, scoped to this one
+  // customer's already-capped-at-50 history (see _ruLoadCustomerCallHistory),
+  // so no extra throttling needed. A failed fetch just leaves that row's
+  // placeholder box empty; clicking it still surfaces a real error via
+  // _ruOpenScreenshotLightbox's own alert.
+  rows.forEach((r, i) => {
+    if (!r.screenshot_url) return;
+    _ruFetchScreenshotBlobUrl(r.screenshot_url).then(url => {
+      const img = document.getElementById(`ruCallThumb-${i}`);
+      if (!img) return; // modal closed / history re-rendered before this resolved
+      img.src = url;
+      img.style.display = 'block';
+    }).catch(() => { /* leave placeholder empty */ });
+  });
 }
+
+// Cache of already-fetched screenshot blob: URLs, keyed by storage path —
+// shared between thumbnails (auto-loaded above) and the lightbox (below),
+// so clicking a thumbnail to enlarge it never re-fetches the same image.
+// Owned/cleared centrally (ruCloseCustomerDetail / _ruLoadCustomerCallHistory)
+// rather than per-use, since a blob URL revoked right after the lightbox
+// closes would also break the still-visible thumbnail sharing it.
+let _ruScreenshotBlobCache = new Map();
+
+function _ruClearScreenshotCache() {
+  _ruScreenshotBlobCache.forEach(url => URL.revokeObjectURL(url));
+  _ruScreenshotBlobCache.clear();
+}
+
+// path is the storage object path (customer_id/timestamp_filename) stored on
+// collection_calls.screenshot_url — call-attachments is private, so this goes
+// through the same authenticated fetch every other API call in this file
+// uses (SB_HDRS), not a plain <img src>, then hands the browser a local
+// blob: URL to actually paint.
+async function _ruFetchScreenshotBlobUrl(path) {
+  if (_ruScreenshotBlobCache.has(path)) return _ruScreenshotBlobCache.get(path);
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${RU_CALL_ATTACHMENTS_BUCKET}/${encodeURIComponent(path)}`, { headers: SB_HDRS() });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  _ruScreenshotBlobCache.set(path, url);
+  return url;
+}
+
+async function _ruOpenScreenshotLightbox(path) {
+  const overlay = document.getElementById('ruScreenshotLightbox');
+  const img = document.getElementById('ruScreenshotLightboxImg');
+  overlay.classList.add('open');
+  img.style.display = 'none';
+  try {
+    img.src = await _ruFetchScreenshotBlobUrl(path);
+    img.style.display = 'block';
+  } catch (e) {
+    ruCloseScreenshotLightbox();
+    alert('❌ Could not load screenshot: ' + e.message);
+  }
+}
+
+function ruCloseScreenshotLightbox() {
+  const overlay = document.getElementById('ruScreenshotLightbox');
+  overlay.classList.remove('open');
+  // The blob: URL itself is NOT revoked here — it's owned by
+  // _ruScreenshotBlobCache (shared with this image's still-visible
+  // thumbnail) and only revoked centrally, in _ruClearScreenshotCache.
+}
+
+document.getElementById('ruScreenshotLightbox')?.addEventListener('click', function (e) {
+  if (e.target === this) ruCloseScreenshotLightbox();
+});
 
 document.getElementById('ruCustomerDetailOverlay')?.addEventListener('click', function (e) {
   if (e.target === this) ruCloseCustomerDetail();
@@ -1449,7 +1692,17 @@ async function ruSaveCall(customerId) {
     payload.not_connected_reason = reason;
   }
 
+  const screenshotInput = document.getElementById(`ruCallScreenshot-${customerId}`);
+  const screenshotFile = screenshotInput?.files[0] || null;
+
   try {
+    // Upload (if any) before the collection_calls insert — screenshot_url
+    // references the finished object's path, so the file needs to already
+    // be in storage by the time this row is written.
+    if (screenshotFile) {
+      payload.screenshot_url = await _ruUploadCallScreenshot(customerId, screenshotFile);
+    }
+
     const res = await fetch(`${SUPABASE_URL}/rest/v1/collection_calls`, {
       method: 'POST',
       headers: SB_HDRS_MIN(),
@@ -1471,11 +1724,39 @@ async function ruSaveCall(customerId) {
       const customer = _ruMyCustomers.find(c => c.id === customerId);
       if (customer) customer.recovered_amount = Number(customer.recovered_amount || 0) + amountRecovered;
     }
+    _ruClearCallScreenshotInput(customerId);
     await ruRefreshCustomerRow(customerId);
     ruRenderMyCustomers(document.getElementById('ruMyCustomersBody'));
   } catch (e) {
     alert('❌ Could not save call: ' + e.message);
   }
+}
+
+// Path convention: <customer_id>/<timestamp>_<safeName> — the leading
+// customer_id folder segment is what call-attachments' storage.objects RLS
+// policies (migration 0021) key off via storage.foldername(name), the same
+// way collection_calls/outstanding_snapshots RLS keys off assigned_crm_person_id.
+async function _ruUploadCallScreenshot(customerId, file) {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${customerId}/${Date.now()}_${safeName}`;
+  const storageUrl = `${SUPABASE_URL}/storage/v1/object/${RU_CALL_ATTACHMENTS_BUCKET}/${encodeURIComponent(path)}`;
+
+  await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', storageUrl);
+    xhr.setRequestHeader('apikey', SUPABASE_ANON);
+    xhr.setRequestHeader('Authorization', `Bearer ${_currentToken}`);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.setRequestHeader('x-upsert', 'false');
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error('Screenshot upload: HTTP ' + xhr.status + ' — ' + xhr.responseText.slice(0, 200)));
+    };
+    xhr.onerror = () => reject(new Error('Network error during screenshot upload'));
+    xhr.send(file);
+  });
+
+  return path;
 }
 
 // Patches just this row's last-call cell in place — no full tab reload.
@@ -1544,7 +1825,7 @@ async function loadRenewalsClosedPaid() {
   container.innerHTML = '<p style="color:var(--muted);font-size:0.88rem;">Loading…</p>';
 
   try {
-    const scopeQuery = _ruIsMIS ? '' : `&assigned_crm_person_id=eq.${_ruCrmPerson.id}`;
+    const scopeQuery = (_ruIsMIS || _ruFullDataAccess) ? '' : `&assigned_crm_person_id=eq.${_ruCrmPerson.id}`;
     const custRes = await fetch(
       `${SUPABASE_URL}/rest/v1/crm_customers?select=id,billing_name,category,assigned_crm_person_id&order=billing_name.asc${scopeQuery}`,
       { headers: SB_HDRS() },
@@ -1554,7 +1835,7 @@ async function loadRenewalsClosedPaid() {
 
     if (!customers.length) {
       _ruClosedPaid = [];
-      container.innerHTML = `<p style="color:var(--muted);font-size:0.88rem;">${_ruIsMIS ? 'No customers found.' : 'No customers assigned to you yet.'}</p>`;
+      container.innerHTML = `<p style="color:var(--muted);font-size:0.88rem;">${(_ruIsMIS || _ruFullDataAccess) ? 'No customers found.' : 'No customers assigned to you yet.'}</p>`;
       return;
     }
 
@@ -1631,6 +1912,12 @@ function _ruDeriveClosedInfo(history) {
 function ruRenderClosedPaid(container) {
   if (!container) return;
 
+  const toolbar = `
+    <div style="margin-bottom:14px;">
+      <input class="filter-input" placeholder="🔍 Search billing name..." oninput="_ruFilterTableRows(this, '#ruClosedPaidBody')">
+    </div>
+  `;
+
   const sections = RU_CATEGORY_ORDER.map(cat => {
     const inCat = _ruClosedPaid.filter(c => c.category === cat);
     if (!inCat.length) return '';
@@ -1650,15 +1937,15 @@ function ruRenderClosedPaid(container) {
               <th>Category</th>
               <th style="text-align:right;">Last Outstanding</th>
               <th>Date Closed/Paid</th>
-              ${_ruIsMIS ? '<th>Assigned To</th>' : ''}
+              ${(_ruIsMIS || _ruFullDataAccess) ? '<th>Assigned To</th>' : ''}
             </tr></thead>
             <tbody>${sorted.map(c => `
-              <tr>
+              <tr data-name="${_ruEsc((c.billing_name || '').toLowerCase())}">
                 <td>${_ruEsc(c.billing_name)}</td>
                 <td>${_ruEsc(c.category || '—')}</td>
                 <td style="text-align:right;">${c._priorOutstanding !== null ? Number(c._priorOutstanding).toLocaleString('en-IN') : '—'}</td>
                 <td>${_ruEsc(c._closedDate || '—')}</td>
-                ${_ruIsMIS ? `<td>${_ruEsc(_ruAssignedPersonName(c) || '— Unassigned —')}</td>` : ''}
+                ${(_ruIsMIS || _ruFullDataAccess) ? `<td>${_ruEsc(_ruAssignedPersonName(c) || '— Unassigned —')}</td>` : ''}
               </tr>
             `).join('')}</tbody>
           </table>
@@ -1667,7 +1954,7 @@ function ruRenderClosedPaid(container) {
     `;
   }).join('');
 
-  container.innerHTML = sections || '<p style="color:var(--muted);font-size:0.88rem;">No closed/paid customers.</p>';
+  container.innerHTML = toolbar + (sections || '<p style="color:var(--muted);font-size:0.88rem;">No closed/paid customers.</p>');
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1812,6 +2099,11 @@ async function ruAssignUnassignedPool(customerId, selectEl) {
 // TAB: Overview — MIS/owner see the full org-wide view; a CRM person sees
 // the same tab scoped to just their own customers/calls (get_renewals_
 // overview()'s p_crm_person_id parameter — null for MIS, their id otherwise).
+// A full-access CRM person (migration 0020) still passes their own
+// p_crm_person_id (so team_performance stays their personal scorecard, not
+// the full team table) but also passes p_full_access:true, which unscopes
+// financial/status_breakdown/recent_activity/unresolved_unmatched_count —
+// see that migration for exactly which sections it does and doesn't affect.
 // ═══════════════════════════════════════════════════════════════════════
 
 let _ruOverviewCharts = {}; // Chart.js instances, destroyed+recreated on every render (same pattern as leads.js)
@@ -1826,7 +2118,7 @@ async function loadRenewalsOverview() {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_renewals_overview`, {
       method: 'POST',
       headers: SB_HDRS_JSON(),
-      body: JSON.stringify({ p_crm_person_id: _ruCrmPerson ? _ruCrmPerson.id : null }),
+      body: JSON.stringify({ p_crm_person_id: _ruCrmPerson ? _ruCrmPerson.id : null, p_full_access: _ruFullDataAccess }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
@@ -1906,17 +2198,18 @@ function _ruComplianceBadgeClass(pct) {
   return 'badge-hot';
 }
 
-// MIS/owner get the full team comparison table. A CRM person only ever gets
-// their own single row back from the RPC (scoped server-side, not just
-// hidden client-side — see migration 0014) — showing that as a one-row
-// "table" complete with a Person-name column would be an odd, faintly
-// redundant component, and a full team table would otherwise expose peers'
-// individual performance to a CRM person, which isn't appropriate at that
-// access level. So for a CRM person this renders as a compact personal
-// scorecard instead — same underlying fields (compliance %, connected/
-// not-connected split), just not shaped like a comparison table.
+// MIS and a full_data_access CRM person (migration 0023 — e.g. Suchit) both
+// get the full team comparison table; the RPC returns every active person's
+// row for either (server-scoped, not just hidden client-side — see
+// migrations 0014/0020/0023). A plain CRM person only ever gets their own
+// single row back — showing that as a one-row "table" complete with a
+// Person-name column would be odd, and a full table would expose peers'
+// individual performance at an access level that shouldn't see it. So only
+// a plain CRM person (neither flag) gets the compact personal scorecard
+// instead — same underlying fields (compliance %, connected/not-connected
+// split), just not shaped like a comparison table.
 function _ruOverviewTeamTableHtml(team) {
-  if (!_ruIsMIS) {
+  if (!_ruIsMIS && !_ruFullDataAccess) {
     const t = (team || [])[0] || { calls_connected_30d: 0, calls_not_connected_30d: 0, compliance_pct: 0 };
     const tiles = [
       { label: 'Connected Calls (30d)', value: t.calls_connected_30d },
