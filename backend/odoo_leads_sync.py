@@ -165,6 +165,32 @@ def fetch_won_revenue_map(won_lead_ids):
     return revenue_map
 
 
+def fetch_orphan_orders(partner_ids):
+    """Bulk fetch confirmed sale orders (state in sale/done) that were created
+    directly against a partner with no linked opportunity (opportunity_id is
+    False in Odoo) — these are invisible to fetch_won_revenue_map's
+    opportunity_id-based lookup. One query, not N."""
+    if not partner_ids:
+        return []
+    orders = execute(
+        "sale.order", "search_read",
+        [("opportunity_id", "=", False), ("partner_id", "in", list(partner_ids)), ("state", "in", ("sale", "done"))],
+        fields=["id", "name", "partner_id", "amount_total", "date_order", "state"]
+    )
+    return [
+        {
+            "order_id":     o["id"],
+            "order_name":   o.get("name") or None,
+            "partner_id":   m2o_id(o.get("partner_id")),
+            "partner_name": m2o_name(o.get("partner_id")),
+            "amount_total": o.get("amount_total") or 0.0,
+            "date_order":   o.get("date_order") or None,
+            "state":        o.get("state") or None,
+        }
+        for o in orders
+    ]
+
+
 def map_lead(lead, stage_seq_map, demo_seq, user_email_map, revenue_map, won_map):
     stage_id = m2o_id(lead.get("stage_id"))
     stage_name_raw = m2o_name(lead.get("stage_id"))
@@ -180,6 +206,7 @@ def map_lead(lead, stage_seq_map, demo_seq, user_email_map, revenue_map, won_map
             demo_given = lead_seq >= demo_seq
 
     user_id = m2o_id(lead.get("user_id"))
+    partner_id = m2o_id(lead.get("partner_id"))
 
     return {
         "source_system":     "odoo",
@@ -197,6 +224,8 @@ def map_lead(lead, stage_seq_map, demo_seq, user_email_map, revenue_map, won_map
         "product_line":      None,   # flagged — no clean Odoo equivalent, see chat
         "hero_product":      m2o_name(lead.get("x_studio_product_name_1")) or m2o_name(lead.get("x_studio_product_name_3")),
         "city":              lead.get("city") or None,
+        "partner_id":        partner_id,
+        "partner_name":      m2o_name(lead.get("partner_id")),
         "lead_created_at":   lead.get("create_date") or None,
         "lead_updated_at":   lead.get("write_date") or None,
         "demo_given":        demo_given,
@@ -265,6 +294,9 @@ def main():
 
     mapped = [map_lead(l, stage_seq_map, demo_seq, user_email_map, revenue_map, won_map) for l in leads]
 
+    partner_ids = {m["partner_id"] for m in mapped if m["partner_id"] is not None}
+    orphan_orders = fetch_orphan_orders(partner_ids)
+
     inserted = 0
     errors = []
     for start in range(0, len(mapped), BATCH):
@@ -279,6 +311,20 @@ def main():
             errors.append((start, str(e)))
             print(f"  ERROR: batch {start+1}-{start+len(chunk)} failed: {e}")
 
+    orphan_inserted = 0
+    orphan_errors = []
+    for start in range(0, len(orphan_orders), BATCH):
+        chunk = orphan_orders[start:start + BATCH]
+        try:
+            res = supabase.table("orphan_sale_orders").upsert(
+                chunk, on_conflict="order_id"
+            ).execute()
+            orphan_inserted += len(res.data or [])
+            print(f"  orphan upserted {start+1}-{start+len(chunk)} ({len(res.data or [])} confirmed)")
+        except Exception as e:
+            orphan_errors.append((start, str(e)))
+            print(f"  ERROR: orphan batch {start+1}-{start+len(chunk)} failed: {e}")
+
     print("\n" + "=" * 70)
     print("SYNC SUMMARY")
     print("=" * 70)
@@ -291,6 +337,9 @@ def main():
     print(f"Won (stage_name='Won'):       {won_count}")
     print(f"Lost (is_active=false):       {lost_count}")
     print(f"Pending (active, not Won):    {pending_count}")
+    print(f"Orphan orders fetched:   {len(orphan_orders)}")
+    print(f"Orphan orders upserted:  {orphan_inserted}")
+    print(f"Orphan batch errors:     {len(orphan_errors)}")
 
     if not errors:
         set_last_synced_at(run_started_at)
