@@ -437,10 +437,6 @@ async function _applyRenewalsNavVisibility() {
   const hasAccess = _ruIsMIS || !!_ruCrmPerson;
   if (nav) nav.style.display = hasAccess ? '' : 'none';
   if (mm)  mm.style.display  = hasAccess ? 'flex' : 'none';
-  // Resolve Unmatched is now visible to CRM persons too, so the unresolved
-  // count badge should reflect that for them as well — Unassigned Pool
-  // stays MIS-only (unaffected by this task), so its badge stays gated here.
-  if (hasAccess) _ruRefreshUnmatchedBadge();
   if (_ruIsMIS) _ruRefreshUnassignedPoolBadge();
 }
 
@@ -453,23 +449,6 @@ async function _ruCount(table, query) {
   const range = res.headers.get('content-range') || '';
   const total = range.split('/')[1];
   return total && total !== '*' ? parseInt(total, 10) : 0;
-}
-
-async function _ruRefreshUnmatchedBadge() {
-  try {
-    // Reads the same deduplicated (latest-per-raw_name) view Resolve
-    // Unmatched itself displays, so the badge count never disagrees with
-    // what's actually shown there. id=not.is.null is a no-op filter (id is
-    // NOT NULL) — _ruCount always needs a non-empty query segment.
-    const count = await _ruCount('latest_unmatched_import_names', 'id=not.is.null');
-    const badge = document.getElementById('renewalsUnmatchedBadge');
-    const badgeMob = document.getElementById('renewalsUnmatchedBadgeMob');
-    [badge, badgeMob].forEach(b => {
-      if (!b) return;
-      b.textContent = count;
-      b.style.display = count > 0 ? '' : 'none';
-    });
-  } catch (e) { /* badge is cosmetic — ignore failures */ }
 }
 
 // Unassigned Pool's count lives on the tab button's own label ("Unassigned
@@ -691,7 +670,6 @@ function ruWatchProcessing(filePath) {
       document.getElementById('ruFileInput').value = '';
       document.getElementById('ruDropLabel').textContent = 'Click to choose or drag & drop the Accounts Excel file';
       ruLoadHistory();
-      _ruRefreshUnmatchedBadge();
     }
   }, 3000);
 }
@@ -836,7 +814,6 @@ async function ruAssign(id) {
 
     const rowEl = document.getElementById(`ruRow-${id}`);
     if (rowEl) rowEl.remove();
-    _ruRefreshUnmatchedBadge();
     const countEl = document.getElementById('ruUnmatchedCount');
     const remaining = document.querySelectorAll('#ruUnmatchedBody tr[id^="ruRow-"]').length;
     countEl.textContent = `${remaining} unresolved`;
@@ -860,7 +837,6 @@ async function ruIgnore(id) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const rowEl = document.getElementById(`ruRow-${id}`);
     if (rowEl) rowEl.remove();
-    _ruRefreshUnmatchedBadge();
     const countEl = document.getElementById('ruUnmatchedCount');
     const remaining = document.querySelectorAll('#ruUnmatchedBody tr[id^="ruRow-"]').length;
     countEl.textContent = `${remaining} unresolved`;

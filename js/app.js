@@ -2,9 +2,9 @@
 // ═══════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════
-let lLoaded=false,cLoaded=false,enLoaded=false;
+let lLoaded=false,enLoaded=false;
 // Pre-fetch data caches
-let _collCache=null, _tasksCache=null, _fmsCache=null;
+let _tasksCache=null, _fmsCache=null;
 
 function prefetchAllData(){
   const _isOwner = CURRENT_USER && CURRENT_USER.role === 'owner';
@@ -20,12 +20,6 @@ function prefetchAllData(){
         setTimeout(()=>{ try{ loadTasks(); }catch(e){ } }, 0);
       }
     });
-  }
-
-  // Managing Director/MIS/PC: also fetch collection in background
-  if(_isOwner){
-    if(!_collCache)  fetch(C_URL).then(r=>r.json()).then(d=>{_collCache=d;}).catch(()=>{});
-    // FMS uses Supabase directly — no prefetch needed
   }
 
   // SmartFleet — prefetch in background so the panel opens instantly (no loading screen) on click
@@ -366,7 +360,7 @@ function switchDB(id, fromPopState){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
   // Auto-open dashboard accordion when a sub-dashboard is selected
-  var dashPanels=['leads','enterprise','collection','fms','tasks','ims','crm','mapping','renewals'];
+  var dashPanels=['leads','enterprise','fms','tasks','ims','crm','mapping','renewals'];
   if(dashPanels.indexOf(id)>=0){
     var grp=document.getElementById('dashboardSubGroup');
     var arrow=document.getElementById('dashAccordionArrow');
@@ -397,7 +391,6 @@ function switchDB(id, fromPopState){
   const _up=document.getElementById('bnUserPopup');if(_up)_up.classList.remove('open');
   if(id==='leads'&&!lLoaded){lLoaded=true;loadLeads();}
   if(id==='enterprise'&&!enLoaded){enLoaded=true;loadEnterprise();}
-  if(id==='collection'&&!cLoaded){cLoaded=true;loadColl();}
   if(id==='tasks'&&!tLoaded){tLoaded=true;loadTasks();}
   if(id==='hr'){loadHRSection();}
   if(id==='sales'&&!salesDocsLoaded){loadSalesDocs();}

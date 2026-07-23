@@ -245,9 +245,10 @@
         <span class="nav-sub-dot"></span>
         <span class="nav-label">Enterprise Lead</span><span class="nav-badge live" style="background:rgba(240,165,0,0.18);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">Live</span>
       </div>
-      <div class="nav-item nav-sub-item" onclick="switchDB('collection')" id="nav-collection" title="Collection">
+      <!-- RENEWALS & COLLECTIONS — MIS or matching crm_persons only, shown/hidden by JS. Single entry point for the whole module (lands on Overview tab by default). -->
+      <div class="nav-item nav-sub-item" onclick="switchDB('renewals')" id="nav-renewals" style="display:none;" title="Renewals & Collections">
         <span class="nav-sub-dot"></span>
-        <span class="nav-label">Collection</span><span class="nav-badge live">Live</span>
+        <span class="nav-label">Renewals &amp; Collections</span>
       </div>
       <div class="nav-item nav-sub-item" onclick="switchDB('fms')" id="nav-fms" title="FMS O2D">
         <span class="nav-sub-dot"></span>
@@ -269,12 +270,6 @@
       <div class="nav-item nav-sub-item" onclick="switchDB('crm')" id="nav-crm" style="display:none;" title="CRM Vehicle">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">CRM Vehicle</span><span class="nav-badge live" style="background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.35);">Live</span>
-      </div>
-      <!-- RENEWALS & COLLECTIONS — MIS or matching crm_persons only, shown/hidden by JS. Single entry point for the whole module (lands on Overview tab by default). -->
-      <div class="nav-item nav-sub-item" onclick="switchDB('renewals')" id="nav-renewals" style="display:none;" title="Renewals & Collections">
-        <span class="nav-sub-dot"></span>
-        <span class="nav-label">Renewals &amp; Collections</span>
-        <span class="nav-badge" id="renewalsUnmatchedBadge" style="display:none;background:rgba(255,92,124,0.18);color:#ff5c7c;border:1px solid rgba(255,92,124,0.35);">0</span>
       </div>
     </div>
 
@@ -647,9 +642,9 @@
         <span class="mm-subdot"></span><span class="mm-label">Enterprise Lead</span>
         <span class="mm-badge" style="margin-left:auto;background:rgba(240,165,0,0.18);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">Live</span>
       </button>
-      <button class="mm-nav-item mm-sub" id="mm-collection" onclick="mobMenuGo('collection')">
-        <span class="mm-subdot"></span><span class="mm-label">Collection</span>
-        <span class="mm-badge mm-badge-live">Live</span>
+      <!-- Renewals & Collections — MIS or matching crm_persons only, shown/hidden by JS. Single entry point for the whole module (lands on Overview tab by default). -->
+      <button class="mm-nav-item mm-sub" id="mm-renewals" onclick="mobMenuGo('renewals')" style="display:none;">
+        <span class="mm-subdot"></span><span class="mm-label">Renewals &amp; Collections</span>
       </button>
       <button class="mm-nav-item mm-sub" id="mm-fms" onclick="mobMenuGo('fms')">
         <span class="mm-subdot"></span><span class="mm-label">FMS O2D</span>
@@ -670,11 +665,6 @@
       <button class="mm-nav-item mm-sub" id="mm-crm" onclick="mobMenuGo('crm')" style="display:none;">
         <span class="mm-subdot"></span><span class="mm-label">CRM Vehicle</span>
         <span class="mm-badge" style="margin-left:auto;background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.35);">Live</span>
-      </button>
-      <!-- Renewals & Collections — MIS or matching crm_persons only, shown/hidden by JS. Single entry point for the whole module (lands on Overview tab by default). -->
-      <button class="mm-nav-item mm-sub" id="mm-renewals" onclick="mobMenuGo('renewals')" style="display:none;">
-        <span class="mm-subdot"></span><span class="mm-label">Renewals &amp; Collections</span>
-        <span class="mm-badge" id="renewalsUnmatchedBadgeMob" style="display:none;margin-left:auto;background:rgba(255,92,124,0.18);color:#ff5c7c;border:1px solid rgba(255,92,124,0.35);">0</span>
       </button>
     </div>
 
@@ -2339,94 +2329,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <div class="table-scroll"><table><thead><tr id="enTblHead"></tr></thead><tbody id="enTblBody"></tbody></table></div>
         <div class="pagination" id="enPagBar"></div>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- ╔═══════════════════════════════════════════════════════════════════════
-     ║  [PANEL COLLECTION] — Payment Collection / Revenue Tracker Dashboard
-     ║  Sirf Managing Director (owner) ko dikhta hai
-     ║  KPI cards, charts, person filter, table with pagination
-     ║  Data Odoo se aata hai via Flask API (C_URL)
-     ║  JS: loadColl() (~line 6602)
-     ╚═══════════════════════════════════════════════════════════════════════ -->
-<!-- COLLECTION PANEL -->
-<div class="dashboard-panel" id="panel-collection">
-  <div class="db-header">
-    <div><div class="db-title"><span>Aditi</span> Collection<span style="font-size:0.67rem;font-weight:400;color:var(--muted);margin-left:8px;letter-spacing:0.05em;font-family:'DM Sans',sans-serif;">REVENUE TRACKER</span></div><div class="db-breadcrumb">Portal → Collection Dashboard</div></div>
-    <div class="header-right">
-      
-      <button class="refresh-btn" onclick="refreshColl()" id="cRefBtn"><span id="cRefIco"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></span> Refresh</button>
-      <div class="last-sync" id="cSync">—</div>
-    </div>
-  </div>
-  <div class="error-banner" id="cErr"></div>
-  <div class="db-loading" id="cLoad"><div class="loader-logo">COLLECTION</div><div class="loader-bar"><div class="loader-fill"></div></div><div class="loader-text" id="cTxt">Loading...</div></div>
-  <div class="db-content" id="cCont" style="display:none">
-
-    <div class="section-title">Key Performance Indicators</div>
-    <div id="cCFBadge" style="display:none;align-items:center;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.25);border-radius:10px;padding:8px 16px;margin-bottom:14px;font-size:0.88rem;color:var(--text);gap:4px;flex-wrap:wrap;"></div>
-    <div class="kpi-grid" id="cKpiGrid" style="grid-template-columns:repeat(6,1fr)"></div>
-
-    <div class="section-title">Date / Person Filter</div>
-    <div class="filters-bar" style="margin-bottom:16px">
-      <span class="filter-label">Person:</span>
-      <button class="filter-btn active" onclick="cSetPerson('',this)" id="cBtnAll">All</button>
-      <span id="cPersonBtns"></span>
-      <span class="filter-label" style="margin-left:8px">Month:</span>
-      <select class="filter-select" id="cFMonth" onchange="cApplyGlobal()"><option value="">All Months</option></select>
-      <span class="filter-label">Location:</span>
-      <select class="filter-select" id="cFLoc" onchange="cApplyGlobal()"><option value="">All Locations</option></select>
-      <button class="reset-btn" onclick="cResetAll()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset All</button>
-    </div>
-
-    <div class="section-title">Commitment vs Achievement</div>
-    <div class="charts-grid4">
-      <div class="chart-card"><div class="chart-title"><span class="dot"></span> Daily Commitment vs Achievement</div><div class="chart-wrap-lg"><canvas id="cChDay"></canvas></div></div>
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent2)"></span> MTD Progress per Person</div><div class="chart-wrap-lg"><canvas id="cChMTD"></canvas></div></div>
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#a78bfa"></span> Achievement % per Person</div><div class="chart-wrap-lg"><canvas id="cChPct"></canvas></div></div>
-    </div>
-
-    <div class="section-title">Calls & Trends</div>
-    <div class="charts-grid3">
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent3)"></span> Commitment Calls vs Achievement Calls</div><div class="chart-wrap"><canvas id="cChCalls"></canvas></div></div>
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#a78bfa"></span> Date-wise Achievement Trend</div><div class="chart-wrap"><canvas id="cChTrend"></canvas></div></div>
-    </div>
-
-    <div class="section-title">Leaderboard & Team Comparison</div>
-    <div class="charts-grid3">
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent2)"></span> Performance Leaderboard</div><div id="cLBoard" style="margin-top:4px"></div></div>
-      <div class="chart-card"><div class="chart-title"><span class="dot"></span> Team Total Comparison</div><div class="chart-wrap"><canvas id="cChTeam"></canvas></div></div>
-    </div>
-
-    <div class="section-title">Detailed Records</div>
-    <div class="filters-bar">
-      <span class="filter-label">Search:</span>
-      <input class="filter-input" id="cSearch" placeholder="Search name, location..." oninput="cApplyTable()" style="min-width:160px">
-      <span class="filter-label">Date:</span>
-      <select class="filter-select" id="cFDate" onchange="cApplyTable()"><option value="">All Dates</option></select>
-      <span class="filter-label">Status:</span>
-      <select class="filter-select" id="cFStatus" onchange="cApplyTable()"><option value="">All Status</option><option value="achieved">✓ Achieved</option><option value="below">↓ Below</option></select>
-      <button class="reset-btn" onclick="cResetTable()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset</button>
-    </div>
-    <div class="table-card">
-      <div class="table-header"><span class="table-title">Daily Records</span><span class="table-count" id="cTblCnt">—</span></div>
-      <div class="table-scroll"><table><thead><tr>
-        <th onclick="cSort('Date')">DATE ↕</th>
-        <th onclick="cSort('Month Name')">MONTH ↕</th>
-        <th onclick="cSort('Name')">NAME ↕</th>
-        <th>LOCATION</th>
-        <th onclick="cSort('Monthly Target')">MONTHLY TARGET ↕</th>
-        <th onclick="cSort('Commitment')">COMMITMENT ↕</th>
-        <th onclick="cSort('Achivment')">ACHIEVEMENT ↕</th>
-        <th>ACHV %</th>
-        <th onclick="cSort('Commitment Calls')">COMMIT CALLS ↕</th>
-        <th onclick="cSort('Achievement  Calls')">ACHV CALLS ↕</th>
-        <th>CALL %</th>
-        <th onclick="cSort('MTD')">MTD ↕</th>
-        <th>STATUS</th>
-      </tr></thead><tbody id="cTblBody"></tbody></table></div>
-      <div class="pagination" id="cPagBar"></div>
     </div>
   </div>
 </div>
@@ -6012,7 +5914,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/auth.js"></script>
 <script src="js/leads.js"></script>
 <script src="js/enterprise.js"></script>
-<script src="js/collection.js"></script>
 <script src="js/fms.js"></script>
 <script src="js/tasks.js"></script>
 <script src="js/hr.js"></script>

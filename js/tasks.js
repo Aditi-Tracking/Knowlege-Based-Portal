@@ -181,7 +181,6 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
         PERMISSIONS.can_view_crm==='true'||
         PERMISSIONS.can_view_leads==='true'||
         PERMISSIONS.can_view_enterprise==='true'||
-        PERMISSIONS.can_view_collection==='true'||
         PERMISSIONS.can_view_fms==='true'||
         PERMISSIONS.can_view_ims==='true'||
         PERMISSIONS.can_view_mapping==='true';
@@ -2191,12 +2190,11 @@ async function tSilentRefresh(){
     const _notOwner = !isOwner;
     if(CURRENT_USER && _notOwner){
       const hasTasks = tAllData.length > 0;
-      // Dashboards visible if user has ANY of: CRM/Leads/Enterprise/Collection/FMS/IMS/Mapping permission, OR has tasks assigned (Task Checklist)
+      // Dashboards visible if user has ANY of: CRM/Leads/Enterprise/FMS/IMS/Mapping permission, OR has tasks assigned (Task Checklist)
       const hasDashAccess=
         PERMISSIONS.can_view_crm==='true'||
         PERMISSIONS.can_view_leads==='true'||
         PERMISSIONS.can_view_enterprise==='true'||
-        PERMISSIONS.can_view_collection==='true'||
         PERMISSIONS.can_view_fms==='true'||
         PERMISSIONS.can_view_ims==='true'||
         PERMISSIONS.can_view_mapping==='true'||

@@ -22,12 +22,6 @@ _sbAuth.auth.onAuthStateChange(async (event, session) => {
 let CURRENT_USER = null;
 let PERMISSIONS  = {};   // populated from Python backend after login
 const _PAPI = 'https://knowlege-based-portal-production.up.railway.app';
-function warmupAPIs(){
-  // Warm-up ping to Google Apps Scripts (fire & forget)
-  [C_URL].forEach(url=>{
-    fetch(url+'?ping=1',{method:'GET',mode:'cors'}).catch(()=>{});
-  });
-}
 
 window.addEventListener('load', async function(){
   try {
@@ -38,8 +32,6 @@ window.addEventListener('load', async function(){
       return;
     }
   } catch(e) { console.warn('Session check error:', e); }
-  // Always warm up APIs in background
-  warmupAPIs();
 });
 
 function togglePass(){
@@ -59,7 +51,6 @@ function _buildFallbackPermissions(rawRole) {
   return {
     can_view_leads:         String(hasAll),
     can_view_enterprise:    String(hasAll),
-    can_view_collection:    String(hasAll),
     can_view_fms:           String(hasAll),
     can_view_ims:           String(isMIS || isPC || isOwner),
     can_view_crm:           String(isOwner || isPC),
@@ -136,7 +127,6 @@ async function _loadUserProfile(authUser) {
     if(typeof _vrCheckBtnAccess==='function') _vrCheckBtnAccess();
 
     showPortal();
-    warmupAPIs();
     _actLoginTime = Date.now();
     _fetchAndCacheEmpId().then(() => {
       logActivity({
@@ -160,7 +150,6 @@ async function _loadUserProfile(authUser) {
     };
     PERMISSIONS = _buildFallbackPermissions('employee');
     showPortal();
-    warmupAPIs();
   }
 }
 
@@ -369,13 +358,11 @@ function restrictEmployee(){
   // Nav items — controlled by PERMISSIONS from database
   const navPermMap = {
     'nav-leads':      'can_view_leads',
-    'nav-collection': 'can_view_collection',
     'nav-fms':        'can_view_fms',
     'bn-leads':       'can_view_leads',
     'bn-collection':  'can_view_collection',
     'bn-fms':         'can_view_fms',
     'mm-leads':       'can_view_leads',
-    'mm-collection':  'can_view_collection',
     'mm-fms':         'can_view_fms',
   };
   Object.entries(navPermMap).forEach(([id, perm]) => {
