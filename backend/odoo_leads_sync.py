@@ -174,7 +174,12 @@ def fetch_orphan_orders(partner_ids):
         return []
     orders = execute(
         "sale.order", "search_read",
-        [("opportunity_id", "=", False), ("partner_id", "in", list(partner_ids)), ("state", "in", ("sale", "done"))],
+        [
+            ("opportunity_id", "=", False),
+            ("partner_id", "in", list(partner_ids)),
+            ("state", "in", ("sale", "done")),
+            ("date_order", ">=", ODOO_LEADS_START_DATE),
+        ],
         fields=["id", "name", "partner_id", "amount_total", "date_order", "state"]
     )
     return [
@@ -189,6 +194,69 @@ def fetch_orphan_orders(partner_ids):
         }
         for o in orders
     ]
+
+
+def match_orphan_revenue(needs_match, orphan_orders):
+    """Attribute orphan (opportunity_id=False) sale orders to Won leads that
+    have no direct opportunity-linked order.
+
+    Per partner: leads are claimed earliest-date_closed-first, each claiming
+    the earliest not-yet-consumed orphan order whose date_order falls on or
+    after its date_closed. A lead with no date_closed is always eligible and
+    is given first pick within its partner group (so it can claim the
+    earliest available order regardless of date).
+
+    Returns one result dict per entry in needs_match (same order), each
+    {source_record_id, matched_revenue, matched_order_id} — matched_revenue
+    is 0 and matched_order_id is None when no order could be matched.
+    """
+    orders_by_partner = {}
+    for o in orphan_orders:
+        orders_by_partner.setdefault(o["partner_id"], []).append(o)
+    for orders in orders_by_partner.values():
+        orders.sort(key=lambda o: o["date_order"] or "")
+
+    leads_by_partner = {}
+    for lead in needs_match:
+        leads_by_partner.setdefault(lead["partner_id"], []).append(lead)
+
+    for partner_id, leads in leads_by_partner.items():
+        no_date = [l for l in leads if not l.get("date_closed")]
+        has_date = [l for l in leads if l.get("date_closed")]
+        for l in no_date:
+            print(f"WARNING: lead source_record_id={l['source_record_id']} has no "
+                  f"date_closed — treated as unconditionally eligible for the "
+                  f"earliest available orphan order.")
+        has_date.sort(key=lambda l: l["date_closed"])
+        leads_by_partner[partner_id] = no_date + has_date
+
+    consumed = set()
+    match_by_source_id = {}
+    for partner_id, leads in leads_by_partner.items():
+        partner_orders = orders_by_partner.get(partner_id, [])
+        for lead in leads:
+            match = None
+            for o in partner_orders:
+                if o["order_id"] in consumed:
+                    continue
+                if lead["date_closed"] is None or (o["date_order"] or "") >= lead["date_closed"]:
+                    match = o
+                    break
+            if match:
+                consumed.add(match["order_id"])
+                match_by_source_id[lead["source_record_id"]] = {
+                    "source_record_id": lead["source_record_id"],
+                    "matched_revenue": match["amount_total"],
+                    "matched_order_id": match["order_id"],
+                }
+            else:
+                match_by_source_id[lead["source_record_id"]] = {
+                    "source_record_id": lead["source_record_id"],
+                    "matched_revenue": 0,
+                    "matched_order_id": None,
+                }
+
+    return [match_by_source_id[lead["source_record_id"]] for lead in needs_match]
 
 
 def map_lead(lead, stage_seq_map, demo_seq, user_email_map, revenue_map, won_map):
@@ -228,6 +296,7 @@ def map_lead(lead, stage_seq_map, demo_seq, user_email_map, revenue_map, won_map
         "partner_name":      m2o_name(lead.get("partner_id")),
         "lead_created_at":   lead.get("create_date") or None,
         "lead_updated_at":   lead.get("write_date") or None,
+        "date_closed":       lead.get("date_closed") or None,
         "demo_given":        demo_given,
         "quotation_sent":    (lead.get("quotation_count") or 0) > 0,
         "calls_made":        (lead.get("no_of_calls_done") or 0) > 0 or (lead.get("no_of_calls_missed") or 0) > 0,
@@ -294,8 +363,34 @@ def main():
 
     mapped = [map_lead(l, stage_seq_map, demo_seq, user_email_map, revenue_map, won_map) for l in leads]
 
-    partner_ids = {m["partner_id"] for m in mapped if m["partner_id"] is not None}
+    # Won leads with no direct opportunity-linked order (membership check, not
+    # truthiness — a linked order can legitimately have amount_total == 0)
+    # are the ones that need an orphan-order match.
+    needs_match = [
+        {
+            "source_record_id": m["source_record_id"],
+            "partner_id":       m["partner_id"],
+            "date_closed":      m["date_closed"],
+        }
+        for m in mapped
+        if m["stage_name"] == "Won" and int(m["source_record_id"]) not in revenue_map
+    ]
+    partner_ids = {nm["partner_id"] for nm in needs_match if nm["partner_id"] is not None}
     orphan_orders = fetch_orphan_orders(partner_ids)
+
+    match_results = match_orphan_revenue(needs_match, orphan_orders)
+    match_by_source_id = {mr["source_record_id"]: mr for mr in match_results}
+    for m in mapped:
+        mr = match_by_source_id.get(m["source_record_id"])
+        m["orphan_matched_revenue"] = mr["matched_revenue"] if mr else None
+        m["orphan_matched_order_id"] = mr["matched_order_id"] if mr else None
+
+    matched_order_to_lead = {
+        mr["matched_order_id"]: mr["source_record_id"]
+        for mr in match_results if mr["matched_order_id"] is not None
+    }
+    for o in orphan_orders:
+        o["matched_lead_source_record_id"] = matched_order_to_lead.get(o["order_id"])
 
     inserted = 0
     errors = []
@@ -340,6 +435,9 @@ def main():
     print(f"Orphan orders fetched:   {len(orphan_orders)}")
     print(f"Orphan orders upserted:  {orphan_inserted}")
     print(f"Orphan batch errors:     {len(orphan_errors)}")
+    print(f"Won leads needing orphan-match: {len(needs_match)}")
+    print(f"Orphan-matched successfully:    {sum(1 for mr in match_results if mr['matched_order_id'] is not None)}")
+    print(f"Orphan-match fell back to 0:     {sum(1 for mr in match_results if mr['matched_order_id'] is None)}")
 
     if not errors:
         set_last_synced_at(run_started_at)
