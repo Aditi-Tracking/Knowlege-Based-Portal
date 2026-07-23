@@ -3,7 +3,7 @@
 let L=[],L_ALL=[],Lf=[],Lch={},Lp=1,Lsk=null,Lsd=1,Ltype='',Lkpi=null,Lsys='';
 let Lcf={source:null,team:null,product:null,lostReason:null};
 const LPP=15;
-const LEADS_FIELDS='lead_name,contact_name,phone,email,funnel_stage,demo_reached,quotation_reached,source_system,salesperson_name,salesperson_email,team_name,source_channel,hero_product,city,lead_created_at,lead_updated_at,demo_given,quotation_sent,calls_made,order_value,won_revenue,probability,activity_state,is_active,lost_reason_name';
+const LEADS_FIELDS='lead_name,contact_name,phone,email,funnel_stage,demo_reached,quotation_reached,source_system,salesperson_name,salesperson_email,team_name,source_channel,hero_product,city,lead_created_at,lead_updated_at,demo_given,quotation_sent,calls_made,order_value,won_revenue,orphan_matched_revenue,probability,activity_state,is_active,lost_reason_name';
 
 // Compact Indian-style money format — Cr for 1,00,00,000+, L for 1,00,000+, K for 1,000+, else plain.
 function lFmtINR(v){
@@ -52,8 +52,10 @@ async function loadLeads(){
     L_ALL=rows.map(r=>{
       const n={...r};
       n['probability']=n['probability']!=null?parseFloat(n['probability'])||0:0;
-      n['order_value']=n['order_value']!=null?parseFloat(n['order_value'])||null:null;
-      n['won_revenue']=n['won_revenue']!=null?parseFloat(n['won_revenue'])||null:null;
+      n['order_value']=n['order_value']!=null?parseFloat(n['order_value']):null;
+      n['won_revenue']=n['won_revenue']!=null?parseFloat(n['won_revenue']):null;
+      n['orphan_matched_revenue']=n['orphan_matched_revenue']!=null?parseFloat(n['orphan_matched_revenue']):null;
+      n['effective_revenue']=n['won_revenue']??n['orphan_matched_revenue']??n['order_value']??0;
       n['Stage']=lStage(n);
       n['PendingSubStage']=n['Stage']==='Pending'?lPendingSubStage(n):null;
       n['RepName']=n['salesperson_name']||rN(n['salesperson_email'])||null;
@@ -111,7 +113,7 @@ function lRenderKPIs(){
   const q=L.filter(r=>r['quotation_reached']===true).length;
   const dm=L.filter(r=>r['demo_reached']===true).length;
   const won=L.filter(r=>r['Stage']==='Won');
-  const rev=won.reduce((s,r)=>s+(r['won_revenue']??r['order_value']??0),0);
+  const rev=won.reduce((s,r)=>s+r['effective_revenue'],0);
   const today=L.filter(r=>(r['lead_created_at']||'').slice(0,10)===lToday()).length;
   const pct=v=>t?((v/t)*100).toFixed(0):0;
   const kpis=[
@@ -197,7 +199,7 @@ function lRenderRepLB(){
     s.total++;
     if(r['demo_reached']===true)s.demo++;
     if(r['quotation_reached']===true)s.quoted++;
-    if(r['Stage']==='Won'){s.won++;s.revenue+=(r['won_revenue']??r['order_value']??0);}
+    if(r['Stage']==='Won'){s.won++;s.revenue+=r['effective_revenue'];}
   });
   const board=Object.values(reps).sort((a,b)=>b.revenue-a.revenue);
   box.innerHTML=board.map((b,i)=>{
@@ -236,7 +238,7 @@ function lApply(){
   if(Lsk){
     Lf.sort((a,b)=>{
       let av,bv;
-      if(Lsk==='revenue'){av=a['won_revenue']??a['order_value']??0;bv=b['won_revenue']??b['order_value']??0;}
+      if(Lsk==='revenue'){av=a['effective_revenue'];bv=b['effective_revenue'];}
       else{av=a[Lsk]??'';bv=b[Lsk]??'';}
       if(!isNaN(av)&&!isNaN(bv)&&av!==''&&bv!=='')return(+av-+bv)*Lsd;
       return String(av).localeCompare(String(bv))*Lsd;
@@ -254,10 +256,10 @@ function lRenderTable(){
   tb.innerHTML=pg.map(r=>{
     const pr=r['probability']||0;const prc=pr>=70?'#10b981':pr>=40?'#3b82f6':'#ef4444';
     const st=r['Stage'];const sc2=st==='Won'?'badge-won':st==='Lost'?'badge-lost':'badge-open';const stt=st==='Won'?'✓ Won':st==='Lost'?'✗ Lost':(r['PendingSubStage']?'● '+r['PendingSubStage']:'● Pending');
-    const ov=(r['won_revenue']??r['order_value'])?'₹'+(+(r['won_revenue']??r['order_value'])).toLocaleString('en-IN'):'—';
+    const ov=r['effective_revenue']?'₹'+r['effective_revenue'].toLocaleString('en-IN'):'—';
     const nm=r['contact_name']||r['lead_name']||'—';
     const repNm=r['RepName']||'—';
-    return`<tr><td><div style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis">${nm.slice(0,22)}</div><div style="font-size:0.78rem;color:var(--muted)">${r['city']||''}</div></td><td style="font-size:0.83rem">${r['source_channel']||'—'}</td><td><div class="rep-info"><div class="rep-dot" style="background:${rB(r['salesperson_email'])};color:${rC(r['salesperson_email'])}">${repNm.charAt(0).toUpperCase()}</div><span style="font-size:0.83rem">${repNm}</span></div></td><td style="font-size:0.80rem;color:var(--muted)">${(r['hero_product']||'—').slice(0,18)}</td><td><div class="wc-wrap"><div class="wc-bar"><div class="wc-fill" style="width:${pr}%;background:${prc}"></div></div><span style="font-size:0.82rem;font-weight:600;color:${prc}">${Math.round(pr)}%</span></div></td><td><span class="badge ${sc2}">${stt}</span></td><td><span style="font-size:0.83rem;color:${r['calls_made']===true?'var(--won)':'var(--muted)'}">${r['calls_made']===true?'✓ Yes':'✗ No'}</span></td><td><span style="font-size:0.83rem;color:${r['demo_given']===true?'var(--won)':'var(--muted)'}">${r['demo_given']===true?'✓ Yes':'✗ No'}</span></td><td><span style="font-size:0.83rem;color:${r['quotation_sent']===true?'var(--won)':'var(--muted)'}">${r['quotation_sent']===true?'✓ Sent':'✗ No'}</span></td><td style="font-weight:600;color:${(r['won_revenue']??r['order_value'])?'var(--accent)':'var(--muted)'}">${ov}</td></tr>`;
+    return`<tr><td><div style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis">${nm.slice(0,22)}</div><div style="font-size:0.78rem;color:var(--muted)">${r['city']||''}</div></td><td style="font-size:0.83rem">${r['source_channel']||'—'}</td><td><div class="rep-info"><div class="rep-dot" style="background:${rB(r['salesperson_email'])};color:${rC(r['salesperson_email'])}">${repNm.charAt(0).toUpperCase()}</div><span style="font-size:0.83rem">${repNm}</span></div></td><td style="font-size:0.80rem;color:var(--muted)">${(r['hero_product']||'—').slice(0,18)}</td><td><div class="wc-wrap"><div class="wc-bar"><div class="wc-fill" style="width:${pr}%;background:${prc}"></div></div><span style="font-size:0.82rem;font-weight:600;color:${prc}">${Math.round(pr)}%</span></div></td><td><span class="badge ${sc2}">${stt}</span></td><td><span style="font-size:0.83rem;color:${r['calls_made']===true?'var(--won)':'var(--muted)'}">${r['calls_made']===true?'✓ Yes':'✗ No'}</span></td><td><span style="font-size:0.83rem;color:${r['demo_given']===true?'var(--won)':'var(--muted)'}">${r['demo_given']===true?'✓ Yes':'✗ No'}</span></td><td><span style="font-size:0.83rem;color:${r['quotation_sent']===true?'var(--won)':'var(--muted)'}">${r['quotation_sent']===true?'✓ Sent':'✗ No'}</span></td><td style="font-weight:600;color:${r['effective_revenue']?'var(--accent)':'var(--muted)'}">${ov}</td></tr>`;
   }).join('');
   const bar=document.getElementById('lPagBar');if(tp<=1){bar.innerHTML='';return;}
   let h='<span class="page-info">Page '+Lp+' of '+tp+'</span><button class="page-btn" onclick="lGoPage('+(Lp-1)+')" '+(Lp===1?'disabled':'')+'>‹</button>';
