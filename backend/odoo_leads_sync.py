@@ -146,6 +146,22 @@ def fetch_user_emails(user_ids):
     return {u["id"]: (u.get("email") or u.get("login") or None) for u in users}
 
 
+def fetch_commercial_partner_map(partner_ids):
+    """partner_id -> commercial_partner_id (the top-level Company id for a
+    Contact, or the partner's own id if it's already the top-level Company).
+    Some Odoo setups return commercial_partner_id as False/empty for a
+    top-level Company record itself, so that case falls back to the
+    partner's own id rather than being dropped. One query, not N."""
+    if not partner_ids:
+        return {}
+    partners = execute("res.partner", "read", list(partner_ids), fields=["commercial_partner_id"])
+    result = {}
+    for p in partners:
+        resolved = m2o_id(p.get("commercial_partner_id"))
+        result[p["id"]] = resolved if resolved is not None else p["id"]
+    return result
+
+
 def fetch_won_revenue_map(won_lead_ids):
     """Bulk fetch confirmed sale orders (state in sale/done — drafts excluded)
     for the given Won leads, sum amount_total per lead. One query, not N."""
@@ -165,32 +181,37 @@ def fetch_won_revenue_map(won_lead_ids):
     return revenue_map
 
 
-def fetch_orphan_orders(partner_ids):
+def fetch_orphan_orders(commercial_partner_ids):
     """Bulk fetch confirmed sale orders (state in sale/done) that were created
     directly against a partner with no linked opportunity (opportunity_id is
     False in Odoo) — these are invisible to fetch_won_revenue_map's
-    opportunity_id-based lookup. One query, not N."""
-    if not partner_ids:
+    opportunity_id-based lookup. Filters via the partner_id.commercial_partner_id
+    related-field traversal so an order against a Company matches leads whose
+    partner_id is one of that Company's Contact records. One query, not N."""
+    if not commercial_partner_ids:
         return []
     orders = execute(
         "sale.order", "search_read",
         [
             ("opportunity_id", "=", False),
-            ("partner_id", "in", list(partner_ids)),
+            ("partner_id.commercial_partner_id", "in", list(commercial_partner_ids)),
             ("state", "in", ("sale", "done")),
             ("date_order", ">=", ODOO_LEADS_START_DATE),
         ],
         fields=["id", "name", "partner_id", "amount_total", "date_order", "state"]
     )
+    order_partner_ids = {m2o_id(o.get("partner_id")) for o in orders if m2o_id(o.get("partner_id")) is not None}
+    commercial_partner_map = fetch_commercial_partner_map(order_partner_ids)
     return [
         {
-            "order_id":     o["id"],
-            "order_name":   o.get("name") or None,
-            "partner_id":   m2o_id(o.get("partner_id")),
-            "partner_name": m2o_name(o.get("partner_id")),
-            "amount_total": o.get("amount_total") or 0.0,
-            "date_order":   o.get("date_order") or None,
-            "state":        o.get("state") or None,
+            "order_id":               o["id"],
+            "order_name":             o.get("name") or None,
+            "partner_id":             m2o_id(o.get("partner_id")),
+            "partner_name":           m2o_name(o.get("partner_id")),
+            "commercial_partner_id":  commercial_partner_map.get(m2o_id(o.get("partner_id"))),
+            "amount_total":           o.get("amount_total") or 0.0,
+            "date_order":             o.get("date_order") or None,
+            "state":                  o.get("state") or None,
         }
         for o in orders
     ]
@@ -219,13 +240,13 @@ def match_orphan_revenue(needs_match, orphan_orders):
     """
     orders_by_partner = {}
     for o in orphan_orders:
-        orders_by_partner.setdefault(o["partner_id"], []).append(o)
+        orders_by_partner.setdefault(o["commercial_partner_id"], []).append(o)
     for orders in orders_by_partner.values():
         orders.sort(key=lambda o: o["date_order"] or "")
 
     leads_by_partner = {}
     for lead in needs_match:
-        leads_by_partner.setdefault(lead["partner_id"], []).append(lead)
+        leads_by_partner.setdefault(lead["commercial_partner_id"], []).append(lead)
 
     for partner_id, leads in leads_by_partner.items():
         no_date = [l for l in leads if not l.get("date_closed")]
@@ -383,20 +404,29 @@ def main():
 
     mapped = [map_lead(l, stage_seq_map, demo_seq, user_email_map, revenue_map, won_map) for l in leads]
 
+    # Resolve each lead's partner_id to its top-level Company id — a lead's
+    # partner_id may be a Contact while the matching sale order was created
+    # directly against the parent Company, so all matching downstream keys
+    # off commercial_partner_id instead of raw partner_id.
+    lead_partner_ids = {m["partner_id"] for m in mapped if m["partner_id"] is not None}
+    lead_commercial_partner_map = fetch_commercial_partner_map(lead_partner_ids)
+    for m in mapped:
+        m["commercial_partner_id"] = lead_commercial_partner_map.get(m["partner_id"]) if m["partner_id"] is not None else None
+
     # Won leads with no direct opportunity-linked order (membership check, not
     # truthiness — a linked order can legitimately have amount_total == 0)
     # are the ones that need an orphan-order match.
     needs_match = [
         {
-            "source_record_id": m["source_record_id"],
-            "partner_id":       m["partner_id"],
-            "date_closed":      m["date_closed"],
+            "source_record_id":       m["source_record_id"],
+            "commercial_partner_id":  m["commercial_partner_id"],
+            "date_closed":            m["date_closed"],
         }
         for m in mapped
         if m["stage_name"] == "Won" and int(m["source_record_id"]) not in revenue_map
     ]
-    partner_ids = {nm["partner_id"] for nm in needs_match if nm["partner_id"] is not None}
-    orphan_orders = fetch_orphan_orders(partner_ids)
+    commercial_partner_ids = {nm["commercial_partner_id"] for nm in needs_match if nm["commercial_partner_id"] is not None}
+    orphan_orders = fetch_orphan_orders(commercial_partner_ids)
 
     match_results = match_orphan_revenue(needs_match, orphan_orders)
     match_by_source_id = {mr["source_record_id"]: mr for mr in match_results}
