@@ -57,6 +57,40 @@ const RU_COLUMNS = [
 ];
 const RU_COLUMNS_STORAGE_KEY = 'ru_my_customers_columns_v1';
 
+// Each category (Platinum/Gold/Silver) is its own separate <table>, so with
+// no explicit width a column auto-sizes to that category's own longest
+// value — shifting every column after it (Contact Person/Number,
+// Outstanding, etc.) to a different width per section. Fixing these
+// columns' widths the same across all of them, with wrapping instead of
+// nowrap, keeps every other column aligned regardless of which category
+// happens to have the longest value.
+//
+// Contact Person/Number widths are 0.8x their measured typical rendered
+// width — measured 2026-07-23 from live crm_customers data (no browser
+// session available to inspect actual rendered <td>s), not a guess:
+// p90 character length is 14 for contact_person, 16 for contact_number
+// (90th percentile, not max — a handful of rows have company names
+// mis-entered into contact_number, e.g. 46 chars, which would badly skew
+// a max-based width). Converted to px via DM Sans @ 14px (0.87rem × the
+// 16px root — see html{font-size:17px} only applies in installed-PWA
+// standalone mode) at ~8px/char (this dataset's names skew ALL CAPS,
+// which render wider per character than mixed-case) plus the table's
+// existing 26px (13px × 2) td padding: ~138px measured for Contact
+// Person, ~154px for Contact Number.
+const RU_BILLING_NAME_COL_WIDTH = 340; // px — 1.7x the original 200px
+const RU_CONTACT_PERSON_COL_WIDTH = 110; // px — 0.8x of measured ~138px
+const RU_CONTACT_NUMBER_COL_WIDTH = 125; // px — 0.8x of measured ~154px
+const RU_BILLING_NAME_COL_STYLE = `width:${RU_BILLING_NAME_COL_WIDTH}px;white-space:normal;word-wrap:break-word;`;
+const RU_CONTACT_PERSON_COL_STYLE = `width:${RU_CONTACT_PERSON_COL_WIDTH}px;white-space:normal;word-wrap:break-word;`;
+const RU_CONTACT_NUMBER_COL_STYLE = `width:${RU_CONTACT_NUMBER_COL_WIDTH}px;white-space:normal;word-wrap:break-word;`;
+// Looked up by column key in both the header (_ruSortableHeaderHtml) and
+// the cell (_ruEditableCellHtml) so both stay in lockstep, same as before.
+const RU_FIXED_COL_STYLES = {
+  billing_name:    RU_BILLING_NAME_COL_STYLE,
+  contact_person:  RU_CONTACT_PERSON_COL_STYLE,
+  contact_number:  RU_CONTACT_NUMBER_COL_STYLE,
+};
+
 function _ruLoadColumnPrefs() {
   try {
     const raw = localStorage.getItem(RU_COLUMNS_STORAGE_KEY);
@@ -349,6 +383,23 @@ let _ruAllPersons = [];  // active crm_persons, for the Reassign dropdown
 // MIS/owner-only: '' = All, '__unassigned__', or a crm_persons.id — narrows
 // the (otherwise everyone's-book) table client-side, no refetch needed.
 let _ruAssignedToFilter = '';
+
+// Column-header sort for My Customers — client-side, applied within each
+// category section (Platinum/Gold/Silver stay separate groups). Default
+// matches the table's historical behavior (highest Outstanding first);
+// clicking a sortable header sets _ruSortKey and starts ascending, clicking
+// the same header again flips _ruSortDir instead of introducing a third
+// "unsorted" state (there's no useful order to fall back to).
+let _ruSortKey = 'outstanding';
+let _ruSortDir = -1;
+// Keys with a meaningful order to sort by. Contact Person/Number have none
+// (a phone number or a name has no useful "high to low"), and Frequency is
+// 1:1 with the category a row is already grouped under, so it never varies
+// within a section — all three stay header-only, no click handler.
+const RU_SORTABLE_KEYS = new Set([
+  'billing_name', 'outstanding', 'last_call', 'crm_status',
+  'recovered_amount', 'current_outstanding', 'assigned_to', 'city',
+]);
 
 let _ruUnassignedPool = [];      // cached merged rows for the Unassigned Pool tab
 let _ruUnassignedPersons = [];   // active crm_persons, for the Unassigned Pool "Assign to" dropdown
@@ -902,6 +953,7 @@ async function loadRenewalsMyCustomers() {
     _ruCalendarCallsMap = null;
     _ruCalendarScrollAnchor = 'start'; // every fresh tab load opens on Billing Name, not wherever a past nav click left off
     _ruAssignedToFilter = ''; // every fresh tab load opens showing everyone, not wherever a past filter selection left off
+    _ruSortKey = 'outstanding'; _ruSortDir = -1; // every fresh tab load opens on the default sort, not wherever a past click left off
     ruLoadCalendarCalls();
   } catch (e) {
     container.innerHTML = `<p style="color:var(--hot,#ff5c7c);font-size:0.88rem;">⚠️ ${e.message}</p>`;
@@ -974,12 +1026,84 @@ function ruRenderMyCustomers(container) {
     </div>
   `;
 
-  container.innerHTML = toolbar + _ruRenderMyCustomersTableBody();
+  // Table body lives in its own wrapper so a sort click (ruSortMyCustomers)
+  // can replace just this div, leaving the toolbar — and whatever the user
+  // has typed into the search input above — untouched.
+  container.innerHTML = toolbar + `<div id="ruMyCustomersTableWrap">${_ruRenderMyCustomersTableBody()}</div>`;
 
   // The date columns render oldest → newest and scroll horizontally, so
   // without this the table would default to whatever edge the browser
   // happens to lay out first.
   _ruSyncCalendarScroll(container);
+}
+
+// Clicking a sortable column header — same column again flips direction,
+// a different column starts ascending. Re-renders only the table-body
+// wrapper (not the toolbar), then replays the search box's current value
+// against the freshly-rendered rows — a full toolbar re-render would reset
+// the <input>'s value, silently dropping any active search.
+function ruSortMyCustomers(key) {
+  if (_ruSortKey === key) { _ruSortDir *= -1; } else { _ruSortKey = key; _ruSortDir = 1; }
+  const wrap = document.getElementById('ruMyCustomersTableWrap');
+  if (!wrap) return;
+  wrap.innerHTML = _ruRenderMyCustomersTableBody();
+  _ruSyncCalendarScroll(wrap);
+  const searchInput = document.querySelector('#ruMyCustomersBody .filter-input');
+  if (searchInput && searchInput.value) _ruFilterTableRows(searchInput, '#ruMyCustomersBody');
+}
+
+// ▲/▼ (accent, active column) or a dim ↕ (other sortable columns) — same
+// glyph convention as the sortable headers already in leads.js, just made
+// direction-aware for whichever column is currently active.
+function _ruSortArrowHtml(key) {
+  if (_ruSortKey === key) {
+    return `<span style="color:var(--accent);margin-left:4px;">${_ruSortDir === 1 ? '▲' : '▼'}</span>`;
+  }
+  return `<span style="color:var(--muted);opacity:0.5;margin-left:4px;">↕</span>`;
+}
+
+function _ruSortableHeaderHtml(key, label, align) {
+  const style = (RU_FIXED_COL_STYLES[key] || '') + (align === 'right' ? 'text-align:right;' : '');
+  const styleAttr = style ? ` style="${style}"` : '';
+  if (!RU_SORTABLE_KEYS.has(key)) return `<th${styleAttr}>${label}</th>`;
+  return `<th${styleAttr} onclick="ruSortMyCustomers('${key}')">${label}${_ruSortArrowHtml(key)}</th>`;
+}
+
+// Raw comparable value for a sort key — string for text-like columns,
+// number for amount/quantity ones. Missing amounts sort as -Infinity (always
+// sinks to the low end regardless of direction) rather than being dropped;
+// currently every row reaching this point already has a snapshot (see the
+// grand_total > 0 filter above), but this stays defensive in case that
+// upstream filter ever changes.
+function _ruSortValue(key, c) {
+  switch (key) {
+    case 'billing_name':        return c.billing_name || '';
+    case 'outstanding':          return c._snapshot ? Number(c._snapshot.grand_total) : -Infinity;
+    case 'last_call':            return (c._lastCall && c._lastCall.call_date) || '';
+    case 'crm_status':           return c.crm_status || '';
+    case 'recovered_amount':     return Number(c.recovered_amount || 0);
+    case 'current_outstanding': {
+      const v = _ruCurrentOutstandingValue(c);
+      return v === null ? -Infinity : v;
+    }
+    case 'assigned_to':          return _ruAssignedPersonName(c) || '';
+    case 'city':                 return c.city || '';
+    default:                     return '';
+  }
+}
+
+function _ruMyCustomersComparator(key, dir) {
+  return (a, b) => {
+    const av = _ruSortValue(key, a);
+    const bv = _ruSortValue(key, b);
+    const cmp = (typeof av === 'number' && typeof bv === 'number')
+      ? av - bv
+      : String(av).localeCompare(String(bv));
+    // Stable tiebreak, always ascending by name regardless of the primary
+    // column's direction — matches the tiebreak the old hardcoded
+    // Outstanding-only sort already used.
+    return (cmp !== 0 ? cmp * dir : 0) || a.billing_name.localeCompare(b.billing_name);
+  };
 }
 
 // Sizes each section's top scrollbar to match its table's real width, moves
@@ -1055,8 +1179,8 @@ function _ruRenderMyCustomersTableBody() {
   // header bar's mirrored row — see the CSS comment above .ru-frozen-header
   // for why there are two of these instead of one sticky thead.
   const headerCellsHtml = `
-    <th>Billing Name</th>
-    ${optionalVisible.map(col => `<th${col.align === 'right' ? ' style="text-align:right;"' : ''}>${col.label}</th>`).join('')}
+    ${_ruSortableHeaderHtml('billing_name', 'Billing Name')}
+    ${optionalVisible.map(col => _ruSortableHeaderHtml(col.key, col.label, col.align)).join('')}
     <th style="text-align:center;">Action</th>
     ${dateHeaderHtml}
   `;
@@ -1080,13 +1204,10 @@ function _ruRenderMyCustomersTableBody() {
     const inCat = visibleCustomers.filter(c => c.category === cat);
     if (!inCat.length) return '';
 
-    // Highest outstanding first — the customers most worth calling today.
-    // A customer with no snapshot yet (nothing owed on record) sorts last.
-    const sorted = [...inCat].sort((a, b) => {
-      const aTotal = a._snapshot ? Number(a._snapshot.grand_total) : -Infinity;
-      const bTotal = b._snapshot ? Number(b._snapshot.grand_total) : -Infinity;
-      return bTotal - aTotal || a.billing_name.localeCompare(b.billing_name);
-    });
+    // Column-header click (ruSortMyCustomers) sets _ruSortKey/_ruSortDir;
+    // default is Outstanding descending — the customers most worth calling
+    // today — same as this table's historical (pre-sortable-headers) order.
+    const sorted = [...inCat].sort(_ruMyCustomersComparator(_ruSortKey, _ruSortDir));
 
     const freq = RU_CATEGORY_FREQ[cat];
 
@@ -1241,7 +1362,8 @@ function _ruFlashInlineOutline(el, success) {
 // also pop the modal open underneath the cursor.
 function _ruEditableCellHtml(field, c) {
   const value = c[field] || '';
-  return `<td class="ru-editable-cell" contenteditable="true" spellcheck="false" style="cursor:text;"
+  const fixedStyle = RU_FIXED_COL_STYLES[field] || '';
+  return `<td class="ru-editable-cell" contenteditable="true" spellcheck="false" style="cursor:text;${fixedStyle}"
     data-field="${field}" data-customer-id="${c.id}" data-original="${_ruEsc(value)}"
     onclick="event.stopPropagation()"
     onblur="ruSaveInlineField(this)"
@@ -1288,7 +1410,7 @@ function ruCustomerRowHtml(c, optionalVisible, dates, colCount) {
 
   return `
     <tr id="ruCustRow-${c.id}" data-name="${_ruEsc((c.billing_name || '').toLowerCase())}" onclick="ruOpenCustomerDetail('${c.id}')">
-      <td>${_ruEsc(c.billing_name)}</td>
+      <td style="${RU_BILLING_NAME_COL_STYLE}">${_ruEsc(c.billing_name)}</td>
       ${cells}
       <td style="text-align:center;">
         ${_ruCrmPerson
