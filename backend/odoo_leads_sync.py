@@ -200,11 +200,18 @@ def match_orphan_revenue(needs_match, orphan_orders):
     """Attribute orphan (opportunity_id=False) sale orders to Won leads that
     have no direct opportunity-linked order.
 
-    Per partner: leads are claimed earliest-date_closed-first, each claiming
-    the earliest not-yet-consumed orphan order whose date_order falls on or
-    after its date_closed. A lead with no date_closed is always eligible and
-    is given first pick within its partner group (so it can claim the
-    earliest available order regardless of date).
+    Per partner: leads are claimed earliest-date_closed-first. For each lead,
+    two passes over that partner's not-yet-consumed orphan orders:
+      1. earliest order with date_order >= date_closed (order created on/after
+         the lead was marked Won) — sales ops' CRM update lagging the actual
+         order is the common case, but this pass still prefers the order that
+         confirms the win.
+      2. only if pass 1 finds nothing: latest order with date_order <
+         date_closed (order created before the lead was marked Won, closest
+         to it) — covers the sale-precedes-CRM-update case.
+    A lead with no date_closed is always eligible and is given first pick
+    within its partner group (so it can claim the earliest available order
+    regardless of date).
 
     Returns one result dict per entry in needs_match (same order), each
     {source_record_id, matched_revenue, matched_order_id} — matched_revenue
@@ -236,12 +243,25 @@ def match_orphan_revenue(needs_match, orphan_orders):
         partner_orders = orders_by_partner.get(partner_id, [])
         for lead in leads:
             match = None
-            for o in partner_orders:
-                if o["order_id"] in consumed:
-                    continue
-                if lead["date_closed"] is None or (o["date_order"] or "") >= lead["date_closed"]:
-                    match = o
-                    break
+            if lead["date_closed"] is None:
+                for o in partner_orders:
+                    if o["order_id"] not in consumed:
+                        match = o
+                        break
+            else:
+                for o in partner_orders:
+                    if o["order_id"] in consumed:
+                        continue
+                    if (o["date_order"] or "") >= lead["date_closed"]:
+                        match = o
+                        break
+                if match is None:
+                    for o in reversed(partner_orders):
+                        if o["order_id"] in consumed:
+                            continue
+                        if (o["date_order"] or "") < lead["date_closed"]:
+                            match = o
+                            break
             if match:
                 consumed.add(match["order_id"])
                 match_by_source_id[lead["source_record_id"]] = {
