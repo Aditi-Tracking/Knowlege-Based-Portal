@@ -4303,6 +4303,13 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   <div class="fms-overlay-box" style="max-width:640px;padding:1rem;text-align:center;">
     <button onclick="ruCloseScreenshotLightbox()" style="position:absolute;top:10px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
     <img id="ruScreenshotLightboxImg" style="display:none;max-width:100%;max-height:80vh;border-radius:10px;margin-top:1.2rem;">
+    <!-- Hidden by default (display:none), shown only when a call has more
+         than one attachment — see _ruShowLightboxImage. -->
+    <div id="ruScreenshotLightboxNav" style="display:none;justify-content:center;align-items:center;gap:20px;margin-top:10px;">
+      <button onclick="_ruLightboxPrev()" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:5px 14px;cursor:pointer;font-size:0.85rem;font-family:inherit;">‹ Prev</button>
+      <span id="ruScreenshotLightboxCounter" style="color:var(--muted);font-size:0.78rem;"></span>
+      <button onclick="_ruLightboxNext()" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:5px 14px;cursor:pointer;font-size:0.85rem;font-family:inherit;">Next ›</button>
+    </div>
   </div>
 </div>
 

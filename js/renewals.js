@@ -21,6 +21,7 @@
 const RU_BUCKET = 'accounts-uploads';
 const RU_CALL_ATTACHMENTS_BUCKET = 'call-attachments';
 const RU_CALL_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024; // also enforced server-side via storage.buckets.file_size_limit
+const RU_CALL_ATTACHMENT_MAX_COUNT = 5; // soft client-side cap — Storage itself has no per-call count limit to enforce this against
 const RU_CATEGORY_FREQ = { Platinum: 'Once a Week', Gold: 'Twice a Week', Silver: 'Thrice a Week' };
 const RU_CATEGORY_ORDER = ['Platinum', 'Gold', 'Silver'];
 // collection_calls.not_connected_reason stores the raw <select> value — map
@@ -1453,10 +1454,11 @@ function ruCustomerRowHtml(c, optionalVisible, dates, colCount) {
               style="width:100%;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--bg,transparent);color:var(--text2);font-family:inherit;font-size:0.8rem;box-sizing:border-box;">
           </div>
           <div style="margin-top:9px;">
-            <label style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:3px;">Screenshot (optional, image only, max 5MB) <span style="color:var(--muted);font-weight:400;">— or paste a screenshot (Ctrl+V)</span></label>
-            <input type="file" id="ruCallScreenshot-${c.id}" accept="image/*" onchange="_ruPreviewCallScreenshot('${c.id}', this)"
+            <label style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:3px;">Screenshots (optional, image only, max 5MB each, up to ${RU_CALL_ATTACHMENT_MAX_COUNT}) <span style="color:var(--muted);font-weight:400;">— or paste screenshots (Ctrl+V, one at a time)</span></label>
+            <input type="file" id="ruCallScreenshot-${c.id}" accept="image/*" multiple
+              onchange="_ruAddCallScreenshotFiles('${c.id}', this.files); this.value='';"
               style="width:100%;font-size:0.78rem;color:var(--text2);font-family:inherit;">
-            <img id="ruCallScreenshotPreview-${c.id}" style="display:none;max-width:100%;max-height:110px;border-radius:8px;margin-top:6px;border:1px solid var(--border);">
+            <div id="ruCallScreenshotPreview-${c.id}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
           </div>
           <div style="display:flex;justify-content:flex-start;flex-wrap:wrap;gap:8px;margin-top:12px;">
             <button class="ru-call-save-btn" onclick="ruSaveCall('${c.id}')" style="padding:7px 16px;border-radius:8px;border:none;background:#00d4aa;color:#04231d;font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;transition:filter 0.15s;">Save Call</button>
@@ -1494,12 +1496,22 @@ function ruToggleCallPanel(customerId, event) {
   }
 }
 
+// Pending (not-yet-uploaded) screenshots per open call panel, keyed by
+// customer id — { file, blobUrl }[]. This, not the <input>'s own .files, is
+// the single source of truth for what gets uploaded on Save: a file
+// <input>'s FileList is replaced wholesale by each new pick, and pasting
+// needs to ADD to whatever's already there rather than replace it, so both
+// paths funnel through _ruAddCallScreenshotFiles instead of reading
+// input.files directly at save time.
+let _ruPendingAttachments = new Map();
+
 // Additive to the file picker, not a replacement — bound via onpaste on the
 // call panel's wrapping div, so Ctrl+V works while focused anywhere inside
 // it (notes textarea, amount field, or the panel itself), since paste events
 // bubble up from wherever focus actually is. Only intercepts when the
 // clipboard actually contains an image; a normal text paste (e.g. into
-// notes) is left alone and proceeds untouched.
+// notes) is left alone and proceeds untouched. Pasting repeatedly before
+// Save accumulates one screenshot per paste, same as picking multiple files.
 function _ruHandleCallScreenshotPaste(customerId, event) {
   const items = event.clipboardData && event.clipboardData.items;
   if (!items) return;
@@ -1510,54 +1522,59 @@ function _ruHandleCallScreenshotPaste(customerId, event) {
   const file = imageItem.getAsFile();
   if (!file) return;
 
-  const input = document.getElementById(`ruCallScreenshot-${customerId}`);
-  if (!input) return;
-
-  // A real <input type=file>'s .files is otherwise read-only — DataTransfer
-  // is the standard way to assign one programmatically. Doing it this way
-  // (rather than tracking the pasted File in a separate variable) means
-  // ruSaveCall/_ruUploadCallScreenshot's existing `input.files[0]` read
-  // keeps working completely unchanged for either a picked or pasted image.
-  const dt = new DataTransfer();
-  dt.items.add(file);
-  input.files = dt.files;
-  _ruPreviewCallScreenshot(customerId, input);
+  _ruAddCallScreenshotFiles(customerId, [file]);
 }
 
-// file.type is a good-faith client hint, not a guarantee — the bucket's own
-// file_size_limit/allowed_mime_types (migration 0021) is the real gate; this
-// is just to fail fast with a clear message instead of a storage 400 later.
-function _ruPreviewCallScreenshot(customerId, inputEl) {
-  const file = inputEl.files[0];
-  const preview = document.getElementById(`ruCallScreenshotPreview-${customerId}`);
-  if (!file) { preview.style.display = 'none'; preview.src = ''; return; }
+// Shared by both the file picker (multiple) and clipboard paste (one at a
+// time, but callable repeatedly) — validates and appends to the pending
+// list, capped at RU_CALL_ATTACHMENT_MAX_COUNT. file.type/size are a
+// good-faith client hint, not a guarantee — the bucket's own
+// file_size_limit/allowed_mime_types (migration 0021) is the real gate;
+// this is just to fail fast with a clear message instead of a storage 400
+// later, or a needless upload of something that'll never fit.
+function _ruAddCallScreenshotFiles(customerId, fileList) {
+  const pending = _ruPendingAttachments.get(customerId) || [];
+  for (const file of Array.from(fileList)) {
+    if (pending.length >= RU_CALL_ATTACHMENT_MAX_COUNT) {
+      alert(`⚠️ Up to ${RU_CALL_ATTACHMENT_MAX_COUNT} screenshots per call — remove one before adding more.`);
+      break;
+    }
+    if (!file.type.startsWith('image/')) { alert('⚠️ Please choose an image file.'); continue; }
+    if (file.size > RU_CALL_ATTACHMENT_MAX_BYTES) { alert('⚠️ Image is too large — max 5MB.'); continue; }
+    pending.push({ file, blobUrl: URL.createObjectURL(file) });
+  }
+  _ruPendingAttachments.set(customerId, pending);
+  _ruRenderCallScreenshotPreview(customerId);
+}
 
-  if (!file.type.startsWith('image/')) {
-    alert('⚠️ Please choose an image file.');
-    inputEl.value = '';
-    preview.style.display = 'none'; preview.src = '';
-    return;
-  }
-  if (file.size > RU_CALL_ATTACHMENT_MAX_BYTES) {
-    alert('⚠️ Image is too large — max 5MB.');
-    inputEl.value = '';
-    preview.style.display = 'none'; preview.src = '';
-    return;
-  }
-  if (preview.src.startsWith('blob:')) URL.revokeObjectURL(preview.src);
-  preview.src = URL.createObjectURL(file);
-  preview.style.display = 'block';
+function _ruRenderCallScreenshotPreview(customerId) {
+  const container = document.getElementById(`ruCallScreenshotPreview-${customerId}`);
+  if (!container) return; // panel already closed by the time an async paste/render lands
+  const pending = _ruPendingAttachments.get(customerId) || [];
+  container.innerHTML = pending.map((p, i) => `
+    <div style="position:relative;width:56px;height:56px;flex-shrink:0;">
+      <img src="${p.blobUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
+      <button type="button" onclick="_ruRemovePendingCallScreenshot('${customerId}', ${i})" title="Remove"
+        style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:none;background:#ff5c7c;color:#fff;font-size:0.7rem;line-height:18px;padding:0;cursor:pointer;">✕</button>
+    </div>
+  `).join('');
+}
+
+function _ruRemovePendingCallScreenshot(customerId, index) {
+  const pending = _ruPendingAttachments.get(customerId) || [];
+  const [removed] = pending.splice(index, 1);
+  if (removed) URL.revokeObjectURL(removed.blobUrl);
+  _ruPendingAttachments.set(customerId, pending);
+  _ruRenderCallScreenshotPreview(customerId);
 }
 
 function _ruClearCallScreenshotInput(customerId) {
   const input = document.getElementById(`ruCallScreenshot-${customerId}`);
-  const preview = document.getElementById(`ruCallScreenshotPreview-${customerId}`);
   if (input) input.value = '';
-  if (preview) {
-    if (preview.src.startsWith('blob:')) URL.revokeObjectURL(preview.src);
-    preview.style.display = 'none';
-    preview.src = '';
-  }
+  const pending = _ruPendingAttachments.get(customerId) || [];
+  pending.forEach(p => URL.revokeObjectURL(p.blobUrl));
+  _ruPendingAttachments.delete(customerId);
+  _ruRenderCallScreenshotPreview(customerId);
 }
 
 let _ruDetailCustomerId = null; // customer currently shown in the row-detail modal, if any
@@ -1620,6 +1637,7 @@ function ruOpenCustomerDetail(customerId) {
 function ruCloseCustomerDetail() {
   document.getElementById('ruCustomerDetailOverlay').classList.remove('open');
   _ruDetailCustomerId = null;
+  _ruHistoryAttachmentPaths = [];
   _ruClearScreenshotCache();
 }
 
@@ -1636,7 +1654,7 @@ async function _ruLoadCustomerCallHistory(customerId) {
   _ruClearScreenshotCache();
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/collection_calls?customer_id=eq.${customerId}&select=call_date,connected,not_connected_reason,conversation_notes,amount_recovered,screenshot_url&order=call_date.desc,created_at.desc&limit=50`,
+      `${SUPABASE_URL}/rest/v1/collection_calls?customer_id=eq.${customerId}&select=call_date,connected,not_connected_reason,conversation_notes,amount_recovered,call_attachments(screenshot_url)&order=call_date.desc,created_at.desc&limit=50`,
       { headers: SB_HDRS() },
     );
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1651,26 +1669,41 @@ async function _ruLoadCustomerCallHistory(customerId) {
   }
 }
 
+// Screenshot paths for the currently-rendered history, parallel to `rows` —
+// looked up by _ruOpenHistoryLightbox (by row + attachment index) rather
+// than embedding a JSON path array directly in each thumbnail's onclick
+// attribute.
+let _ruHistoryAttachmentPaths = [];
+
 function _ruRenderCustomerCallHistory(container, rows) {
   if (!rows.length) {
     container.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0;">No calls logged yet.</p>';
+    _ruHistoryAttachmentPaths = [];
     return;
   }
+  _ruHistoryAttachmentPaths = rows.map(r => (r.call_attachments || []).map(a => a.screenshot_url));
+
   container.innerHTML = rows.map((r, i) => {
     const dot = r.connected ? '#00d4aa' : '#ff5c7c';
     const note = r.connected
       ? (r.conversation_notes || '—')
       : (RU_NOT_CONNECTED_REASON_LABELS[r.not_connected_reason] || r.not_connected_reason || '—');
     const amount = r.amount_recovered ? `₹${Number(r.amount_recovered).toLocaleString('en-IN')}` : '';
+    const paths = _ruHistoryAttachmentPaths[i];
     // call-attachments is a private bucket (migration 0021) — a plain <img
-    // src> can't authenticate, so this starts as an empty placeholder box
+    // src> can't authenticate, so each starts as an empty placeholder box
     // and gets its real image swapped in by the fetch loop right below this
-    // render (see _ruFetchScreenshotBlobUrl). Click still enlarges into the
-    // lightbox, reusing this same fetch's cached blob rather than refetching.
-    const screenshotThumb = r.screenshot_url
-      ? `<div id="ruCallThumbWrap-${i}" onclick="_ruOpenScreenshotLightbox('${r.screenshot_url}')" title="View screenshot" style="width:40px;height:40px;border-radius:8px;background:var(--surface2);flex-shrink:0;align-self:center;cursor:pointer;overflow:hidden;">
-           <img id="ruCallThumb-${i}" style="display:none;width:100%;height:100%;object-fit:cover;">
-         </div>`
+    // render (see _ruFetchScreenshotBlobUrl). Click enlarges into the
+    // lightbox with next/prev over this call's whole attachment set,
+    // starting from whichever thumbnail was clicked.
+    const screenshotThumbs = paths.length
+      ? `<div style="display:flex;gap:4px;flex-shrink:0;align-self:center;">` +
+        paths.map((p, ai) => `
+          <div id="ruCallThumbWrap-${i}-${ai}" onclick="_ruOpenHistoryLightbox(${i}, ${ai})" title="View screenshot" style="width:40px;height:40px;border-radius:8px;background:var(--surface2);cursor:pointer;overflow:hidden;">
+            <img id="ruCallThumb-${i}-${ai}" style="display:none;width:100%;height:100%;object-fit:cover;">
+          </div>
+        `).join('') +
+        `</div>`
       : '';
     return `
       <div class="ru-history-row">
@@ -1682,7 +1715,7 @@ function _ruRenderCustomerCallHistory(container, rows) {
           </div>
           <div style="color:var(--muted);margin-top:2px;overflow-wrap:anywhere;">${_ruEsc(note)}</div>
         </div>
-        ${screenshotThumb}
+        ${screenshotThumbs}
       </div>
     `;
   }).join('');
@@ -1694,14 +1727,20 @@ function _ruRenderCustomerCallHistory(container, rows) {
   // placeholder box empty; clicking it still surfaces a real error via
   // _ruOpenScreenshotLightbox's own alert.
   rows.forEach((r, i) => {
-    if (!r.screenshot_url) return;
-    _ruFetchScreenshotBlobUrl(r.screenshot_url).then(url => {
-      const img = document.getElementById(`ruCallThumb-${i}`);
-      if (!img) return; // modal closed / history re-rendered before this resolved
-      img.src = url;
-      img.style.display = 'block';
-    }).catch(() => { /* leave placeholder empty */ });
+    _ruHistoryAttachmentPaths[i].forEach((path, ai) => {
+      _ruFetchScreenshotBlobUrl(path).then(url => {
+        const img = document.getElementById(`ruCallThumb-${i}-${ai}`);
+        if (!img) return; // modal closed / history re-rendered before this resolved
+        img.src = url;
+        img.style.display = 'block';
+      }).catch(() => { /* leave placeholder empty */ });
+    });
   });
+}
+
+function _ruOpenHistoryLightbox(rowIndex, attachmentIndex) {
+  const paths = _ruHistoryAttachmentPaths[rowIndex] || [];
+  _ruOpenScreenshotLightbox(paths, attachmentIndex);
 }
 
 // Cache of already-fetched screenshot blob: URLs, keyed by storage path —
@@ -1718,7 +1757,7 @@ function _ruClearScreenshotCache() {
 }
 
 // path is the storage object path (customer_id/timestamp_filename) stored on
-// collection_calls.screenshot_url — call-attachments is private, so this goes
+// call_attachments.screenshot_url — call-attachments is private, so this goes
 // through the same authenticated fetch every other API call in this file
 // uses (SB_HDRS), not a plain <img src>, then hands the browser a local
 // blob: URL to actually paint.
@@ -1732,18 +1771,45 @@ async function _ruFetchScreenshotBlobUrl(path) {
   return url;
 }
 
-async function _ruOpenScreenshotLightbox(path) {
-  const overlay = document.getElementById('ruScreenshotLightbox');
+// Lightbox now shows one call's whole attachment set, not a single image —
+// `paths` is that call's full list, `startIndex` is which one was clicked.
+let _ruLightboxPaths = [];
+let _ruLightboxIndex = 0;
+
+async function _ruOpenScreenshotLightbox(paths, startIndex) {
+  _ruLightboxPaths = paths || [];
+  _ruLightboxIndex = startIndex || 0;
+  document.getElementById('ruScreenshotLightbox').classList.add('open');
+  await _ruShowLightboxImage();
+}
+
+async function _ruShowLightboxImage() {
   const img = document.getElementById('ruScreenshotLightboxImg');
-  overlay.classList.add('open');
+  const nav = document.getElementById('ruScreenshotLightboxNav');
+  const counter = document.getElementById('ruScreenshotLightboxCounter');
   img.style.display = 'none';
+  const showNav = _ruLightboxPaths.length > 1;
+  nav.style.display = showNav ? 'flex' : 'none';
+  if (showNav) counter.textContent = `${_ruLightboxIndex + 1} / ${_ruLightboxPaths.length}`;
   try {
-    img.src = await _ruFetchScreenshotBlobUrl(path);
+    img.src = await _ruFetchScreenshotBlobUrl(_ruLightboxPaths[_ruLightboxIndex]);
     img.style.display = 'block';
   } catch (e) {
     ruCloseScreenshotLightbox();
     alert('❌ Could not load screenshot: ' + e.message);
   }
+}
+
+function _ruLightboxPrev() {
+  if (_ruLightboxPaths.length < 2) return;
+  _ruLightboxIndex = (_ruLightboxIndex - 1 + _ruLightboxPaths.length) % _ruLightboxPaths.length;
+  _ruShowLightboxImage();
+}
+
+function _ruLightboxNext() {
+  if (_ruLightboxPaths.length < 2) return;
+  _ruLightboxIndex = (_ruLightboxIndex + 1) % _ruLightboxPaths.length;
+  _ruShowLightboxImage();
 }
 
 function ruCloseScreenshotLightbox() {
@@ -1756,6 +1822,17 @@ function ruCloseScreenshotLightbox() {
 
 document.getElementById('ruScreenshotLightbox')?.addEventListener('click', function (e) {
   if (e.target === this) ruCloseScreenshotLightbox();
+});
+
+// Left/Right navigate between this call's attachments, Escape closes —
+// only while the lightbox is actually open, so this doesn't steal arrow
+// keys used for anything else on the page.
+document.addEventListener('keydown', function (e) {
+  const overlay = document.getElementById('ruScreenshotLightbox');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  if (e.key === 'ArrowLeft') _ruLightboxPrev();
+  else if (e.key === 'ArrowRight') _ruLightboxNext();
+  else if (e.key === 'Escape') ruCloseScreenshotLightbox();
 });
 
 document.getElementById('ruCustomerDetailOverlay')?.addEventListener('click', function (e) {
@@ -1809,25 +1886,33 @@ async function ruSaveCall(customerId) {
     payload.not_connected_reason = reason;
   }
 
-  const screenshotInput = document.getElementById(`ruCallScreenshot-${customerId}`);
-  const screenshotFile = screenshotInput?.files[0] || null;
+  const pendingAttachments = _ruPendingAttachments.get(customerId) || [];
 
   try {
-    // Upload (if any) before the collection_calls insert — screenshot_url
-    // references the finished object's path, so the file needs to already
-    // be in storage by the time this row is written.
-    if (screenshotFile) {
-      payload.screenshot_url = await _ruUploadCallScreenshot(customerId, screenshotFile);
-    }
-
+    // call_attachments.call_id references this row, so it needs to exist —
+    // and have an id — before any attachment can be uploaded/linked. That's
+    // the reverse of the old single-screenshot flow (which uploaded first,
+    // then wrote the path straight onto this same insert's payload).
     const res = await fetch(`${SUPABASE_URL}/rest/v1/collection_calls`, {
       method: 'POST',
-      headers: SB_HDRS_MIN(),
+      headers: SB_HDRS_REPR(),
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       throw new Error(errBody.message || ('HTTP ' + res.status));
+    }
+    const [savedCall] = await res.json();
+
+    if (pendingAttachments.length) {
+      try {
+        await _ruUploadCallAttachments(customerId, savedCall.id, pendingAttachments);
+      } catch (attachErr) {
+        // The call itself is already saved at this point — only the
+        // attachment(s) failed, so surface that distinctly rather than
+        // letting it read as the whole save having failed.
+        alert('⚠️ Call saved, but attaching screenshots failed: ' + attachErr.message);
+      }
     }
     // Patch the just-logged call straight into the cached calendar map (its
     // shape already matches what a refetch would return) so today's date
@@ -1849,13 +1934,18 @@ async function ruSaveCall(customerId) {
   }
 }
 
-// Path convention: <customer_id>/<timestamp>_<safeName> — the leading
-// customer_id folder segment is what call-attachments' storage.objects RLS
-// policies (migration 0021) key off via storage.foldername(name), the same
-// way collection_calls/outstanding_snapshots RLS keys off assigned_crm_person_id.
-async function _ruUploadCallScreenshot(customerId, file) {
+// Path convention: <customer_id>/<timestamp><disambiguator>_<safeName> — the
+// leading customer_id folder segment is what call-attachments' storage.objects
+// RLS policies (migration 0021) key off via storage.foldername(name), the
+// same way collection_calls/outstanding_snapshots RLS keys off
+// assigned_crm_person_id. `disambiguator` is only used by
+// _ruUploadCallAttachments, uploading several files for the same call in a
+// tight loop — Date.now() alone isn't guaranteed unique across a same-
+// millisecond back-to-back upload, and x-upsert:false would turn a
+// collision into a hard failure instead of silently overwriting.
+async function _ruUploadCallScreenshot(customerId, file, disambiguator = '') {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path = `${customerId}/${Date.now()}_${safeName}`;
+  const path = `${customerId}/${Date.now()}${disambiguator}_${safeName}`;
   const storageUrl = `${SUPABASE_URL}/storage/v1/object/${RU_CALL_ATTACHMENTS_BUCKET}/${encodeURIComponent(path)}`;
 
   await new Promise((resolve, reject) => {
@@ -1874,6 +1964,28 @@ async function _ruUploadCallScreenshot(customerId, file) {
   });
 
   return path;
+}
+
+// Uploads each pending file sequentially (not Promise.all — a failure
+// partway through then still leaves the earlier files uploaded, and this
+// avoids opening RU_CALL_ATTACHMENT_MAX_COUNT concurrent XHRs against the
+// same bucket for one save), then links all successfully-uploaded paths to
+// the call in a single batch insert.
+async function _ruUploadCallAttachments(customerId, callId, pending) {
+  const paths = [];
+  for (let i = 0; i < pending.length; i++) {
+    paths.push(await _ruUploadCallScreenshot(customerId, pending[i].file, `_${i}`));
+  }
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/call_attachments`, {
+    method: 'POST',
+    headers: SB_HDRS_MIN(),
+    body: JSON.stringify(paths.map(screenshot_url => ({ call_id: callId, screenshot_url }))),
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(errBody.message || ('HTTP ' + res.status));
+  }
 }
 
 // Patches just this row's last-call cell in place — no full tab reload.
