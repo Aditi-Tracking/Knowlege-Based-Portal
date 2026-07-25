@@ -328,7 +328,8 @@ function _ruCalendarCellHtml(customerId, dateStr) {
       note = rec.conversation_notes || '';
     } else {
       bg = '#ff5c7c';
-      note = RU_NOT_CONNECTED_REASON_LABELS[rec.not_connected_reason] || rec.not_connected_reason || '';
+      const reason = RU_NOT_CONNECTED_REASON_LABELS[rec.not_connected_reason] || rec.not_connected_reason || '';
+      note = [reason, rec.conversation_notes].filter(Boolean).join(' — ');
     }
   }
   // A native `title` tooltip can't be styled and renders long notes poorly —
@@ -448,16 +449,18 @@ async function _applyRenewalsNavVisibility() {
   const nav = document.getElementById('nav-renewals');
   const mm  = document.getElementById('mm-renewals');
   const rawRole = String((CURRENT_USER && (CURRENT_USER.rawRole || CURRENT_USER.role)) || '').toLowerCase().trim();
-  _ruIsMIS = (rawRole === 'owner' || rawRole === 'mis');
+  const isRoleMIS = (rawRole === 'owner' || rawRole === 'mis');
+  _ruIsMIS = isRoleMIS;
   _ruCrmPerson = null;
   _ruFullDataAccess = false;
 
   // Full MIS-tier Renewals access granted without reclassifying Employee_Dept
-  // (migration 0022) — e.g. Chirag, who has no crm_persons row at all. Checked
-  // before the crm_persons lookup below so it can flip _ruIsMIS to true first;
-  // that lookup stays guarded by `!_ruIsMIS` and will correctly find nothing
-  // for someone (like Chirag) who was never a CRM person to begin with.
-  if (!_ruIsMIS && CURRENT_USER && CURRENT_USER.email) {
+  // (migration 0022) — e.g. Chirag/Hetal/Collection@/Suchit. Some of these
+  // grant-only accounts now also have a real crm_persons row (added so they
+  // can log calls under collection_calls.called_by, which requires a
+  // crm_persons id) — so the lookup below is guarded by `!isRoleMIS`, NOT
+  // `!_ruIsMIS`, so a grant flipping _ruIsMIS true here doesn't skip it.
+  if (!isRoleMIS && CURRENT_USER && CURRENT_USER.email) {
     try {
       const grantRes = await fetch(
         `${SUPABASE_URL}/rest/v1/renewals_mis_grants?email=ilike.${encodeURIComponent(CURRENT_USER.email)}&select=email&limit=1`,
@@ -470,7 +473,7 @@ async function _applyRenewalsNavVisibility() {
     }
   }
 
-  if (!_ruIsMIS && CURRENT_USER && CURRENT_USER.email) {
+  if (!isRoleMIS && CURRENT_USER && CURRENT_USER.email) {
     try {
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/crm_persons?email=ilike.${encodeURIComponent(CURRENT_USER.email)}&is_active=eq.true&select=id,name,full_data_access&limit=1`,
@@ -1434,9 +1437,7 @@ function ruCustomerRowHtml(c, optionalVisible, dates, colCount) {
               <input type="radio" name="ruConnected-${c.id}" value="no" onchange="ruToggleConnectedFields('${c.id}', false)"> Not Connected
             </label>
           </div>
-          <div id="ruCallConnectedFields-${c.id}" style="display:none;">
-            <textarea id="ruCallNotes-${c.id}" placeholder="Conversation notes…" style="width:100%;min-height:52px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg,transparent);color:var(--text);font-family:inherit;font-size:0.86rem;box-sizing:border-box;resize:vertical;"></textarea>
-          </div>
+          <textarea id="ruCallNotes-${c.id}" placeholder="Conversation notes…" style="width:100%;min-height:52px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg,transparent);color:var(--text);font-family:inherit;font-size:0.86rem;box-sizing:border-box;resize:vertical;margin-bottom:9px;"></textarea>
           <div id="ruCallReasonFields-${c.id}" style="display:none;">
             <select id="ruCallReason-${c.id}" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg,transparent);color:var(--text);font-size:0.84rem;box-sizing:border-box;">
               <option value="">Select reason…</option>
@@ -1687,7 +1688,7 @@ function _ruRenderCustomerCallHistory(container, rows) {
     const dot = r.connected ? '#00d4aa' : '#ff5c7c';
     const note = r.connected
       ? (r.conversation_notes || '—')
-      : (RU_NOT_CONNECTED_REASON_LABELS[r.not_connected_reason] || r.not_connected_reason || '—');
+      : ([RU_NOT_CONNECTED_REASON_LABELS[r.not_connected_reason] || r.not_connected_reason, r.conversation_notes].filter(Boolean).join(' — ') || '—');
     const amount = r.amount_recovered ? `₹${Number(r.amount_recovered).toLocaleString('en-IN')}` : '';
     const paths = _ruHistoryAttachmentPaths[i];
     // call-attachments is a private bucket (migration 0021) — a plain <img
@@ -1840,7 +1841,6 @@ document.getElementById('ruCustomerDetailOverlay')?.addEventListener('click', fu
 });
 
 function ruToggleConnectedFields(customerId, connected) {
-  document.getElementById(`ruCallConnectedFields-${customerId}`).style.display = connected ? 'block' : 'none';
   document.getElementById(`ruCallReasonFields-${customerId}`).style.display = connected ? 'none' : 'block';
   // Nothing was recovered on a call that didn't connect — hide the field
   // entirely rather than leave it sitting there with no sensible use.
@@ -1877,10 +1877,10 @@ async function ruSaveCall(customerId) {
   };
   if (amountRecovered !== null) payload.amount_recovered = amountRecovered;
 
-  if (connected) {
-    const notes = document.getElementById(`ruCallNotes-${customerId}`).value.trim();
-    payload.conversation_notes = notes || null;
-  } else {
+  const notes = document.getElementById(`ruCallNotes-${customerId}`).value.trim();
+  payload.conversation_notes = notes || null;
+
+  if (!connected) {
     const reason = document.getElementById(`ruCallReason-${customerId}`).value;
     if (!reason) { alert('⚠️ Please select a reason.'); return; }
     payload.not_connected_reason = reason;
