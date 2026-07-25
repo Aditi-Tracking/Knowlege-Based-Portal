@@ -62,6 +62,11 @@ function fmsEmpName(email){
   return _fmsEmpMap[(email||'').toLowerCase().trim()] || email;
 }
 
+// Helper: pending amount = order value - (payment received + TDS deducted)
+function fmsCalcPending(o){
+  return (parseFloat(o.order_amount)||0) - ((parseFloat(o.amount_received)||0) + (parseFloat(o.tds_amount)||0));
+}
+
 function fmsSetupPermissions(){
   const p = PERMISSIONS || {};
   // can_view_fms gates the panel (via nav permission system)
@@ -157,7 +162,7 @@ function fmsUpdateKPIs(){
     if(counts[o.status] !== undefined) counts[o.status]++;
 
     // Pending payment calc
-    const pending = (parseFloat(o.order_amount)||0) - (parseFloat(o.amount_received)||0);
+    const pending = fmsCalcPending(o);
     if(pending > 0){
       totalPendingAmt += pending;
       pendingAmtOrders++;
@@ -213,7 +218,7 @@ function fmsApplyFilters(){
     if(dateFrom && o.created_at < dateFrom) return false;
     if(dateTo && o.created_at.slice(0,10) > dateTo) return false;
     if(_fmsPendingPaymentFilter){
-      const pending = (parseFloat(o.order_amount)||0) - (parseFloat(o.amount_received)||0);
+      const pending = fmsCalcPending(o);
       if(pending <= 0) return false;
     }
     return true;
@@ -1180,13 +1185,13 @@ async function fmsOpenSupportOverlay(orderId){
   const o = _fmsCurrentOrder;
   const locName = o.location_type === 'outside' ? (o.location_manual||'Outside') : (_fmsLocations.find(l=>l.id===o.location_id)?.location_name||'—');
 
-  const pendingAmt = (parseFloat(o.order_amount)||0) - (parseFloat(o.amount_received)||0);
+  const pendingAmt = fmsCalcPending(o);
   document.getElementById('fmsSupportOrderInfo').innerHTML = `
     <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Ticket:</strong> ${o.ticket_no||'—'}</div>
     <div><strong>Client:</strong> ${o.client_name||'—'}</div>
     <div><strong>Products:</strong> ${fmsProductNames(o.product_ids, o.product_items)}</div>
     <div><strong>Qty:</strong> ${o.quantity} &nbsp;|&nbsp; <strong>Location:</strong> ${locName}</div>
-    <div><strong>Order Amt:</strong> ₹${o.order_amount||0} &nbsp;|&nbsp; <strong>Received:</strong> ₹${o.amount_received||0} &nbsp;|&nbsp; <strong style="color:${pendingAmt>0?'#ff5c7c':'#00d4aa'}">Pending: ₹${pendingAmt}</strong></div>
+    <div><strong>Order Amt:</strong> ₹${o.order_amount||0} &nbsp;|&nbsp; <strong>Received:</strong> ₹${o.amount_received||0}${parseFloat(o.tds_amount)>0?` &nbsp;|&nbsp; <strong>TDS Deducted:</strong> ₹${o.tds_amount}`:''} &nbsp;|&nbsp; <strong style="color:${pendingAmt>0?'#ff5c7c':'#00d4aa'}">Pending: ₹${pendingAmt}</strong></div>
     ${o.tentative_date ? `<div><strong>Payment Due:</strong> <span style="color:#f0a500;">${new Date(o.tentative_date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</span></div>` : ''}
     ${o.payment_proof_url ? `<div>${fmsProofLinks(o.payment_proof_url)}</div>` : ''}
   `;
@@ -1906,7 +1911,7 @@ async function fmsOpenTimeline(orderId){
   const fmtDt  = dt => dt ? new Date(dt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : null;
   const fmtDate= dt => dt ? new Date(dt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
   const locName = o.location_type==='outside' ? (o.location_manual||'Outside') : (_fmsLocations.find(l=>l.id===o.location_id)?.location_name||'—');
-  const pendAmt = (parseFloat(o.order_amount)||0) - (parseFloat(o.amount_received)||0);
+  const pendAmt = fmsCalcPending(o);
 
   // ── STEP DATA ──
   const stepDefs = [
@@ -2025,6 +2030,7 @@ async function fmsOpenTimeline(orderId){
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:0 0.9rem;margin-bottom:0.5rem;">
         ${row('Order Amount', `₹${(o.order_amount||0).toLocaleString('en-IN')}`)}
         ${row('Amount Received', `₹${(o.amount_received||0).toLocaleString('en-IN')}`, 'color:#00d4aa;')}
+        ${parseFloat(o.tds_amount)>0 ? row('TDS Deducted', `₹${(o.tds_amount).toLocaleString('en-IN')}`, 'color:#f0a500;') : ''}
         ${row('Pending Amount', `₹${pendAmt.toLocaleString('en-IN')}`, `color:${pendAmt>0?'#ff5c7c':'#00d4aa'};`)}
         ${o.tentative_date ? row('Payment Due Date', fmtDate(o.tentative_date), 'color:#f0a500;') : ''}
         ${o.payment_proof_url ? `<div style="display:flex;align-items:baseline;padding:0.38rem 0;border-bottom:1px solid var(--border2);">
@@ -2353,26 +2359,30 @@ function fmsOpenUpdatePayment(orderId){
   _fmsCurrentOrder = _fmsOrders.find(o => o.id === orderId);
   if(!_fmsCurrentOrder) return;
   const o = _fmsCurrentOrder;
-  const pendAmt = (parseFloat(o.order_amount)||0) - (parseFloat(o.amount_received)||0);
+  const pendAmt = fmsCalcPending(o);
 
   document.getElementById('fmsUpdatePaymentInfo').innerHTML = `
     <div><strong>SO:</strong> ${o.so_number} &nbsp;|&nbsp; <strong>Client:</strong> ${o.client_name||'—'}</div>
-    <div><strong>Order Amt:</strong> ₹${(o.order_amount||0).toLocaleString('en-IN')} &nbsp;|&nbsp; <strong>Received:</strong> ₹${(o.amount_received||0).toLocaleString('en-IN')}</div>
+    <div><strong>Order Amt:</strong> ₹${(o.order_amount||0).toLocaleString('en-IN')} &nbsp;|&nbsp; <strong>Received:</strong> ₹${(o.amount_received||0).toLocaleString('en-IN')}${parseFloat(o.tds_amount)>0?` &nbsp;|&nbsp; <strong>TDS:</strong> ₹${(o.tds_amount).toLocaleString('en-IN')}`:''}</div>
   `;
   document.getElementById('fmsUpdateAmtReceived').value = o.amount_received || '';
+  document.getElementById('fmsUpdateTdsAmount').value    = o.tds_amount || '';
   document.getElementById('fmsUpdateTentDate').value    = o.tentative_date || '';
   document.getElementById('fmsUpdateProofStatus').textContent = '';
   document.getElementById('fmsUpdateProofFile').value = '';
   document.getElementById('fmsUpdatePendingPreview').innerHTML =
     `Pending: <strong style="color:${pendAmt>0?'#ff5c7c':'#00d4aa'};">₹${pendAmt.toLocaleString('en-IN')}</strong>`;
 
-  // Live pending preview on input
-  document.getElementById('fmsUpdateAmtReceived').oninput = function(){
-    const newReceived = parseFloat(this.value) || 0;
-    const newPending  = (parseFloat(o.order_amount)||0) - newReceived;
+  // Live pending preview on input (Amount Received and TDS both affect it)
+  const _fmsUpdatePendingLive = function(){
+    const newReceived = parseFloat(document.getElementById('fmsUpdateAmtReceived').value) || 0;
+    const newTds      = parseFloat(document.getElementById('fmsUpdateTdsAmount').value) || 0;
+    const newPending  = fmsCalcPending({ order_amount: o.order_amount, amount_received: newReceived, tds_amount: newTds });
     document.getElementById('fmsUpdatePendingPreview').innerHTML =
       `Pending after update: <strong style="color:${newPending>0?'#ff5c7c':'#00d4aa'};">₹${newPending.toLocaleString('en-IN')}</strong>`;
   };
+  document.getElementById('fmsUpdateAmtReceived').oninput = _fmsUpdatePendingLive;
+  document.getElementById('fmsUpdateTdsAmount').oninput   = _fmsUpdatePendingLive;
 
   document.getElementById('fmsUpdatePaymentOverlay').classList.add('open');
 }
@@ -2387,6 +2397,7 @@ async function fmsSubmitUpdatePayment(){
   fmsBtnLoading(btn, '⏳ Saving...');
 
   const amtReceived = parseFloat(document.getElementById('fmsUpdateAmtReceived').value) || 0;
+  const tdsAmount   = parseFloat(document.getElementById('fmsUpdateTdsAmount').value) || 0;
   const tentDate    = document.getElementById('fmsUpdateTentDate').value || null;
   const proofFile   = _fmsUpdateProofFile || document.getElementById('fmsUpdateProofFile').files[0];
 
@@ -2413,6 +2424,7 @@ async function fmsSubmitUpdatePayment(){
       headers: SB_HDRS_JSON(),
       body: JSON.stringify({
         amount_received:   amtReceived,
+        tds_amount:        tdsAmount,
         tentative_date:    tentDate,
         payment_proof_url: proofUrl
       })
