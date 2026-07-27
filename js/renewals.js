@@ -1259,7 +1259,7 @@ function _ruAssignedPersonName(customer) {
 function _ruColumnCellHtml(key, c) {
   switch (key) {
     case 'assigned_to': return `<td>${_ruEsc(_ruAssignedPersonName(c) || '— Unassigned —')}</td>`;
-    case 'city': return `<td>${_ruEsc(c.city || '—')}</td>`;
+    case 'city': return _ruEditableCellHtml('city', c);
     case 'contact_person': return _ruEditableCellHtml('contact_person', c);
     case 'contact_number': return _ruEditableCellHtml('contact_number', c);
     case 'frequency': return `<td>${_ruEsc(c.calling_frequency || '—')}</td>`;
