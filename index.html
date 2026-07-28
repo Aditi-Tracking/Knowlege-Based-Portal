@@ -240,15 +240,15 @@
         <span class="nav-sub-dot"></span>
         <span class="nav-label">SmartFleet</span><span class="nav-badge live">Live</span>
       </div>
-      <!-- Enterprise Lead — permission-gated, see can_view_enterprise -->
-      <div class="nav-item nav-sub-item" onclick="switchDB('enterprise')" id="nav-enterprise" style="display:none;" title="Enterprise Lead">
-        <span class="nav-sub-dot"></span>
-        <span class="nav-label">Enterprise Lead</span><span class="nav-badge live" style="background:rgba(240,165,0,0.18);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">Live</span>
-      </div>
       <!-- Enterprise Solutions — ClickTask + CoolBus license dashboards, permission-gated same as Enterprise Lead -->
       <div class="nav-item nav-sub-item" onclick="switchDB('entsol')" id="nav-entsol" style="display:none;" title="Enterprise Solutions">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">Enterprise Solutions</span><span class="nav-badge live" style="background:rgba(167,139,250,0.18);color:#a78bfa;border:1px solid rgba(167,139,250,0.35);">Live</span>
+      </div>
+      <!-- Enterprise Lead — permission-gated, see can_view_enterprise -->
+      <div class="nav-item nav-sub-item" onclick="switchDB('enterprise')" id="nav-enterprise" style="display:none;" title="Enterprise Lead">
+        <span class="nav-sub-dot"></span>
+        <span class="nav-label">Enterprise Lead</span><span class="nav-badge live" style="background:rgba(240,165,0,0.18);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">Live</span>
       </div>
       <!-- RENEWALS & COLLECTIONS — MIS or matching crm_persons only, shown/hidden by JS. Single entry point for the whole module (lands on Overview tab by default). -->
       <div class="nav-item nav-sub-item" onclick="switchDB('renewals')" id="nav-renewals" style="display:none;" title="Renewals & Collections">
@@ -643,13 +643,13 @@
         <span class="mm-subdot"></span><span class="mm-label">SmartFleet</span>
         <span class="mm-badge mm-badge-live">Live</span>
       </button>
-      <button class="mm-nav-item mm-sub" id="mm-enterprise" onclick="mobMenuGo('enterprise')" style="display:none;">
-        <span class="mm-subdot"></span><span class="mm-label">Enterprise Lead</span>
-        <span class="mm-badge" style="margin-left:auto;background:rgba(240,165,0,0.18);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">Live</span>
-      </button>
       <button class="mm-nav-item mm-sub" id="mm-entsol" onclick="mobMenuGo('entsol')" style="display:none;">
         <span class="mm-subdot"></span><span class="mm-label">Enterprise Solutions</span>
         <span class="mm-badge" style="margin-left:auto;background:rgba(167,139,250,0.18);color:#a78bfa;border:1px solid rgba(167,139,250,0.35);">Live</span>
+      </button>
+      <button class="mm-nav-item mm-sub" id="mm-enterprise" onclick="mobMenuGo('enterprise')" style="display:none;">
+        <span class="mm-subdot"></span><span class="mm-label">Enterprise Lead</span>
+        <span class="mm-badge" style="margin-left:auto;background:rgba(240,165,0,0.18);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">Live</span>
       </button>
       <!-- Renewals & Collections — MIS or matching crm_persons only, shown/hidden by JS. Single entry point for the whole module (lands on Overview tab by default). -->
       <button class="mm-nav-item mm-sub" id="mm-renewals" onclick="mobMenuGo('renewals')" style="display:none;">
