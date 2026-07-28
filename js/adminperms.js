@@ -5,16 +5,20 @@
 // ║  _permLabels = Har permission key ka display name
 // ║  loadAdminPermsPanel() = Supabase se sab users + permissions load karo
 // ║  acpSave()             = Toggle change hone pe save karo
-// ║  Agar naya permission add karna ho:
-// ║    1. Supabase user_permissions table mein column add karo
-// ║    2. _permLabels object mein label add karo yahan
-// ║    3. Flask api.py mein bhi update karo
+// ║  Agar naya permission add karna ho (koi column add karne ki zaroorat NAHI —
+// ║  role_defaults/user_permissions dono key-value tables hain):
+// ║    1. Supabase role_defaults table mein rows insert karo — jis role ko
+// ║       access dena hai uske liye ek row: (role, permission, 'true')
+// ║    2. _permLabels object mein label add karo yahan (frontend display name)
+// ║    Flask api.py mein KUCH change nahi karna — teeno endpoints already
+// ║    generic hain, naya permission key automatically pick ho jaata hai.
 // ╚══════════════════════════════════════════════════════════════════════════
 let _acpUsers = [], _acpAllKeys = [], _acpLoaded = false;
 
 const _permLabels = {
   can_view_leads:         '📊 SmartFleet Dashboard',
   can_view_enterprise:    '🏢 Enterprise Lead Dashboard',
+  can_view_entsol:        '🏢 Enterprise Solutions Dashboard',
   can_view_fms:           '🔧 FMS Installation Tracker',
       fms_create:             '📋 FMS Create Order',
       fms_support:            '👷 FMS Support Actions',

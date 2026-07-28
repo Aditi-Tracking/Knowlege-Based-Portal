@@ -329,6 +329,7 @@ function showPortal(){
   _applyCRMNavVisibility();
   _applyMappingNavVisibility();
   _applyEnterpriseNavVisibility();
+  _applyEnterpriseSolutionsNavVisibility();
 
   _applyFinanceNavVisibility();
   // Activity Log nav — sirf MIS aur Managing Director ke liye

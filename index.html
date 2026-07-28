@@ -245,6 +245,11 @@
         <span class="nav-sub-dot"></span>
         <span class="nav-label">Enterprise Lead</span><span class="nav-badge live" style="background:rgba(240,165,0,0.18);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">Live</span>
       </div>
+      <!-- Enterprise Solutions — ClickTask + CoolBus license dashboards, permission-gated same as Enterprise Lead -->
+      <div class="nav-item nav-sub-item" onclick="switchDB('entsol')" id="nav-entsol" style="display:none;" title="Enterprise Solutions">
+        <span class="nav-sub-dot"></span>
+        <span class="nav-label">Enterprise Solutions</span><span class="nav-badge live" style="background:rgba(167,139,250,0.18);color:#a78bfa;border:1px solid rgba(167,139,250,0.35);">Live</span>
+      </div>
       <!-- RENEWALS & COLLECTIONS — MIS or matching crm_persons only, shown/hidden by JS. Single entry point for the whole module (lands on Overview tab by default). -->
       <div class="nav-item nav-sub-item" onclick="switchDB('renewals')" id="nav-renewals" style="display:none;" title="Renewals & Collections">
         <span class="nav-sub-dot"></span>
@@ -641,6 +646,10 @@
       <button class="mm-nav-item mm-sub" id="mm-enterprise" onclick="mobMenuGo('enterprise')" style="display:none;">
         <span class="mm-subdot"></span><span class="mm-label">Enterprise Lead</span>
         <span class="mm-badge" style="margin-left:auto;background:rgba(240,165,0,0.18);color:#f0a500;border:1px solid rgba(240,165,0,0.35);">Live</span>
+      </button>
+      <button class="mm-nav-item mm-sub" id="mm-entsol" onclick="mobMenuGo('entsol')" style="display:none;">
+        <span class="mm-subdot"></span><span class="mm-label">Enterprise Solutions</span>
+        <span class="mm-badge" style="margin-left:auto;background:rgba(167,139,250,0.18);color:#a78bfa;border:1px solid rgba(167,139,250,0.35);">Live</span>
       </button>
       <!-- Renewals & Collections — MIS or matching crm_persons only, shown/hidden by JS. Single entry point for the whole module (lands on Overview tab by default). -->
       <button class="mm-nav-item mm-sub" id="mm-renewals" onclick="mobMenuGo('renewals')" style="display:none;">
@@ -2328,6 +2337,82 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <div id="enTblBodyWrap">
         <div class="table-scroll"><table><thead><tr id="enTblHead"></tr></thead><tbody id="enTblBody"></tbody></table></div>
         <div class="pagination" id="enPagBar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL ENTSOL] — Enterprise Solutions (ClickTask + CoolBus)
+     ║  Two products, one dashboard — a switcher toggles which product's
+     ║  KPIs / charts / table are shown. Fully dynamic off ESOL_URL JSON.
+     ║  Permission-gated: same as Enterprise Lead (_canAccessEnterprise)
+     ║  JS: loadEnterpriseSolutions() (js/entsol.js)
+     ╚═══════════════════════════════════════════════════════════════════════ -->
+<div class="dashboard-panel" id="panel-entsol">
+  <div class="db-header">
+    <div><div class="db-title"><span>Aditi</span> Enterprise Solutions<span style="font-size:0.67rem;font-weight:400;color:var(--muted);margin-left:8px;letter-spacing:0.05em;font-family:'DM Sans',sans-serif;">LICENSE DEPLOYMENT INTELLIGENCE</span></div><div class="db-breadcrumb">Portal → Enterprise Solutions</div></div>
+    <div class="header-right">
+      <button class="refresh-btn" onclick="refreshEnterpriseSolutions()" id="esolRefBtn"><span id="esolRefIco"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></span> Refresh</button>
+      <div class="last-sync" id="esolSync">—</div>
+    </div>
+  </div>
+  <div class="error-banner" id="esolErr"></div>
+  <div class="db-loading" id="esolLoad"><div class="loader-logo">ENTERPRISE SOLUTIONS</div><div class="loader-bar"><div class="loader-fill"></div></div><div class="loader-text" id="esolTxt">Loading...</div></div>
+  <div class="db-content" id="esolCont" style="display:none">
+
+    <!-- Product switcher — the two buttons the dashboard pivots on. Lives inside
+         db-content so it only ever appears once data has actually loaded. -->
+    <div class="esol-switcher">
+      <button class="esol-switch-btn esol-switch-active" id="esolBtn-clicktask" onclick="esolSwitchTab('clicktask')" style="--esol-accent:#00d4aa;">
+        <span class="esol-switch-icon" style="background:rgba(0,212,170,0.16);color:#00d4aa;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M9 2v4M15 2v4M3 10h18"/><path d="M9 15l2 2 4-4"/></svg>
+        </span>
+        <span class="esol-switch-text">
+          <span class="esol-switch-title">ClickTask</span>
+          <span class="esol-switch-sub" id="esolSwSubCt">—</span>
+        </span>
+        <span class="esol-switch-check">✓</span>
+      </button>
+      <button class="esol-switch-btn" id="esolBtn-coolbus" onclick="esolSwitchTab('coolbus')" style="--esol-accent:#4e9af1;">
+        <span class="esol-switch-icon" style="background:rgba(78,154,241,0.16);color:#4e9af1;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V7a2 2 0 012-2h12a2 2 0 012 2v9"/><path d="M4 16a2 2 0 002 2h12a2 2 0 002-2M4 16H2M22 16h-2"/><circle cx="8" cy="18.5" r="1.5"/><circle cx="16" cy="18.5" r="1.5"/><path d="M4 11h16"/></svg>
+        </span>
+        <span class="esol-switch-text">
+          <span class="esol-switch-title">CoolBus</span>
+          <span class="esol-switch-sub" id="esolSwSubCb">—</span>
+        </span>
+        <span class="esol-switch-check">✓</span>
+      </button>
+    </div>
+
+    <div class="section-title">Key Performance Indicators</div>
+    <div class="kpi-grid esol-kpi-grid" id="esolKpiGrid"></div>
+    <div id="esolCFBadge" style="display:none;align-items:center;background:#f3edff;border:1px solid #ded1fb;border-radius:10px;padding:8px 16px;margin-bottom:14px;font-size:0.88rem;color:#1e293b;gap:4px;flex-wrap:wrap;"></div>
+
+    <div class="section-title" id="esolChartsTitle">ClickTask Analytics</div>
+    <div class="charts-grid" id="esolCharts-clicktask">
+      <div class="chart-card"><div class="chart-title"><span class="esol-chart-badge" style="background:rgba(0,212,170,0.14);color:#00d4aa"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span> Top Customers by Licenses</div><div class="chart-wrap"><canvas id="esolChCtTop"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="esol-chart-badge" style="background:rgba(240,165,0,0.14);color:#f0a500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 000 18M3 12h18"/></svg></span> Customers by Location</div><div class="chart-wrap"><canvas id="esolChCtLoc"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="esol-chart-badge" style="background:rgba(167,139,250,0.14);color:#a78bfa"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L11 3.83A2 2 0 009.59 3.24L3 3v6.59a2 2 0 00.59 1.41l9.58 9.58a2 2 0 002.82 0l4.6-4.6a2 2 0 000-2.82z"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/></svg></span> License Mix — Live vs Trial</div><div class="chart-wrap"><canvas id="esolChCtMix"></canvas></div></div>
+    </div>
+    <div class="charts-grid3" id="esolCharts-coolbus" style="display:none">
+      <div class="chart-card"><div class="chart-title"><span class="esol-chart-badge" style="background:rgba(78,154,241,0.14);color:#4e9af1"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span> Schools by Licenses</div><div class="chart-wrap"><canvas id="esolChCbBar"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="esol-chart-badge" style="background:rgba(0,212,170,0.14);color:#00d4aa"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V7a2 2 0 012-2h12a2 2 0 012 2v9"/><path d="M4 16a2 2 0 002 2h12a2 2 0 002-2M4 16H2M22 16h-2"/><circle cx="8" cy="18.5" r="1.5"/><circle cx="16" cy="18.5" r="1.5"/><path d="M4 11h16"/></svg></span> License Share by School</div><div class="chart-wrap"><canvas id="esolChCbShare"></canvas></div></div>
+    </div>
+
+    <div class="section-title">Deployment Explorer</div>
+    <div class="filters-bar">
+      <span class="filter-label">Filter:</span>
+      <input class="filter-input" id="esolSearch" placeholder="Search customer, school, location..." oninput="esolApply()">
+      <select class="filter-select" id="esolFType" style="display:none" onchange="esolApply()"><option value="">All Types</option><option value="Customer">Customers</option><option value="Trial">Trials</option></select>
+      <button class="reset-btn" onclick="esolReset()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset</button>
+    </div>
+    <div class="table-card">
+      <div class="table-header" style="cursor:pointer" onclick="esolToggleTable()"><span class="table-title" id="esolTblTitle">ClickTask Deployments</span><span class="table-count" id="esolTblCnt">—</span><span id="esolTblToggleIco" style="margin-left:auto;font-size:1.1rem;font-weight:700;color:#94a0b8;line-height:1;">−</span></div>
+      <div id="esolTblBodyWrap">
+        <div class="table-scroll"><table><thead><tr id="esolTblHead"></tr></thead><tbody id="esolTblBody"></tbody></table></div>
+        <div class="pagination" id="esolPagBar"></div>
       </div>
     </div>
   </div>
@@ -5925,6 +6010,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/auth.js"></script>
 <script src="js/leads.js"></script>
 <script src="js/enterprise.js"></script>
+<script src="js/entsol.js"></script>
 <script src="js/fms.js"></script>
 <script src="js/tasks.js"></script>
 <script src="js/hr.js"></script>
