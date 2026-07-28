@@ -1940,3 +1940,125 @@ body.light-mode .lp-grid{background-image:linear-gradient(rgba(0,0,0,0.04) 1px,t
 #panel-leads .reset-btn:hover{border-color:#ef4444;color:#ef4444;}
 #panel-leads .filter-select:focus,#panel-leads .filter-input:focus{border-color:#3b82f6;}
 
+/* ══════════════════════════════════════════════════════════════════════
+   ENTERPRISE SOLUTIONS — header is the standard db-header (theme-aware,
+   same as every other dashboard). The product switcher below it carries
+   the gradient/premium treatment instead — a light "product dashboard"
+   card grid (KPI / chart / table cards + product switcher).
+   ══════════════════════════════════════════════════════════════════════ */
+#panel-entsol{background:#eef1f8;}
+#panel-entsol .db-content{background:transparent;padding:20px 22px 40px;}
+#panel-entsol .section-title{color:#475569;}
+#panel-entsol .section-title::after{background:#dde3ef;}
+
+/* ── Product switcher — the two buttons the dashboard pivots on. The
+   active card gets a gradient border + gradient checkmark, echoing the
+   purple/blue hero look without putting the gradient on the header. ── */
+.esol-switcher{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;
+  padding:16px;border-radius:20px;
+  background:linear-gradient(135deg,#6d5df0 0%,#7c3aed 48%,#4e9af1 100%);
+  box-shadow:0 8px 24px rgba(109,93,240,0.28);
+}
+.esol-switch-btn{
+  display:flex;align-items:center;gap:13px;text-align:left;
+  background:#ffffff;border:1.5px solid #e9ecf5;border-radius:16px;
+  padding:16px 18px;cursor:pointer;font-family:inherit;position:relative;overflow:hidden;
+  box-shadow:0 1px 2px rgba(15,23,42,0.04);
+  transition:transform 0.18s,border-color 0.18s,box-shadow 0.18s,background 0.18s;
+}
+.esol-switch-btn::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--esol-accent,#7c3aed),#7c3aed 70%,#4e9af1);
+  opacity:0.25;transition:opacity 0.18s;
+}
+.esol-switch-btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,23,42,0.08);}
+.esol-switch-active{
+  border-color:transparent;
+  background:
+    linear-gradient(#fff,#fff) padding-box,
+    linear-gradient(120deg,var(--esol-accent,#7c3aed),#7c3aed 65%,#4e9af1) border-box;
+  box-shadow:0 8px 20px rgba(15,23,42,0.10);
+}
+.esol-switch-active::before{opacity:1;}
+.esol-switch-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.esol-switch-text{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+.esol-switch-title{font-family:'Playfair Display',serif;font-size:1.02rem;font-weight:700;color:#111827;}
+.esol-switch-sub{font-size:0.77rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.esol-switch-check{
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.72rem;font-weight:700;color:#fff;
+  background:linear-gradient(120deg,var(--esol-accent,#7c3aed),#7c3aed 65%,#4e9af1);opacity:0;transform:scale(0.6);
+  transition:opacity 0.18s,transform 0.18s;
+}
+.esol-switch-active .esol-switch-check{opacity:1;transform:scale(1);}
+
+/* ── KPI cards — white, icon-badge stat tiles with a soft corner glow ── */
+#panel-entsol .kpi-grid{margin-bottom:22px;}
+.esol-kpi-grid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))!important;}
+#panel-entsol .kpi-card{
+  background:#ffffff;border:1px solid #e9ecf5;border-radius:16px;
+  padding:16px 16px 14px;box-shadow:0 1px 2px rgba(15,23,42,0.04);
+  position:relative;overflow:hidden;isolation:isolate;
+  transition:transform 0.2s,box-shadow 0.2s,border-color 0.2s;
+}
+#panel-entsol .kpi-card::before{
+  content:'';position:absolute;inset:0;z-index:-1;
+  background:radial-gradient(90px 70px at 100% 100%,var(--card-accent,#7c3aed) 0%,transparent 72%);
+  opacity:0.09;
+}
+#panel-entsol .kpi-card::after{display:none;}
+#panel-entsol .kpi-card:hover{transform:translateY(-3px);box-shadow:0 12px 26px -4px rgba(76,60,180,0.18);border-color:#e9ecf5;}
+.esol-kpi-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+#panel-entsol .kpi-label{color:#8891a5;font-weight:700;}
+#panel-entsol .kpi-value{color:#111827!important;font-family:'DM Sans',sans-serif;}
+#panel-entsol .kpi-sub{color:#94a0b8;}
+#panel-entsol .kpi-badge{display:none;}
+
+/* ── Charts ── */
+#panel-entsol .chart-card{background:#ffffff;border:1px solid #e9ecf5;border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,0.04);transition:box-shadow 0.2s,border-color 0.2s;}
+#panel-entsol .chart-card::after{display:none;}
+#panel-entsol .chart-card:hover{border-color:#e9ecf5;box-shadow:0 8px 20px rgba(15,23,42,0.08);}
+#panel-entsol .chart-title{color:#1e293b;}
+.esol-chart-badge{width:23px;height:23px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.esol-chart-badge svg{width:13px;height:13px;}
+
+/* ── Filters + table ── */
+#panel-entsol .filters-bar{background:#ffffff;border:1px solid #e9ecf5;box-shadow:0 1px 2px rgba(15,23,42,0.04);}
+#panel-entsol .filter-label{color:#8891a5;}
+#panel-entsol .filter-select,#panel-entsol .filter-input{background:#f4f6fb;border:1px solid #e9ecf5;color:#1e293b;}
+#panel-entsol .filter-select:focus,#panel-entsol .filter-input:focus{border-color:#7c3aed;}
+#panel-entsol .reset-btn{background:#f4f6fb;border:1px solid #e9ecf5;color:#64748b;}
+#panel-entsol .reset-btn:hover{border-color:#e03e5c;color:#e03e5c;}
+#panel-entsol .table-card{background:#ffffff;border:1px solid #e9ecf5;box-shadow:0 1px 2px rgba(15,23,42,0.04);}
+#panel-entsol .table-header{border-bottom:1px solid #eef0f7;}
+#panel-entsol .table-title{color:#1e293b;}
+#panel-entsol .table-count{background:#f4f6fb;color:#64748b;}
+#panel-entsol thead th{background:#f8f9fc;color:#8891a5;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #eef0f7;font-weight:700;}
+#panel-entsol tbody td{border-bottom:1px solid #f2f4f9;color:#334155;}
+#panel-entsol tbody tr:nth-child(even){background:#fafbff;}
+#panel-entsol tbody tr{transition:background 0.12s;}
+#panel-entsol tbody tr:hover{background:#f3effe;}
+#panel-entsol tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 #7c3aed;}
+.esol-avatar{
+  width:27px;height:27px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;
+  font-size:0.72rem;font-weight:700;color:#fff;flex-shrink:0;margin-right:9px;vertical-align:middle;
+}
+.esol-share-wrap{display:flex;align-items:center;gap:8px;}
+.esol-share-track{flex:1;max-width:64px;height:6px;border-radius:4px;background:#eef0f7;overflow:hidden;}
+.esol-share-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#4e9af1,#7c3aed);}
+#panel-entsol .empty-state{color:#94a0b8;}
+#panel-entsol .pagination{border-top:1px solid #eef0f7;}
+#panel-entsol .page-info{color:#94a0b8;}
+#panel-entsol .page-btn{background:#f4f6fb;border:1px solid #e9ecf5;color:#64748b;}
+#panel-entsol .page-btn.active{background:#7c3aed;border-color:#7c3aed;color:#fff;}
+#panel-entsol .page-btn:hover:not(.active){border-color:#7c3aed;color:#7c3aed;}
+#panel-entsol .badge-won{background:#e6f9f4;color:#059669;border-color:#c9f0e4;}
+#panel-entsol .badge-warm{background:#fff6e6;color:#b45309;border-color:#fde7c2;}
+
+@media (max-width:640px){
+  .esol-switcher{grid-template-columns:1fr;}
+  #panel-entsol .db-content{padding:16px 14px 32px;}
+}
+

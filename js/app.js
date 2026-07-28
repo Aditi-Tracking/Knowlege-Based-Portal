@@ -2,7 +2,7 @@
 // ═══════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════
-let lLoaded=false,enLoaded=false;
+let lLoaded=false,enLoaded=false,entsolLoaded=false;
 // Pre-fetch data caches
 let _tasksCache=null, _fmsCache=null;
 
@@ -360,7 +360,7 @@ function switchDB(id, fromPopState){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
   // Auto-open dashboard accordion when a sub-dashboard is selected
-  var dashPanels=['leads','enterprise','fms','tasks','ims','crm','mapping','renewals'];
+  var dashPanels=['leads','enterprise','entsol','fms','tasks','ims','crm','mapping','renewals'];
   if(dashPanels.indexOf(id)>=0){
     var grp=document.getElementById('dashboardSubGroup');
     var arrow=document.getElementById('dashAccordionArrow');
@@ -391,6 +391,7 @@ function switchDB(id, fromPopState){
   const _up=document.getElementById('bnUserPopup');if(_up)_up.classList.remove('open');
   if(id==='leads'&&!lLoaded){lLoaded=true;loadLeads();}
   if(id==='enterprise'&&!enLoaded){enLoaded=true;loadEnterprise();}
+  if(id==='entsol'&&!entsolLoaded){entsolLoaded=true;loadEnterpriseSolutions();}
   if(id==='tasks'&&!tLoaded){tLoaded=true;loadTasks();}
   if(id==='hr'){loadHRSection();}
   if(id==='sales'&&!salesDocsLoaded){loadSalesDocs();}
