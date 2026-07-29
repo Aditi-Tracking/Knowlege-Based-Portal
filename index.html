@@ -2290,14 +2290,14 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
 <!-- ╔═══════════════════════════════════════════════════════════════════════
      ║  [PANEL ENTERPRISE] — Enterprise Lead Dashboard
-     ║  KPIs: Unique Client Meetings · Conversion Ratio · Clients
+     ║  KPIs: Total Leads · No. of Calls · Demo · Quotation · Won · Revenue · Daily Lead
      ║  Data source: Google Apps Script (EN_URL) — fully dynamic, click-to-filter
      ║  Permission-gated: can_view_enterprise (see js/enterprise.js)
      ║  JS: loadEnterprise() (js/enterprise.js)
      ╚═══════════════════════════════════════════════════════════════════════ -->
 <div class="dashboard-panel" id="panel-enterprise">
   <div class="db-header">
-    <div><div class="db-title"><span>Aditi</span> Enterprise Lead<span style="font-size:0.67rem;font-weight:400;color:var(--muted);margin-left:8px;letter-spacing:0.05em;font-family:'DM Sans',sans-serif;">CLIENT MEETINGS INTELLIGENCE</span></div><div class="db-breadcrumb">Portal → Enterprise Lead Dashboard</div></div>
+    <div><div class="db-title"><span>Aditi</span> Enterprise Lead<span style="font-size:0.67rem;font-weight:400;color:var(--muted);margin-left:8px;letter-spacing:0.05em;font-family:'DM Sans',sans-serif;">LEAD FUNNEL INTELLIGENCE</span></div><div class="db-breadcrumb">Portal → Enterprise Lead Dashboard</div></div>
     <div class="header-right">
       <button class="refresh-btn" onclick="refreshEnterprise()" id="enRefBtn"><span id="enRefIco"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></span> Refresh</button>
       <div class="last-sync" id="enSync">—</div>
@@ -2307,29 +2307,46 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   <div class="db-loading" id="enLoad"><div class="loader-logo">ENTERPRISE LEAD</div><div class="loader-bar"><div class="loader-fill"></div></div><div class="loader-text" id="enTxt">Loading...</div></div>
   <div class="db-content" id="enCont" style="display:none">
     <div class="section-title">Key Performance Indicators</div>
-    <div class="kpi-grid" id="enKpiGrid"></div>
+    <div class="en-kpi-grid" id="enKpiGrid"></div>
     <div id="enCFBadge" style="display:none;align-items:center;background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.25);border-radius:10px;padding:8px 16px;margin-bottom:14px;font-size:0.88rem;color:var(--text);gap:4px;flex-wrap:wrap;"></div>
+
+    <div class="insights-grid" style="grid-template-columns:1fr;">
+      <div class="insight-card">
+        <div class="insight-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <span style="display:flex;align-items:center;gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> Performance of Lead Owner</span>
+          <button class="lsrc-btn" id="enRepAllBtn" onclick="enToggleRepAll(this)">Click here to see performance</button>
+        </div>
+        <div id="enRepLB"></div>
+      </div>
+    </div>
 
     <div class="section-title">Pipeline Analytics</div>
     <div class="charts-grid">
       <div class="chart-card"><div class="chart-title"><span class="dot"></span> Lead Status Breakdown</div><div class="chart-wrap"><canvas id="enChStatus"></canvas></div></div>
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent2)"></span> Daily Leads</div><div class="chart-wrap"><canvas id="enChDaily"></canvas></div></div>
       <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent3)"></span> Top Cities</div><div class="chart-wrap"><canvas id="enChCity"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#00d4aa"></span> Call Connection Rate</div><div class="chart-wrap"><canvas id="enChConnect"></canvas></div></div>
     </div>
 
-    <div class="section-title">Team Performance</div>
+    <div class="section-title">Team &amp; Channel Performance</div>
     <div class="charts-grid2">
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#a78bfa"></span> Top Performers — Outreach By</div><div class="chart-wrap"><canvas id="enChOutreach"></canvas></div></div>
-      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--hot)"></span> Product Mix</div><div class="chart-wrap"><canvas id="enChProduct"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#a78bfa"></span> Lead Owner Performance</div><div class="chart-wrap"><canvas id="enChOutreach"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#4e9af1"></span> Lead Source Mix</div><div class="chart-wrap"><canvas id="enChSource"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent2)"></span> Daily Leads</div><div class="chart-wrap"><canvas id="enChDaily"></canvas></div></div>
+    </div>
+
+    <div class="section-title">Product Interest &amp; Conversion Funnel</div>
+    <div class="charts-grid3">
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--hot)"></span> Product Interest</div><div class="chart-wrap"><canvas id="enChProduct"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#f0a500"></span> Conversion Funnel</div><div class="chart-wrap"><canvas id="enChFunnel"></canvas></div></div>
     </div>
 
     <div class="section-title">Lead Explorer</div>
     <div class="filters-bar">
       <span class="filter-label">Filter:</span>
-      <input class="filter-input" id="enSearch" placeholder="Search stakeholder, city, phone..." oninput="enApply()">
+      <input class="filter-input" id="enSearch" placeholder="Search lead name, city, phone..." oninput="enApply()">
       <select class="filter-select" id="enFSource" onchange="enApply()"><option value="">All Cities</option></select>
-      <select class="filter-select" id="enFRep" onchange="enApply()"><option value="">All Outreach By</option></select>
-      <select class="filter-select" id="enFStatus" onchange="enApply()"><option value="">All Status</option></select>
+      <select class="filter-select" id="enFRep" onchange="enApply()"><option value="">All Owners</option></select>
+      <select class="filter-select" id="enFStatus" onchange="enApply()"><option value="">All Stages</option></select>
       <button class="reset-btn" onclick="enReset()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Reset</button>
     </div>
     <div class="table-card">

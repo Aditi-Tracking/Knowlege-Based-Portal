@@ -1,6 +1,7 @@
 // Section: Enterprise Lead Dashboard (loadEnterprise, charts, filters, table)
-// Data source: Google Apps Script (EN_URL) — fully dynamic, click-to-filter
-// Access control: gated by PERMISSIONS.can_view_enterprise (see _canAccessEnterprise below)
+// Data source: Google Apps Script (EN_URL) — a call-tracking lead funnel sheet:
+// one row per lead, up to 6 dialling attempts (Connected/Time/Stage per call).
+// Fully dynamic, click-to-filter.
 
 // ── Access control ──────────────────────────────────────────────────────
 function _canAccessEnterprise(){
@@ -25,32 +26,49 @@ function _applyEnterpriseNavVisibility(){
 }
 
 // ── ENTERPRISE LEAD DASHBOARD ───────────────────────────────────────────
-const EN_URL='https://script.google.com/macros/s/AKfycbycTqWxk0GP_wuWOC8txx0Q6ZkPNk-MGZffPH53YbuNYD14ioMstVedjdpy62xzK6Q/exec';
+const EN_URL='https://script.google.com/macros/s/AKfycbw5Jl0VME63SwnUhNQhANdmGcNdedK0yIz9n6LdtpLwaSM_p5sqG181rSwdYYhMbLeJ/exec';
 let EN=[],ENf=[],ENch={},ENp=1,ENsk=null,ENsd=1,ENkpi=null,ENtblOpen=true;
-let ENcf={status:null,city:null,outreach:null,convertedOnly:false};
+let ENcf={status:null,city:null,owner:null,source:null,product:null,milestone:null};
 const ENPP=15;
-// Colour + badge-class helpers — status text in the sheet can be a temperature
-// (Hot/Warm/Cold) OR an outcome (Won/Lost) OR anything else. We handle both.
+const EN_CALL_SUFFIX=['1st','2nd','3rd','4th','5th','6th'];
+
+// Colour + badge-class helpers for the lead's current stage (the most recent
+// call's outcome — see _CurrentStage below).
 function enStatusColor(v){
   const s=(v||'').toString().toLowerCase();
-  if(/\bhot\b/.test(s))return '#ff5c7c';
-  if(/\bwarm\b/.test(s))return '#f0a500';
-  if(/\bcold\b/.test(s))return '#4e9af1';
-  if(/won|convert|closed.?won|success|confirmed|deal.?done/.test(s))return '#00d4aa';
-  if(/lost|closed.?lost|reject|cancel|declined|not.?interested/.test(s))return '#a78bfa';
-  return null;
+  if(s==='interested')return '#4e9af1';
+  if(s==='demo scheduled')return '#f0a500';
+  if(s==='quotation')return '#a78bfa';
+  if(s==='won')return '#00d4aa';
+  if(s==='lost')return '#ff5c7c';
+  if(s==='invalid')return '#6b7280';
+  return '#9ca3af';
 }
 function enStatusBadge(v){
   const s=(v||'').toString().toLowerCase();
-  if(/\bhot\b/.test(s))return 'badge-hot';
-  if(/\bwarm\b/.test(s))return 'badge-warm';
-  if(/\bcold\b/.test(s))return 'badge-cold';
-  if(/won|convert|closed.?won|success|confirmed|deal.?done/.test(s))return 'badge-won';
-  if(/lost|closed.?lost|reject|cancel|declined|not.?interested/.test(s))return 'badge-lost';
+  if(s==='interested')return 'badge-cold';
+  if(s==='demo scheduled')return 'badge-warm';
+  if(s==='quotation')return 'badge-quote';
+  if(s==='won')return 'badge-won';
+  if(s==='lost')return 'badge-lost';
+  if(s==='invalid')return 'badge-open';
   return 'badge-open';
 }
-function enIsConverted(r){return /won|convert|closed.?won|success|confirmed|deal.?done/.test((r['_Status']||'').toString().toLowerCase());}
-function enIsLost(r){return /lost|closed.?lost|reject|cancel|declined|not.?interested/.test((r['_Status']||'').toString().toLowerCase());}
+// "dd/mm/yyyy hh:mm AM/PM" → {key:'yyyy-mm-dd', ts: epoch millis} — key is
+// used for grouping/filtering by calendar day, ts for numeric sorting.
+function enParseEntry(s){
+  const m=(s||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if(!m)return{key:'',ts:0};
+  let[,d,mo,y,h,mi,ap]=m;h=+h;
+  if(ap){ap=ap.toUpperCase();if(ap==='PM'&&h!==12)h+=12;if(ap==='AM'&&h===12)h=0;}
+  const dt=new Date(+y,+mo-1,+d,h,+mi);
+  const key=y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  return{key,ts:dt.getTime()};
+}
+function enTodayKey(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 async function loadEnterprise(){
   if(!_canAccessEnterprise()){ switchDB('home'); return; }
   try{
@@ -65,35 +83,44 @@ async function loadEnterprise(){
       rows=rows.rows;
     }
     if(!Array.isArray(rows)||!rows.length)throw new Error('API returned empty or invalid data');
-    const sampleKeys=Object.keys(rows[0]||{});
-    // Exact sheet columns: Date, Stakeholder, City, Phone, Outreach By, Probability, Status, ACV, MRR, Comments
-    const dateCol=sampleKeys.find(k=>/^date$/i.test(k))||sampleKeys.find(k=>/date|timestamp|created/i.test(k));
-    const stakeCol=sampleKeys.find(k=>/stakeholder/i.test(k))||sampleKeys.find(k=>/client|company|customer|contact|^name$/i.test(k))||sampleKeys[0];
-    const cityCol=sampleKeys.find(k=>/^city$/i.test(k))||sampleKeys.find(k=>/city|location/i.test(k));
-    const phoneCol=sampleKeys.find(k=>/phone|mobile|contact.?no/i.test(k));
-    const outreachCol=sampleKeys.find(k=>/outreach/i.test(k))||sampleKeys.find(k=>/executive|sales.?rep|rep.?name|assigned.?to|handled.?by|owner|email/i.test(k));
-    const probCol=sampleKeys.find(k=>/probability|win.?chance|win.?%/i.test(k));
-    const statusCol=sampleKeys.find(k=>/^status$/i.test(k))||sampleKeys.find(k=>/status|stage|outcome|conversion|result/i.test(k));
-    const acvCol=sampleKeys.find(k=>/\bacv\b/i.test(k));
-    const mrrCol=sampleKeys.find(k=>/\bmrr\b/i.test(k));
-    const commentsCol=sampleKeys.find(k=>/comment|remark|note/i.test(k));
-    const productCol=sampleKeys.find(k=>/product|solution|hero.?product/i.test(k));
     EN=rows.map(r=>{
-      const n={...r};
-      n['_Date']=dateCol?(r[dateCol]||'').toString().trim():'';
-      n['_Stakeholder']=stakeCol?(r[stakeCol]||'').toString().trim():'';
-      n['_City']=cityCol?(r[cityCol]||'').toString().trim():'';
-      n['_Phone']=phoneCol?(r[phoneCol]||'').toString().trim():'';
-      n['_Outreach']=outreachCol?(r[outreachCol]||'').toString().trim():'';
-      n['_Probability']=probCol?(r[probCol]||'').toString().trim():'';
-      n['_Status']=statusCol?(r[statusCol]||'').toString().trim():'';
-      n['_ACV']=acvCol?(r[acvCol]||'').toString().trim():'';
-      n['_MRR']=mrrCol?(r[mrrCol]||'').toString().trim():'';
-      n['_Comments']=commentsCol?(r[commentsCol]||'').toString().trim():'';
-      n['_Product']=productCol?(r[productCol]||'').toString().trim():'';
-      return n;
-    }).filter(r=>r['_Stakeholder']);
-    if(!EN.length)throw new Error('No data — could not detect a Stakeholder column. Sheet columns: '+sampleKeys.slice(0,6).join(', ')+'...');
+      const calls=EN_CALL_SUFFIX.map(suf=>({
+        connected:(r[suf+' Call - Connected']||'').toString().trim(),
+        time:(r[suf+' Call - Time']||'').toString().trim(),
+        stage:(r[suf+' Call - Stage']||'').toString().trim()
+      }));
+      const attempted=calls.filter(c=>c.connected);
+      const connected=calls.filter(c=>c.connected==='Yes');
+      const stageSet=new Set(calls.map(c=>c.stage).filter(Boolean));
+      let currentStage='Not Contacted';
+      for(let i=calls.length-1;i>=0;i--){if(calls[i].stage){currentStage=calls[i].stage;break;}}
+      const entry=enParseEntry((r['Lead Entry']||'').toString().trim());
+      const revenue=parseFloat(String(r['Revenue']||'').replace(/[^0-9.\-]/g,''))||0;
+      return{
+        _SrNo:r['SR.No']??'',
+        _Name:(r['Lead Name']||'').toString().trim(),
+        _Phone:(r['Contact No']||'').toString().trim(),
+        _Email:(r['Email id']||'').toString().trim(),
+        _City:(r['City']||'').toString().trim(),
+        _EntryRaw:(r['Lead Entry']||'').toString().trim(),
+        _EntryKey:entry.key,
+        _EntryTs:entry.ts,
+        _Source:(r['Source']||'').toString().trim()||'Direct / Unspecified',
+        _Product:(r['Product']||'').toString().trim()||'Unspecified',
+        _Owner:(r['Lead Owner']||'').toString().trim()||'Unassigned',
+        _Comments:(r['Comments']||'').toString().trim(),
+        _Reason:(r['Reason for Lost']||'').toString().trim(),
+        _Revenue:revenue,
+        _CallsMade:attempted.length,
+        _Connected:connected.length,
+        _CurrentStage:currentStage,
+        _ReachedInterested:stageSet.has('Interested'),
+        _ReachedDemo:stageSet.has('Demo Scheduled'),
+        _ReachedQuotation:stageSet.has('Quotation'),
+        _ReachedWon:stageSet.has('Won')
+      };
+    }).filter(r=>r._Name);
+    if(!EN.length)throw new Error('No data — could not detect a Lead Name column.');
     document.getElementById('enLoad').style.display='none';document.getElementById('enCont').style.display='block';
     document.getElementById('enSync').textContent='Sync: '+new Date().toLocaleTimeString('en-IN');
     document.getElementById('enErr').style.display='none';
@@ -108,43 +135,115 @@ async function refreshEnterprise(){
   const b=document.getElementById('enRefBtn');if(b)b.classList.add('spinning');Object.values(ENch).forEach(c=>c&&c.destroy&&c.destroy());ENch={};document.getElementById('enLoad').style.display='flex';document.getElementById('enCont').style.display='none';await loadEnterprise();if(b)b.classList.remove('spinning');
 }
 function enBuildFilters(){
-  const city=[...new Set(EN.map(r=>r['_City']).filter(Boolean))].sort();
-  const out=[...new Set(EN.map(r=>r['_Outreach']).filter(Boolean))].sort();
-  const st=[...new Set(EN.map(r=>r['_Status']).filter(Boolean))].sort();
+  const city=[...new Set(EN.map(r=>r._City).filter(Boolean))].sort();
+  const own=[...new Set(EN.map(r=>r._Owner).filter(Boolean))].sort();
+  const st=[...new Set(EN.map(r=>r._CurrentStage).filter(Boolean))].sort();
   const s1=document.getElementById('enFSource');s1.innerHTML='<option value="">All Cities</option>';city.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;s1.appendChild(o);});
-  const s2=document.getElementById('enFRep');s2.innerHTML='<option value="">All Outreach By</option>';out.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;s2.appendChild(o);});
-  const s3=document.getElementById('enFStatus');s3.innerHTML='<option value="">All Status</option>';st.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;s3.appendChild(o);});
+  const s2=document.getElementById('enFRep');s2.innerHTML='<option value="">All Owners</option>';own.forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;s2.appendChild(opt);});
+  const s3=document.getElementById('enFStatus');s3.innerHTML='<option value="">All Stages</option>';st.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;s3.appendChild(o);});
 }
-function enRenderAll(){enRenderKPIs();enRenderCharts();enApply();}
+function enRenderAll(){enRenderKPIs();enRenderCharts();enApply();enRenderRepLB();}
+// Performance of Lead Owner — collapsed by default (just the toggle button).
+// Toggle ON: card expands, showing every lead owner's Total/Demo/Quotation/Won/
+// Revenue at once, ranked by Revenue (ties broken by Won count) so it's obvious
+// at a glance who's carrying the numbers — same pattern as SmartFleet's
+// "Performance of Sales Rep" (see lRenderRepLB in js/leads.js).
+let ENRepAllMode=false;
+function enToggleRepAll(btn){
+  ENRepAllMode=!ENRepAllMode;
+  btn.classList.toggle('active',ENRepAllMode);
+  enRenderRepLB();
+}
+function enRepColor(name){
+  const s=(name||'?').trim();
+  let h=0;for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}
+  const palette=['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899','#f97316'];
+  return palette[Math.abs(h)%palette.length];
+}
+// Strip the "Dialled By " prefix some rows have so "Dialled By Disha" and a
+// plain "Disha" merge into one person instead of showing as two rows.
+function enOwnerName(raw){
+  return (raw||'').replace(/^dialled\s*by\s*/i,'').trim()||'Unassigned';
+}
+function enRenderRepLB(){
+  const box=document.getElementById('enRepLB');
+  if(!box)return;
+  if(!ENRepAllMode){box.innerHTML='';return;}
+  const reps={};
+  EN.forEach(r=>{
+    const key=enOwnerName(r._Owner);
+    if(key==='Unassigned')return;
+    if(!reps[key])reps[key]={name:key,total:0,demo:0,quoted:0,won:0,revenue:0};
+    const s=reps[key];
+    s.total++;
+    if(r._ReachedDemo)s.demo++;
+    if(r._ReachedQuotation)s.quoted++;
+    if(r._ReachedWon){s.won++;s.revenue+=r._Revenue;}
+  });
+  const board=Object.values(reps).sort((a,b)=>b.revenue-a.revenue||b.won-a.won);
+  box.innerHTML=board.map((b,i)=>{
+    const avgOrder=b.won?b.revenue/b.won:0;
+    const convRate=b.total?(b.won/b.total*100):0;
+    const col=enRepColor(b.name);
+    return`
+    <div class="lb-row">
+      <span style="font-size:0.9rem;width:22px;flex-shrink:0">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
+      <div class="rep-dot" style="background:${col}22;color:${col}">${b.name.charAt(0).toUpperCase()}</div>
+      <div style="width:170px;flex-shrink:0;font-size:1rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:9px">${b.name}</div>
+      <div style="display:flex;flex:1;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div style="text-align:center;min-width:44px"><div style="font-size:1.1rem;font-weight:700;color:var(--text)">${b.total}</div><div style="font-size:0.66rem;color:var(--muted)">TOTAL</div></div>
+        <div style="text-align:center;min-width:44px"><div style="font-size:1.1rem;font-weight:700;color:#3b82f6">${b.demo}</div><div style="font-size:0.66rem;color:var(--muted)">DEMO</div></div>
+        <div style="text-align:center;min-width:48px"><div style="font-size:1.1rem;font-weight:700;color:#60a5fa">${b.quoted}</div><div style="font-size:0.66rem;color:var(--muted)">QUOTE</div></div>
+        <div style="text-align:center;min-width:44px"><div style="font-size:1.1rem;font-weight:700;color:#10b981">${b.won}</div><div style="font-size:0.66rem;color:var(--muted)">WON</div></div>
+        <div style="text-align:center;min-width:76px"><div style="font-size:1.1rem;font-weight:700;color:var(--text)">₹${lFmtINR(avgOrder)}</div><div style="font-size:0.66rem;color:var(--muted)">AVG ORDER</div></div>
+        <div style="text-align:center;min-width:60px"><div style="font-size:1.1rem;font-weight:700;color:#8b5cf6">${convRate.toFixed(0)}%</div><div style="font-size:0.66rem;color:var(--muted)">CONVERSION</div></div>
+        <div style="text-align:center;min-width:76px"><div style="font-size:1.1rem;font-weight:700;color:var(--text)">₹${lFmtINR(b.revenue)}</div><div style="font-size:0.66rem;color:var(--muted)">REVENUE</div></div>
+      </div>
+    </div>`;}).join('');
+}
 function enGetCF(){return EN.filter(r=>{
-  if(ENcf.status&&r['_Status']!==ENcf.status)return false;
-  if(ENcf.city&&r['_City']!==ENcf.city)return false;
-  if(ENcf.outreach&&r['_Outreach']!==ENcf.outreach)return false;
-  if(ENcf.convertedOnly&&!enIsConverted(r))return false;
+  if(ENcf.status&&r._CurrentStage!==ENcf.status)return false;
+  if(ENcf.city&&r._City!==ENcf.city)return false;
+  if(ENcf.owner&&r._Owner!==ENcf.owner)return false;
+  if(ENcf.source&&r._Source!==ENcf.source)return false;
+  if(ENcf.product&&r._Product!==ENcf.product)return false;
+  if(ENcf.milestone==='contacted'&&r._CallsMade===0)return false;
+  if(ENcf.milestone==='demo'&&!r._ReachedDemo)return false;
+  if(ENcf.milestone==='quotation'&&!r._ReachedQuotation)return false;
+  if(ENcf.milestone==='won'&&!r._ReachedWon)return false;
+  if(ENcf.milestone==='lost'&&r._CurrentStage!=='Lost')return false;
+  if(ENcf.milestone==='revenue'&&!(r._Revenue>0))return false;
+  if(ENcf.milestone==='today'&&r._EntryKey!==enTodayKey())return false;
   return true;
 });}
 function enRenderKPIs(){
   const t=EN.length;
-  const uniqueClients=new Set(EN.map(r=>r['_Stakeholder'])).size;
-  const hasDates=EN.some(r=>r['_Date']);
-  const uniqueMeetings=hasDates?new Set(EN.map(r=>r['_Stakeholder']+'|'+r['_Date'])).size:t;
-  const converted=EN.filter(enIsConverted).length;
-  const crKnown=uniqueMeetings>0;
-  const cr=crKnown?((converted/uniqueMeetings)*100).toFixed(1)+'%':'—';
-  const crSub=crKnown?converted+' won / '+uniqueMeetings+' unique meetings':'No meetings found yet';
+  const totalCalls=EN.reduce((s,r)=>s+r._CallsMade,0);
+  const totalConnected=EN.reduce((s,r)=>s+r._Connected,0);
+  const demo=EN.filter(r=>r._ReachedDemo).length;
+  const quotation=EN.filter(r=>r._ReachedQuotation).length;
+  const won=EN.filter(r=>r._ReachedWon).length;
+  const lost=EN.filter(r=>r._CurrentStage==='Lost').length;
+  const revenue=EN.reduce((s,r)=>s+r._Revenue,0);
+  const todayLeads=EN.filter(r=>r._EntryKey===enTodayKey()).length;
   const kpis=[
-    {l:'No. of Unique Client Meetings',v:uniqueMeetings,s:t+' total record'+(t!==1?'s':''),a:'#f0a500',b:'Live',bb:'rgba(240,165,0,0.15)',fk:'meetings'},
-    {l:'Conversion Ratio',v:cr,s:crSub,a:'#00d4aa',b:crKnown?'Tracked':'—',bb:'rgba(0,212,170,0.15)',fk:'converted'},
-    {l:'Clients',v:uniqueClients,s:'Unique stakeholders met',a:'#4e9af1',b:'Enterprise',bb:'rgba(78,154,241,0.15)',fk:'clients'}
+    {l:'Total Leads',v:t,s:t+' lead'+(t!==1?'s':'')+' tracked',ic:'📊',grad:'linear-gradient(135deg,#fdba74,#fb923c)',fk:'total'},
+    {l:'No. of Calls',v:totalCalls,s:totalConnected+' connected · '+(totalCalls-totalConnected)+' no answer',ic:'📞',grad:'linear-gradient(135deg,#6ee7b7,#34d399)',fk:'contacted'},
+    {l:'Demo',v:demo,s:t?((demo/t)*100).toFixed(1)+'% of leads':'—',ic:'🖥',grad:'linear-gradient(135deg,#fda4af,#fb7185)',fk:'demo'},
+    {l:'Quotation',v:quotation,s:t?((quotation/t)*100).toFixed(1)+'% of leads':'—',ic:'📄',grad:'linear-gradient(135deg,#67e8f9,#22d3ee)',fk:'quotation'},
+    {l:'Won',v:won,s:t?((won/t)*100).toFixed(1)+'% win rate':'—',ic:'✅',grad:'linear-gradient(135deg,#c4b5fd,#a78bfa)',fk:'won'},
+    {l:'Revenue',v:'₹'+revenue.toLocaleString('en-IN'),s:won+' won deal'+(won!==1?'s':''),ic:'💰',grad:'linear-gradient(135deg,#fcd34d,#fbbf24)',fk:'revenue'},
+    {l:'Lost',v:lost,s:t?((lost/t)*100).toFixed(1)+'% of leads':'—',ic:'❌',grad:'linear-gradient(135deg,#fca5a5,#f87171)',fk:'lost'},
+    {l:'Daily Lead',v:todayLeads,s:'Added today',ic:'📅',grad:'linear-gradient(135deg,#93c5fd,#60a5fa)',fk:'today'}
   ];
-  document.getElementById('enKpiGrid').innerHTML=kpis.map(k=>{const ia=ENkpi===k.fk&&ENkpi!==null;return `<div class="kpi-card ${ia?'kpi-active':''}" style="--card-accent:${k.a};--card-color:${k.a}" onclick="enKpiClick('${k.fk}')"><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div><div class="kpi-sub">${k.s}</div><span class="kpi-badge" style="background:${k.bb};color:${k.a}">${k.b}</span><div class="kpi-click-hint">${ia?'✕ Clear':'→ Filter'}</div></div>`;}).join('');
+  document.getElementById('enKpiGrid').innerHTML=kpis.map(k=>{const ia=ENkpi===k.fk;return `<div class="en-kpi-tile ${ia?'en-kpi-active':''}" style="background:${k.grad}" onclick="enKpiClick('${k.fk}')"><div class="en-kpi-tile-body"><div class="en-kpi-tile-icon"><i></i><i></i><i></i><i></i></div><div class="en-kpi-value">${k.v}</div><div class="en-kpi-label">${k.l}</div></div><div class="en-kpi-tile-foot"><span>${k.ic}</span><span>${k.s}</span><span class="en-kpi-click-hint">${ia?'✕':'→'}</span></div></div>`;}).join('');
 }
 function enKpiClick(fk){
-  if(fk==='converted'){
-    ENcf.convertedOnly=!ENcf.convertedOnly;
-    ENkpi=ENcf.convertedOnly?'converted':null;
+  if(fk==='total'){
+    ENkpi=null;ENcf={status:null,city:null,owner:null,source:null,product:null,milestone:null};
   }else{
-    ENkpi=null;ENcf={status:null,city:null,outreach:null,convertedOnly:false};
+    ENkpi=ENkpi===fk?null:fk;
+    ENcf.milestone=ENkpi;
   }
   Object.values(ENch).forEach(c=>c&&c.destroy&&c.destroy());ENch={};
   enRenderAll();enBadge();
@@ -154,59 +253,97 @@ function enBadge(){
   const parts=[];
   if(ENcf.status)parts.push(ENcf.status);
   if(ENcf.city)parts.push(ENcf.city);
-  if(ENcf.outreach)parts.push(ENcf.outreach);
-  if(ENcf.convertedOnly)parts.push('Won');
+  if(ENcf.owner)parts.push(ENcf.owner);
+  if(ENcf.source)parts.push(ENcf.source);
+  if(ENcf.product)parts.push(ENcf.product);
+  if(ENcf.milestone){
+    const ml={contacted:'Contacted',demo:'Demo',quotation:'Quotation',won:'Won',lost:'Lost',revenue:'Has Revenue',today:'Today'};
+    parts.push(ml[ENcf.milestone]||ENcf.milestone);
+  }
   if(parts.length){b.style.display='flex';b.innerHTML='🎯 Filter: <strong style="color:var(--accent)">'+parts.join(' + ')+'</strong> <span onclick="enClearAll()" style="cursor:pointer;color:var(--hot);margin-left:8px;font-weight:600">✕ Clear All</span>';}
   else b.style.display='none';
 }
-function enClearAll(){ENkpi=null;ENcf={status:null,city:null,outreach:null,convertedOnly:false};Object.values(ENch).forEach(c=>c&&c.destroy&&c.destroy());ENch={};enRenderAll();enBadge();}
+function enClearAll(){ENkpi=null;ENcf={status:null,city:null,owner:null,source:null,product:null,milestone:null};Object.values(ENch).forEach(c=>c&&c.destroy&&c.destroy());ENch={};enRenderAll();enBadge();}
 function enCF(k,v){ENcf[k]=ENcf[k]===v?null:v;enBadge();Object.values(ENch).forEach(c=>c&&c.destroy&&c.destroy());ENch={};enRenderCharts();enApply();}
 function enRenderCharts(){
-  const D=enGetCF();const sc=['#f0a500','#00d4aa','#ff5c7c','#4e9af1','#a78bfa','#f97316','#10b981'];
+  const D=enGetCF();const sc=['#4e9af1','#a78bfa','#00d4aa','#f0a500','#ff5c7c','#f97316','#10b981','#ec4899'];
   const {tc:eTC,gc:eGC,noGrid:eNG}=chartColors();
   const isLight=document.body.classList.contains('light-mode');
   const dim=isLight?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.07)';
 
-  // ── Lead Status Breakdown (doughnut, raw status values — Hot/Warm/Cold/Won/Lost/etc.) ──
-  const stc={};D.forEach(r=>{const s=r['_Status']||'Unspecified';stc[s]=(stc[s]||0)+1;});
+  // ── Lead Status Breakdown (doughnut, current stage per lead) ──
+  const stc={};D.forEach(r=>{const s=r._CurrentStage||'Not Contacted';stc[s]=(stc[s]||0)+1;});
   const sk=Object.keys(stc);
-  ENch.status=new Chart(document.getElementById('enChStatus'),{type:'doughnut',data:{labels:sk,datasets:[{data:sk.map(k=>stc[k]),backgroundColor:sk.map((k,i)=>ENcf.status&&ENcf.status!==k?dim:(enStatusColor(k)||sc[i%sc.length])),borderWidth:0,hoverOffset:8}]},options:{cutout:'68%',onClick:(_,e)=>{if(e.length)enCF('status',sk[e[0].index]);},plugins:{legend:{position:'right',labels:{color:eTC,padding:10,font:{family:'DM Sans',size:10}}}},responsive:true,maintainAspectRatio:false}});
+  ENch.status=new Chart(document.getElementById('enChStatus'),{type:'doughnut',data:{labels:sk,datasets:[{data:sk.map(k=>stc[k]),backgroundColor:sk.map((k,i)=>ENcf.status&&ENcf.status!==k?dim:(enStatusColor(k)||sc[i%sc.length])),borderWidth:0,hoverOffset:8}]},options:{cutout:'68%',onClick:(_,e)=>{if(e.length)enCF('status',sk[e[0].index]);},plugins:{legend:{position:'right',labels:{color:eTC,padding:10,font:{family:'DM Sans',size:10}}},datalabels:{display:false}},responsive:true,maintainAspectRatio:false}});
   document.getElementById('enChStatus').style.cursor='pointer';
 
   // ── Daily Leads (line, by calendar date) ──
-  const dc={};D.forEach(r=>{let d=(r['_Date']||'').toString();let key='';const m1=d.match(/^(\d{4})-(\d{2})-(\d{2})/);const m2=d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);if(m1)key=m1[1]+'-'+m1[2]+'-'+m1[3];else if(m2)key=m2[3]+'-'+m2[2]+'-'+m2[1];else if(d)key=d.slice(0,10);if(key&&key.length===10)dc[key]=(dc[key]||0)+1;});
+  const dc={};D.forEach(r=>{if(r._EntryKey)dc[r._EntryKey]=(dc[r._EntryKey]||0)+1;});
   const ds=Object.keys(dc).sort();
-  ENch.daily=new Chart(document.getElementById('enChDaily'),{type:'line',data:{labels:ds.map(d=>d.slice(5)),datasets:[{data:ds.map(d=>dc[d]),borderColor:'#00d4aa',backgroundColor:'rgba(0,212,170,0.1)',fill:true,tension:0.4,pointBackgroundColor:'#00d4aa',pointRadius:4,borderWidth:2}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:!eNG,color:eGC}},y:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:!eNG,color:eGC}}},responsive:true,maintainAspectRatio:false}});
+  ENch.daily=new Chart(document.getElementById('enChDaily'),{type:'line',data:{labels:ds.map(d=>d.slice(5)),datasets:[{data:ds.map(d=>dc[d]),borderColor:'#00d4aa',backgroundColor:'rgba(0,212,170,0.1)',fill:true,tension:0.4,pointBackgroundColor:'#00d4aa',pointRadius:4,borderWidth:2}]},options:{plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:!eNG,color:eGC}},y:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:!eNG,color:eGC}}},responsive:true,maintainAspectRatio:false}});
 
   // ── Top Cities (bar) ──
-  const ci={};D.forEach(r=>{const c=r['_City']||'Unknown';ci[c]=(ci[c]||0)+1;});
+  const ci={};D.forEach(r=>{const c=r._City||'Unknown';ci[c]=(ci[c]||0)+1;});
   const cis=Object.entries(ci).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  ENch.city=new Chart(document.getElementById('enChCity'),{type:'bar',data:{labels:cis.map(([k])=>k),datasets:[{data:cis.map(([,v])=>v),backgroundColor:cis.map(([k],i)=>ENcf.city&&ENcf.city!==k?dim:sc[i%sc.length]),borderRadius:6,borderWidth:0}]},options:{indexAxis:'y',onClick:(_,e)=>{if(e.length)enCF('city',cis[e[0].index][0]);},plugins:{legend:{display:false}},scales:{x:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:!eNG,color:eGC}},y:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:false}}},responsive:true,maintainAspectRatio:false}});
+  ENch.city=new Chart(document.getElementById('enChCity'),{type:'bar',data:{labels:cis.map(([k])=>k),datasets:[{data:cis.map(([,v])=>v),backgroundColor:cis.map(([k],i)=>ENcf.city&&ENcf.city!==k?dim:sc[i%sc.length]),borderRadius:6,borderWidth:0}]},options:{indexAxis:'y',onClick:(_,e)=>{if(e.length)enCF('city',cis[e[0].index][0]);},plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:!eNG,color:eGC}},y:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:false}}},responsive:true,maintainAspectRatio:false}});
   document.getElementById('enChCity').style.cursor='pointer';
 
-  // ── Top Performers — Outreach By (bar) ──
-  const oc={};D.forEach(r=>{const o=r['_Outreach']||'Unassigned';oc[o]=(oc[o]||0)+1;});
+  // ── Lead Owner Performance (bar) ──
+  const oc={};D.forEach(r=>{const o=r._Owner||'Unassigned';oc[o]=(oc[o]||0)+1;});
   const os=Object.entries(oc).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  ENch.outreach=new Chart(document.getElementById('enChOutreach'),{type:'bar',data:{labels:os.map(([k])=>k),datasets:[{data:os.map(([,v])=>v),backgroundColor:os.map(([k])=>ENcf.outreach&&ENcf.outreach!==k?dim:'#a78bfa'),borderRadius:6,borderWidth:0}]},options:{onClick:(_,e)=>{if(e.length)enCF('outreach',os[e[0].index][0]);},plugins:{legend:{display:false}},scales:{x:{ticks:{color:eTC,font:{family:'DM Sans',size:9}},grid:{display:false}},y:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:!eNG,color:eGC}}},responsive:true,maintainAspectRatio:false}});
+  ENch.outreach=new Chart(document.getElementById('enChOutreach'),{type:'bar',data:{labels:os.map(([k])=>k),datasets:[{data:os.map(([,v])=>v),backgroundColor:os.map(([k])=>ENcf.owner&&ENcf.owner!==k?dim:'#a78bfa'),borderRadius:6,borderWidth:0}]},options:{onClick:(_,e)=>{if(e.length)enCF('owner',os[e[0].index][0]);},plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{ticks:{color:eTC,font:{family:'DM Sans',size:9}},grid:{display:false}},y:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:!eNG,color:eGC}}},responsive:true,maintainAspectRatio:false}});
   document.getElementById('enChOutreach').style.cursor='pointer';
 
-  // ── Product Mix (doughnut) ──
-  const pc={};D.forEach(r=>{const p=r['_Product']||'Unspecified';pc[p]=(pc[p]||0)+1;});
+  // ── Lead Source Mix (doughnut) ──
+  const rc={};D.forEach(r=>{const s=r._Source||'Direct / Unspecified';rc[s]=(rc[s]||0)+1;});
+  const rk=Object.keys(rc);
+  ENch.source=new Chart(document.getElementById('enChSource'),{type:'doughnut',data:{labels:rk,datasets:[{data:rk.map(k=>rc[k]),backgroundColor:rk.map((k,i)=>ENcf.source&&ENcf.source!==k?dim:sc[i%sc.length]),borderWidth:0,hoverOffset:8}]},options:{cutout:'65%',onClick:(_,e)=>{if(e.length)enCF('source',rk[e[0].index]);},plugins:{legend:{position:'right',labels:{color:eTC,padding:10,font:{family:'DM Sans',size:10}}},datalabels:{display:false}},responsive:true,maintainAspectRatio:false}});
+  document.getElementById('enChSource').style.cursor='pointer';
+
+  // ── Call Connection Rate (doughnut) — how many dial attempts actually
+  // connected, across the currently cross-filtered leads. Not click-to-filter
+  // (there's no "connected"/"not connected" table dimension to jump to). ──
+  const connD=D.reduce((s,r)=>s+r._Connected,0),noAnsD=D.reduce((s,r)=>s+(r._CallsMade-r._Connected),0);
+  ENch.connect=new Chart(document.getElementById('enChConnect'),{type:'doughnut',data:{labels:['Connected','No Answer'],datasets:[{data:[connD,noAnsD],backgroundColor:['#00d4aa','#ff5c7c'],borderWidth:0,hoverOffset:8}]},options:{cutout:'68%',plugins:{legend:{position:'right',labels:{color:eTC,padding:10,font:{family:'DM Sans',size:10}}},datalabels:{display:false}},responsive:true,maintainAspectRatio:false}});
+
+  // ── Product Interest (doughnut) ──
+  const pc={};D.forEach(r=>{const p=r._Product||'Unspecified';pc[p]=(pc[p]||0)+1;});
   const pk=Object.keys(pc);
-  ENch.product=new Chart(document.getElementById('enChProduct'),{type:'doughnut',data:{labels:pk,datasets:[{data:pk.map(k=>pc[k]),backgroundColor:pk.map((k,i)=>sc[i%sc.length]),borderWidth:0,hoverOffset:8}]},options:{cutout:'65%',plugins:{legend:{position:'right',labels:{color:eTC,padding:10,font:{family:'DM Sans',size:10}}}},responsive:true,maintainAspectRatio:false}});
+  ENch.product=new Chart(document.getElementById('enChProduct'),{type:'doughnut',data:{labels:pk,datasets:[{data:pk.map(k=>pc[k]),backgroundColor:pk.map((k,i)=>ENcf.product&&ENcf.product!==k?dim:sc[i%sc.length]),borderWidth:0,hoverOffset:8}]},options:{cutout:'65%',onClick:(_,e)=>{if(e.length)enCF('product',pk[e[0].index]);},plugins:{legend:{position:'right',labels:{color:eTC,padding:10,font:{family:'DM Sans',size:10}}},datalabels:{display:false}},responsive:true,maintainAspectRatio:false}});
+  document.getElementById('enChProduct').style.cursor='pointer';
+
+  // ── Conversion Funnel (bar) — always the full pipeline (EN), not the
+  // cross-filtered D, so filtering by e.g. City doesn't collapse the funnel
+  // down to a single stage. ──
+  const total=EN.length;
+  const contacted=EN.filter(r=>r._CallsMade>0).length;
+  const interested=EN.filter(r=>r._ReachedInterested||r._ReachedDemo||r._ReachedQuotation||r._ReachedWon).length;
+  const demoN=EN.filter(r=>r._ReachedDemo).length;
+  const quotationN=EN.filter(r=>r._ReachedQuotation).length;
+  const wonN=EN.filter(r=>r._ReachedWon).length;
+  const funnel=[{l:'Total Leads',v:total,c:'#4e9af1'},{l:'Contacted',v:contacted,c:'#a78bfa'},{l:'Interested',v:interested,c:'#f0a500'},{l:'Demo',v:demoN,c:'#f97316'},{l:'Quotation',v:quotationN,c:'#ec4899'},{l:'Won',v:wonN,c:'#00d4aa'}];
+  ENch.funnel=new Chart(document.getElementById('enChFunnel'),{type:'bar',data:{labels:funnel.map(f=>f.l),datasets:[{data:funnel.map(f=>f.v),backgroundColor:funnel.map(f=>f.c),borderRadius:6,borderWidth:0}]},options:{indexAxis:'y',layout:{padding:{right:56}},plugins:{legend:{display:false},datalabels:{anchor:'end',align:'end',color:eTC,font:{family:'DM Sans',size:10,weight:'600'},formatter:v=>v.toLocaleString('en-IN')+(total?'  ('+((v/total)*100).toFixed(0)+'%)':'')}},scales:{x:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:!eNG,color:eGC}},y:{ticks:{color:eTC,font:{family:'DM Sans',size:10}},grid:{display:false}}},responsive:true,maintainAspectRatio:false}});
 }
 function enApply(){
   const q=(document.getElementById('enSearch').value||'').toLowerCase();
-  const city=document.getElementById('enFSource').value,out=document.getElementById('enFRep').value,st=document.getElementById('enFStatus').value;
+  const city=document.getElementById('enFSource').value,owner=document.getElementById('enFRep').value,stage=document.getElementById('enFStatus').value;
   ENf=EN.filter(r=>{
-    if(q&&!((r['_Stakeholder']||'').toLowerCase().includes(q)||(r['_City']||'').toLowerCase().includes(q)||(r['_Phone']||'').toLowerCase().includes(q)||(r['_Outreach']||'').toLowerCase().includes(q)))return false;
-    if(city&&r['_City']!==city)return false;
-    if(out&&r['_Outreach']!==out)return false;
-    if(st&&r['_Status']!==st)return false;
-    if(ENcf.status&&r['_Status']!==ENcf.status)return false;
-    if(ENcf.city&&r['_City']!==ENcf.city)return false;
-    if(ENcf.outreach&&r['_Outreach']!==ENcf.outreach)return false;
-    if(ENcf.convertedOnly&&!enIsConverted(r))return false;
+    if(q&&!((r._Name||'').toLowerCase().includes(q)||(r._City||'').toLowerCase().includes(q)||(r._Phone||'').toLowerCase().includes(q)||(r._Owner||'').toLowerCase().includes(q)))return false;
+    if(city&&r._City!==city)return false;
+    if(owner&&r._Owner!==owner)return false;
+    if(stage&&r._CurrentStage!==stage)return false;
+    if(ENcf.status&&r._CurrentStage!==ENcf.status)return false;
+    if(ENcf.city&&r._City!==ENcf.city)return false;
+    if(ENcf.owner&&r._Owner!==ENcf.owner)return false;
+    if(ENcf.source&&r._Source!==ENcf.source)return false;
+    if(ENcf.product&&r._Product!==ENcf.product)return false;
+    if(ENcf.milestone==='contacted'&&r._CallsMade===0)return false;
+    if(ENcf.milestone==='demo'&&!r._ReachedDemo)return false;
+    if(ENcf.milestone==='quotation'&&!r._ReachedQuotation)return false;
+    if(ENcf.milestone==='won'&&!r._ReachedWon)return false;
+    if(ENcf.milestone==='lost'&&r._CurrentStage!=='Lost')return false;
+    if(ENcf.milestone==='revenue'&&!(r._Revenue>0))return false;
+    if(ENcf.milestone==='today'&&r._EntryKey!==enTodayKey())return false;
     return true;
   });
   if(ENsk)ENf.sort((a,b)=>{let av=a[ENsk]??'',bv=b[ENsk]??'';if(av!==''&&bv!==''&&!isNaN(av)&&!isNaN(bv))return(+av-+bv)*ENsd;return String(av).localeCompare(String(bv))*ENsd;});
@@ -241,7 +378,7 @@ function enPagerHTML(cur,tp,fn){
   return h;
 }
 function enRenderTable(){
-  const heads=[{k:'_Date',l:'DATE',s:true},{k:'_Stakeholder',l:'STAKEHOLDER',s:true},{k:'_City',l:'CITY',s:false},{k:'_Phone',l:'PHONE',s:false},{k:'_Outreach',l:'OUTREACH BY',s:false},{k:'_Probability',l:'PROBABILITY',s:false},{k:'_Status',l:'STATUS',s:true},{k:'_ACV',l:'ACV',s:true},{k:'_MRR',l:'MRR',s:true},{k:'_Comments',l:'COMMENTS',s:false}];
+  const heads=[{k:'_EntryTs',l:'DATE',s:true},{k:'_Name',l:'LEAD NAME',s:true},{k:'_City',l:'CITY',s:false},{k:'_Phone',l:'PHONE',s:false},{k:'_Source',l:'SOURCE',s:false},{k:'_Product',l:'PRODUCT',s:false},{k:'_Owner',l:'OWNER',s:false},{k:'_CurrentStage',l:'STAGE',s:true},{k:'_CallsMade',l:'CALLS',s:true},{k:'_Revenue',l:'REVENUE',s:true}];
   const thh=document.getElementById('enTblHead');if(thh)thh.innerHTML=heads.map(h=>h.s?`<th onclick="enSort('${h.k}')">${h.l} ↕</th>`:`<th>${h.l}</th>`).join('');
   const tot=ENf.length,tp=Math.max(1,Math.ceil(tot/ENPP));
   if(ENp>tp)ENp=tp;
@@ -250,11 +387,9 @@ function enRenderTable(){
   const tb=document.getElementById('enTblBody');
   if(!pg.length){tb.innerHTML='<tr><td colspan="10"><div class="empty-state">No leads found</div></td></tr>';document.getElementById('enPagBar').innerHTML='';return;}
   tb.innerHTML=pg.map(r=>{
-    const bc=enStatusBadge(r['_Status']);
-    const acv=r['_ACV']?(isNaN(r['_ACV'])?r['_ACV']:'₹'+(+r['_ACV']).toLocaleString('en-IN')):'—';
-    const mrr=r['_MRR']?(isNaN(r['_MRR'])?r['_MRR']:'₹'+(+r['_MRR']).toLocaleString('en-IN')):'—';
-    const prob=r['_Probability']?(isNaN(r['_Probability'])?r['_Probability']:r['_Probability']+'%'):'—';
-    return `<tr><td style="font-size:0.83rem;color:var(--muted)">${r['_Date']||'—'}</td><td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis">${r['_Stakeholder']||'—'}</td><td style="font-size:0.83rem">${r['_City']||'—'}</td><td style="font-size:0.83rem">${r['_Phone']||'—'}</td><td style="font-size:0.83rem">${r['_Outreach']||'—'}</td><td style="font-size:0.83rem">${prob}</td><td><span class="badge ${bc}">${r['_Status']||'—'}</span></td><td style="font-weight:600;color:var(--accent)">${acv}</td><td style="font-weight:600;color:var(--won)">${mrr}</td><td style="font-size:0.80rem;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis">${r['_Comments']||'—'}</td></tr>`;
+    const bc=enStatusBadge(r._CurrentStage);
+    const rev=r._Revenue?'₹'+r._Revenue.toLocaleString('en-IN'):'—';
+    return `<tr><td style="font-size:0.83rem;color:var(--muted)">${r._EntryRaw||'—'}</td><td style="font-weight:600;max-width:170px;overflow:hidden;text-overflow:ellipsis">${r._Name||'—'}</td><td style="font-size:0.83rem">${r._City||'—'}</td><td style="font-size:0.83rem">${r._Phone||'—'}</td><td style="font-size:0.83rem">${r._Source}</td><td style="font-size:0.83rem">${r._Product}</td><td style="font-size:0.83rem">${r._Owner}</td><td><span class="badge ${bc}">${r._CurrentStage}</span></td><td style="font-size:0.83rem;text-align:center">${r._CallsMade}</td><td style="font-weight:600;color:var(--accent)">${rev}</td></tr>`;
   }).join('');
   document.getElementById('enPagBar').innerHTML=enPagerHTML(ENp,tp,'enGoPage');
 }

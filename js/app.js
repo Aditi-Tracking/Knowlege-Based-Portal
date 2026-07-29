@@ -694,6 +694,22 @@ function mobMenuGo(panel){
    ──────────────────────────────────────────────────────────── */
 
 // Convert any Google Drive URL to its embeddable form
+// Office docs (doc/docx/xls/xlsx/ppt/pptx) hosted anywhere other than Google
+// Drive/Docs (e.g. our own Supabase Storage public URLs) can't be rendered by
+// the browser directly — an iframe pointed straight at the raw file just
+// downloads it. Microsoft's Office Online viewer can embed any *publicly
+// reachable* file URL, so route those through it instead.
+function isOfficeDocUrl(url){
+  if(!url) return false;
+  var ext = url.split('?')[0].split('#')[0].split('.').pop().toLowerCase();
+  return ['doc','docx','xls','xlsx','ppt','pptx'].indexOf(ext) >= 0;
+}
+function toEmbeddableUrl(url){
+  if(isOfficeDocUrl(url) && !/drive\.google\.com|docs\.google\.com/.test(url)){
+    return 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(url);
+  }
+  return toDriveEmbedUrl(url);
+}
 function toDriveEmbedUrl(url){
   if(!url) return url;
   try{
@@ -827,14 +843,14 @@ function openFileViewer(url, title){
       ov.style.display = 'none';
       document.body.style.overflow = '';
       // Drive embed URL ki jagah original preview URL use karo
-      var mobileUrl = toDriveEmbedUrl(url);
+      var mobileUrl = toEmbeddableUrl(url);
       window.open(mobileUrl, '_blank');
       return;
     }
 
     frame.style.display = 'block';
     loading.style.display = 'flex';
-    var embedUrl = toDriveEmbedUrl(url);
+    var embedUrl = toEmbeddableUrl(url);
     // Add #toolbar=0 hint (works on Chrome native PDF viewer; harmless otherwise)
     if(embedUrl.indexOf('#') === -1) embedUrl += '#toolbar=0';
     frame.src = embedUrl;

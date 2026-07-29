@@ -690,6 +690,7 @@
   .badge-won{background:rgba(0,212,170,0.12);color:var(--won);border:1px solid rgba(0,212,170,0.25);}
   .badge-lost{background:rgba(255,92,124,0.12);color:var(--lost);border:1px solid rgba(255,92,124,0.25);}
   .badge-open{background:rgba(107,114,128,0.1);color:var(--muted);border:1px solid rgba(107,114,128,0.2);}
+  .badge-quote{background:rgba(167,139,250,0.12);color:#a78bfa;border:1px solid rgba(167,139,250,0.25);}
   .badge-exceed{background:rgba(0,212,170,0.12);color:var(--won);border:1px solid rgba(0,212,170,0.25);}
   .badge-below{background:rgba(255,92,124,0.12);color:var(--hot);border:1px solid rgba(255,92,124,0.25);}
   .badge-zero{background:rgba(107,114,128,0.08);color:var(--muted);border:1px solid rgba(107,114,128,0.16);}
@@ -1084,6 +1085,7 @@
     .kpi-grid { grid-template-columns: repeat(3, 1fr) !important; }
     #tKpiGrid  { grid-template-columns: repeat(3, 1fr) !important; }
     .charts-grid, .charts-grid2, .charts-grid4 { grid-template-columns: 1fr 1fr !important; }
+    .en-kpi-grid { grid-template-columns: repeat(2,1fr) !important; }
     .insights-grid { grid-template-columns: 1fr 1fr !important; }
     .home-cards { grid-template-columns: repeat(3, 1fr) !important; }
   }
@@ -1939,6 +1941,75 @@ body.light-mode .lp-grid{background-image:linear-gradient(rgba(0,0,0,0.04) 1px,t
 #panel-leads .page-btn:hover:not(.active){border-color:#3b82f6;color:#3b82f6;}
 #panel-leads .reset-btn:hover{border-color:#ef4444;color:#ef4444;}
 #panel-leads .filter-select:focus,#panel-leads .filter-input:focus{border-color:#3b82f6;}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ENTERPRISE LEAD — a deliberately different "vivid gradient tile + gauge
+   widget" look, so it reads as its own dashboard rather than a SmartFleet
+   reskin. KPI tiles are solid full-bleed gradients (not pastel), each with
+   a darker footer strip; the pipeline row leads with a big trend chart +
+   a circular Win Rate gauge. Fully theme-aware where it borrows shared
+   chart/table classes; the tiles/gauge below are intentionally fixed-color
+   since they're meant to look identical regardless of light/dark mode
+   (same reasoning as the reference template).
+   ══════════════════════════════════════════════════════════════════════ */
+.en-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.en-kpi-tile{
+  border-radius:16px;overflow:hidden;color:#fff;cursor:pointer;position:relative;
+  box-shadow:0 6px 18px -6px rgba(0,0,0,0.28);
+  transition:transform 0.18s,box-shadow 0.18s;
+}
+.en-kpi-tile:hover{transform:translateY(-3px);box-shadow:0 12px 26px -6px rgba(0,0,0,0.34);}
+.en-kpi-tile.en-kpi-active{outline:2.5px solid #fff;outline-offset:-2.5px;}
+.en-kpi-tile-body{padding:16px 18px 14px;position:relative;}
+.en-kpi-tile-icon{position:absolute;top:16px;right:16px;opacity:0.55;display:flex;align-items:flex-end;gap:2.5px;height:22px;}
+.en-kpi-tile-icon i{display:block;width:4px;background:#fff;border-radius:2px;}
+.en-kpi-tile-icon i:nth-child(1){height:40%;}
+.en-kpi-tile-icon i:nth-child(2){height:60%;}
+.en-kpi-tile-icon i:nth-child(3){height:80%;}
+.en-kpi-tile-icon i:nth-child(4){height:100%;}
+.en-kpi-value{font-family:'DM Sans',sans-serif;font-weight:800;font-size:1.7rem;line-height:1.15;margin-bottom:2px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.35);}
+.en-kpi-label{font-size:0.82rem;opacity:0.92;font-weight:500;}
+.en-kpi-tile-foot{
+  padding:8px 18px;font-size:0.73rem;background:rgba(0,0,0,0.13);
+  display:flex;align-items:center;gap:6px;opacity:0.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.en-kpi-click-hint{font-size:0.66rem;font-weight:700;opacity:0.85;margin-left:auto;flex-shrink:0;}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ENTERPRISE LEAD — shared chart/table polish (theme-aware). Amber accent,
+   distinct from SmartFleet's blue.
+   ══════════════════════════════════════════════════════════════════════ */
+#panel-enterprise .chart-card{padding:18px;transition:box-shadow 0.2s,border-color 0.2s;}
+#panel-enterprise .chart-card::after{display:none;}
+#panel-enterprise .chart-card:hover{box-shadow:0 6px 20px rgba(15,23,42,0.07);border-color:var(--border);}
+#panel-enterprise .chart-title{font-family:'DM Sans',sans-serif;font-weight:700;letter-spacing:0.01em;padding-bottom:10px;border-bottom:1px solid var(--border2);margin-bottom:16px;}
+#panel-enterprise .chart-title .dot{width:8px;height:8px;box-shadow:none;}
+#panel-enterprise .section-title{font-family:'DM Sans',sans-serif;font-weight:800;letter-spacing:0.1em;padding-left:10px;border-left:3px solid #f0a500;}
+
+#panel-enterprise thead th{background:var(--surface2);font-weight:700;letter-spacing:0.06em;border-bottom:2px solid #f0a500;}
+#panel-enterprise tbody tr:nth-child(even){background:rgba(100,116,139,0.035);}
+#panel-enterprise tbody tr:hover{background:rgba(240,165,0,0.06);}
+#panel-enterprise tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 #f0a500;}
+#panel-enterprise .table-title{font-family:'DM Sans',sans-serif;font-weight:800;}
+
+#panel-enterprise .page-btn.active{background:#f0a500;border-color:#f0a500;color:#04231d;}
+#panel-enterprise .page-btn:hover:not(.active){border-color:#f0a500;color:#f0a500;}
+#panel-enterprise .reset-btn:hover{border-color:#ef4444;color:#ef4444;}
+#panel-enterprise .filter-select:focus,#panel-enterprise .filter-input:focus{border-color:#f0a500;}
+#panel-enterprise #enRepAllBtn{
+  background:linear-gradient(135deg,#f0a500,#ffcc44);color:#04231d;border:none;
+  padding:8px 18px;border-radius:20px;font-weight:700;font-size:0.83rem;
+  font-family:'DM Sans',sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(240,165,0,0.35);
+  transition:transform 0.15s,box-shadow 0.15s;
+}
+#panel-enterprise #enRepAllBtn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(240,165,0,0.45);}
+#panel-enterprise #enRepAllBtn.active{background:linear-gradient(135deg,#1e293b,#334155);color:#ffcc44;}
+@media (max-width:900px){
+  .en-kpi-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width:480px){
+  .en-kpi-grid{grid-template-columns:repeat(2,1fr);}
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    ENTERPRISE SOLUTIONS — header is the standard db-header (theme-aware,

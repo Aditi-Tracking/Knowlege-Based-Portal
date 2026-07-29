@@ -551,7 +551,9 @@ async function submitUpload() {
         ['jpg','jpeg','png','gif','webp','svg'].includes(_ext2)  ? 'image' :
         ['mp4','webm','mov','avi','mkv'].includes(_ext2)         ? 'video' :
         ['mp3','wav','aac','ogg'].includes(_ext2)                ? 'audio' :
-        ['doc','docx','xls','xlsx','ppt','pptx'].includes(_ext2) ? 'doc'   :
+        // 'doc' is NOT in the files_file_type_check constraint on Supabase —
+        // Office docs (ppt/xls/doc, etc) fall back to the generic 'file'
+        // bucket the constraint does allow, same as anything else unmatched.
         'file'
       );
 
