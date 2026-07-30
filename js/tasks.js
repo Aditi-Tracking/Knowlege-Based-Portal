@@ -1518,6 +1518,16 @@ function tShowAllUploads(){
   _allUploadsCache = [];
   tFetchAndRenderUploads();
 }
+function tCloseAllUploads(){
+  const m = document.getElementById('taskAllUploadsModal');
+  if(m) m.style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Escape') return;
+  const m = document.getElementById('taskAllUploadsModal');
+  if(m && m.style.display === 'flex') tCloseAllUploads();
+});
 
 function tResetUploadsFilter(){
   document.getElementById('uploadsSearchInput').value='';

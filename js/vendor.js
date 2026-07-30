@@ -740,6 +740,52 @@ if(_vfOv) _vfOv.addEventListener('click',function(e){if(e.target===this)closeVen
 if(_vrMo) _vrMo.addEventListener('click',function(e){if(e.target===this)closeVrModal();});
 if(_vrRe) _vrRe.addEventListener('click',function(e){if(e.target===this)closeRecurringModal();});
 
+// ── RECURRING REQUEST — VENDOR PICKER ─────────────────────────────────────────────────
+// Opened from the header "🔁 Recurring" button. Since that button isn't tied to any one
+// row, the user picks a vendor here first; we then find that vendor's most recent request
+// (any status) and hand off to the existing openRecurringModal(id) flow below, which does
+// all the actual copy-and-resubmit logic.
+function openRecurringPicker(){
+  document.getElementById('vrpVendorInput').value = '';
+  document.getElementById('vrpErr').style.display = 'none';
+  document.getElementById('vrRecurPickerModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeRecurringPicker(){
+  document.getElementById('vrRecurPickerModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function _vrpVendorRenderList(q){
+  const dd = document.getElementById('vrpVendorDropdown'); if(!dd) return;
+  const list = q ? _vrVendorFilterList.filter(v => v.toLowerCase().includes(q)) : _vrVendorFilterList;
+  if(!list.length){
+    dd.innerHTML = `<div class="vf-vendor-option" style="color:var(--muted);cursor:default;">No vendors found</div>`;
+    dd.style.display = 'block';
+    return;
+  }
+  dd.innerHTML = list.slice(0,100).map(v => `<div class="vf-vendor-option" onmousedown="_vrpVendorSelect('${v.replace(/'/g,"\\'")}')">${v}</div>`).join('');
+  dd.style.display = 'block';
+}
+function _vrpVendorFilterType(){ _vrpVendorRenderList((document.getElementById('vrpVendorInput').value||'').toLowerCase()); }
+function _vrpVendorFilterOpen(){ _vrpVendorRenderList((document.getElementById('vrpVendorInput').value||'').toLowerCase()); }
+function _vrpVendorFilterBlur(){ setTimeout(() => { const dd = document.getElementById('vrpVendorDropdown'); if(dd) dd.style.display = 'none'; }, 180); }
+function _vrpVendorSelect(name){
+  document.getElementById('vrpVendorInput').value = name;
+  document.getElementById('vrpVendorDropdown').style.display = 'none';
+}
+function vrpProceed(){
+  const name = (document.getElementById('vrpVendorInput').value||'').trim();
+  const errEl = document.getElementById('vrpErr');
+  errEl.style.display = 'none';
+  if(!name){ errEl.textContent = '⚠️ Please select a vendor.'; errEl.style.display = 'block'; return; }
+  const matches = _vrAll.filter(r => r.vendor_name === name).sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  if(!matches.length){ errEl.textContent = '⚠️ No previous request found for this vendor. Please create a new request instead.'; errEl.style.display = 'block'; return; }
+  closeRecurringPicker();
+  openRecurringModal(matches[0].id);
+}
+const _vrpMo = document.getElementById('vrRecurPickerModal');
+if(_vrpMo) _vrpMo.addEventListener('click', function(e){ if(e.target===this) closeRecurringPicker(); });
+
 // ── RECURRING REQUEST ───────────────────────────────────────────────────────────────
 
 function openRecurringModal(id){

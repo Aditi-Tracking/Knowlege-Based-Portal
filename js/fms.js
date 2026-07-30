@@ -1020,7 +1020,7 @@ async function fmsSubmitNewOrder(){
 
 // ── Proof file state ──────────────────────────────────────────────────────
 let _fmsProofFiles = [];      // array of File objects — new order
-let _fmsUpdateProofFile = null;
+let _fmsUpdateProofFiles = [];// array of File objects — update payment (multi-file, mirrors new-order flow)
 
 // Handle multiple proof files — new order form
 function fmsHandleProofFiles(fileList){
@@ -1082,34 +1082,81 @@ function fmsClearProof(){
   document.getElementById('fmsProofStatus').textContent = '';
 }
 
-// Handle proof file — update payment modal
-function fmsHandleUpdateProofFile(file){
-  if(!file) return;
-  _fmsUpdateProofFile = file;
-  const preview = document.getElementById('fmsUpdateProofPreview');
-  const previewImg = document.getElementById('fmsUpdateProofPreviewImg');
-  const fileName = document.getElementById('fmsUpdateProofFileName');
-  if(preview && previewImg){
-    if(file.type.startsWith('image/')){
-      const reader = new FileReader();
-      reader.onload = e => { previewImg.src = e.target.result; previewImg.style.display='block'; preview.style.display='block'; };
-      reader.readAsDataURL(file);
-    } else {
-      previewImg.style.display = 'none';
-      preview.style.display = 'block';
+// Handle multiple proof files — update payment modal (mirrors fmsHandleProofFiles above)
+function fmsHandleUpdateProofFiles(fileList){
+  if(!fileList || !fileList.length) return;
+  const newFiles = Array.from(fileList);
+  newFiles.forEach(file => {
+    if(!_fmsUpdateProofFiles.find(f => f.name === file.name)){
+      _fmsUpdateProofFiles.push(file);
     }
-    if(fileName) fileName.textContent = `📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
-  }
+  });
+  fmsRenderUpdateProofPreviews();
+}
+
+// Legacy single-file handler (kept so any stray callers — e.g. old Ctrl+V paths — still work)
+function fmsHandleUpdateProofFile(file){
+  if(file) fmsHandleUpdateProofFiles([file]);
+}
+
+function fmsRenderUpdateProofPreviews(){
+  const list = document.getElementById('fmsUpdateProofFileList');
+  if(!list) return;
+  list.innerHTML = '';
+  _fmsUpdateProofFiles.forEach((file, idx) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--bg);';
+    if(file.type.startsWith('image/')){
+      const img = document.createElement('img');
+      img.style.cssText = 'width:80px;height:80px;object-fit:cover;display:block;';
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; };
+      reader.readAsDataURL(file);
+      wrap.appendChild(img);
+    } else {
+      const icon = document.createElement('div');
+      icon.style.cssText = 'width:80px;height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:1.6rem;';
+      icon.innerHTML = '📄<span style="font-size:0.6rem;color:var(--muted);text-align:center;padding:0 4px;word-break:break-all;">' + file.name.slice(0,12) + '</span>';
+      wrap.appendChild(icon);
+    }
+    const rmBtn = document.createElement('button');
+    rmBtn.innerHTML = '✕';
+    rmBtn.style.cssText = 'position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.65);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:0.6rem;display:flex;align-items:center;justify-content:center;padding:0;';
+    rmBtn.onclick = () => { _fmsUpdateProofFiles.splice(idx, 1); fmsRenderUpdateProofPreviews(); };
+    wrap.appendChild(rmBtn);
+    const sizeLabel = document.createElement('div');
+    sizeLabel.style.cssText = 'font-size:0.58rem;color:var(--muted);text-align:center;padding:2px 4px;border-top:1px solid var(--border);background:var(--surface2);';
+    sizeLabel.textContent = (file.size/1024).toFixed(0) + ' KB';
+    wrap.appendChild(sizeLabel);
+    list.appendChild(wrap);
+  });
+  const status = document.getElementById('fmsUpdateProofStatus');
+  if(status) status.textContent = _fmsUpdateProofFiles.length > 0 ? `${_fmsUpdateProofFiles.length} file${_fmsUpdateProofFiles.length>1?'s':''} selected` : '';
 }
 
 function fmsClearUpdateProof(){
-  _fmsUpdateProofFile = null;
-  document.getElementById('fmsUpdateProofFile').value = '';
-  document.getElementById('fmsUpdateProofPreview').style.display = 'none';
-  document.getElementById('fmsUpdateProofStatus').textContent = '';
-  _fmsUpdateProofFile = null;
-  const upp = document.getElementById('fmsUpdateProofPreview');
-  if(upp) upp.style.display = 'none';
+  _fmsUpdateProofFiles = [];
+  const input = document.getElementById('fmsUpdateProofFile');
+  if(input) input.value = '';
+  const list = document.getElementById('fmsUpdateProofFileList');
+  if(list) list.innerHTML = '';
+  const status = document.getElementById('fmsUpdateProofStatus');
+  if(status) status.textContent = '';
+}
+
+async function fmsUploadAllUpdateProofs(){
+  if(!_fmsUpdateProofFiles.length) return [];
+  const statusEl = document.getElementById('fmsUpdateProofStatus');
+  if(statusEl) statusEl.textContent = `⏳ Uploading ${_fmsUpdateProofFiles.length} file(s)...`;
+  const urls = [];
+  for(let i = 0; i < _fmsUpdateProofFiles.length; i++){
+    const file = _fmsUpdateProofFiles[i];
+    if(statusEl) statusEl.textContent = `⏳ Uploading file ${i+1}/${_fmsUpdateProofFiles.length}...`;
+    const url = await fmsUploadProof(file);
+    if(url) urls.push(url);
+  }
+  if(statusEl && urls.length > 0) statusEl.textContent = `✅ ${urls.length} file(s) uploaded`;
+  return urls;
 }
 
 // ── Global Ctrl+V paste listener ──────────────────────────────────────────
@@ -1130,7 +1177,7 @@ document.addEventListener('paste', function(e){
         fmsHandleProofFiles([namedFile]);
         fmsToast('📋 Screenshot pasted!');
       } else if(updatePmtOpen){
-        fmsHandleUpdateProofFile(namedFile);
+        fmsHandleUpdateProofFiles([namedFile]);
         fmsToast('📋 Screenshot pasted!');
       }
       e.preventDefault();
@@ -2370,6 +2417,9 @@ function fmsOpenUpdatePayment(orderId){
   document.getElementById('fmsUpdateTentDate').value    = o.tentative_date || '';
   document.getElementById('fmsUpdateProofStatus').textContent = '';
   document.getElementById('fmsUpdateProofFile').value = '';
+  _fmsUpdateProofFiles = [];
+  const _updList = document.getElementById('fmsUpdateProofFileList');
+  if(_updList) _updList.innerHTML = '';
   document.getElementById('fmsUpdatePendingPreview').innerHTML =
     `Pending: <strong style="color:${pendAmt>0?'#ff5c7c':'#00d4aa'};">₹${pendAmt.toLocaleString('en-IN')}</strong>`;
 
@@ -2399,23 +2449,13 @@ async function fmsSubmitUpdatePayment(){
   const amtReceived = parseFloat(document.getElementById('fmsUpdateAmtReceived').value) || 0;
   const tdsAmount   = parseFloat(document.getElementById('fmsUpdateTdsAmount').value) || 0;
   const tentDate    = document.getElementById('fmsUpdateTentDate').value || null;
-  const proofFile   = _fmsUpdateProofFile || document.getElementById('fmsUpdateProofFile').files[0];
 
-  // Upload proof if new file selected
+  // Upload proof(s) if new files were selected — replaces the existing proof set,
+  // same semantics as the single-file version, just supporting multiple files now.
   let proofUrl = _fmsCurrentOrder.payment_proof_url || null;
-  if(proofFile){
-    const ext = proofFile.name.split('.').pop().toLowerCase();
-    const path = `fms-proofs/${Date.now()}_${Math.random().toString(36).slice(2,6)}.${ext}`;
-    document.getElementById('fmsUpdateProofStatus').textContent = '⏳ Uploading...';
-    const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/fms-documents/${path}`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${_currentToken || SUPABASE_ANON}`, 'Content-Type': proofFile.type, 'x-upsert': 'true' },
-      body: proofFile
-    });
-    if(uploadRes.ok){
-      proofUrl = `${SUPABASE_URL}/storage/v1/object/public/fms-documents/${path}`;
-      document.getElementById('fmsUpdateProofStatus').innerHTML = `✅ Uploaded — <a href="${proofUrl}" target="_blank" style="color:#4e9af1;">View</a>`;
-    }
+  if(_fmsUpdateProofFiles.length){
+    const urls = await fmsUploadAllUpdateProofs();
+    if(urls.length) proofUrl = JSON.stringify(urls);
   }
 
   try{
