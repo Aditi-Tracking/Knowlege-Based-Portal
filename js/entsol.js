@@ -30,7 +30,8 @@ function _applyEnterpriseSolutionsNavVisibility(){
 const ESOL_URL='https://script.google.com/macros/s/AKfycby5CHFwhQnIhLKetozrK6Tnf-81gyV9eaMt57fQawzXk5T384VrJCrbydCGaOWtXncF/exec';
 let ESOL=null,ESOL_TAB='clicktask',ESOLch={},ESOLp=1,ESOLsk=null,ESOLsd=1,ESOLtblOpen=true;
 let ESOL_ROWS={clicktask:[],coolbus:[]},ESOLf=[];
-let ESOLcf={location:null,type:null,school:null};
+let ESOLcf={location:null,type:null,school:null,customer:null};
+let ESOLkpiActions=[];
 const ESOLPP=15;
 const ESOL_TC='#475569',ESOL_GC='rgba(15,23,42,0.07)',ESOL_DIM='rgba(15,23,42,0.09)';
 const ESOL_SC=['#00d4aa','#f0a500','#4e9af1','#a78bfa','#ff5c7c','#f97316','#10b981','#ec4899'];
@@ -66,7 +67,8 @@ const ESOL_ICO={
   clock:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
   bars:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>',
   trophy:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4z"/><path d="M17 5h3a3 3 0 01-3 4M7 5H4a3 3 0 003 4"/></svg>',
-  building:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1"/><path d="M9 22v-4h6v4M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/></svg>'
+  building:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1"/><path d="M9 22v-4h6v4M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/></svg>',
+  bus:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V7a2 2 0 012-2h12a2 2 0 012 2v9"/><path d="M4 16a2 2 0 002 2h12a2 2 0 002-2M4 16H2M22 16h-2"/><circle cx="8" cy="18.5" r="1.5"/><circle cx="16" cy="18.5" r="1.5"/><path d="M4 11h16"/></svg>'
 };
 
 async function loadEnterpriseSolutions(){
@@ -81,13 +83,16 @@ async function loadEnterpriseSolutions(){
       ...(ct.customers||[]).map(r=>({...r,_Type:'Customer'})),
       ...(ct.trials||[]).map(r=>({...r,_Type:'Trial'}))
     ];
-    ESOL_ROWS.coolbus=(cb.schools||[]).map(r=>({...r}));
+    ESOL_ROWS.coolbus=[
+      ...(cb.schools||[]).map(r=>({...r,_Type:'Customer'})),
+      ...(cb.trials||[]).map(r=>({...r,_Type:'Trial'}))
+    ];
     document.getElementById('esolLoad').style.display='none';document.getElementById('esolCont').style.display='block';
     document.getElementById('esolErr').style.display='none';
     const syncSrc=ESOL.lastUpdated?new Date(ESOL.lastUpdated):new Date();
     document.getElementById('esolSync').textContent='Sync: '+syncSrc.toLocaleTimeString('en-IN');
     document.getElementById('esolSwSubCt').textContent=(ct.totalCustomers||0)+' customers · '+(ct.totalCustomerLicenses||0).toLocaleString('en-IN')+' licenses';
-    document.getElementById('esolSwSubCb').textContent=(cb.totalSchools||0)+' schools · '+(cb.totalSchoolLicenses||0).toLocaleString('en-IN')+' licenses';
+    document.getElementById('esolSwSubCb').textContent=(cb.totalSchools||0)+' schools · '+(cb.totalSchoolLicenses||0).toLocaleString('en-IN')+' licenses · '+(cb.totalSchoolBuses||0)+' buses';
     esolRenderAll();
   }catch(e){
     document.getElementById('esolLoad').style.display='none';document.getElementById('esolCont').style.display='block';
@@ -104,14 +109,13 @@ async function refreshEnterpriseSolutions(){
 }
 function esolSwitchTab(tab){
   if(tab===ESOL_TAB)return;
-  ESOL_TAB=tab;ESOLsk=null;ESOLsd=1;ESOLp=1;ESOLcf={location:null,type:null,school:null};
+  ESOL_TAB=tab;ESOLsk=null;ESOLsd=1;ESOLp=1;ESOLcf={location:null,type:null,school:null,customer:null};
   document.getElementById('esolBtn-clicktask').classList.toggle('esol-switch-active',tab==='clicktask');
   document.getElementById('esolBtn-coolbus').classList.toggle('esol-switch-active',tab==='coolbus');
   document.getElementById('esolCharts-clicktask').style.display=tab==='clicktask'?'grid':'none';
   document.getElementById('esolCharts-coolbus').style.display=tab==='coolbus'?'grid':'none';
   document.getElementById('esolChartsTitle').textContent=tab==='clicktask'?'ClickTask Analytics':'CoolBus Analytics';
   document.getElementById('esolTblTitle').textContent=tab==='clicktask'?'ClickTask Deployments':'CoolBus Deployments';
-  document.getElementById('esolFType').style.display=tab==='clicktask'?'':'none';
   document.getElementById('esolSearch').value='';
   document.getElementById('esolFType').value='';
   esolRenderAll();esolBadge();
@@ -125,6 +129,11 @@ function esolAvatar(name){
   let h=0;for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}
   return {initial:s[0]?s[0].toUpperCase():'?',color:ESOL_SC[Math.abs(h)%ESOL_SC.length]};
 }
+// KPI cards double as cross-filter controls — each one carries an `act` descriptor
+// ({type:'filter',key,val} to toggle a ESOLcf dimension, {type:'clear'} to reset,
+// {type:'sort',key} to sort the table) consumed by esolKpiClick() below. The active
+// dimension gets a highlighted ring (.esol-kpi-active) so KPIs, charts and the table
+// all reflect the same selection.
 function esolRenderKPIs(){
   let kpis=[];
   if(ESOL_TAB==='clicktask'){
@@ -132,24 +141,46 @@ function esolRenderKPIs(){
     const avg=d.totalCustomers?(d.totalCustomerLicenses/d.totalCustomers).toFixed(1):'—';
     const top=esolTopBy(d.customers||[],'licenseCount');
     kpis=[
-      {l:'Total Customers',v:d.totalCustomers||0,s:'Active license holders',a:'#00d4aa',i:ESOL_ICO.users},
-      {l:'Total Licenses',v:(d.totalCustomerLicenses||0).toLocaleString('en-IN'),s:'Across all customers',a:'#f0a500',i:ESOL_ICO.tag},
-      {l:'Trial Customers',v:d.totalTrialCustomers||0,s:(d.totalTrialLicenses||0)+' trial licenses',a:'#a78bfa',i:ESOL_ICO.clock},
-      {l:'Avg Licenses / Customer',v:avg,s:'Mean deployment size',a:'#4e9af1',i:ESOL_ICO.bars},
-      {l:'Largest Deployment',v:top?top.customer:'—',s:top?top.licenseCount.toLocaleString('en-IN')+' licenses · '+top.location:'—',a:'#ff5c7c',i:ESOL_ICO.trophy}
+      {l:'Total Customers',v:d.totalCustomers||0,s:'Active license holders',a:'#00d4aa',i:ESOL_ICO.users,act:{type:'filter',key:'type',val:'Customer'}},
+      {l:'Total Licenses',v:(d.totalCustomerLicenses||0).toLocaleString('en-IN'),s:'Across all customers',a:'#f0a500',i:ESOL_ICO.tag,act:{type:'clear'}},
+      {l:'Trial Customers',v:d.totalTrialCustomers||0,s:(d.totalTrialLicenses||0)+' trial licenses',a:'#a78bfa',i:ESOL_ICO.clock,act:{type:'filter',key:'type',val:'Trial'}},
+      {l:'Avg Licenses / Customer',v:avg,s:'Mean deployment size',a:'#4e9af1',i:ESOL_ICO.bars,act:{type:'clear'}},
+      {l:'Largest Deployment',v:top?top.customer:'—',s:top?top.licenseCount.toLocaleString('en-IN')+' licenses · '+top.location:'—',a:'#ff5c7c',i:ESOL_ICO.trophy,act:top?{type:'filter',key:'customer',val:top.customer}:null}
     ];
   }else{
     const d=ESOL.coolbus;
     const avg=d.totalSchools?(d.totalSchoolLicenses/d.totalSchools).toFixed(1):'—';
     const top=esolTopBy(d.schools||[],'licenseCount');
     kpis=[
-      {l:'Total Schools',v:d.totalSchools||0,s:'Active deployments',a:'#4e9af1',i:ESOL_ICO.building},
-      {l:'Total Licenses',v:(d.totalSchoolLicenses||0).toLocaleString('en-IN'),s:'Across all schools',a:'#00d4aa',i:ESOL_ICO.tag},
-      {l:'Avg Licenses / School',v:avg,s:'Mean deployment size',a:'#f0a500',i:ESOL_ICO.bars},
-      {l:'Largest Deployment',v:top?top.school:'—',s:top?top.licenseCount.toLocaleString('en-IN')+' licenses':'—',a:'#ff5c7c',i:ESOL_ICO.trophy}
+      {l:'Total Schools',v:d.totalSchools||0,s:'Active deployments',a:'#4e9af1',i:ESOL_ICO.building,act:{type:'filter',key:'type',val:'Customer'}},
+      {l:'Total Licenses',v:(d.totalSchoolLicenses||0).toLocaleString('en-IN'),s:'Across all schools',a:'#00d4aa',i:ESOL_ICO.tag,act:{type:'clear'}},
+      {l:'Trial Schools',v:d.totalTrialSchools||0,s:(d.totalTrialLicenses||0)+' trial licenses',a:'#a78bfa',i:ESOL_ICO.clock,act:{type:'filter',key:'type',val:'Trial'}},
+      {l:'Total Buses',v:(d.totalSchoolBuses||0).toLocaleString('en-IN'),s:(d.totalTrialBuses||0)+' buses in trials',a:'#f97316',i:ESOL_ICO.bus,act:{type:'sort',key:'buses'}},
+      {l:'Avg Licenses / School',v:avg,s:'Mean deployment size',a:'#f0a500',i:ESOL_ICO.bars,act:{type:'clear'}},
+      {l:'Largest Deployment',v:top?top.school:'—',s:top?top.licenseCount.toLocaleString('en-IN')+' licenses · '+(top.buses||0)+' buses':'—',a:'#ff5c7c',i:ESOL_ICO.trophy,act:top?{type:'filter',key:'school',val:top.school}:null}
     ];
   }
-  document.getElementById('esolKpiGrid').innerHTML=kpis.map(k=>`<div class="kpi-card" style="--card-accent:${k.a};--card-color:${k.a};cursor:default"><div class="esol-kpi-icon" style="background:${k.a}1f;color:${k.a}">${k.i}</div><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('');
+  ESOLkpiActions=kpis.map(k=>k.act||null);
+  document.getElementById('esolKpiGrid').innerHTML=kpis.map((k,i)=>{
+    const act=k.act;
+    let active=false;
+    if(act){
+      if(act.type==='filter')active=ESOLcf[act.key]===act.val;
+      else if(act.type==='sort')active=ESOLsk===act.key;
+    }
+    const cls='kpi-card'+(active?' esol-kpi-active':'');
+    const clickAttr=act?` onclick="esolKpiClick(${i})"`:'';
+    return `<div class="${cls}" style="--card-accent:${k.a};--card-color:${k.a};cursor:${act?'pointer':'default'}"${clickAttr}><div class="esol-kpi-icon" style="background:${k.a}1f;color:${k.a}">${k.i}</div><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`;
+  }).join('');
+}
+function esolKpiClick(i){
+  const act=ESOLkpiActions[i];if(!act)return;
+  if(act.type==='filter')esolCF(act.key,act.val);
+  else if(act.type==='clear')esolClearFilter();
+  else if(act.type==='sort'){
+    ESOLsk=ESOLsk===act.key?(ESOLsd*=-1,act.key):(ESOLsd=-1,act.key);
+    esolApply();esolRenderKPIs();
+  }
 }
 function esolBadge(){
   const b=document.getElementById('esolCFBadge');if(!b)return;
@@ -157,14 +188,15 @@ function esolBadge(){
   if(ESOLcf.location)parts.push(ESOLcf.location);
   if(ESOLcf.type)parts.push(ESOLcf.type);
   if(ESOLcf.school)parts.push(ESOLcf.school);
+  if(ESOLcf.customer)parts.push(ESOLcf.customer);
   if(parts.length){b.style.display='flex';b.innerHTML='🎯 Filter: <strong style="color:#7c3aed">'+parts.join(' + ')+'</strong> <span onclick="esolClearFilter()" style="cursor:pointer;color:#e03e5c;margin-left:8px;font-weight:600">✕ Clear</span>';}
   else b.style.display='none';
 }
 function esolCF(key,val){
   ESOLcf[key]=ESOLcf[key]===val?null:val;
-  esolBadge();esolRenderCharts();esolApply();
+  esolBadge();esolRenderCharts();esolApply();esolRenderKPIs();
 }
-function esolClearFilter(){ESOLcf={location:null,type:null,school:null};esolBadge();esolRenderCharts();esolApply();}
+function esolClearFilter(){ESOLcf={location:null,type:null,school:null,customer:null};esolBadge();esolRenderCharts();esolApply();esolRenderKPIs();}
 function esolRenderCharts(){
   Object.values(ESOLch).forEach(c=>c&&c.destroy&&c.destroy());ESOLch={};
   const eTC=ESOL_TC,eGC=ESOL_GC;
@@ -195,6 +227,18 @@ function esolRenderCharts(){
 
     ESOLch.cbShare=new Chart(document.getElementById('esolChCbShare'),{type:'doughnut',data:{labels:sch.map(r=>r.school),datasets:[{data:sch.map(r=>r.licenseCount),backgroundColor:sch.map((r,i)=>ESOLcf.school&&ESOLcf.school!==r.school?ESOL_DIM:ESOL_SC[i%ESOL_SC.length]),borderWidth:2,borderColor:'#fff',hoverOffset:8}]},options:{cutout:'62%',onClick:(_,e)=>{if(e.length)esolCF('school',sch[e[0].index].school);},plugins:{legend:{position:'right',labels:{color:eTC,padding:8,usePointStyle:true,pointStyle:'circle',font:{family:'DM Sans',size:9.5}}},tooltip:ESOL_TOOLTIP,datalabels:{display:false}},responsive:true,maintainAspectRatio:false},plugins:[esolCenterText((d.totalSchoolLicenses||0).toLocaleString('en-IN'),'Total Licenses')]});
     document.getElementById('esolChCbShare').style.cursor='pointer';
+
+    const cbLoc={};(d.schools||[]).forEach(r=>{const l=r.location||'Unspecified';cbLoc[l]=(cbLoc[l]||0)+1;});
+    const cbLk=Object.keys(cbLoc);
+    ESOLch.cbLoc=new Chart(document.getElementById('esolChCbLoc'),{type:'doughnut',data:{labels:cbLk,datasets:[{data:cbLk.map(k=>cbLoc[k]),backgroundColor:cbLk.map((k,i)=>ESOLcf.location&&ESOLcf.location!==k?ESOL_DIM:ESOL_SC[i%ESOL_SC.length]),borderWidth:2,borderColor:'#fff',hoverOffset:8}]},options:{cutout:'68%',onClick:(_,e)=>{if(e.length)esolCF('location',cbLk[e[0].index]);},plugins:{legend:legendOpt,tooltip:ESOL_TOOLTIP,datalabels:{display:false}},responsive:true,maintainAspectRatio:false},plugins:[esolCenterText(d.totalSchools||0,'Schools')]});
+    document.getElementById('esolChCbLoc').style.cursor='pointer';
+
+    const cbMixLabels=['Live Licenses','Trial Licenses'];
+    const cbMixData=[d.totalSchoolLicenses||0,d.totalTrialLicenses||0];
+    const cbMixKeys=['Customer','Trial'];
+    const cbMixTotal=(d.totalSchoolLicenses||0)+(d.totalTrialLicenses||0);
+    ESOLch.cbMix=new Chart(document.getElementById('esolChCbMix'),{type:'doughnut',data:{labels:cbMixLabels,datasets:[{data:cbMixData,backgroundColor:cbMixKeys.map(k=>ESOLcf.type&&ESOLcf.type!==k?ESOL_DIM:(k==='Customer'?'#00d4aa':'#a78bfa')),borderWidth:2,borderColor:'#fff',hoverOffset:8}]},options:{cutout:'65%',onClick:(_,e)=>{if(e.length)esolCF('type',cbMixKeys[e[0].index]);},plugins:{legend:legendOpt,tooltip:ESOL_TOOLTIP,datalabels:{display:false}},responsive:true,maintainAspectRatio:false},plugins:[esolCenterText(cbMixTotal.toLocaleString('en-IN'),'Total Licenses')]});
+    document.getElementById('esolChCbMix').style.cursor='pointer';
   }
 }
 function esolApply(){
@@ -207,11 +251,16 @@ function esolApply(){
       if(ty&&r._Type!==ty)return false;
       if(ESOLcf.location&&(r.location||'Unspecified')!==ESOLcf.location)return false;
       if(ESOLcf.type&&r._Type!==ESOLcf.type)return false;
+      if(ESOLcf.customer&&r.customer!==ESOLcf.customer)return false;
       return true;
     });
   }else{
+    const ty=document.getElementById('esolFType').value;
     ESOLf=rows.filter(r=>{
-      if(q&&!(r.school||'').toLowerCase().includes(q))return false;
+      if(q&&!((r.school||'').toLowerCase().includes(q)||(r.location||'').toLowerCase().includes(q)))return false;
+      if(ty&&r._Type!==ty)return false;
+      if(ESOLcf.location&&(r.location||'Unspecified')!==ESOLcf.location)return false;
+      if(ESOLcf.type&&r._Type!==ESOLcf.type)return false;
       if(ESOLcf.school&&r.school!==ESOLcf.school)return false;
       return true;
     });
@@ -219,7 +268,7 @@ function esolApply(){
   if(ESOLsk)ESOLf.sort((a,b)=>{let av=a[ESOLsk]??'',bv=b[ESOLsk]??'';if(av!==''&&bv!==''&&!isNaN(av)&&!isNaN(bv))return(+av-+bv)*ESOLsd;return String(av).localeCompare(String(bv))*ESOLsd;});
   ESOLp=1;esolRenderTable();
 }
-function esolReset(){document.getElementById('esolSearch').value='';document.getElementById('esolFType').value='';ESOLsk=null;ESOLsd=1;ESOLcf={location:null,type:null,school:null};esolBadge();esolRenderCharts();esolApply();}
+function esolReset(){document.getElementById('esolSearch').value='';document.getElementById('esolFType').value='';ESOLsk=null;ESOLsd=1;ESOLcf={location:null,type:null,school:null,customer:null};esolBadge();esolRenderCharts();esolApply();esolRenderKPIs();}
 function esolSort(k){ESOLsk=ESOLsk===k?(ESOLsd*=-1,k):(ESOLsd=1,k);esolApply();}
 function esolToggleTable(){
   ESOLtblOpen=!ESOLtblOpen;
@@ -230,10 +279,10 @@ function esolToggleTable(){
 }
 function esolRenderTable(){
   const isCt=ESOL_TAB==='clicktask';
-  const totLic=isCt?((ESOL.clicktask.totalCustomerLicenses||0)+(ESOL.clicktask.totalTrialLicenses||0)):(ESOL.coolbus.totalSchoolLicenses||0);
+  const totLic=isCt?((ESOL.clicktask.totalCustomerLicenses||0)+(ESOL.clicktask.totalTrialLicenses||0)):((ESOL.coolbus.totalSchoolLicenses||0)+(ESOL.coolbus.totalTrialLicenses||0));
   const heads=isCt
     ?[{k:'srNo',l:'SR NO',s:true},{k:'customer',l:'CUSTOMER',s:true},{k:'_Type',l:'TYPE',s:true},{k:'location',l:'LOCATION',s:false},{k:'licenseCount',l:'LICENSES',s:true}]
-    :[{k:'srNo',l:'SR NO',s:true},{k:'school',l:'SCHOOL',s:true},{k:'licenseCount',l:'LICENSES',s:true},{k:'_share',l:'SHARE OF TOTAL',s:false}];
+    :[{k:'srNo',l:'SR NO',s:true},{k:'school',l:'SCHOOL',s:true},{k:'_Type',l:'TYPE',s:true},{k:'location',l:'LOCATION',s:false},{k:'licenseCount',l:'LICENSES',s:true},{k:'buses',l:'BUSES',s:true},{k:'_share',l:'SHARE OF TOTAL',s:false}];
   const thh=document.getElementById('esolTblHead');if(thh)thh.innerHTML=heads.map(h=>h.s?`<th onclick="esolSort('${h.k}')">${h.l} ↕</th>`:`<th>${h.l}</th>`).join('');
   const tot=ESOLf.length,tp=Math.max(1,Math.ceil(tot/ESOLPP));
   if(ESOLp>tp)ESOLp=tp;
@@ -249,7 +298,8 @@ function esolRenderTable(){
     }
     const sharePct=totLic?((r.licenseCount||0)/totLic)*100:0;
     const av=esolAvatar(r.school);
-    return `<tr><td style="font-size:0.83rem;color:#94a0b8;font-variant-numeric:tabular-nums">${r.srNo??'—'}</td><td style="font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="esol-avatar" style="background:${av.color}">${av.initial}</span>${r.school||'—'}</td><td style="font-weight:700;color:#6d28d9;font-variant-numeric:tabular-nums">${(r.licenseCount||0).toLocaleString('en-IN')}</td><td><div class="esol-share-wrap"><div class="esol-share-track"><div class="esol-share-fill" style="width:${sharePct.toFixed(1)}%"></div></div><span style="font-size:0.79rem;color:#94a0b8;font-variant-numeric:tabular-nums">${sharePct.toFixed(1)}%</span></div></td></tr>`;
+    const cbc=r._Type==='Trial'?'badge-warm':'badge-won';
+    return `<tr><td style="font-size:0.83rem;color:#94a0b8;font-variant-numeric:tabular-nums">${r.srNo??'—'}</td><td style="font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="esol-avatar" style="background:${av.color}">${av.initial}</span>${r.school||'—'}</td><td><span class="badge ${cbc}">${r._Type}</span></td><td style="font-size:0.83rem">${r.location||'—'}</td><td style="font-weight:700;color:#6d28d9;font-variant-numeric:tabular-nums">${(r.licenseCount||0).toLocaleString('en-IN')}</td><td style="font-weight:700;color:#f97316;font-variant-numeric:tabular-nums">${(r.buses||0).toLocaleString('en-IN')}</td><td><div class="esol-share-wrap"><div class="esol-share-track"><div class="esol-share-fill" style="width:${sharePct.toFixed(1)}%"></div></div><span style="font-size:0.79rem;color:#94a0b8;font-variant-numeric:tabular-nums">${sharePct.toFixed(1)}%</span></div></td></tr>`;
   }).join('');
   document.getElementById('esolPagBar').innerHTML=enPagerHTML(ESOLp,tp,'esolGoPage');
 }

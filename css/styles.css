@@ -2081,6 +2081,7 @@ body.light-mode .lp-grid{background-image:linear-gradient(rgba(0,0,0,0.04) 1px,t
 }
 #panel-entsol .kpi-card::after{display:none;}
 #panel-entsol .kpi-card:hover{transform:translateY(-3px);box-shadow:0 12px 26px -4px rgba(76,60,180,0.18);border-color:#e9ecf5;}
+#panel-entsol .kpi-card.esol-kpi-active{border-color:var(--card-accent,#7c3aed);box-shadow:0 0 0 2px var(--card-accent,#7c3aed) inset;}
 .esol-kpi-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
 #panel-entsol .kpi-label{color:#8891a5;font-weight:700;}
 #panel-entsol .kpi-value{color:#111827!important;font-family:'DM Sans',sans-serif;}
