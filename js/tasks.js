@@ -281,7 +281,22 @@ const MANDATORY_ATTACHMENT_TASKS = [
   'un read whatsapp',
   // ↓ Sakshi Tupe / Vinit Singh / Chirag Gupta checklist ke extra * wale tasks
   'escalations',
-  'ims status check'
+  'ims status check',
+  // ↓ Ronak Shah / Sowbhagya / Tawab Panja checklist — sab tasks mandatory-attachment
+  // hain sirf "Lead Generation" chodkar (uska Attachment column mein "No" hai)
+  'daily commitment morning',
+  'unique connected calls 60',
+  'demo given',
+  'unique quotations sent',
+  'follow up calls',
+  'weekly achievement 25',
+  'morning standup meeting',
+  'evening achievement meeting',
+  'achievement report evening',
+  'monitoring team performance',
+  'auditing sales pitch',
+  'monthly achievement self team',
+  'monthly achievement self'
 ];
 
 function tNormTaskName(s){
