@@ -53,6 +53,8 @@ const _permLabels = {
   can_post_referral_role:     '➕ Referral — Post a Role (HR)',
   field_service_create:       '🛠️ Field Service — Create Entries',
   field_service_view_all:     '🛠️ Field Service — View All Entries',
+  hr_employee_view:           '🧑‍💼 HR Employee Master — View',
+  hr_employee_edit:           '🧑‍💼 HR Employee Master — Edit',
 };
 
 async function loadAdminPermsPanel() {

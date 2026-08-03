@@ -281,6 +281,11 @@
         <span class="nav-sub-dot"></span>
         <span class="nav-label">Field Service</span>
       </div>
+      <!-- HR EMPLOYEE MASTER — permission-gated, see hr_employee_view / hr_employee_edit -->
+      <div class="nav-item nav-sub-item" onclick="switchDB('hremployee')" id="nav-hremployee" style="display:none;" title="HR Employee Master">
+        <span class="nav-sub-dot"></span>
+        <span class="nav-label">HR Employee Master</span>
+      </div>
     </div>
 
     <!-- ANNOUNCEMENTS -->
@@ -682,6 +687,9 @@
       </button>
       <button class="mm-nav-item mm-sub" id="mm-fieldservice" onclick="mobMenuGo('fieldservice')" style="display:none;">
         <span class="mm-subdot"></span><span class="mm-label">Field Service</span>
+      </button>
+      <button class="mm-nav-item mm-sub" id="mm-hremployee" onclick="mobMenuGo('hremployee')" style="display:none;">
+        <span class="mm-subdot"></span><span class="mm-label">HR Employee Master</span>
       </button>
     </div>
 
@@ -4810,6 +4818,239 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 </div>
 
 <!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL HR EMPLOYEE MASTER] — Overview / Employee List / Exited Staff
+     ║  Access: hr_employee_view (owner/mis by default, others via Access Control)
+     ║  JS: js/hrEmployee.js — loadHREmployeeMaster()
+     ╚═══════════════════════════════════════════════════════════════════════ -->
+<div class="dashboard-panel" id="panel-hremployee">
+  <style>
+    #panel-hremployee .he-filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.75rem 1rem;margin-bottom:14px;display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;}
+    #panel-hremployee .he-filter-bar input[type="text"],#panel-hremployee .he-filter-bar select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.7rem;color:var(--text);font-size:0.88rem;font-family:inherit;}
+    #panel-hremployee .he-filter-bar input[type="text"]{flex:1;min-width:180px;}
+    #panel-hremployee .he-widget-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;}
+    #panel-hremployee .he-widget-title{font-family:'Playfair Display',serif;font-size:0.92rem;font-weight:700;color:var(--text);margin-bottom:12px;}
+    #panel-hremployee .he-overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+    @media(max-width:900px){#panel-hremployee .he-overview-grid{grid-template-columns:1fr;}}
+    #panel-hremployee table{width:100%;border-collapse:collapse;font-size:0.85rem;}
+    #panel-hremployee thead tr{background:var(--surface2);border-bottom:1px solid var(--border);}
+    #panel-hremployee th{padding:9px 12px;text-align:left;font-size:0.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
+    #panel-hremployee tbody tr{border-bottom:1px solid var(--border);}
+    /* Sticky header + duplicate top horizontal scrollbar for the two data tables
+       (Employee List, Exited Staff) — lets users scroll sideways without hunting
+       for the scrollbar at the very bottom, and keeps column headers visible
+       while scrolling down through rows.
+       "clip" (not "hidden") on db-content: it caps horizontal overflow so the
+       table can't escape past .he-table-scroll to a wider ancestor, without
+       triggering the CSS rule that turns a hidden x-axis into an implicit
+       auto y-axis — that implicit scroll container is what broke the sticky
+       header. clip never creates a scroll container, so nothing here does. */
+    #panel-hremployee .db-content{overflow-x:clip;}
+    #panel-hremployee .he-hscroll-top{overflow-x:auto;overflow-y:hidden;height:14px;}
+    #panel-hremployee .he-hscroll-top::-webkit-scrollbar{height:10px;}
+    #panel-hremployee .he-hscroll-top .he-hscroll-spacer{height:1px;}
+    #panel-hremployee .he-table-scroll{overflow:auto;max-height:520px;}
+    #panel-hremployee .he-table-scroll thead th{position:sticky;top:0;z-index:2;background:var(--surface2);box-shadow:0 1px 0 var(--border);}
+    #panel-hremployee tbody tr:hover td{background:var(--surface2);}
+  </style>
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>aditi</span> HR Employee Master</div>
+      <div class="db-breadcrumb">Home › Dashboards › HR Employee Master</div>
+    </div>
+    <div class="header-right" style="display:flex;gap:8px;align-items:center;">
+      <button class="refresh-btn" onclick="_heFetchAll().then(()=>heSwitchTab(_heActiveTab))">
+        <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></span> Refresh
+      </button>
+      <button id="heAddEmployeeBtn" onclick="heOpenEmployeeModal(null)" style="display:none;padding:7px 16px;border-radius:10px;border:none;background:#00d4aa;color:#04231d;font-size:0.87rem;font-weight:700;cursor:pointer;font-family:inherit;">
+        + Add Employee
+      </button>
+    </div>
+  </div>
+
+  <div class="db-content">
+    <div id="heTabBar" style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;"></div>
+
+    <!-- TAB 1: OVERVIEW -->
+    <div id="heTab-overview" style="display:none;">
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);" id="heOverviewCards"></div>
+      <div class="he-overview-grid">
+        <div class="he-widget-card">
+          <div class="he-widget-title">📍 Location-wise Breakdown</div>
+          <div id="heLocationBreakdown"></div>
+        </div>
+        <div class="he-widget-card">
+          <div class="he-widget-title">⏳ Upcoming Probation Completions (next 30 days)</div>
+          <div id="heUpcomingProbation"></div>
+        </div>
+        <div class="he-widget-card" style="grid-column:1/-1;">
+          <div class="he-widget-title">🚪 Recently Exited — Checklist Status</div>
+          <div id="heRecentlyExited"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: EMPLOYEE LIST -->
+    <div id="heTab-list" style="display:none;">
+      <div class="he-filter-bar">
+        <input type="text" id="heSearch" placeholder="🔍 Search name, email, contact..." oninput="heRenderEmployeeList()">
+        <select id="heFilterLocation" onchange="heRenderEmployeeList()"><option value="">All Locations</option></select>
+        <select id="heFilterDepartment" onchange="heRenderEmployeeList()"><option value="">All Departments</option></select>
+        <select id="heFilterCategory" onchange="heRenderEmployeeList()"><option value="">All Categories</option></select>
+        <select id="heFilterDesignation" onchange="heRenderEmployeeList()"><option value="">All Designations</option></select>
+        <button onclick="heResetListFilters()" style="padding:0.38rem 0.85rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:0.85rem;cursor:pointer;">Reset</button>
+        <span id="heListCount" style="font-size:0.82rem;color:var(--muted);margin-left:4px;">—</span>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+        <div class="he-hscroll-top" id="heListHScrollTop"><div class="he-hscroll-spacer"></div></div>
+        <div class="he-table-scroll" id="heListTableScroll">
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Category</th><th>Department</th><th>Designation</th><th>Location</th><th>DOJ</th><th>Contact (Official)</th>
+            </tr></thead>
+            <tbody id="heListTbody"><tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--muted);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: EXITED STAFF -->
+    <div id="heTab-exited" style="display:none;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+        <span id="heExitedCount" style="font-size:0.82rem;color:var(--muted);">—</span>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+        <div class="he-hscroll-top" id="heExitedHScrollTop"><div class="he-hscroll-spacer"></div></div>
+        <div class="he-table-scroll" id="heExitedTableScroll">
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Category</th><th>Department</th><th>Designation</th><th>Location</th><th>DOJ</th><th>Contact (Official)</th><th>Checklist</th>
+            </tr></thead>
+            <tbody id="heExitedTbody"><tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HR EMPLOYEE MASTER — Add/Edit Employee modal -->
+<div class="fms-overlay-backdrop" id="heEmployeeModalOverlay">
+  <div class="fms-overlay-box wide">
+    <button onclick="heCloseEmployeeModal()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    <div id="heEmpModalTitle" style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#00d4aa;margin-bottom:1.2rem;">Add Employee</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div class="fms-form-group" style="grid-column:1/-1;">
+        <label class="fms-form-label">Full Name *</label>
+        <input type="text" id="heEmpName" class="fms-form-input" placeholder="Employee full name">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Category *</label>
+        <select id="heEmpCategory" class="fms-form-input" onchange="heEmpCategoryChanged()">
+          <option>Permanent Staff</option>
+          <option>Probationary Staff</option>
+          <option>Exited Staff</option>
+        </select>
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Location</label>
+        <input type="text" id="heEmpLocation" class="fms-form-input" placeholder="e.g. Goa, Mumbai...">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Department</label>
+        <input type="text" id="heEmpDepartment" class="fms-form-input">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Designation</label>
+        <input type="text" id="heEmpDesignation" class="fms-form-input">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Date of Joining</label>
+        <input type="date" id="heEmpDoj" class="fms-form-input">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Joining Month</label>
+        <input type="text" id="heEmpJoiningMonth" class="fms-form-input" placeholder="e.g. Jan-2026">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Probation Completion Date</label>
+        <input type="date" id="heEmpProbationDate" class="fms-form-input">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Date of Birth</label>
+        <input type="date" id="heEmpDob" class="fms-form-input">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Gender</label>
+        <input type="text" id="heEmpGender" class="fms-form-input">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Contact (Official)</label>
+        <input type="text" id="heEmpContactOfficial" class="fms-form-input">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Contact (Personal)</label>
+        <input type="text" id="heEmpContactPersonal" class="fms-form-input">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Email (Official)</label>
+        <input type="email" id="heEmpEmailOfficial" class="fms-form-input">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">Email (Personal)</label>
+        <input type="email" id="heEmpEmailPersonal" class="fms-form-input">
+      </div>
+
+      <!-- EXIT FIELDS — revealed only when Category = Exited Staff -->
+      <div class="fms-form-group" id="heEmpExitSection" style="display:none;grid-column:1/-1;background:rgba(255,92,124,0.06);border:1px solid rgba(255,92,124,0.25);border-radius:10px;padding:12px 14px;">
+        <div style="font-weight:700;font-size:0.82rem;color:var(--hot,#ff5c7c);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Exit Details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="fms-form-group" style="margin-bottom:0;">
+            <label class="fms-form-label">Exit Date *</label>
+            <input type="date" id="heEmpExitDate" class="fms-form-input">
+          </div>
+          <div class="fms-form-group" style="margin-bottom:0;">
+            <label class="fms-form-label">Exit Form *</label>
+            <input type="file" id="heEmpExitFile" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="heEmpExitFileChosen(this)">
+            <label for="heEmpExitFile" style="display:inline-block;padding:0.5rem 0.9rem;border-radius:8px;border:1px dashed var(--border);background:var(--bg);color:var(--text);font-size:0.83rem;cursor:pointer;">📎 Choose file</label>
+            <span id="heEmpExitFileName" style="font-size:0.78rem;color:var(--muted);margin-left:8px;">No file chosen</span>
+            <div><a id="heEmpExistingExitFormLink" href="#" target="_blank" style="display:none;font-size:0.78rem;color:var(--cold);">View existing exit form ↗</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;margin-top:1.2rem;">
+      <button id="heEmpSaveBtn" onclick="heSaveEmployee()" style="flex:1;padding:0.7rem;border-radius:10px;border:none;background:#00d4aa;color:#04231d;font-weight:700;font-size:0.95rem;cursor:pointer;font-family:inherit;">
+        💾 Save Employee
+      </button>
+      <button onclick="heCloseEmployeeModal()" style="padding:0.7rem 1.4rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:600;font-size:0.9rem;cursor:pointer;font-family:inherit;">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- HR EMPLOYEE MASTER — Exit Checklist modal -->
+<div class="fms-overlay-backdrop" id="heChecklistModalOverlay">
+  <div class="fms-overlay-box">
+    <button onclick="heCloseExitChecklistModal()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    <div id="heChecklistModalTitle" style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#ff5c7c;margin-bottom:0.6rem;">Exit Checklist</div>
+
+    <div style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span id="heChecklistProgressLabel" style="font-size:0.82rem;color:var(--muted);font-weight:600;">0/5 completed</span>
+      </div>
+      <div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;">
+        <div id="heChecklistProgressFill" style="height:100%;width:0%;background:var(--won,#00d4aa);border-radius:4px;transition:width .3s;"></div>
+      </div>
+    </div>
+
+    <div id="heChecklistItemsList"></div>
+  </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════════════════════════════════════
      ║  [PANEL IMS] — IMS Dashboard (Inventory Management System)
      ║  Access: MIS, Managing Director, PC only (restricted)
      ║  Stock levels, inventory tracking, product movement
@@ -6136,4 +6377,5 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/renewals.js"></script>
 <script src="js/vendor.js"></script>
 <script src="js/fieldservice.js"></script>
+<script src="js/hrEmployee.js"></script>
 </body></html>

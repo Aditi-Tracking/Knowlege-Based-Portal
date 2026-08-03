@@ -65,6 +65,8 @@ function _buildFallbackPermissions(rawRole) {
     can_view_my_referrals:      'true',
     can_view_referral_pipeline: String(isOwner || isMIS),
     can_post_referral_role:     String(isOwner || isMIS),
+    hr_employee_view:           String(isOwner || isMIS),
+    hr_employee_edit:           String(isOwner || isMIS),
   };
 }
 
@@ -347,6 +349,8 @@ function showPortal(){
   _applyRenewalsNavVisibility();
   // Field Service nav — only for users granted field_service_create or field_service_view_all
   if (typeof _applyFieldServiceNavVisibility === 'function') _applyFieldServiceNavVisibility();
+  // HR Employee Master nav — only for users granted hr_employee_view
+  if (typeof _applyHREmployeeNavVisibility === 'function') _applyHREmployeeNavVisibility();
   // Fetch employee profile photo from Supabase → home page pe dikhao
   fetchUserProfilePhoto();
   // Performer of the Month cards load karo

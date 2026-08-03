@@ -360,7 +360,7 @@ function switchDB(id, fromPopState){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
   // Auto-open dashboard accordion when a sub-dashboard is selected
-  var dashPanels=['leads','enterprise','entsol','fms','tasks','ims','crm','mapping','renewals','fieldservice'];
+  var dashPanels=['leads','enterprise','entsol','fms','tasks','ims','crm','mapping','renewals','fieldservice','hremployee'];
   if(dashPanels.indexOf(id)>=0){
     var grp=document.getElementById('dashboardSubGroup');
     var arrow=document.getElementById('dashAccordionArrow');
@@ -408,6 +408,7 @@ function switchDB(id, fromPopState){
   if(id==='compliance') { loadSimpleCNPanel('compliance', 'Compliance'); }
   if(id==='referral')   { initReferralProgramme(); }
   if(id==='fieldservice') { loadFieldService(); }
+  if(id==='hremployee')  { loadHREmployeeMaster(); }
   if(id==='announcements') { /* handled by override below */ }
   if(id==='activitylog') { loadActivityLog(); }
   if(id==='itadmin')    { loadSimpleCNPanel('itadmin',    'IT Admin');   }
