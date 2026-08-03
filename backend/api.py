@@ -120,6 +120,56 @@ def get_permissions(email, role):
 
     return permissions
 
+# ── Helper: check if a caller has Field Service "view all" access ──
+# Unlike is_admin() (role-based), this is a manually-granted permission —
+# no role_defaults row implies it, so it's only ever true via a
+# user_permissions override (see get_permissions above).
+def _has_field_service_view_all(caller_email):
+    if not caller_email or sb is None:
+        return False
+    try:
+        emp_res = sb.table("Employee_details") \
+            .select("Employee_Dept") \
+            .ilike("Email_Id", caller_email) \
+            .limit(1) \
+            .execute()
+        raw_role = str(emp_res.data[0].get("Employee_Dept", "")).strip().lower() if emp_res.data else ""
+        role = ROLE_MAP.get(raw_role, "employee")
+        perms = get_permissions(caller_email, role)
+        return perms.get("field_service_view_all") == "true"
+    except Exception:
+        return False
+
+# ── Helper: {auth uuid: email} for every Supabase Auth user ─────
+# Only the service-role key (held here, never in the browser) can call
+# the Admin Auth API — this is what lets us resolve field_service_entries.
+# engineer_id (a raw auth.users uuid, required so the insert RLS policy
+# can check engineer_id = auth.uid()) back to an email, mirroring the
+# email -> Employee_details.Employee_name lookup every other module
+# already does client-side (fmsEmpName, _vrNameMap etc).
+def _list_all_auth_users():
+    id_to_email = {}
+    page = 1
+    per_page = 200
+    while True:
+        try:
+            res = sb.auth.admin.list_users(page=page, per_page=per_page)
+        except Exception as e:
+            print(f"Error listing auth users: {e}")
+            break
+        users = res if isinstance(res, list) else getattr(res, "users", None) or []
+        if not users:
+            break
+        for u in users:
+            uid   = getattr(u, "id", None)
+            email = getattr(u, "email", None)
+            if uid and email:
+                id_to_email[uid] = email.strip().lower()
+        if len(users) < per_page:
+            break
+        page += 1
+    return id_to_email
+
 
 # ══════════════════════════════════════════════════════════════════
 # ENDPOINT 1: GET /api/permissions?email=someone@adititracking.com
@@ -498,6 +548,60 @@ def clear_mapping():
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# ══════════════════════════════════════════════════════════════════
+# ENDPOINT 8: GET /api/field-service/engineer-names
+#
+# Called by the Field Service "All Entries" tab (field_service_view_all
+# users only) to resolve each distinct engineer_id that has actually
+# submitted an entry into a display name. Read-only — no schema/RLS
+# changes; see _list_all_auth_users / _has_field_service_view_all above.
+#
+# Response:
+# { "engineers": [ { "engineer_id": "...", "email": "...", "name": "..." }, ... ] }
+# ══════════════════════════════════════════════════════════════════
+@app.route("/api/field-service/engineer-names", methods=["GET"])
+def field_service_engineer_names():
+    err = db_check()
+    if err:
+        return err
+
+    caller_email = request.headers.get("X-User-Email", "").strip().lower()
+    if not _has_field_service_view_all(caller_email):
+        return jsonify({"error": "Forbidden"}), 403
+
+    # Distinct engineers who have actually submitted at least one entry
+    try:
+        entries_res = sb.table("field_service_entries").select("engineer_id").execute()
+        engineer_ids = sorted({r["engineer_id"] for r in (entries_res.data or []) if r.get("engineer_id")})
+    except Exception as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+
+    id_to_email = _list_all_auth_users()
+
+    # email -> display name, via the same Employee_details table every
+    # other module already uses for this
+    email_to_name = {}
+    try:
+        names_res = sb.table("Employee_details").select("Employee_name, Email_Id").execute()
+        for row in (names_res.data or []):
+            em = str(row.get("Email_Id", "")).strip().lower()
+            if em:
+                email_to_name[em] = row.get("Employee_name") or em
+    except Exception:
+        pass
+
+    engineers = []
+    for uid in engineer_ids:
+        email = id_to_email.get(uid)
+        engineers.append({
+            "engineer_id": uid,
+            "email":       email,
+            "name":        (email_to_name.get(email) if email else None) or email or uid
+        })
+
+    return jsonify({"engineers": engineers})
 
 
 # ── Health check endpoint ───────────────────────────────────────

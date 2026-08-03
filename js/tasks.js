@@ -183,7 +183,10 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
         PERMISSIONS.can_view_enterprise==='true'||
         PERMISSIONS.can_view_fms==='true'||
         PERMISSIONS.can_view_ims==='true'||
-        PERMISSIONS.can_view_mapping==='true';
+        PERMISSIONS.can_view_mapping==='true'||
+        PERMISSIONS.can_view_entsol==='true'||
+        PERMISSIONS.field_service_create==='true'||
+        PERMISSIONS.field_service_view_all==='true';
       const navDash=document.getElementById('nav-dashboards-trigger');
       if(navDash)navDash.style.display=hasDashAccess?'':'none';
       const dashGroup=document.getElementById('dashboardSubGroup');
@@ -2215,7 +2218,7 @@ async function tSilentRefresh(){
     const _notOwner = !isOwner;
     if(CURRENT_USER && _notOwner){
       const hasTasks = tAllData.length > 0;
-      // Dashboards visible if user has ANY of: CRM/Leads/Enterprise/FMS/IMS/Mapping permission, OR has tasks assigned (Task Checklist)
+      // Dashboards visible if user has ANY of: CRM/Leads/Enterprise/FMS/IMS/Mapping/Enterprise Solutions/Field Service permission, OR has tasks assigned (Task Checklist)
       const hasDashAccess=
         PERMISSIONS.can_view_crm==='true'||
         PERMISSIONS.can_view_leads==='true'||
@@ -2223,6 +2226,9 @@ async function tSilentRefresh(){
         PERMISSIONS.can_view_fms==='true'||
         PERMISSIONS.can_view_ims==='true'||
         PERMISSIONS.can_view_mapping==='true'||
+        PERMISSIONS.can_view_entsol==='true'||
+        PERMISSIONS.field_service_create==='true'||
+        PERMISSIONS.field_service_view_all==='true'||
         hasTasks;
       const navDash=document.getElementById('nav-dashboards-trigger');
       if(navDash)navDash.style.display=hasDashAccess?'':'none';

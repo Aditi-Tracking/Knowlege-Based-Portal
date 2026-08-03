@@ -345,6 +345,8 @@ function showPortal(){
   }
   // Renewals & Collections nav (Upload Outstanding Data / Resolve Unmatched) — owner or MIS only
   _applyRenewalsNavVisibility();
+  // Field Service nav — only for users granted field_service_create or field_service_view_all
+  if (typeof _applyFieldServiceNavVisibility === 'function') _applyFieldServiceNavVisibility();
   // Fetch employee profile photo from Supabase → home page pe dikhao
   fetchUserProfilePhoto();
   // Performer of the Month cards load karo

@@ -51,6 +51,8 @@ const _permLabels = {
   can_view_my_referrals:      '🧾 Referral — My Referrals',
   can_view_referral_pipeline: '📊 Referral — Pipeline (HR)',
   can_post_referral_role:     '➕ Referral — Post a Role (HR)',
+  field_service_create:       '🛠️ Field Service — Create Entries',
+  field_service_view_all:     '🛠️ Field Service — View All Entries',
 };
 
 async function loadAdminPermsPanel() {
