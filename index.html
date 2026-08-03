@@ -259,7 +259,10 @@
         <span class="nav-sub-dot"></span>
         <span class="nav-label">FMS O2D</span><span class="nav-badge live">Live</span>
       </div>
-      <div class="nav-item nav-sub-item" onclick="switchDB('tasks')" id="nav-tasks" title="Task Checklist">
+      <!-- Hidden by default — Task Checklist has no formal deny permission, so js/tasks.js's
+           loadTasks() reveals this only once it confirms the employee actually has tasks
+           (or admin scope). See _tRevealTasksNav() — any fetch failure fails closed. -->
+      <div class="nav-item nav-sub-item" onclick="switchDB('tasks')" id="nav-tasks" style="display:none;" title="Task Checklist">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">Task Checklist</span><span class="nav-badge live">Live</span>
       </div>
@@ -669,7 +672,7 @@
         <span class="mm-subdot"></span><span class="mm-label">FMS O2D</span>
         <span class="mm-badge mm-badge-live">Live</span>
       </button>
-      <button class="mm-nav-item mm-sub" id="mm-tasks" onclick="mobMenuGo('tasks')">
+      <button class="mm-nav-item mm-sub" id="mm-tasks" onclick="mobMenuGo('tasks')" style="display:none;">
         <span class="mm-subdot"></span><span class="mm-label">Task Checklist</span>
         <span class="mm-badge mm-badge-live">Live</span>
       </button>

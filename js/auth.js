@@ -23,15 +23,41 @@ let CURRENT_USER = null;
 let PERMISSIONS  = {};   // populated from Python backend after login
 const _PAPI = 'https://knowlege-based-portal-production.up.railway.app';
 
+// Bumped by every login attempt (auto-restore on page load OR manual doLogin).
+// A device can have a still-valid session from a previous user sitting in
+// localStorage — if someone types different credentials into the (still
+// visible/interactive) login form while that session's auto-restore is
+// still in flight, both flows would otherwise race to write CURRENT_USER/
+// PERMISSIONS and call showPortal(). Each flow checks its own sequence
+// number before publishing its result, so only the most-recently-started
+// flow is ever allowed to win — a slower, stale flow just abandons itself.
+let _authFlowSeq = 0;
+
 window.addEventListener('load', async function(){
+  const _loginBtn = document.getElementById('loginBtn');
+  const _origBtnHtml = _loginBtn ? _loginBtn.innerHTML : null;
   try {
     const { data: { session } } = await _sbAuth.auth.getSession();
     if (session) {
+      // A previous session is still valid on this device — make that
+      // obvious and briefly block the button so a second person typing
+      // their own credentials right now doesn't feel like nothing happened.
+      if (_loginBtn) {
+        _loginBtn.disabled = true;
+        _loginBtn.innerHTML = '<span class="lp-btn-text"><span>Checking existing session…</span></span>';
+      }
       _currentToken = session.access_token; // ✅ page reload pe bhi token set karo
       await _loadUserProfile(session.user);
       return;
     }
-  } catch(e) { console.warn('Session check error:', e); }
+  } catch(e) {
+    console.warn('Session check error:', e);
+  } finally {
+    if (_loginBtn && _origBtnHtml !== null) {
+      _loginBtn.disabled = false;
+      _loginBtn.innerHTML = _origBtnHtml;
+    }
+  }
 });
 
 function togglePass(){
@@ -41,37 +67,94 @@ function togglePass(){
   else{p.type='password';e.textContent='👁️';}
 }
 
-// Fallback — builds PERMISSIONS from rawRole if Python backend unreachable
+// Fallback — builds PERMISSIONS from rawRole if the Python backend is
+// unreachable. Mirrors role_defaults (checked live against Supabase on
+// 2026-08-03) per role — only keys a role is actually granted need listing;
+// anything absent reads as undefined everywhere it's checked (`PERMISSIONS.x
+// === 'true'`), which is equivalent to 'false'.
+//
+// IMPORTANT LIMITATION: this can only reconstruct role-level defaults.
+// Some permissions (e.g. field_service_create/view_all) are 'false' for
+// EVERY role in role_defaults — they're granted per individual user via a
+// separate overrides table, so no role-based fallback can ever recover
+// them. That's why _fetchPermissionsWithRetry() below retries the real
+// fetch a few times before ever falling back to this.
+const _ROLE_DEFAULT_PERMISSIONS = {
+  owner: {
+    can_download_video:'true', can_edit_mapping:'true', can_post_referral_role:'true',
+    can_view_activitylog:'true', can_view_announcements:'true', can_view_crm:'true',
+    can_view_crm_changes:'true', can_view_enterprise:'true', can_view_fms:'true',
+    can_view_ims:'true', can_view_leads:'true', can_view_mapping:'true',
+    can_view_my_referrals:'true', can_view_open_roles:'true', can_view_referral_pipeline:'true',
+    checklist_scope:'all', hr_employee_edit:'true', hr_employee_view:'true',
+    mapping_region_headoffice:'true', mapping_region_goa:'true', mapping_region_bangalore:'true',
+    mapping_region_gujarat:'true', vendor_view_all:'true',
+  },
+  mis: {
+    can_delete_tasks:'true', can_download_video:'true', can_edit_mapping:'true',
+    can_post_announcements:'true', can_post_referral_role:'true', can_upload_files:'true',
+    can_upload_quiz:'true', can_view_activitylog:'true', can_view_announcements:'true',
+    can_view_crm:'true', can_view_crm_changes:'true', can_view_enterprise:'true',
+    can_view_entsol:'true', can_view_fms:'true', can_view_ims:'true', can_view_leads:'true',
+    can_view_mapping:'true', can_view_my_referrals:'true', can_view_open_roles:'true',
+    can_view_referral_pipeline:'true', checklist_scope:'all',
+    crm_server_bangalore:'true', crm_server_goa:'true', crm_server_gujarat:'true',
+    crm_server_premium:'true', crm_server_pro:'true', hr_employee_edit:'true', hr_employee_view:'true',
+    mapping_region_headoffice:'true', mapping_region_goa:'true', mapping_region_bangalore:'true',
+    mapping_region_gujarat:'true', vendor_view_all:'true',
+  },
+  pc: {
+    can_view_announcements:'true', can_view_fms:'true', can_view_ims:'true',
+    can_view_leads:'true', can_view_my_referrals:'true', can_view_open_roles:'true',
+    checklist_scope:'all',
+  },
+  'executive assistant': {
+    can_view_announcements:'true', can_view_enterprise:'true', can_view_fms:'true',
+    can_view_ims:'true', can_view_leads:'true', can_view_my_referrals:'true',
+    can_view_open_roles:'true', checklist_scope:'all', vendor_view_all:'true',
+  },
+  admin: {
+    can_download_video:'true', can_post_referral_role:'true', can_view_activitylog:'true',
+    can_view_announcements:'true', can_view_crm:'true', can_view_entsol:'true',
+    can_view_fms:'true', can_view_ims:'true', can_view_leads:'true',
+    can_view_my_referrals:'true', can_view_open_roles:'true', can_view_referral_pipeline:'true',
+    checklist_scope:'all',
+  },
+  employee: {
+    can_view_announcements:'true', can_view_my_referrals:'true', can_view_open_roles:'true',
+    checklist_scope:'own',
+  },
+};
+
 function _buildFallbackPermissions(rawRole) {
-  const r       = (rawRole || 'employee').toLowerCase();
-  const isOwner = r === 'owner' || r === 'managing director';
-  const isMIS   = r === 'mis';
-  const isPC    = r === 'pc' || r === 'executive assistant' || r === 'ea';
-  const hasAll  = isOwner || isMIS || isPC;
-  return {
-    can_view_leads:         String(hasAll),
-    can_view_enterprise:    String(hasAll),
-    can_view_fms:           String(hasAll),
-    can_view_ims:           String(isMIS || isPC || isOwner),
-    can_view_crm:           String(isOwner || isPC),
-    can_view_activitylog:   String(isOwner || isMIS),
-    can_view_announcements: 'true',
-    can_post_announcements: String(isMIS),
-    can_upload_files:       String(isMIS),
-    can_upload_quiz:        String(isMIS),
-    can_download_video:     String(isOwner || isMIS),
-    checklist_scope:        hasAll ? 'all' : 'own',
-    can_view_open_roles:        'true',
-    can_view_my_referrals:      'true',
-    can_view_referral_pipeline: String(isOwner || isMIS),
-    can_post_referral_role:     String(isOwner || isMIS),
-    hr_employee_view:           String(isOwner || isMIS),
-    hr_employee_edit:           String(isOwner || isMIS),
-  };
+  const r = String(rawRole || 'employee').toLowerCase().trim();
+  const defaults = _ROLE_DEFAULT_PERMISSIONS[r] || _ROLE_DEFAULT_PERMISSIONS.employee;
+  return { ...defaults };
+}
+
+// Retries the permissions call a couple of times before the caller falls
+// back to role defaults — see the limitation noted above _buildFallbackPermissions.
+async function _fetchPermissionsWithRetry(email, attempts = 3) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(`${_PAPI}/api/permissions?email=${encodeURIComponent(email)}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok || i === attempts - 1) return res;
+    } catch(e) {
+      clearTimeout(timeoutId);
+      lastErr = e;
+      if (i === attempts - 1) throw lastErr;
+    }
+    await new Promise(r => setTimeout(r, 500 * (i + 1))); // 500ms, then 1000ms
+  }
 }
 
 // ── Load user profile — Auth + Data both from Supabase Employee_details ──
 async function _loadUserProfile(authUser) {
+  const _mySeq = ++_authFlowSeq; // see _authFlowSeq comment above
   try {
     let empData = null;
 
@@ -89,12 +172,14 @@ async function _loadUserProfile(authUser) {
       console.warn('Supabase Employee_details fetch failed:', e);
     }
 
+    if (_mySeq !== _authFlowSeq) return; // a newer login/restore started — abandon this one
+
     const _rawR = String(
       (empData && empData['Employee_Dept']) || 'employee'
     ).trim().toLowerCase();
     const _fullAccessRoles = ['managing director','mis','pc','executive assistant','ea'];
 
-    CURRENT_USER = {
+    const _newUser = {
       email:          authUser.email,
       role:           _fullAccessRoles.includes(_rawR) ? 'owner' : 'employee',
       rawRole:        _rawR === 'managing director' ? 'owner'
@@ -108,22 +193,28 @@ async function _loadUserProfile(authUser) {
                         : ''
     };
 
-    // ── Fetch permissions from Python backend ──────────────
-    const _PAPI = 'https://knowlege-based-portal-production.up.railway.app';
+    // ── Fetch permissions from Python backend (retried a few times — see
+    // _fetchPermissionsWithRetry / _buildFallbackPermissions comments) ──
+    let _newPermissions;
     try {
-      const _pr = await fetch(`${_PAPI}/api/permissions?email=${encodeURIComponent(authUser.email)}`);
-      if (_pr.ok) {
+      const _pr = await _fetchPermissionsWithRetry(authUser.email);
+      if (_pr && _pr.ok) {
         const _pd = await _pr.json();
-        PERMISSIONS = _pd.permissions || {};
-        if (_pd.rawRole) CURRENT_USER.rawRole = _pd.rawRole;
-        if (_pd.role)    CURRENT_USER.role    = _pd.role === 'owner' ? 'owner' : 'employee';
+        _newPermissions = _pd.permissions || {};
+        if (_pd.rawRole) _newUser.rawRole = _pd.rawRole;
+        if (_pd.role)    _newUser.role    = _pd.role === 'owner' ? 'owner' : 'employee';
       } else {
-        PERMISSIONS = _buildFallbackPermissions(CURRENT_USER.rawRole);
+        _newPermissions = _buildFallbackPermissions(_newUser.rawRole);
       }
     } catch(_pe) {
-      console.warn('Permissions fetch failed, using fallback:', _pe);
-      PERMISSIONS = _buildFallbackPermissions(CURRENT_USER.rawRole);
+      console.warn('Permissions fetch failed after retries, using fallback:', _pe);
+      _newPermissions = _buildFallbackPermissions(_newUser.rawRole);
     }
+
+    if (_mySeq !== _authFlowSeq) return; // re-check — the permissions fetch above is the slow part
+
+    CURRENT_USER = _newUser;
+    PERMISSIONS  = _newPermissions;
 
     // Show/hide Purchase Request button based on vendor_access permission
     if(typeof _vrCheckBtnAccess==='function') _vrCheckBtnAccess();
@@ -142,6 +233,7 @@ async function _loadUserProfile(authUser) {
 
   } catch(e) {
     console.error('Profile load error:', e);
+    if (_mySeq !== _authFlowSeq) return; // a newer flow already took over — don't clobber it
     // Fallback — basic info se portal dikhao
     CURRENT_USER = {
       email:    authUser.email,

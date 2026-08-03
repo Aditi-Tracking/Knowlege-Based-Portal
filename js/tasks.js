@@ -18,6 +18,35 @@ function tParseDate(v){
 const T_PER_PAGE=20;
 let tCharts={};
 
+// ── Task Checklist nav visibility ──────────────────────────────────────
+// checklist_scope only has two values ('own'/'all') — there's no permission
+// that means "no access", so nav-tasks/mm-tasks default to hidden in the
+// HTML and this is the ONLY place that reveals them. Any early return or
+// fetch failure below simply never calls this with show=true, so a flaky
+// connection fails closed instead of leaving the item visible by default.
+function _tRevealTasksNav(show){
+  const navTasks=document.getElementById('nav-tasks');
+  const mmTasks =document.getElementById('mm-tasks');
+  if(navTasks) navTasks.style.display = show ? 'flex' : 'none';
+  if(mmTasks)  mmTasks.style.display  = show ? 'flex' : 'none';
+  // Dashboards accordion trigger/group — hide entirely if this user has
+  // neither tasks nor any other dashboard-type permission.
+  const hasDashAccess = show ||
+    PERMISSIONS.can_view_crm==='true'||
+    PERMISSIONS.can_view_leads==='true'||
+    PERMISSIONS.can_view_enterprise==='true'||
+    PERMISSIONS.can_view_fms==='true'||
+    PERMISSIONS.can_view_ims==='true'||
+    PERMISSIONS.can_view_mapping==='true'||
+    PERMISSIONS.can_view_entsol==='true'||
+    PERMISSIONS.field_service_create==='true'||
+    PERMISSIONS.field_service_view_all==='true';
+  const navDash=document.getElementById('nav-dashboards-trigger');
+  if(navDash)navDash.style.display=hasDashAccess?'':'none';
+  const dashGroup=document.getElementById('dashboardSubGroup');
+  if(dashGroup)dashGroup.style.display=hasDashAccess?'':'none';
+}
+
 // ── Supabase paginated fetch — 1000 row limit bypass karo ──
 async function tFetchAllPages(baseUrl){
   const BATCH = 1000;
@@ -52,6 +81,9 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
   try{
     const isOwner = PERMISSIONS.checklist_scope === 'all';
     const myEmail = CURRENT_USER ? String(CURRENT_USER.email||'').trim().toLowerCase() : '';
+    // Admin-scope users always get the nav item — no need to wait on the
+    // fetch below (and if that fetch fails, they shouldn't lose access).
+    if(isOwner) _tRevealTasksNav(true);
 
     // ── Date: dono ke liye today default, admin date change kar sakta hai ──
     const todayStr = new Date().toISOString().slice(0,10);
@@ -88,6 +120,7 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
         }
         document.getElementById('tasksLoad').style.display='none';
         document.getElementById('tasksCont').style.display='block';
+        _tRevealTasksNav(false);
         return;
       }
     }
@@ -174,26 +207,10 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
           <div style="font-size:0.82rem;color:#f0a500">👆 employee_checklists mein is emp_id ka koi record nahi mila.</div>
         </div>`;
       }
-      const navTasks=document.getElementById('nav-tasks');
-      if(navTasks)navTasks.style.display='none';
-      // Dashboards Tasks se independent — PERMISSIONS se control hoga
-      const hasDashAccess=
-        PERMISSIONS.can_view_crm==='true'||
-        PERMISSIONS.can_view_leads==='true'||
-        PERMISSIONS.can_view_enterprise==='true'||
-        PERMISSIONS.can_view_fms==='true'||
-        PERMISSIONS.can_view_ims==='true'||
-        PERMISSIONS.can_view_mapping==='true'||
-        PERMISSIONS.can_view_entsol==='true'||
-        PERMISSIONS.field_service_create==='true'||
-        PERMISSIONS.field_service_view_all==='true';
-      const navDash=document.getElementById('nav-dashboards-trigger');
-      if(navDash)navDash.style.display=hasDashAccess?'':'none';
-      const dashGroup=document.getElementById('dashboardSubGroup');
-      if(dashGroup)dashGroup.style.display=hasDashAccess?'':'none';
-      document.querySelectorAll('#panel-home .home-card').forEach(card=>{
-        if(card.textContent.includes('Task Checklist'))card.style.display='none';
-      });
+      _tRevealTasksNav(false);
+    } else if(!isOwner){
+      // Non-owner scope with genuine assigned tasks — reveal the nav item.
+      _tRevealTasksNav(true);
     }
 
     tAllData.forEach(r=>{ r['_tDate']=tParseDate(r['Planned']); });
