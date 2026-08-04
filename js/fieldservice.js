@@ -255,9 +255,16 @@ function _fsRenderPhotoSection(){
   wrap.innerHTML = `
     <div style="margin-bottom:16px;">
       <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--muted);margin-bottom:8px;">${cfg.photoLabel}</label>
-      <input type="file" id="fsPhotoInput" accept="image/*" multiple
-        onchange="_fsAddPhotos(this.files); this.value='';"
-        style="display:block;width:100%;padding:12px;border-radius:10px;border:1.5px dashed var(--border);background:var(--surface2);color:var(--text2);font-size:0.85rem;font-family:inherit;box-sizing:border-box;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <label for="fsPhotoInputCamera" style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 12px;border-radius:10px;border:1.5px dashed var(--border);background:var(--surface2);color:var(--text2);font-size:0.85rem;font-weight:700;font-family:inherit;cursor:pointer;text-align:center;box-sizing:border-box;">📷 Take Photo</label>
+        <input type="file" id="fsPhotoInputCamera" accept="image/*" capture="environment" multiple
+          onchange="_fsAddPhotos(this.files); this.value='';"
+          style="display:none;">
+        <label for="fsPhotoInputGallery" style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 12px;border-radius:10px;border:1.5px dashed var(--border);background:var(--surface2);color:var(--text2);font-size:0.85rem;font-weight:700;font-family:inherit;cursor:pointer;text-align:center;box-sizing:border-box;">🖼️ Choose from Gallery</label>
+        <input type="file" id="fsPhotoInputGallery" accept="image/*" multiple
+          onchange="_fsAddPhotos(this.files); this.value='';"
+          style="display:none;">
+      </div>
       <div id="fsPhotoPreview" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;"></div>
     </div>`;
 }
@@ -306,7 +313,8 @@ function _fsLockFormAfterSave(){
   const locEl    = document.getElementById('fsLocation');   if (locEl)    locEl.disabled = true;
   document.querySelectorAll('#fsJobTypeGrid button').forEach(b => b.disabled = true);
   document.querySelectorAll('#fsDynamicFields input,#fsDynamicFields textarea').forEach(el => el.disabled = true);
-  const fileInput = document.getElementById('fsPhotoInput'); if (fileInput) fileInput.disabled = true;
+  const cameraInput  = document.getElementById('fsPhotoInputCamera');  if (cameraInput)  cameraInput.disabled  = true;
+  const galleryInput = document.getElementById('fsPhotoInputGallery'); if (galleryInput) galleryInput.disabled = true;
 }
 
 async function fsSubmitEntry(){
