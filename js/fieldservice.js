@@ -72,6 +72,13 @@ const JOB_TYPE_CONFIG = {
       { key: 'new_vehicle_number', label: 'New Vehicle Number (optional)', type: 'text', required: false },
     ],
     photoLabel: 'New Sim + New Vehicle Picture Upload'
+  },
+  other: {
+    label: 'Other',
+    fields: [
+      { key: 'notes', label: 'Notes', type: 'textarea' },
+    ],
+    photoLabel: 'Upload Photo'
   }
 };
 
@@ -248,7 +255,7 @@ function _fsRenderPhotoSection(){
   wrap.innerHTML = `
     <div style="margin-bottom:16px;">
       <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--muted);margin-bottom:8px;">${cfg.photoLabel}</label>
-      <input type="file" id="fsPhotoInput" accept="image/*" capture="environment" multiple
+      <input type="file" id="fsPhotoInput" accept="image/*" multiple
         onchange="_fsAddPhotos(this.files); this.value='';"
         style="display:block;width:100%;padding:12px;border-radius:10px;border:1.5px dashed var(--border);background:var(--surface2);color:var(--text2);font-size:0.85rem;font-family:inherit;box-sizing:border-box;">
       <div id="fsPhotoPreview" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;"></div>
