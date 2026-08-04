@@ -702,11 +702,31 @@ async function _fsDeleteStorageFiles(paths){
   }
 }
 
+// TEMP DEBUG — decodes the JWT payload's `sub` (no verification, just a
+// diagnostic read) so we can compare it against the cached engineer id and
+// confirm _currentToken is a live user session, not the anon fallback, at
+// the exact moment the storage delete fires. Remove once root-caused.
+function _fsDecodeJwtSub(token){
+  try {
+    const payloadB64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(payloadB64)).sub || null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // Per-entry: fetch + delete its storage files, independently of the others,
 // so one entry's failure doesn't block or hide the rest. Row deletion for
 // every entry that made it past its own photo cleanup happens as one
 // batched "in" filter call afterward.
 async function _fsDeleteEntries(ids){
+  // TEMP DEBUG — see _fsDecodeJwtSub comment above.
+  console.error('[fieldservice] pre-delete auth check', {
+    isAnonToken:      _currentToken === SUPABASE_ANON,
+    tokenSub:         _fsDecodeJwtSub(_currentToken),
+    cachedEngineerId: _fsCurrentUserId,
+    canViewAll:       _fsCanViewAll()
+  });
   const results = [];
   for (const id of ids) {
     try {
