@@ -692,7 +692,12 @@ async function _fsDeleteStorageFiles(paths){
   for (const path of paths) {
     if (!path) continue;
     const url = `${SUPABASE_URL}/storage/v1/object/${FS_BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`;
-    const res = await fetch(url, { method: 'DELETE', headers: SB_HDRS() });
+    const reqHeaders = SB_HDRS();
+    // TEMP DEBUG — the literal header object about to be sent, so we can
+    // compare it against the working upload call's headers at runtime
+    // rather than just at the source level. Remove once root-caused.
+    console.error('[fieldservice] storage delete request headers', { url, headers: reqHeaders });
+    const res = await fetch(url, { method: 'DELETE', headers: reqHeaders });
     if (!res.ok && res.status !== 404) {
       const body = await res.text().catch(() => '(could not read response body)');
       // TEMP DEBUG — remove once the storage-delete failure is root-caused.
