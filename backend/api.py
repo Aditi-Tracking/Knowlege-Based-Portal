@@ -579,6 +579,12 @@ def field_service_engineer_names():
         return jsonify({"error": f"Database error: {str(e)}"}), 500
 
     id_to_email = _list_all_auth_users()
+    # TEMP DEBUG — remove once engineer-name resolution is confirmed working.
+    print(f"[field-service] engineer_ids from entries ({len(engineer_ids)}): {engineer_ids}")
+    print(f"[field-service] auth users resolved via admin API: {len(id_to_email)}")
+    for _uid in engineer_ids:
+        if _uid not in id_to_email:
+            print(f"[field-service] WARNING: engineer_id {_uid} has no matching auth.users entry in id_to_email")
 
     # email -> display name, via the same Employee_details table every
     # other module already uses for this
@@ -589,16 +595,24 @@ def field_service_engineer_names():
             em = str(row.get("Email_Id", "")).strip().lower()
             if em:
                 email_to_name[em] = row.get("Employee_name") or em
-    except Exception:
-        pass
+    except Exception as e:
+        # Was a bare `except Exception: pass` — silently swallowed with no
+        # trace of why the Employee_details lookup failed. Now logged.
+        print(f"[field-service] Employee_details lookup failed: {e}")
+
+    print(f"[field-service] Employee_details names resolved: {len(email_to_name)}")
 
     engineers = []
     for uid in engineer_ids:
         email = id_to_email.get(uid)
+        name  = (email_to_name.get(email) if email else None) or email or uid
+        # TEMP DEBUG — remove once engineer-name resolution is confirmed working.
+        if name == uid:
+            print(f"[field-service] WARNING: falling back to raw uid for {uid} (resolved_email={email!r})")
         engineers.append({
             "engineer_id": uid,
             "email":       email,
-            "name":        (email_to_name.get(email) if email else None) or email or uid
+            "name":        name
         })
 
     return jsonify({"engineers": engineers})
