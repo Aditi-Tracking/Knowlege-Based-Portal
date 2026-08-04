@@ -160,8 +160,27 @@ async function _fsSwitchTabView(tab){
     // before rendering entries, so the very first render already shows
     // resolved engineer names instead of raw uuids.
     await _fsLoadFilterOptions();
+    await _fsEnsureCurrentUserId();
     _fsLoadEntries();
   }
+}
+
+// Own-entry delete permission needs the real auth uid (engineer_id is a uuid,
+// CURRENT_USER carries no id field) — fetched once and cached, same source
+// fsSubmitEntry already uses for the create path.
+async function _fsEnsureCurrentUserId(){
+  if (_fsCurrentUserId) return _fsCurrentUserId;
+  try {
+    const { data } = await _sbAuth.auth.getSession();
+    _fsCurrentUserId = (data && data.session && data.session.user) ? data.session.user.id : null;
+  } catch (e) {
+    _fsCurrentUserId = null;
+  }
+  return _fsCurrentUserId;
+}
+
+function _fsCanDeleteEntry(e){
+  return _fsCanViewAll() || (!!_fsCurrentUserId && e.engineer_id === _fsCurrentUserId);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -450,6 +469,8 @@ function _fsResetForm(){
 let _fsEntries = [];
 let _fsEngineerOptions = null; // cached [{engineer_id, email, name}], view_all only
 let _fsClientOptions   = null; // cached [string], view_all only
+let _fsCurrentUserId   = null; // cached auth uid, used for own-entry delete-permission checks
+let _fsSelectedIds     = new Set(); // ids checked for bulk delete, cleared on every list reload
 
 function _fsRenderListSkeleton(){
   const wrap = document.getElementById('fsListTab');
@@ -472,10 +493,27 @@ function _fsRenderListSkeleton(){
       <input id="fsFilterTo" type="date" onchange="_fsLoadEntries()" style="padding:9px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.83rem;font-family:inherit;">
       <button onclick="_fsClearFilters()" style="padding:9px 14px;border-radius:9px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:0.83rem;font-weight:600;cursor:pointer;font-family:inherit;">Clear</button>
     </div>` : ''}
+    <div id="fsListStatus" style="display:none;padding:11px 14px;border-radius:10px;font-size:0.85rem;font-weight:600;margin-bottom:14px;"></div>
+    <div id="fsBulkBar" style="display:none;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.83rem;color:var(--text2);cursor:pointer;user-select:none;">
+        <input type="checkbox" id="fsSelectAllCb" onchange="_fsToggleSelectAll(this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent2);">
+        Select All
+      </label>
+      <button type="button" id="fsDeleteSelectedBtn" onclick="_fsConfirmDeleteSelected()" style="display:none;padding:9px 16px;border-radius:9px;border:none;background:#ff5c7c;color:#fff;font-weight:700;font-size:0.83rem;cursor:pointer;font-family:inherit;white-space:nowrap;"></button>
+    </div>
     <div id="fsEntriesLoading" style="text-align:center;padding:40px;color:var(--muted);">⏳ Loading entries…</div>
     <div id="fsEntriesEmpty" style="display:none;text-align:center;padding:40px;color:var(--muted);">No entries found.</div>
     <div id="fsEntriesList" style="display:none;"></div>
   `;
+}
+
+function _fsListMsg(text, color){
+  const el = document.getElementById('fsListStatus');
+  if (!el) return;
+  el.style.display    = 'block';
+  el.style.background = color + '1f';
+  el.style.color      = color;
+  el.textContent      = text;
 }
 
 // Populates the Engineer + Client dropdowns once, from data that already
@@ -540,6 +578,10 @@ async function _fsLoadEntries(){
   const listEl    = document.getElementById('fsEntriesList');
   if (!loadingEl) return;
   loadingEl.style.display = 'block'; emptyEl.style.display = 'none'; listEl.style.display = 'none';
+  // A reload always invalidates the current selection — the filtered set or
+  // row set underneath it may have changed (filter change, or post-delete refresh).
+  _fsSelectedIds.clear();
+  _fsSyncBulkBar([]);
   try {
     let url = `${SUPABASE_URL}/rest/v1/field_service_entries?select=*,field_service_photos(*)&order=created_at.desc`;
     if (_fsCanViewAll()) {
@@ -572,23 +614,161 @@ function _fsRenderEntriesList(){
   const el = document.getElementById('fsEntriesList');
   if (!el) return;
   const showEngineer = _fsCanViewAll();
+  _fsSyncBulkBar(_fsEntries.filter(_fsCanDeleteEntry));
   el.innerHTML = _fsEntries.map(e => {
     const cfg          = JOB_TYPE_CONFIG[e.job_type];
     const label         = cfg ? cfg.label : e.job_type;
     const dateStr       = e.created_at ? new Date(e.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
     const photoCount   = (e.field_service_photos || []).length;
     const engineerName = showEngineer ? _fsEngineerName(e.engineer_id) : null;
+    const canDelete    = _fsCanDeleteEntry(e);
+    const checked      = _fsSelectedIds.has(String(e.id));
+    // Row-level checkbox + trash both stopPropagation on click so they never
+    // trigger the row's own onclick (_fsOpenDetail) via bubbling.
+    const checkboxHtml = canDelete
+      ? `<input type="checkbox" onclick="event.stopPropagation();" onchange="_fsToggleSelectOne('${e.id}', this.checked)" ${checked ? 'checked' : ''} style="width:18px;height:18px;flex-shrink:0;cursor:pointer;accent-color:var(--accent2);">`
+      : `<span style="width:18px;flex-shrink:0;"></span>`;
+    const trashHtml = canDelete
+      ? `<button type="button" onclick="event.stopPropagation();_fsConfirmDeleteOne('${e.id}')" title="Delete entry" style="background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:4px;flex-shrink:0;line-height:1;">🗑️</button>`
+      : '';
     return `
       <div onclick="_fsOpenDetail('${e.id}')" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;transition:border-color 0.15s;"
         onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
+        ${checkboxHtml}
         <div style="flex:1;min-width:180px;">
           <div style="font-weight:700;color:var(--text);font-size:0.92rem;">${_fsEsc(e.client_name)}</div>
           <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">📍 ${_fsEsc(e.location)} · 🗓️ ${dateStr}${engineerName ? ' · 👷 ' + _fsEsc(engineerName) : ''}</div>
         </div>
         <span style="font-size:0.72rem;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(0,212,170,0.12);color:var(--accent2);border:1px solid rgba(0,212,170,0.3);white-space:nowrap;">${_fsEsc(label)}</span>
         ${photoCount ? `<span style="font-size:0.75rem;color:var(--muted);">📷 ${photoCount}</span>` : ''}
+        ${trashHtml}
       </div>`;
   }).join('');
+}
+
+// ── Selection + bulk-bar state ───────────────────────────────────────────
+function _fsSyncBulkBar(deletableEntries){
+  const bar        = document.getElementById('fsBulkBar');
+  const selectAllCb = document.getElementById('fsSelectAllCb');
+  const delBtn     = document.getElementById('fsDeleteSelectedBtn');
+  if (!bar) return;
+  if (!deletableEntries.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  // Drop any selected id that fell out of the current deletable set (filter
+  // change, permission change, or a row that no longer exists after reload).
+  const deletableIds = new Set(deletableEntries.map(e => String(e.id)));
+  Array.from(_fsSelectedIds).forEach(id => { if (!deletableIds.has(id)) _fsSelectedIds.delete(id); });
+  if (selectAllCb) selectAllCb.checked = deletableEntries.every(e => _fsSelectedIds.has(String(e.id)));
+  const n = _fsSelectedIds.size;
+  if (delBtn) {
+    delBtn.disabled       = false; // always reset — a prior delete run may have left this disabled
+    delBtn.style.display = n > 0 ? 'inline-block' : 'none';
+    delBtn.textContent    = `🗑️ Delete ${n} ${n === 1 ? 'entry' : 'entries'}`;
+  }
+}
+
+function _fsToggleSelectOne(id, checked){
+  id = String(id);
+  if (checked) _fsSelectedIds.add(id); else _fsSelectedIds.delete(id);
+  _fsSyncBulkBar(_fsEntries.filter(_fsCanDeleteEntry));
+}
+
+function _fsToggleSelectAll(checked){
+  const deletable = _fsEntries.filter(_fsCanDeleteEntry);
+  if (checked) deletable.forEach(e => _fsSelectedIds.add(String(e.id)));
+  else _fsSelectedIds.clear();
+  _fsRenderEntriesList();
+}
+
+// ── Delete (storage files first — field_service_photos rows cascade-delete
+// with the entry via FK, but the actual bucket objects do not) ───────────
+async function _fsFetchPhotoPaths(entryId){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/field_service_photos?entry_id=eq.${entryId}&select=storage_path`, { headers: SB_HDRS() });
+  if (!res.ok) throw new Error('Could not read photo records (HTTP ' + res.status + ')');
+  return await res.json();
+}
+
+async function _fsDeleteStorageFiles(paths){
+  for (const path of paths) {
+    if (!path) continue;
+    const url = `${SUPABASE_URL}/storage/v1/object/${FS_BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`;
+    const res = await fetch(url, { method: 'DELETE', headers: SB_HDRS() });
+    if (!res.ok && res.status !== 404) {
+      const body = await res.text().catch(() => '(could not read response body)');
+      // TEMP DEBUG — remove once the storage-delete failure is root-caused.
+      console.error('[fieldservice] storage delete failed', { path, url, status: res.status, statusText: res.statusText, body });
+      throw new Error(`Could not delete a photo file (HTTP ${res.status}): ${body || '(empty response body)'}`);
+    }
+  }
+}
+
+// Per-entry: fetch + delete its storage files, independently of the others,
+// so one entry's failure doesn't block or hide the rest. Row deletion for
+// every entry that made it past its own photo cleanup happens as one
+// batched "in" filter call afterward.
+async function _fsDeleteEntries(ids){
+  const results = [];
+  for (const id of ids) {
+    try {
+      const photos = await _fsFetchPhotoPaths(id);
+      await _fsDeleteStorageFiles(photos.map(p => p.storage_path));
+      results.push({ id, ok: true });
+    } catch (e) {
+      results.push({ id, ok: false, error: e.message });
+    }
+  }
+  const okIds = results.filter(r => r.ok).map(r => r.id);
+  if (okIds.length) {
+    const inList = okIds.map(encodeURIComponent).join(',');
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/field_service_entries?id=in.(${inList})`, {
+      method: 'DELETE', headers: SB_HDRS()
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      const msg = t || ('Could not delete entry (HTTP ' + res.status + ')');
+      results.forEach(r => { if (r.ok) { r.ok = false; r.error = msg; } });
+    }
+  }
+  return results;
+}
+
+function _fsConfirmDeleteOne(id){
+  _fsRunDeleteFlow([String(id)]);
+}
+
+function _fsConfirmDeleteSelected(){
+  const ids = Array.from(_fsSelectedIds);
+  if (!ids.length) return;
+  _fsRunDeleteFlow(ids);
+}
+
+async function _fsRunDeleteFlow(ids){
+  const n = ids.length;
+  const confirmed = confirm(
+    `Delete ${n} ${n === 1 ? 'entry' : 'entries'}?\n\n` +
+    `This will permanently delete the selected field service ${n === 1 ? 'entry' : 'entries'}, including all uploaded photos. This cannot be undone.`
+  );
+  if (!confirmed) return;
+
+  const delBtn = document.getElementById('fsDeleteSelectedBtn');
+  if (delBtn) { delBtn.disabled = true; delBtn.textContent = '⏳ Deleting…'; }
+  _fsListMsg(`⏳ Deleting ${n} ${n === 1 ? 'entry' : 'entries'}…`, '#f0a500');
+
+  const results = await _fsDeleteEntries(ids);
+  const failed    = results.filter(r => !r.ok);
+  const succeeded = results.filter(r => r.ok);
+
+  if (!failed.length) {
+    _fsListMsg(`✅ Deleted ${succeeded.length} ${succeeded.length === 1 ? 'entry' : 'entries'}.`, '#00d4aa');
+  } else if (succeeded.length) {
+    _fsListMsg(`⚠️ Deleted ${succeeded.length} of ${results.length} — ${failed.length} failed: ${failed.map(f => f.error).join('; ')}. Still-listed entries below were not deleted.`, '#f0a500');
+  } else {
+    _fsListMsg(`❌ Delete failed: ${failed.map(f => f.error).join('; ')}`, '#ff5c7c');
+  }
+
+  // Refreshes from the server (so failed entries correctly reappear) and
+  // clears the selection — _fsLoadEntries handles both.
+  await _fsLoadEntries();
 }
 
 // ── Detail modal (injected once, reused) ────────────────────────────────
