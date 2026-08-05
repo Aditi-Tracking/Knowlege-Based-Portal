@@ -5641,6 +5641,9 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
+      <button id="recurringBillsBtn" onclick="openRecurringBills()" title="Fixed monthly bills — submit, approve and pay them just like a purchase request" style="display:flex;align-items:center;gap:7px;padding:9px 18px;border-radius:10px;border:none;background:linear-gradient(135deg,#8b5cf6,#a78bfa);color:#fff;font-size:0.85rem;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(139,92,246,0.35);">
+        🔁 Recurring
+      </button>
       <button class="vr-fbtn active" id="vrf-all"      data-mode="all"      onclick="vrSetFilter('all',this)">All</button>
       <button class="vr-fbtn"        id="vrf-onhold"   data-mode="On Hold"  onclick="vrSetFilter('On Hold',this)">🔒 On Hold</button>
       <button class="vr-fbtn"        id="vrf-approved" data-mode="Approved" onclick="vrSetFilter('Approved',this)">✅ Approved</button>
@@ -5932,6 +5935,145 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
         <button onclick="closeRecurringPicker()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.86rem;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
         <button onclick="vrpProceed()" style="flex:2;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#00d4aa,#00a884);color:#000;font-size:0.88rem;font-weight:800;cursor:pointer;font-family:inherit;">Continue →</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECURRING BILLS DASHBOARD — fixed monthly bills (electricity, telecom, internet etc.)
+     sourced from the recurring_payments table. First submission for a bill patches its
+     row in place; once a bill's cycle has already passed, the next submission inserts a
+     fresh row instead — so history survives inside this same table (see Month/Year filter). -->
+<div id="rpModal" style="display:none;position:fixed;inset:0;background:var(--bg,#0f1117);z-index:9995;overflow-y:auto;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1.5px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:2;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button onclick="closeRecurringBills()" style="background:var(--surface2);border:1px solid var(--border);padding:7px 14px;border-radius:9px;cursor:pointer;color:var(--text);font-size:0.82rem;font-weight:700;font-family:inherit;display:flex;align-items:center;gap:6px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Back
+      </button>
+      <div>
+        <div style="font-size:1rem;font-weight:800;color:var(--text);">🔁 Recurring Bills</div>
+        <div style="font-size:0.72rem;color:var(--muted);">Fixed monthly bills — only the amount changes each cycle</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <button class="rp-fbtn active" id="rpf-all"      data-mode="all"      onclick="rpSetFilter('all',this)">All</button>
+      <button class="rp-fbtn"        id="rpf-onhold"   data-mode="On Hold"  onclick="rpSetFilter('On Hold',this)">🔒 On Hold</button>
+      <button class="rp-fbtn"        id="rpf-approved" data-mode="Approved" onclick="rpSetFilter('Approved',this)">✅ Approved</button>
+      <button class="rp-fbtn"        id="rpf-declined" data-mode="Declined" onclick="rpSetFilter('Declined',this)">❌ Declined</button>
+      <button class="rp-fbtn"        id="rpf-paid"     data-mode="Paid"     onclick="rpSetFilter('Paid',this)">💳 Paid</button>
+      <button class="rp-fbtn"        id="rpf-unpaid"   data-mode="Unpaid"   onclick="rpSetFilter('Unpaid',this)">⏳ Unpaid</button>
+      <button id="rpBulkApproveBtn" onclick="rpBulkApprove()" style="display:none;padding:6px 13px;border-radius:8px;border:1px solid rgba(34,197,94,0.4);background:rgba(34,197,94,0.12);color:#22c55e;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;">✅ Approve Selected</button>
+      <button id="rpBulkPayBtn" onclick="rpBulkPay()" style="display:none;padding:6px 13px;border-radius:8px;border:1px solid rgba(168,85,247,0.4);background:rgba(168,85,247,0.12);color:#a855f7;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;">💳 Pay Selected</button>
+      <button onclick="loadRecurringBills(true)" style="padding:6px 13px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+  <div style="padding:16px 28px 24px;">
+    <div id="rpKpiRow" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+      <div style="position:relative;max-width:340px;flex:1;min-width:220px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="rpSearch" placeholder="Search vendor, product, location…" oninput="rpApplyFilter()" style="width:100%;padding:10px 13px 10px 34px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:0.84rem;font-family:inherit;outline:none;box-sizing:border-box;">
+      </div>
+      <select id="rpHistMonth" class="filter-select" onchange="rpApplyHistFilter()" style="padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:0.84rem;font-family:inherit;outline:none;">
+        <option value="">Month</option>
+        <option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>
+        <option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>
+        <option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>
+        <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+      </select>
+      <select id="rpHistYear" class="filter-select" onchange="rpApplyHistFilter()" style="padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:0.84rem;font-family:inherit;outline:none;">
+        <option value="">Year</option>
+      </select>
+      <button onclick="rpClearHistFilter()" style="padding:10px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.82rem;font-weight:600;cursor:pointer;font-family:inherit;">✕ Clear</button>
+    </div>
+    <div id="rpHistBanner" style="display:none;margin-bottom:14px;padding:9px 14px;border-radius:9px;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.3);color:#00d4aa;font-size:0.82rem;font-weight:600;"></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div id="rpLoading" style="text-align:center;padding:2.5rem;color:var(--muted);">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        Loading recurring bills…
+      </div>
+      <div id="rpTableWrap" style="display:none;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:var(--surface2);">
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Vendor</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Product / Service</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Location</th>
+              <th style="padding:8px 14px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Due Day</th>
+              <th style="padding:8px 14px;text-align:right;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">This Month (₹)</th>
+              <th style="padding:8px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);white-space:nowrap;">Submitted On</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Status</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Payment</th>
+              <th style="padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;border-bottom:1.5px solid var(--border);">Action</th>
+            </tr>
+          </thead>
+          <tbody id="rpTbody"></tbody>
+        </table>
+      </div>
+      <div id="rpEmpty" style="display:none;text-align:center;padding:3rem;color:var(--muted);">
+        <div style="font-size:2.2rem;margin-bottom:10px;">📭</div>
+        <div style="font-size:0.92rem;font-weight:600;color:var(--text);margin-bottom:5px;">No recurring bills found</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECURRING BILL — DETAIL / EDIT / APPROVE / PAY (opened by clicking a row; one
+     modal replaces the old separate submit-form + inline approve/decline/pay buttons,
+     mirroring how vrModal in Vendor Purchase Approvals works — click the row, decide
+     everything from that one place). -->
+<div id="rpDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:10002;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:480px;max-height:90vh;overflow-y:auto;background:var(--surface);border-radius:18px;box-shadow:0 24px 72px rgba(0,0,0,0.55);border:1px solid rgba(0,212,170,0.2);">
+    <div style="background:rgba(0,212,170,0.08);border-bottom:1px solid rgba(0,212,170,0.2);padding:18px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;">
+      <div>
+        <div style="font-size:0.68rem;font-weight:700;color:#00d4aa;letter-spacing:0.09em;text-transform:uppercase;margin-bottom:4px;">RECURRING BILL</div>
+        <div id="rpdVendor" style="font-size:1.05rem;font-weight:800;color:var(--text);">—</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:2px;">Due on the <strong id="rpdDue" style="color:var(--text);">—</strong> of every month</div>
+      </div>
+      <button onclick="closeRecurringDetail()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;width:30px;height:30px;color:var(--muted);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+    </div>
+    <div style="padding:20px 22px;">
+      <div id="rpdBadges" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;"></div>
+
+      <div id="rpdBillSection" style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:0.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">📝 This Month's Bill</div>
+        <div style="display:grid;gap:12px;">
+          <div><label class="vf-lbl">Product / Service *</label><input class="vf-inp" id="rpdProduct" placeholder="e.g. Electricity bill"></div>
+          <div>
+            <label class="vf-lbl">Location *</label>
+            <select class="vf-inp" id="rpdLocation">
+              <option value="">— Select Location —</option>
+              <option value="Head Office">Head Office</option>
+              <option value="Bangalore">Bangalore</option>
+              <option value="Goa">Goa</option>
+              <option value="Gujarat">Gujarat</option>
+            </select>
+          </div>
+          <div><label class="vf-lbl">Amount (₹) *</label><input class="vf-inp" id="rpdAmount" type="number" min="0" step="0.01" placeholder="Enter amount"></div>
+        </div>
+        <div id="rpdSubmitErr" style="display:none;margin-top:10px;padding:9px 12px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;font-size:0.82rem;"></div>
+        <button id="rpdSubmitBtn" onclick="rpSaveBill()" style="width:100%;margin-top:12px;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#00d4aa,#00a884);color:#000;font-size:0.86rem;font-weight:800;cursor:pointer;font-family:inherit;">💾 Save &amp; Submit This Month</button>
+      </div>
+
+      <div id="rpdEASection" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:0.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">✅ Approval Decision</div>
+        <select class="vf-inp" id="rpdStatus" style="margin-bottom:12px;">
+          <option value="On Hold">🔒 On Hold</option>
+          <option value="Approved">✅ Approved</option>
+          <option value="Declined">❌ Declined</option>
+        </select>
+        <button onclick="rpSaveDecision()" style="width:100%;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#f0a500,#ffcc44);color:#000;font-size:0.86rem;font-weight:800;cursor:pointer;font-family:inherit;">💾 Save Decision</button>
+      </div>
+
+      <div id="rpdAcctSection" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:0.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">💳 Payment</div>
+        <button onclick="rpDoMarkPaid()" style="width:100%;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;font-size:0.86rem;font-weight:800;cursor:pointer;font-family:inherit;">💳 Mark as Paid</button>
+      </div>
+
+      <div id="rpdMsg" style="display:none;margin-top:6px;text-align:center;font-size:0.84rem;padding:10px;border-radius:9px;"></div>
     </div>
   </div>
 </div>

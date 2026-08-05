@@ -1807,6 +1807,11 @@ body.light-mode .lp-grid{background-image:linear-gradient(rgba(0,0,0,0.04) 1px,t
 .vr-fbtn{padding:6px 13px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.18s;}
 .vr-fbtn:hover{border-color:#f0a500;color:#f0a500;}
 .vr-fbtn.active{background:rgba(240,165,0,0.12);border-color:rgba(240,165,0,0.45);color:#f0a500;}
+/* Recurring Bills filter pills — same shape/interaction as .vr-fbtn, purple accent
+   (matches the "🔁 Recurring" button) so its own filter bar reads as a distinct area. */
+.rp-fbtn{padding:6px 13px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.18s;}
+.rp-fbtn:hover{border-color:#8b5cf6;color:#8b5cf6;}
+.rp-fbtn.active{background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.45);color:#8b5cf6;}
 #vrTbody tr:hover td{background:var(--surface2);}
 #vrTbody td{padding:8px 14px;font-size:0.83rem;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle;}
 #vrTbody tr:nth-child(even) td{background:var(--border);}
