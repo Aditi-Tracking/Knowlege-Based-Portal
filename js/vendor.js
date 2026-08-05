@@ -267,6 +267,7 @@ function _vrCheckBtnAccess(){
     }
   }
   _injectPurchaseCard();
+  if(typeof _rpCheckBtnAccess==='function')_rpCheckBtnAccess();
 }
 
 function _injectPurchaseCard() {
@@ -886,3 +887,506 @@ async function submitRecurringRequest(){
     btn.textContent = '🔁 Submit Recurring Request';
   }
 }
+
+// ╔══════════════════════════════════════════════════════════════════════════
+// ║  [RECURRING BILLS] — Fixed monthly bills (electricity, telecom, internet…)
+// ║  Table used: recurring_payments (Supabase). ONE table, no history table —
+// ║  the first submission for a bill PATCHes its original row; once that bill's
+// ║  cycle has already passed (last_submitted_month is an older cycle than the
+// ║  one being submitted for), the next submission INSERTs a new row instead of
+// ║  overwriting, so past months' Approved/Paid state survives inside this same
+// ║  table and can be pulled back with the Month/Year filter. The "current" list
+// ║  view always shows the LATEST row per vendor_name (_rpLatestPerVendor).
+// ║  Approve/Decline/Mark Paid reuse the same badges (_vrStatusBadge, _vrPayBadge)
+// ║  as vendor_requests, so it *looks* like the same approval → payment process —
+// ║  but access is gated by its OWN dedicated permissions (recurring_access/edit/
+// ║  review/pay), independent of vendor_access/vendor_review/vendor_pay, since
+// ║  someone can have vendor rights without having recurring rights or vice versa.
+// ║  submitted_by/reviewed_by/paid_by are int8 (Emp_id) columns, looked up via
+// ║  _rpMyEmpId() — NOT the email string vendor_requests stores directly.
+// ║  Needed one extra column on recurring_payments: last_submitted_month (text).
+// ╚══════════════════════════════════════════════════════════════════════════
+let _rpAll=[], _rpFiltered=[], _rpLoaded=false, _rpCurId=null, _rpHistMonth='', _rpHistYear='', _rpFilterModes=new Set();
+// Bill ids submitted THIS session — pinned to the very top with a green confirmation
+// tag, so the row doesn't instantly vanish down the list right after you act on it.
+// Resets whenever the dashboard is freshly (re)opened.
+let _rpRecentIds=new Set();
+
+// ── PERMISSIONS (dedicated recurring_* keys — NOT vendor_*) ──
+function _rpCanAccess(){
+  if(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.recurring_access==='true')return true;
+  const r=_vrRole();return r==='owner'||r==='mis';
+}
+function _rpIsEditor(){
+  if(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.recurring_edit==='true')return true;
+  const r=_vrRole();return r==='owner'||r==='mis';
+}
+function _rpIsReviewer(){
+  if(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.recurring_review==='true')return true;
+  const r=_vrRole();return r==='owner'||r==='mis';
+}
+function _rpIsPayer(){
+  if(typeof PERMISSIONS!=='undefined'&&PERMISSIONS&&PERMISSIONS.recurring_pay==='true')return true;
+  const r=_vrRole();return r==='owner'||r==='mis';
+}
+function _rpCheckBtnAccess(){
+  const btn=document.getElementById('recurringBillsBtn');
+  if(btn)btn.style.display=_rpCanAccess()?'flex':'none';
+}
+
+function _rpOrdinal(n){n=Number(n);if(!n&&n!==0)return '—';const v=n%100;const s=['th','st','nd','rd'];return n+(s[(v-20)%10]||s[v]||s[0]);}
+// A bill's "cycle" runs from its due_date to the day before next month's due_date —
+// e.g. due_date=22 covers Aug 22 → Sep 21, only flipping to the Sep cycle ON Sep 22.
+// This is why the row keeps showing last cycle's Approved/Paid state right up to the
+// due date instead of resetting on the 1st of the calendar month.
+function _rpCycleKey(dueDay,ref){
+  ref=ref||new Date();
+  let y=ref.getFullYear(),m=ref.getMonth();
+  const d=Number(dueDay)||1;
+  if(ref.getDate()<d){m-=1;if(m<0){m=11;y-=1;}}
+  return y+'-'+String(m+1).padStart(2,'0');
+}
+// A bill counts as "already submitted this cycle" if it has a record stamped with
+// THIS due-date cycle — including Declined ones. (Previously Declined was excluded
+// so it'd look "not submitted" and bubble back to the top/urgent list — but that
+// hid the Declined badge entirely and kept jumping it back up. Resubmitting a
+// Declined bill still works fine regardless: rpSaveBill() decides patch-vs-insert
+// purely by comparing cycle keys, not by status.)
+function _rpSubmittedThisCycle(r){return r.last_submitted_month===_rpCycleKey(r.due_date);}
+// True if this bill still needs SOMEONE to act on it this cycle — not yet submitted,
+// awaiting approval (On Hold), or approved but still unpaid. False only once it's
+// fully settled (Approved+Paid) or Declined — those are the ones allowed to sink
+// to the bottom of the list.
+function _rpNeedsAction(r){
+  if(!_rpSubmittedThisCycle(r))return true;
+  if(r.status==='On Hold')return true;
+  if(r.status==='Approved'&&r.payment_status!=='Paid')return true;
+  return false;
+}
+// Days between today and this bill's due day in the CURRENT month (negative = overdue,
+// 0 = due today, positive = days left) — used to sort "needs action soonest" to the top.
+function _rpDueDistance(r){
+  if(r.due_date==null)return Infinity;
+  const today=new Date();today.setHours(0,0,0,0);
+  const due=new Date(today.getFullYear(),today.getMonth(),Number(r.due_date));
+  return Math.round((due-today)/86400000);
+}
+// Same vendor can now have multiple rows over time (one per cycle once it rolls
+// over) — the live dashboard only ever shows the newest row per vendor_name.
+function _rpLatestPerVendor(rows){
+  const map={};
+  rows.forEach(r=>{
+    const key=r.vendor_name||('#'+r.id);
+    const cur=map[key];
+    if(!cur){map[key]=r;return;}
+    const a=cur.last_submitted_month||'',b=r.last_submitted_month||'';
+    if(b>a||(b===a&&r.id>cur.id))map[key]=r;
+  });
+  return Object.values(map);
+}
+function _rpTotalVendorCount(){return new Set(_rpAll.map(r=>r.vendor_name)).size;}
+// recurring_payments.submitted_by/reviewed_by/paid_by are int8 (Emp_id), NOT email —
+// unlike vendor_requests which stores the email directly and a separate _emp_id column.
+async function _rpMyEmpId(){
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=Emp_id&Email_Id=ilike.${encodeURIComponent(_vrMyEmail())}&limit=1`,{headers:SB_HDRS()});
+    const rows=res.ok?await res.json():[];
+    return(rows&&rows[0])?rows[0].Emp_id||null:null;
+  }catch(e){return null;}
+}
+
+async function loadRecurringBills(force){
+  if(_rpLoaded&&!force)return;
+  _rpLoaded=true;
+  const ldg=document.getElementById('rpLoading');
+  const tw=document.getElementById('rpTableWrap');
+  const em=document.getElementById('rpEmpty');
+  if(ldg){ldg.style.display='block';ldg.innerHTML=`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Loading recurring bills…`;}
+  if(tw)tw.style.display='none';
+  if(em)em.style.display='none';
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/recurring_payments?select=*&order=vendor_name.asc`,{headers:SB_HDRS()});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    _rpAll=await res.json();
+    _rpPopulateHistYearOptions();
+    _rpApplyFilter();
+  }catch(e){
+    if(ldg)ldg.innerHTML=`<div style="color:#ef4444;font-size:0.84rem;">❌ ${e.message}</div>`;
+    return;
+  }
+  if(ldg)ldg.style.display='none';
+}
+// Calendar month/year the bill was actually submitted in — this is what the
+// Month/Year filter matches against, deliberately NOT last_submitted_month
+// (that's the due-date cycle key, which can lag a calendar month behind the
+// real submit date whenever the due date hasn't arrived yet this month — e.g.
+// a bill due on the 14th, submitted on Aug 3rd, belongs to the July cycle but
+// was still submitted "in August" as far as the user is concerned).
+function _rpSubmitYM(r){return r.submitted_at?r.submitted_at.slice(0,7):null;}
+function _rpPopulateHistYearOptions(){
+  const sel=document.getElementById('rpHistYear');if(!sel)return;
+  const years=new Set([String(new Date().getFullYear())]);
+  _rpAll.forEach(r=>{const ym=_rpSubmitYM(r);if(ym)years.add(ym.slice(0,4));});
+  const sorted=[...years].sort((a,b)=>b-a);
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Year</option>'+sorted.map(y=>`<option value="${y}">${y}</option>`).join('');
+  sel.value=cur&&sorted.includes(cur)?cur:'';
+}
+function rpApplyFilter(){_rpApplyFilter();}
+// Multi-select filter chips, same pattern as vrSetFilter — click toggles a chip on/off
+// so 2+ can be active together (e.g. "Approved" + "Unpaid"). "All" clears every chip.
+function rpSetFilter(mode,btn){
+  if(mode==='all'){
+    _rpFilterModes.clear();
+  }else if(_rpFilterModes.has(mode)){
+    _rpFilterModes.delete(mode);
+  }else{
+    _rpFilterModes.add(mode);
+  }
+  document.querySelectorAll('.rp-fbtn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode==='all'?_rpFilterModes.size===0:_rpFilterModes.has(b.dataset.mode));
+  });
+  _rpApplyFilter();
+}
+function rpApplyHistFilter(){
+  _rpHistMonth=document.getElementById('rpHistMonth').value;
+  _rpHistYear=document.getElementById('rpHistYear').value;
+  _rpApplyFilter();
+}
+function rpClearHistFilter(){
+  _rpHistMonth='';_rpHistYear='';
+  const m=document.getElementById('rpHistMonth');if(m)m.value='';
+  const y=document.getElementById('rpHistYear');if(y)y.value='';
+  _rpApplyFilter();
+}
+// Live view = latest row per vendor. History view (Month+Year picked) = every row
+// actually SUBMITTED in that calendar month, across all vendors — including Paid ones.
+function _rpBaseRows(){
+  if(_rpHistMonth&&_rpHistYear){
+    const key=_rpHistYear+'-'+_rpHistMonth;
+    return _rpAll.filter(r=>_rpSubmitYM(r)===key);
+  }
+  return _rpLatestPerVendor(_rpAll);
+}
+function _rpApplyFilter(){
+  const q=(document.getElementById('rpSearch')?.value||'').toLowerCase().trim();
+  const histActive=!!(_rpHistMonth&&_rpHistYear);
+  const base=_rpBaseRows();
+  const STATUS_TAGS=['On Hold','Approved','Declined'];
+  const PAY_TAGS=['Paid','Unpaid'];
+  const activeStatus=[..._rpFilterModes].filter(m=>STATUS_TAGS.includes(m));
+  const activePay=[..._rpFilterModes].filter(m=>PAY_TAGS.includes(m));
+  _rpFiltered=base.filter(r=>{
+    if(q){const hay=[r.vendor_name,r.product_name,r.location].join(' ').toLowerCase();if(!hay.includes(q))return false;}
+    if(activeStatus.length||activePay.length){
+      // Status/payment chips only ever match a row that actually has a record for
+      // this cycle — a "Not submitted" row has no real status/payment to filter on.
+      const submitted=histActive?true:_rpSubmittedThisCycle(r);
+      if(!submitted)return false;
+      if(activeStatus.length&&!activeStatus.includes(r.status||'On Hold'))return false;
+      if(activePay.length){
+        const isPaid=r.payment_status==='Paid';
+        if(!activePay.some(p=>p==='Paid'?isPaid:!isPaid))return false;
+      }
+    }
+    return true;
+  });
+  // Bills that need SOMEONE to do something — not yet submitted, awaiting approval
+  // (On Hold), or approved but still unpaid — all bubble to the top, nearest due
+  // date first. Only fully settled bills (Approved+Paid, or Declined) sink to the
+  // bottom. Anything just submitted THIS session pins above even that, so it
+  // doesn't vanish down the list the instant you act on it.
+  _rpFiltered.sort((a,b)=>{
+    if(!histActive){
+      const aRecent=_rpRecentIds.has(a.id),bRecent=_rpRecentIds.has(b.id);
+      if(aRecent!==bRecent)return aRecent?-1:1;
+      const aNeed=_rpNeedsAction(a),bNeed=_rpNeedsAction(b);
+      if(aNeed!==bNeed)return aNeed?-1:1;
+    }
+    return _rpDueDistance(a)-_rpDueDistance(b);
+  });
+  const banner=document.getElementById('rpHistBanner');
+  if(banner){
+    if(_rpHistMonth&&_rpHistYear){
+      const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      banner.style.display='block';
+      banner.textContent=`📅 Showing history for ${MN[+_rpHistMonth]} ${_rpHistYear} — read-only`;
+    }else{
+      banner.style.display='none';
+    }
+  }
+  _rpRenderTable();
+  _rpRenderKPIs(base);
+}
+function _rpRenderKPIs(base){
+  base=base||_rpBaseRows();
+  const histActive=!!(_rpHistMonth&&_rpHistYear);
+  const totalBills=_rpTotalVendorCount();
+  let kpis;
+  if(histActive){
+    kpis=[
+      {label:'Total Bills',val:totalBills,color:'#4e9af1',icon:'📋'},
+      {label:'Submitted',val:base.length,color:'#f0a500',icon:'📨'},
+      {label:'Pending Approval',val:base.filter(r=>r.status==='On Hold').length,color:'#f59e0b',icon:'🔒'},
+      {label:'Approved',val:base.filter(r=>r.status==='Approved').length,color:'#22c55e',icon:'✅'},
+      {label:'Paid',val:base.filter(r=>r.payment_status==='Paid').length,color:'#a855f7',icon:'💳'}
+    ];
+  }else{
+    const dueNotSubmitted=base.filter(r=>!_rpSubmittedThisCycle(r)).length;
+    const pending=base.filter(r=>_rpSubmittedThisCycle(r)&&r.status==='On Hold').length;
+    const approved=base.filter(r=>_rpSubmittedThisCycle(r)&&r.status==='Approved').length;
+    const paid=base.filter(r=>_rpSubmittedThisCycle(r)&&r.payment_status==='Paid').length;
+    kpis=[
+      {label:'Total Bills',val:totalBills,color:'#4e9af1',icon:'📋'},
+      {label:'Due This Month',val:dueNotSubmitted,color:'#f0a500',icon:'⏰'},
+      {label:'Pending Approval',val:pending,color:'#f59e0b',icon:'🔒'},
+      {label:'Approved',val:approved,color:'#22c55e',icon:'✅'},
+      {label:'Paid',val:paid,color:'#a855f7',icon:'💳'}
+    ];
+  }
+  const el=document.getElementById('rpKpiRow');
+  if(el)el.innerHTML=kpis.map(k=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 12px;border-left:4px solid ${k.color};box-shadow:var(--shadow);"><div style="font-size:0.95rem;margin-bottom:3px;">${k.icon}</div><div style="font-size:1.3rem;font-weight:900;color:${k.color};line-height:1;">${k.val}</div><div style="font-size:0.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;">${k.label}</div></div>`).join('');
+}
+function _rpRenderTable(){
+  const tbody=document.getElementById('rpTbody');
+  const tw=document.getElementById('rpTableWrap');
+  const em=document.getElementById('rpEmpty');
+  if(!tbody)return;
+  if(!_rpFiltered.length){if(tw)tw.style.display='none';if(em)em.style.display='block';rpUpdateBulkBtn();return;}
+  if(em)em.style.display='none';
+  if(tw)tw.style.display='block';
+  const histActive=!!(_rpHistMonth&&_rpHistYear);
+  let urgentLeft=2; // highlight only the first couple of most-urgent rows, not every pending one
+  tbody.innerHTML=_rpFiltered.map(r=>{
+    const dueTxt=r.due_date!=null?_rpOrdinal(r.due_date):'—';
+    const submitted=histActive?true:_rpSubmittedThisCycle(r);
+    const amountTxt=submitted&&r.amount!=null?'₹'+Number(r.amount).toLocaleString('en-IN',{maximumFractionDigits:0}):'<span style="color:var(--muted);font-weight:400;">Not submitted</span>';
+    const statusBadge=submitted?_vrStatusBadge(r.status):'<span class="vr-badge" style="background:rgba(107,114,128,0.1);color:var(--muted);border:1px solid var(--border);">—</span>';
+    const payBadge=submitted?_vrPayBadge(r.payment_status):'';
+    const dueDist=_rpDueDistance(r);
+    const isUrgent=!histActive&&!submitted&&dueDist<=0&&urgentLeft>0;
+    if(isUrgent)urgentLeft--;
+    const isRecent=!histActive&&_rpRecentIds.has(r.id);
+    const rowStyle=isRecent?'cursor:pointer;background:rgba(34,197,94,0.08);box-shadow:inset 3px 0 0 #22c55e;':(isUrgent?'cursor:pointer;background:rgba(239,68,68,0.07);box-shadow:inset 3px 0 0 #ef4444;':(histActive?'':'cursor:pointer;'));
+    const rowAttrs=histActive?`title="Historical record — read-only" style="${rowStyle}"`:`onclick="openRecurringDetail(${r.id})" title="${isRecent?'Just submitted':(isUrgent?(dueDist<0?`Overdue by ${-dueDist} day(s) — needs submitting`:'Due today — needs submitting'):'Click row to view / edit / approve / pay')}" style="${rowStyle}"`;
+    const canApprove=submitted&&r.status==='On Hold'&&_rpIsReviewer();
+    const canPay=submitted&&r.status==='Approved'&&r.payment_status!=='Paid'&&_rpIsPayer();
+    const bulkCb=(!histActive&&(canApprove||canPay))?`<input type="checkbox" class="rp-row-cb" data-id="${r.id}" data-action="${canApprove?'approve':'pay'}" onclick="event.stopPropagation()" onchange="rpUpdateBulkBtn()" title="Select for bulk ${canApprove?'approve':'pay'}" style="width:16px;height:16px;cursor:pointer;accent-color:${canApprove?'#22c55e':'#a855f7'};margin-right:6px;vertical-align:middle;">`:'';
+    const editBtn=_rpIsEditor()?`<button class="vr-act" style="background:rgba(78,154,241,0.12);color:#4e9af1;border:1px solid rgba(78,154,241,0.35);" onclick="event.stopPropagation();openRecurringDetail(${r.id})">✏️ Edit</button>`:'';
+    const actionCell=histActive?'<span style="color:var(--muted);font-size:0.78rem;">🔒</span>':`${bulkCb}${editBtn}`;
+    const submittedOnTxt=submitted&&r.submitted_at?new Date(r.submitted_at).toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'}):'<span style="color:var(--muted)">—</span>';
+    const urgentLabel=dueDist<0?`🔴 Late by ${-dueDist}d`:'⚠️ Submit This';
+    const urgentTag=isRecent?'<span style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:20px;background:rgba(34,197,94,0.12);color:#22c55e;font-size:0.68rem;font-weight:800;vertical-align:middle;">✅ Just Submitted</span>':(isUrgent?`<span style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:20px;background:rgba(239,68,68,0.12);color:#ef4444;font-size:0.68rem;font-weight:800;vertical-align:middle;">${urgentLabel}</span>`:'');
+    return`<tr ${rowAttrs}><td><div style="font-weight:700;font-size:0.85rem;">${r.vendor_name||'—'}${urgentTag}</div></td><td style="max-width:180px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.product_name||''}">${r.product_name||'<span style=\"color:var(--muted)\">— not set —</span>'}</div></td><td style="font-size:0.82rem;">${r.location||'<span style="color:var(--muted)">— not set —</span>'}</td><td style="text-align:center;">${dueTxt}</td><td style="font-weight:700;white-space:nowrap;text-align:right;">${amountTxt}</td><td style="font-size:0.82rem;white-space:nowrap;">${submittedOnTxt}</td><td>${statusBadge}</td><td>${payBadge}</td><td style="text-align:center;">${actionCell}</td></tr>`;
+  }).join('');
+  rpUpdateBulkBtn();
+}
+
+// ── BULK APPROVE / BULK PAY (mirrors vrBulkPay's checkbox pattern) ──
+function rpUpdateBulkBtn(){
+  const anyAppr=document.querySelector('.rp-row-cb[data-action="approve"]:checked');
+  const anyPay=document.querySelector('.rp-row-cb[data-action="pay"]:checked');
+  const apprBtn=document.getElementById('rpBulkApproveBtn');if(apprBtn)apprBtn.style.display=anyAppr?'':'none';
+  const payBtn=document.getElementById('rpBulkPayBtn');if(payBtn)payBtn.style.display=anyPay?'':'none';
+}
+async function rpBulkApprove(){
+  if(!_rpIsReviewer())return;
+  const ids=[...document.querySelectorAll('.rp-row-cb[data-action="approve"]:checked')].map(cb=>parseInt(cb.dataset.id));
+  if(!ids.length){if(typeof showToast==='function')showToast('⚠️ No row selected','error',2000);return;}
+  if(!confirm(`Approve ${ids.length} recurring bill(s)?`))return;
+  const empId=await _rpMyEmpId();
+  const payload={status:'Approved',reviewed_by:empId,reviewed_at:new Date().toISOString()};
+  let ok=0,fail=0;
+  for(const id of ids){
+    try{
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/recurring_payments?id=eq.${id}`,{method:'PATCH',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+      if(!res.ok)throw new Error();
+      const idx=_rpAll.findIndex(x=>x.id===id);if(idx!==-1)_rpAll[idx]={..._rpAll[idx],...payload};
+      ok++;
+    }catch{fail++;}
+  }
+  _rpApplyFilter();
+  if(typeof showToast==='function')showToast(`✅ ${ok} approved, ${fail} failed`,'success',3000);
+}
+async function rpBulkPay(){
+  if(!_rpIsPayer())return;
+  const ids=[...document.querySelectorAll('.rp-row-cb[data-action="pay"]:checked')].map(cb=>parseInt(cb.dataset.id));
+  if(!ids.length){if(typeof showToast==='function')showToast('⚠️ No row selected','error',2000);return;}
+  if(!confirm(`Mark ${ids.length} recurring bill(s) as Paid?`))return;
+  const empId=await _rpMyEmpId();
+  const payload={payment_status:'Paid',paid_by:empId,paid_at:new Date().toISOString()};
+  let ok=0,fail=0;
+  for(const id of ids){
+    try{
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/recurring_payments?id=eq.${id}`,{method:'PATCH',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+      if(!res.ok)throw new Error();
+      const idx=_rpAll.findIndex(x=>x.id===id);if(idx!==-1)_rpAll[idx]={..._rpAll[idx],...payload};
+      ok++;
+    }catch{fail++;}
+  }
+  _rpApplyFilter();
+  if(typeof showToast==='function')showToast(`💳 ${ok} paid, ${fail} failed`,'success',3000);
+}
+
+// ── OPEN / CLOSE RECURRING BILLS DASHBOARD ──
+function openRecurringBills(){
+  if(!_rpCanAccess()){if(typeof showToast==='function')showToast('⛔ You do not have access to Recurring Bills','error',2500);return;}
+  _rpRecentIds=new Set();
+  document.getElementById('rpModal').style.display='block';
+  document.body.style.overflow='hidden';
+  loadRecurringBills();
+}
+function closeRecurringBills(){
+  document.getElementById('rpModal').style.display='none';
+  document.body.style.overflow='';
+}
+
+// ── BILL DETAIL — view / edit+resubmit / approve-decline / mark paid, all in one place ──
+// Opened by clicking a row. Editing & resubmitting works regardless of current status —
+// saving always resets status→On Hold, payment_status→Unpaid and stamps last_submitted_month,
+// so "next month's bill" is just: click the row, change the amount, save. No separate flow.
+function openRecurringDetail(id){
+  if(!_rpCanAccess())return;
+  const r=_rpAll.find(x=>x.id===id);if(!r)return;
+  _rpCurId=id;
+  document.getElementById('rpdVendor').textContent=r.vendor_name||'—';
+  document.getElementById('rpdDue').textContent=r.due_date!=null?_rpOrdinal(r.due_date):'—';
+  document.getElementById('rpdProduct').value=r.product_name||'';
+  document.getElementById('rpdLocation').value=r.location||'';
+  document.getElementById('rpdAmount').value=r.amount!=null?r.amount:'';
+  document.getElementById('rpdSubmitErr').style.display='none';
+  document.getElementById('rpdMsg').style.display='none';
+
+  const submitted=_rpSubmittedThisCycle(r);
+  const submittedOnBadge=submitted&&r.submitted_at?`<span class="vr-badge" style="background:rgba(107,114,128,0.1);color:var(--muted);border:1px solid var(--border);">📅 Submitted ${new Date(r.submitted_at).toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'})}</span>`:'';
+  document.getElementById('rpdBadges').innerHTML=submitted
+    ?_vrStatusBadge(r.status)+_vrPayBadge(r.payment_status)+submittedOnBadge
+    :'<span class="vr-badge" style="background:rgba(107,114,128,0.1);color:var(--muted);border:1px solid var(--border);">Not submitted this month</span>';
+
+  const billSect=document.getElementById('rpdBillSection');
+  if(billSect)billSect.style.display=_rpIsEditor()?'block':'none';
+
+  const eaSect=document.getElementById('rpdEASection');
+  const acctSect=document.getElementById('rpdAcctSection');
+  eaSect.style.display='none';acctSect.style.display='none';
+  if(submitted&&_rpIsReviewer()){
+    eaSect.style.display='block';
+    document.getElementById('rpdStatus').value=r.status||'On Hold';
+  }
+  if(submitted&&_rpIsPayer()&&r.status==='Approved'&&r.payment_status!=='Paid'){
+    acctSect.style.display='block';
+  }
+
+  const btn=document.getElementById('rpdSubmitBtn');btn.disabled=false;btn.textContent='💾 Save & Submit This Month';
+  document.getElementById('rpDetailModal').style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function closeRecurringDetail(){
+  document.getElementById('rpDetailModal').style.display='none';
+  document.body.style.overflow='';
+  _rpCurId=null;
+}
+async function rpSaveBill(){
+  const errEl=document.getElementById('rpdSubmitErr');
+  const btn=document.getElementById('rpdSubmitBtn');
+  errEl.style.display='none';
+  if(!_rpIsEditor()){errEl.textContent='⛔ You do not have permission to edit recurring bills.';errEl.style.display='block';return;}
+  const product=(document.getElementById('rpdProduct').value||'').trim();
+  const location=document.getElementById('rpdLocation').value;
+  const amount=document.getElementById('rpdAmount').value;
+  if(!product){errEl.textContent='⚠️ Product / Service is required.';errEl.style.display='block';return;}
+  if(!location){errEl.textContent='⚠️ Please select a location.';errEl.style.display='block';return;}
+  if(!amount||isNaN(Number(amount))||Number(amount)<=0){errEl.textContent='⚠️ Please enter a valid amount.';errEl.style.display='block';return;}
+  if(!_rpCurId){errEl.textContent='❌ No bill selected.';errEl.style.display='block';return;}
+  const bill=_rpAll.find(x=>x.id===_rpCurId);
+  if(!bill){errEl.textContent='❌ Bill not found.';errEl.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const empId=await _rpMyEmpId();
+    const cycleKey=_rpCycleKey(bill.due_date);
+    const payload={
+      product_name:product,
+      location,
+      amount:parseFloat(amount),
+      status:'On Hold',
+      payment_status:'Unpaid',
+      reviewed_by:null,reviewed_at:null,
+      paid_by:null,paid_at:null,
+      submitted_by:empId,
+      submitted_at:new Date().toISOString(),
+      last_submitted_month:cycleKey
+    };
+    // If this bill already has a record for an OLDER cycle, insert a fresh row so
+    // that old cycle's Approved/Paid state survives for the Month/Year history
+    // filter — otherwise (first-ever submission, or correcting the same cycle
+    // before its due date) just patch the existing row in place.
+    const isNewCycle=bill.last_submitted_month&&bill.last_submitted_month!==cycleKey;
+    if(isNewCycle){
+      const insertPayload={vendor_name:bill.vendor_name,due_date:bill.due_date,...payload};
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/recurring_payments`,{method:'POST',headers:{...SB_HDRS_JSON(),'Prefer':'return=representation'},body:JSON.stringify(insertPayload)});
+      if(!res.ok){const t=await res.text();throw new Error(t);}
+      const rows=await res.json();
+      if(rows&&rows[0]){_rpAll.push(rows[0]);_rpRecentIds.add(rows[0].id);}
+    }else{
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/recurring_payments?id=eq.${_rpCurId}`,{method:'PATCH',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+      if(!res.ok){const t=await res.text();throw new Error(t);}
+      const idx=_rpAll.findIndex(x=>x.id===_rpCurId);if(idx!==-1)_rpAll[idx]={..._rpAll[idx],...payload};
+      _rpRecentIds.add(_rpCurId);
+    }
+    _rpPopulateHistYearOptions();
+    _rpApplyFilter();
+    closeRecurringDetail();
+    if(typeof showToast==='function')showToast('✅ Submitted for approval!','success',3000);
+  }catch(e){
+    errEl.textContent='❌ '+e.message;errEl.style.display='block';
+  }finally{btn.disabled=false;btn.textContent='💾 Save & Submit This Month';}
+}
+
+// ── EA: APPROVE / DECLINE (dropdown + Save, same pattern as vrModal's EA section) ──
+async function rpSaveDecision(){
+  if(!_rpCurId)return;
+  if(!_rpIsReviewer())return;
+  const msgEl=document.getElementById('rpdMsg');msgEl.style.display='none';
+  const status=document.getElementById('rpdStatus').value;
+  try{
+    const empId=await _rpMyEmpId();
+    const payload={status,reviewed_by:empId,reviewed_at:new Date().toISOString()};
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/recurring_payments?id=eq.${_rpCurId}`,{method:'PATCH',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+    if(!res.ok){const t=await res.text();throw new Error(t);}
+    const idx=_rpAll.findIndex(x=>x.id===_rpCurId);if(idx!==-1)_rpAll[idx]={..._rpAll[idx],...payload};
+    msgEl.style.cssText='display:block;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:9px;color:#22c55e;padding:10px;';
+    msgEl.textContent='✅ Decision saved!';
+    _rpApplyFilter();
+    if(typeof showToast==='function')showToast('✅ Decision saved!','success',2500);
+    setTimeout(closeRecurringDetail,1000);
+  }catch(e){
+    msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';
+    msgEl.textContent='❌ '+e.message;
+  }
+}
+
+// ── ACCOUNTS: MARK PAID ──
+async function rpDoMarkPaid(){
+  if(!_rpCurId)return;
+  if(!_rpIsPayer())return;
+  const msgEl=document.getElementById('rpdMsg');msgEl.style.display='none';
+  try{
+    const empId=await _rpMyEmpId();
+    const payload={payment_status:'Paid',paid_by:empId,paid_at:new Date().toISOString()};
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/recurring_payments?id=eq.${_rpCurId}`,{method:'PATCH',headers:{...SB_HDRS_JSON(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+    if(!res.ok){const t=await res.text();throw new Error(t);}
+    const idx=_rpAll.findIndex(x=>x.id===_rpCurId);if(idx!==-1)_rpAll[idx]={..._rpAll[idx],...payload};
+    msgEl.style.cssText='display:block;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:9px;color:#a855f7;padding:10px;';
+    msgEl.textContent='💳 Marked as PAID!';
+    _rpApplyFilter();
+    if(typeof showToast==='function')showToast('💳 Payment recorded!','success',2500);
+    setTimeout(closeRecurringDetail,1000);
+  }catch(e){
+    msgEl.style.cssText='display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:9px;color:#ef4444;padding:10px;';
+    msgEl.textContent='❌ '+e.message;
+  }
+}
+const _rpMo=document.getElementById('rpModal');
+if(_rpMo)_rpMo.addEventListener('click',function(e){if(e.target===this)closeRecurringBills();});
+const _rpDm=document.getElementById('rpDetailModal');
+if(_rpDm)_rpDm.addEventListener('click',function(e){if(e.target===this)closeRecurringDetail();});
