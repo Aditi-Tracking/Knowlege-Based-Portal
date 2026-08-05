@@ -47,6 +47,13 @@ function _applyHREmployeeNavVisibility() {
 
 // ── HELPERS ────────────────────────────────────────
 function heFmtDate(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return d; } }
+function heCalcProbationDate(doj) {
+  if (!doj) return null;
+  const d = new Date(doj + 'T00:00:00');
+  if (isNaN(d)) return null;
+  d.setMonth(d.getMonth() + 6);
+  return d.toISOString().slice(0, 10);
+}
 function _heDayDiff(d) {
   if (!d) return null;
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -392,7 +399,7 @@ function heOpenEmployeeModal(id) {
   set('heEmpCategory', (e && e.category) || 'Probationary Staff');
   set('heEmpJoiningMonth', e && e.joining_month);
   set('heEmpDoj', e && e.doj ? String(e.doj).slice(0, 10) : '');
-  set('heEmpProbationDate', e && e.probation_completion_date ? String(e.probation_completion_date).slice(0, 10) : '');
+  set('heEmpProbationDate', heCalcProbationDate(e && e.doj ? String(e.doj).slice(0, 10) : ''));
   set('heEmpDepartment', e && e.department);
   set('heEmpDesignation', e && e.designation);
   set('heEmpLocation', e && e.location);
@@ -426,6 +433,11 @@ function heEmpCategoryChanged() {
   document.getElementById('heEmpExitSection').style.display = (cat === 'Exited Staff') ? 'block' : 'none';
 }
 
+function heEmpDojChanged() {
+  const doj = document.getElementById('heEmpDoj').value;
+  document.getElementById('heEmpProbationDate').value = heCalcProbationDate(doj) || '';
+}
+
 function heEmpExitFileChosen(input) {
   _heExitFormFile = input.files && input.files[0] ? input.files[0] : null;
   document.getElementById('heEmpExitFileName').textContent = _heExitFormFile ? _heExitFormFile.name : 'No file chosen';
@@ -457,7 +469,7 @@ async function heSaveEmployee() {
       category,
       joining_month: document.getElementById('heEmpJoiningMonth').value.trim() || null,
       doj: document.getElementById('heEmpDoj').value || null,
-      probation_completion_date: document.getElementById('heEmpProbationDate').value || null,
+      probation_completion_date: heCalcProbationDate(document.getElementById('heEmpDoj').value),
       department: document.getElementById('heEmpDepartment').value.trim() || null,
       designation: document.getElementById('heEmpDesignation').value.trim() || null,
       location: document.getElementById('heEmpLocation').value.trim() || null,

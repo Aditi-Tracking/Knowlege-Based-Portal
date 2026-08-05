@@ -4969,7 +4969,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
       <div class="fms-form-group">
         <label class="fms-form-label">Date of Joining</label>
-        <input type="date" id="heEmpDoj" class="fms-form-input">
+        <input type="date" id="heEmpDoj" class="fms-form-input" onchange="heEmpDojChanged()">
       </div>
       <div class="fms-form-group">
         <label class="fms-form-label">Joining Month</label>
@@ -4977,7 +4977,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
       <div class="fms-form-group">
         <label class="fms-form-label">Probation Completion Date</label>
-        <input type="date" id="heEmpProbationDate" class="fms-form-input">
+        <input type="date" id="heEmpProbationDate" class="fms-form-input" readonly style="background:var(--muted-bg,#f2f2f2);cursor:not-allowed;" title="Auto-calculated as Date of Joining + 6 months">
       </div>
       <div class="fms-form-group">
         <label class="fms-form-label">Date of Birth</label>
