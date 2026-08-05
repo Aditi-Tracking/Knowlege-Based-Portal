@@ -214,10 +214,11 @@ function heRenderUpcomingProbation() {
   const rows = _heEmployees
     .filter(e => e.category === 'Probationary Staff' && e.probation_completion_date)
     .map(e => ({ e, diff: _heDayDiff(e.probation_completion_date) }))
-    .filter(x => x.diff !== null && x.diff >= 0 && x.diff <= 30)
-    .sort((a, b) => a.diff - b.diff);
+    .filter(x => x.diff !== null && x.diff >= 0)
+    .sort((a, b) => a.diff - b.diff)
+    .slice(0, 5);
 
-  if (!rows.length) { el.innerHTML = `<div style="padding:1.2rem;color:var(--muted);font-size:0.85rem;">No probation completions in the next 30 days.</div>`; return; }
+  if (!rows.length) { el.innerHTML = `<div style="padding:1.2rem;color:var(--muted);font-size:0.85rem;">No upcoming probation completions.</div>`; return; }
 
   el.innerHTML = rows.map(({ e, diff }) => {
     const cls = diff <= 7 ? 'badge-hot' : diff <= 15 ? 'badge-warm' : 'badge-cold';
