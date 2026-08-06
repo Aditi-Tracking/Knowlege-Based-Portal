@@ -40,7 +40,9 @@ function _tRevealTasksNav(show){
     PERMISSIONS.can_view_mapping==='true'||
     PERMISSIONS.can_view_entsol==='true'||
     PERMISSIONS.field_service_create==='true'||
-    PERMISSIONS.field_service_view_all==='true';
+    PERMISSIONS.field_service_view_all==='true'||
+    PERMISSIONS.hr_employee_view==='true'||
+    PERMISSIONS.hr_employee_edit==='true';
   const navDash=document.getElementById('nav-dashboards-trigger');
   if(navDash)navDash.style.display=hasDashAccess?'':'none';
   const dashGroup=document.getElementById('dashboardSubGroup');
