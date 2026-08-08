@@ -765,7 +765,7 @@ async function ruLoadHistory() {
 // panel-renewalsUnmatched
 // ═══════════════════════════════════════════════════════════════════════
 
-let _ruUnmatchedRows = []; // in-memory lookup for raw_name by id — see ruAssign/ruIgnore
+let _ruUnmatchedRows = []; // in-memory lookup for raw_name by id — see ruAssign
 
 async function loadRenewalsUnmatched() {
   const body = document.getElementById('ruUnmatchedBody');
@@ -820,7 +820,7 @@ function ruRenderUnmatched(rows) {
 
   body.innerHTML = rows.map(r => `
     <tr id="ruRow-${r.id}" data-name="${_ruEsc((r.raw_name || '').toLowerCase())}">
-      <td style="padding:8px;">${_ruEsc(r.raw_name)}</td>
+      <td style="padding:8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_ruEsc(r.raw_name)}">${_ruEsc(r.raw_name)}</td>
       <td style="padding:8px;text-align:right;">${Number(r.grand_total || 0).toLocaleString('en-IN')}</td>
       <td style="padding:8px;text-align:right;">${Number(r.bucket_0_30 || 0).toLocaleString('en-IN')}</td>
       <td style="padding:8px;text-align:right;">${Number(r.bucket_31_60 || 0).toLocaleString('en-IN')}</td>
@@ -834,8 +834,7 @@ function ruRenderUnmatched(rows) {
         <select id="ruCategory-${r.id}" style="width:100%;padding:4px;border-radius:6px;border:1px solid var(--border);background:var(--bg,transparent);color:var(--text);">${categoryOptions}</select>
       </td>
       <td style="padding:8px;text-align:center;white-space:nowrap;">
-        <button onclick="ruAssign('${r.id}')" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;margin-right:4px;">Assign</button>
-        <button onclick="ruIgnore('${r.id}')" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;">Ignore</button>
+        <button onclick="ruAssign('${r.id}')" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;">Assign</button>
       </td>
     </tr>
   `).join('');
@@ -888,29 +887,6 @@ async function ruAssign(id) {
     countEl.textContent = `${remaining} unresolved`;
   } catch (e) {
     alert('❌ Could not assign: ' + e.message);
-  }
-}
-
-async function ruIgnore(id) {
-  if (!confirm('Mark this row as resolved without creating a customer?')) return;
-  try {
-    const row = _ruUnmatchedRows.find(r => r.id === id);
-    if (!row) throw new Error('row not found — try refreshing the tab');
-
-    // Scoped by raw_name (not just this id) so any older still-unresolved
-    // duplicate for the same name gets ignored too in one call.
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/unmatched_import_names?raw_name=eq.${encodeURIComponent(row.raw_name)}&resolved=eq.false`,
-      { method: 'PATCH', headers: SB_HDRS_MIN(), body: JSON.stringify({ resolved: true }) },
-    );
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const rowEl = document.getElementById(`ruRow-${id}`);
-    if (rowEl) rowEl.remove();
-    const countEl = document.getElementById('ruUnmatchedCount');
-    const remaining = document.querySelectorAll('#ruUnmatchedBody tr[id^="ruRow-"]').length;
-    countEl.textContent = `${remaining} unresolved`;
-  } catch (e) {
-    alert('❌ Could not ignore: ' + e.message);
   }
 }
 
@@ -1603,6 +1579,63 @@ function _ruDetailFieldRowsHtml(rows) {
   `).join('');
 }
 
+// Category is the one editable row in this section — changing it also drives
+// which category section the customer sits under back on the My Customers
+// list, so it carries calling_frequency along with it (same Platinum/Gold/
+// Silver → frequency mapping used when resolving an unmatched name).
+function _ruDetailAccountSectionHtml(c) {
+  const categoryOptions = ['', ...RU_CATEGORY_ORDER]
+    .map(cat => `<option value="${cat}" ${cat === (c.category || '') ? 'selected' : ''}>${cat || 'Uncategorized'}</option>`)
+    .join('');
+  return `
+    <div style="color:var(--muted);font-weight:600;">Category</div>
+    <div>
+      <select data-customer-id="${c.id}" onchange="ruSaveCategoryField(this)"
+        style="width:100%;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg,transparent);color:var(--text);font-size:0.85rem;font-family:inherit;">
+        ${categoryOptions}
+      </select>
+    </div>
+    ${_ruDetailFieldRowsHtml([
+      ['Frequency', c.calling_frequency || '—'],
+      ['Status', c.crm_status || '—'],
+      ['Last Call', _ruLastCallText(c)],
+    ])}
+  `;
+}
+
+async function ruSaveCategoryField(selectEl) {
+  const customerId = selectEl.dataset.customerId;
+  const value = selectEl.value || null;
+  const newFrequency = value ? RU_CATEGORY_FREQ[value] : null;
+  const customer = _ruMyCustomers.find(x => x.id === customerId);
+  const previousCategory = customer ? customer.category : null;
+  const previousFrequency = customer ? customer.calling_frequency : null;
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/crm_customers?id=eq.${customerId}`, {
+      method: 'PATCH',
+      headers: SB_HDRS_MIN(),
+      body: JSON.stringify({ category: value, calling_frequency: newFrequency }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    if (customer) {
+      customer.category = value;
+      customer.calling_frequency = newFrequency;
+      document.getElementById('ruCustomerDetailSubtitle').textContent =
+        `${value || 'Uncategorized'}${customer.city ? ' · ' + customer.city : ''}`;
+      document.getElementById('ruCustomerDetailAccount').innerHTML = _ruDetailAccountSectionHtml(customer);
+    }
+    // Category decides which section of the My Customers list this row
+    // lives under, so the list behind the modal needs a full re-render too.
+    ruRenderMyCustomers(document.getElementById('ruMyCustomersBody'));
+  } catch (e) {
+    if (customer) { customer.category = previousCategory; customer.calling_frequency = previousFrequency; }
+    selectEl.value = previousCategory || '';
+    alert('❌ Could not save: ' + e.message);
+  }
+}
+
 function ruOpenCustomerDetail(customerId) {
   const c = _ruMyCustomers.find(x => x.id === customerId);
   if (!c) return;
@@ -1620,12 +1653,7 @@ function ruOpenCustomerDetail(customerId) {
     ['Contact Person', c.contact_person || '—'],
     ['Contact Number', c.contact_number || '—'],
   ]);
-  document.getElementById('ruCustomerDetailAccount').innerHTML = _ruDetailFieldRowsHtml([
-    ['Category', c.category || '—'],
-    ['Frequency', c.calling_frequency || '—'],
-    ['Status', c.crm_status || '—'],
-    ['Last Call', _ruLastCallText(c)],
-  ]);
+  document.getElementById('ruCustomerDetailAccount').innerHTML = _ruDetailAccountSectionHtml(c);
   document.getElementById('ruCustomerDetailFinancial').innerHTML = _ruDetailFieldRowsHtml([
     ['Outstanding', grandTotal],
     ['Recovered Amount', Number(c.recovered_amount || 0).toLocaleString('en-IN')],
