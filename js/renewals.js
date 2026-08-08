@@ -771,13 +771,27 @@ async function loadRenewalsUnmatched() {
   const body = document.getElementById('ruUnmatchedBody');
   body.innerHTML = '<tr><td colspan="10" style="padding:12px;color:var(--muted);">Loading…</td></tr>';
   try {
+    // Only names from the most recent upload count as "current" — a name
+    // that was unresolved in an older upload and never reappeared since
+    // isn't part of this month's outstanding at all, just stale backlog,
+    // so it shouldn't clutter this tab alongside this month's real ones.
+    const latestBatchRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/unmatched_import_names?select=import_batch_date&order=import_batch_date.desc&limit=1`,
+      { headers: SB_HDRS() },
+    );
+    if (!latestBatchRes.ok) throw new Error('unmatched_import_names: HTTP ' + latestBatchRes.status);
+    const [latestBatchRow] = await latestBatchRes.json();
+    const latestBatchDate = latestBatchRow?.import_batch_date;
+
     const [personsRes, rowsRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
       // One row per raw_name (the most recent still-unresolved occurrence) —
-      // see migration 0018. Older duplicate rows for the same raw_name
-      // (from a prior month's upload, still unresolved back then) stay in
-      // the underlying table but aren't shown here.
-      fetch(`${SUPABASE_URL}/rest/v1/latest_unmatched_import_names?order=grand_total.desc&select=*`, { headers: SB_HDRS() }),
+      // see migration 0018 — further restricted to just the latest batch date.
+      fetch(
+        `${SUPABASE_URL}/rest/v1/latest_unmatched_import_names?order=grand_total.desc&select=*` +
+          (latestBatchDate ? `&import_batch_date=eq.${latestBatchDate}` : ''),
+        { headers: SB_HDRS() },
+      ),
     ]);
     if (!personsRes.ok) throw new Error('crm_persons: HTTP ' + personsRes.status);
     if (!rowsRes.ok) throw new Error('latest_unmatched_import_names: HTTP ' + rowsRes.status);
@@ -2229,7 +2243,14 @@ async function loadRenewalsUnassignedPool() {
     _ruUnassignedPersons = await personsRes.json();
     const snapMap = new Map(snaps.map(s => [s.customer_id, s]));
 
-    _ruUnassignedPool = customers.map(c => ({ ...c, _snapshot: snapMap.get(c.id) || null }));
+    // Zero balance means already paid off — that belongs in Closed/Paid, not
+    // here (there's nothing to assign anyone to collect). No snapshot at all
+    // is different — unknown status, not confirmed paid — so those still show.
+    _ruUnassignedPool = customers
+      .map(c => ({ ...c, _snapshot: snapMap.get(c.id) || null }))
+      .filter(c => !c._snapshot || Number(c._snapshot.grand_total) > 0);
+    _ruUnassignedPoolCount = _ruUnassignedPool.length;
+    _ruUpdateUnassignedPoolTabLabel();
 
     ruRenderUnassignedPool(container);
   } catch (e) {
