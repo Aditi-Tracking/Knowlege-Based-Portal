@@ -684,6 +684,12 @@ function vfInvFileChosen(input){
   const label=document.getElementById('vfInvUploadLabel');
   if(input.files[0])label.style.background='rgba(78,154,241,0.18)';
 }
+function rpdInvFileChosen(input){
+  const name=input.files[0]?input.files[0].name:'No file chosen';
+  document.getElementById('rpdInvFileName').textContent=name;
+  const label=document.getElementById('rpdInvUploadLabel');
+  if(input.files[0])label.style.background='rgba(78,154,241,0.18)';
+}
 function vrmAttachFileChosen(input){
   document.getElementById('vrmAttachName').textContent=input.files[0]?input.files[0].name:'No file chosen';
 }
@@ -1254,6 +1260,10 @@ function openRecurringDetail(id){
   document.getElementById('rpdProduct').value=r.product_name||'';
   document.getElementById('rpdLocation').value=r.location||'';
   document.getElementById('rpdAmount').value=r.amount!=null?r.amount:'';
+  const invFile=document.getElementById('rpdInvFile');if(invFile)invFile.value='';
+  document.getElementById('rpdInvFileName').textContent='No file chosen';
+  const invExisting=document.getElementById('rpdInvExisting');
+  if(r.invoice_link){invExisting.href=r.invoice_link;invExisting.style.display='inline';}else{invExisting.style.display='none';}
   document.getElementById('rpdSubmitErr').style.display='none';
   document.getElementById('rpdMsg').style.display='none';
 
@@ -1302,6 +1312,22 @@ async function rpSaveBill(){
   if(!bill){errEl.textContent='❌ Bill not found.';errEl.style.display='block';return;}
   btn.disabled=true;btn.textContent='Saving…';
   try{
+    // Attachment is optional — only touches invoice_link if a new file was actually
+    // picked; a PATCH without this key leaves whatever was already there untouched,
+    // and a fresh INSERT (new cycle) with no file just leaves the column NULL rather
+    // than carrying over last cycle's attachment.
+    let invoiceUrl=null;
+    const invFile=document.getElementById('rpdInvFile')?.files?.[0];
+    if(invFile){
+      btn.textContent='Uploading…';
+      try{
+        invoiceUrl=await _vrUploadFile(invFile,'vendor-attachments','recurring');
+      }catch(e){
+        console.warn('Attachment upload failed, proceeding without it:',e.message);
+        invoiceUrl=null;
+      }
+      btn.textContent='Saving…';
+    }
     const empId=await _rpMyEmpId();
     const cycleKey=_rpCycleKey(bill.due_date);
     const payload={
@@ -1316,6 +1342,7 @@ async function rpSaveBill(){
       submitted_at:new Date().toISOString(),
       last_submitted_month:cycleKey
     };
+    if(invoiceUrl)payload.invoice_link=invoiceUrl;
     // If this bill already has a record for an OLDER cycle, insert a fresh row so
     // that old cycle's Approved/Paid state survives for the Month/Year history
     // filter — otherwise (first-ever submission, or correcting the same cycle

@@ -6328,6 +6328,18 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
             </select>
           </div>
           <div><label class="vf-lbl">Amount (₹) *</label><input class="vf-inp" id="rpdAmount" type="number" min="0" step="0.01" placeholder="Enter amount"></div>
+          <div>
+            <label class="vf-lbl">Bill / Invoice Copy <span style="color:var(--muted);font-weight:400;text-transform:none;">(optional)</span></label>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <label id="rpdInvUploadLabel" style="display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1.5px solid rgba(78,154,241,0.4);background:rgba(78,154,241,0.08);color:#4e9af1;font-size:0.84rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.18s;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                📤 Upload
+                <input type="file" id="rpdInvFile" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;" onchange="rpdInvFileChosen(this)">
+              </label>
+              <span id="rpdInvFileName" style="font-size:0.82rem;color:var(--muted);">No file chosen</span>
+              <a id="rpdInvExisting" href="#" target="_blank" style="display:none;font-size:0.82rem;color:#4e9af1;font-weight:700;text-decoration:none;">📎 View current attachment</a>
+            </div>
+          </div>
         </div>
         <div id="rpdSubmitErr" style="display:none;margin-top:10px;padding:9px 12px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;font-size:0.82rem;"></div>
         <button id="rpdSubmitBtn" onclick="rpSaveBill()" style="width:100%;margin-top:12px;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#00d4aa,#00a884);color:#000;font-size:0.86rem;font-weight:800;cursor:pointer;font-family:inherit;">💾 Save &amp; Submit This Month</button>
