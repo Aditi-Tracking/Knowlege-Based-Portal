@@ -1,9 +1,10 @@
 // Triggered by trigger_parse_outstanding_fn (storage.objects INSERT, filtered to
 // bucket_id = 'accounts-uploads'). Parses the uploaded Accounts Excel export and
 // reconciles it against outstanding_snapshots. The trigger creates an import_jobs
-// row and passes its id as payload.job_id — this function reports status/summary/
-// error back against that row so the frontend can poll it directly instead of
-// inferring completion from row-count changes.
+// row and passes its id as payload.job_id, plus the already-parsed `location`
+// (folder prefix of the upload path, e.g. "gujarat/file.xlsx" -> "gujarat",
+// no folder -> "original") — this function reports status/summary/error back
+// against that row so the frontend can poll it directly.
 //
 // Required secrets (set via `supabase secrets set`):
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  (auto-injected by the platform)
@@ -55,9 +56,15 @@ function parseNum(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+// Kept as a fallback derivation from the path, in case `payload.location`
+// is ever missing (e.g. a manually-triggered replay) — must match the
+// trigger function's own parsing exactly, or the two can disagree.
+function locationFromPath(objectPath: string): string {
+  const slashIdx = objectPath.indexOf("/");
+  return slashIdx > 0 ? objectPath.slice(0, slashIdx) : "original";
+}
+
 Deno.serve(async (req) => {
-  // Declared outside the try block so the catch handler can still report
-  // status back against the right import_jobs row if something throws.
   let jobId: string | undefined;
   let supabase: ReturnType<typeof createClient> | undefined;
 
@@ -80,6 +87,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ skipped: true, reason: "not an accounts-uploads event" }), { status: 200 });
     }
     const objectPath: string = record.name;
+    const location: string = payload?.location ?? locationFromPath(objectPath);
+
     if (!/\.xlsx?$/i.test(objectPath)) {
       if (jobId) {
         await supabase.from("import_jobs").update({
@@ -117,27 +126,19 @@ Deno.serve(async (req) => {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: prevDateRow } = await supabase
-      .from("outstanding_snapshots")
-      .select("snapshot_date")
+    // Scoped to this upload's location now. Previously this queried ALL
+    // locations' active customers with no filter — meaning a Gujarat upload
+    // would see Bangalore/original customers as "not in this batch" and
+    // incorrectly auto-close them. `latest_outstanding_snapshots` carries
+    // `location` directly, so this is a simple added .eq().
+    const { data: previousActiveData } = await supabase
+      .from("latest_outstanding_snapshots")
+      .select("customer_id, grand_total, crm_customers(billing_name)")
+      .eq("location", location)
       .lt("snapshot_date", today)
-      .order("snapshot_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const previousBatchDate: string | null = prevDateRow?.snapshot_date ?? null;
-
-    let previousActive: { customer_id: string; grand_total: number; crm_customers: { billing_name: string } | null }[] = [];
-    if (previousBatchDate) {
-      const { data } = await supabase
-        .from("outstanding_snapshots")
-        .select("customer_id, grand_total, crm_customers(billing_name)")
-        .eq("snapshot_date", previousBatchDate)
-        .eq("is_closed", false);
-      previousActive = data ?? [];
-    }
-    // billing_name carried alongside grand_total here purely so the closed
-    // loop below can denormalize it into import_job_closures — see that
-    // table's migration for why it's copied rather than joined live later.
+      .eq("is_closed", false);
+    const previousActive: { customer_id: string; grand_total: number; crm_customers: { billing_name: string } | null }[] =
+      previousActiveData ?? [];
     const previousActiveMap = new Map(
       previousActive.map((r) => [r.customer_id, { grandTotal: r.grand_total, billingName: r.crm_customers?.billing_name ?? "" }]),
     );
@@ -156,7 +157,12 @@ Deno.serve(async (req) => {
       const bucket_above_90 = parseNum(row[columnMap.bucketAbove90!]);
       const grand_total = parseNum(row[columnMap.grandTotal!]);
 
-      const { data: customerId } = await supabase.rpc("match_customer_name", { input_name: billingName });
+      // Passes location — match_customer_name's new signature disambiguates
+      // aliases per-location.
+      const { data: customerId } = await supabase.rpc("match_customer_name", {
+        input_name: billingName,
+        p_location: location,
+      });
 
       if (!customerId) {
         unmatched++;
@@ -170,8 +176,12 @@ Deno.serve(async (req) => {
             bucket_61_90,
             bucket_above_90,
             grand_total,
+            location,
           },
-          { onConflict: "raw_name,import_batch_date" },
+          // Conflict target now includes location (matches the new
+          // uq_unmatched_raw_name_batch_date_location constraint) — same
+          // name in two locations on the same day no longer overwrites.
+          { onConflict: "raw_name,import_batch_date,location" },
         );
         continue;
       }
@@ -201,6 +211,7 @@ Deno.serve(async (req) => {
           grand_total,
           recovered_amount,
           is_closed: false,
+          location,
         },
         { onConflict: "customer_id,snapshot_date" },
       );
@@ -221,13 +232,11 @@ Deno.serve(async (req) => {
           grand_total: 0,
           recovered_amount: prev.grandTotal,
           is_closed: true,
+          location,
         },
         { onConflict: "customer_id,snapshot_date" },
       );
 
-      // Auto-close behavior itself is unchanged above — this just makes
-      // which customers got closed in which import reviewable afterward,
-      // instead of only a one-time count shown right after upload.
       if (jobId) {
         await supabase.from("import_job_closures").insert({
           import_job_id: jobId,
@@ -250,7 +259,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ rows_processed: rows.length, matched, unmatched, closed }),
+      JSON.stringify({ rows_processed: rows.length, matched, unmatched, closed, location }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err) {

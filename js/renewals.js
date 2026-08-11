@@ -139,8 +139,17 @@ function _ruLoadCalendarDaysPref() {
   return 10;
 }
 
-let _ruCalendarWorkingDays = _ruLoadCalendarDaysPref();
-let _ruCalendarWindowEnd = null;  // ISO date string; null means "today"
+// Keyed by location — otherwise switching locations mid-session would carry
+// over a paged-away window position or working-day count from whichever
+// location's calendar was open last, showing what looks like that other
+// location's data under the newly-selected one.
+let _ruCalendarStateByLoc = {};
+function _ruCalState() {
+  if (!_ruCalendarStateByLoc[_ruLocation]) {
+    _ruCalendarStateByLoc[_ruLocation] = { workingDays: _ruLoadCalendarDaysPref(), windowEnd: null };
+  }
+  return _ruCalendarStateByLoc[_ruLocation];
+}
 let _ruCalendarCallsMap = null;   // Map<"customerId|date", row> for the current window; null = not loaded yet
 let _ruCalendarLoading = false;
 // Which edge to reveal on the next render — 'start' (scrollLeft 0) always
@@ -201,8 +210,8 @@ function _ruLatestWorkingDay(dateStr) {
 }
 
 function _ruCalendarDateRange() {
-  const end = _ruLatestWorkingDay(_ruCalendarWindowEnd || _ruTodayStr());
-  const start = _ruAddWorkingDays(end, -(_ruCalendarWorkingDays - 1));
+  const end = _ruLatestWorkingDay(_ruCalState().windowEnd || _ruTodayStr());
+  const start = _ruAddWorkingDays(end, -(_ruCalState().workingDays - 1));
   return { start, end };
 }
 
@@ -235,7 +244,7 @@ function ruCalendarNav(direction) {
     newEnd = _ruAddWorkingDays(start, -1);
     _ruCalendarScrollAnchor = 'start';
   } else {
-    newEnd = _ruAddWorkingDays(end, _ruCalendarWorkingDays);
+    newEnd = _ruAddWorkingDays(end, _ruCalState().workingDays);
     if (newEnd > latestWorkingDay) newEnd = latestWorkingDay;
     if (newEnd === end) return; // already showing the most recent window
     // 'start', not 'end' — dates render newest-first now, so the
@@ -244,7 +253,7 @@ function ruCalendarNav(direction) {
     _ruCalendarScrollAnchor = 'start';
   }
 
-  _ruCalendarWindowEnd = newEnd;
+  _ruCalState().windowEnd = newEnd;
   _ruCalendarCallsMap = null;
   ruLoadCalendarCalls();
 }
@@ -254,8 +263,8 @@ function ruCalendarNav(direction) {
 // reaches — switching density shouldn't also throw away where the user was.
 function ruChangeCalendarDays(value) {
   const n = parseInt(value, 10);
-  if (!Number.isFinite(n) || n < 1 || n === _ruCalendarWorkingDays) return;
-  _ruCalendarWorkingDays = n;
+  if (!Number.isFinite(n) || n < 1 || n === _ruCalState().workingDays) return;
+  _ruCalState().workingDays = n;
   try { localStorage.setItem(RU_CALENDAR_DAYS_STORAGE_KEY, String(n)); } catch (e) { /* ignore */ }
   _ruCalendarCallsMap = null;
   ruLoadCalendarCalls();
@@ -304,13 +313,13 @@ function _ruCalendarNavHtml() {
   const btnDisabled = 'padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:0.78rem;font-weight:700;cursor:not-allowed;font-family:inherit;opacity:0.5;';
   const nextDisabled = atToday || _ruCalendarLoading;
   const daysOptions = RU_CALENDAR_DAYS_OPTIONS
-    .map(n => `<option value="${n}" ${n === _ruCalendarWorkingDays ? 'selected' : ''}>${n} days</option>`)
+    .map(n => `<option value="${n}" ${n === _ruCalState().workingDays ? 'selected' : ''}>${n} days</option>`)
     .join('');
   return `
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <button onclick="ruCalendarNav('prev')" ${_ruCalendarLoading ? 'disabled' : ''} style="${_ruCalendarLoading ? btnDisabled : btnStyle}">◀ Previous ${_ruCalendarWorkingDays} working days</button>
+      <button onclick="ruCalendarNav('prev')" ${_ruCalendarLoading ? 'disabled' : ''} style="${_ruCalendarLoading ? btnDisabled : btnStyle}">◀ Previous ${_ruCalState().workingDays} working days</button>
       <span style="font-size:0.82rem;color:var(--muted);font-weight:600;white-space:nowrap;">${fmt(start)} – ${fmt(end)}</span>
-      <button onclick="ruCalendarNav('next')" ${nextDisabled ? 'disabled' : ''} style="${nextDisabled ? btnDisabled : btnStyle}">Next ${_ruCalendarWorkingDays} working days ▶</button>
+      <button onclick="ruCalendarNav('next')" ${nextDisabled ? 'disabled' : ''} style="${nextDisabled ? btnDisabled : btnStyle}">Next ${_ruCalState().workingDays} working days ▶</button>
       <select onchange="ruChangeCalendarDays(this.value)" ${_ruCalendarLoading ? 'disabled' : ''} title="Working days shown per page" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;">
         ${daysOptions}
       </select>
@@ -417,12 +426,28 @@ const RU_TABS = [
 ];
 
 let _ruFile = null;
+let _ruUploadLocation = ''; // never defaults — must be chosen explicitly on every visit to the Upload tab
 let _ruPersons = [];
 let _ruPollTimer = null;
 let _ruIsMIS = false;
-let _ruCrmPerson = null; // { id, name, full_data_access } | null — set by _applyRenewalsNavVisibility()
+let _ruCrmPerson = null; // { id, name, full_data_access, location } | null — set by _applyRenewalsNavVisibility()
 let _ruFullDataAccess = false; // mirrors _ruCrmPerson.full_data_access — org-wide data, still CRM-person tab set (migration 0020)
 let _ruActiveTab = null;
+
+// ── Location (migration 0027) — crm_persons/crm_customers/etc. are now
+// location-scoped. Mirrors the RLS helper has_renewals_location_access():
+// MIS sees every location; otherwise it's the CRM person's own
+// crm_persons.location unioned with any per-location grants in
+// renewals_location_access (a non-CRM-person given visibility into a
+// second location without being reclassified there).
+const RU_LOCATIONS = [
+  { value: 'original',  label: 'Original' },
+  { value: 'gujarat',   label: 'Gujarat' },
+  { value: 'bangalore', label: 'Bangalore' },
+  { value: 'goa',       label: 'Goa' },
+];
+let _ruLocation = 'original';
+let _ruAllowedLocations = ['original'];
 
 // raw_name/file names come from uploaded Excel data — untrusted — escape before innerHTML.
 function _ruEsc(s) {
@@ -476,7 +501,7 @@ async function _applyRenewalsNavVisibility() {
   if (!isRoleMIS && CURRENT_USER && CURRENT_USER.email) {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/crm_persons?email=ilike.${encodeURIComponent(CURRENT_USER.email)}&is_active=eq.true&select=id,name,full_data_access&limit=1`,
+        `${SUPABASE_URL}/rest/v1/crm_persons?email=ilike.${encodeURIComponent(CURRENT_USER.email)}&is_active=eq.true&select=id,name,full_data_access,location&limit=1`,
         { headers: SB_HDRS() },
       );
       const rows = await res.json();
@@ -487,6 +512,33 @@ async function _applyRenewalsNavVisibility() {
     } catch (e) {
       // treat as no match — nav item just won't show
     }
+  }
+
+  if (_ruIsMIS) {
+    _ruAllowedLocations = RU_LOCATIONS.map(l => l.value);
+  } else {
+    const grantedLocations = new Set();
+    if (_ruCrmPerson && _ruCrmPerson.location) grantedLocations.add(_ruCrmPerson.location);
+    if (CURRENT_USER && CURRENT_USER.email) {
+      try {
+        const locRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/renewals_location_access?email=ilike.${encodeURIComponent(CURRENT_USER.email)}&select=location`,
+          { headers: SB_HDRS() },
+        );
+        const locRows = await locRes.json();
+        if (Array.isArray(locRows)) locRows.forEach(r => r.location && grantedLocations.add(r.location));
+      } catch (e) {
+        // treat as no extra grants
+      }
+    }
+    _ruAllowedLocations = grantedLocations.size
+      ? RU_LOCATIONS.map(l => l.value).filter(v => grantedLocations.has(v))
+      : ['original'];
+  }
+  if (!_ruAllowedLocations.includes(_ruLocation)) {
+    _ruLocation = (_ruCrmPerson && _ruCrmPerson.location && _ruAllowedLocations.includes(_ruCrmPerson.location))
+      ? _ruCrmPerson.location
+      : _ruAllowedLocations[0];
   }
 
   const hasAccess = _ruIsMIS || !!_ruCrmPerson;
@@ -521,7 +573,7 @@ function _ruUpdateUnassignedPoolTabLabel() {
 
 async function _ruRefreshUnassignedPoolBadge() {
   try {
-    _ruUnassignedPoolCount = await _ruCount('crm_customers', 'assigned_crm_person_id=is.null');
+    _ruUnassignedPoolCount = await _ruCount('crm_customers', `assigned_crm_person_id=is.null&location=eq.${encodeURIComponent(_ruLocation)}`);
     _ruUpdateUnassignedPoolTabLabel();
   } catch (e) { /* badge is cosmetic — ignore failures */ }
 }
@@ -563,6 +615,46 @@ function ruRenderTabBar() {
     .join('');
 }
 
+// Renders only if there's more than one location to switch between — same
+// "nothing to render at all" rule ruRenderTabBar uses for its own bar.
+function ruRenderLocationBar() {
+  const bar = document.getElementById('ruLocationBar');
+  if (!bar) return;
+
+  if (_ruAllowedLocations.length <= 1) {
+    bar.style.display = 'none';
+    bar.innerHTML = '';
+    return;
+  }
+
+  const options = RU_LOCATIONS
+    .filter(l => _ruAllowedLocations.includes(l.value))
+    .map(l => `<option value="${l.value}" ${l.value === _ruLocation ? 'selected' : ''}>${l.label}</option>`)
+    .join('');
+
+  bar.style.display = 'flex';
+  bar.innerHTML = `
+    <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;font-weight:700;color:var(--muted);">
+      📍 Location
+      <select onchange="ruSwitchLocation(this.value)" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit;">
+        ${options}
+      </select>
+    </label>
+  `;
+}
+
+// Switching locations re-enters whichever tab is currently open the same way
+// a plain tab-bar click would — ruSwitchTab's per-tab loaders already reset
+// their own caches (calendar window, _ruMyCustomers, etc.), so there's no
+// separate "clear stale data" step needed here beyond that.
+function ruSwitchLocation(loc) {
+  if (loc === _ruLocation || !_ruAllowedLocations.includes(loc)) return;
+  _ruLocation = loc;
+  ruRenderLocationBar();
+  if (_ruIsMIS) _ruRefreshUnassignedPoolBadge();
+  if (_ruActiveTab) ruSwitchTab(_ruActiveTab);
+}
+
 function ruSwitchTab(tabId) {
   // Backstop, not the primary control — the tab bar itself only ever renders
   // buttons this user is allowed to see.
@@ -591,6 +683,7 @@ function ruSwitchTab(tabId) {
 // buttons call ruSwitchTab() directly, never back through here), so
 // switching tabs internally isn't reset by this.
 function loadRenewals() {
+  ruRenderLocationBar();
   ruRenderTabBar();
   const visible = _ruVisibleTabIds();
   if (!visible.length) return; // shouldn't happen — the nav item itself would be hidden
@@ -612,7 +705,35 @@ function loadRenewalsUpload() {
     zone.style.borderColor = '';
     if (e.dataTransfer.files.length) ruHandleFileSelect(e.dataTransfer.files[0]);
   };
+
+  // Never carries a prior selection over — populated fresh from this user's
+  // allowed locations every time the tab is entered, and must be re-chosen
+  // explicitly (see ruUploadLocation's placeholder option).
+  _ruUploadLocation = '';
+  const locSelect = document.getElementById('ruUploadLocation');
+  if (locSelect) {
+    const opts = RU_LOCATIONS.filter(l => _ruAllowedLocations.includes(l.value));
+    locSelect.innerHTML = '<option value="">Select location…</option>' +
+      opts.map(l => `<option value="${l.value}">${l.label}</option>`).join('');
+    locSelect.value = '';
+  }
+
   ruLoadHistory();
+}
+
+function ruChangeUploadLocation(value) {
+  _ruUploadLocation = value;
+  _ruUpdateUploadSubmitState();
+}
+
+// Gates the submit button on BOTH a chosen file and an explicitly chosen
+// location — neither alone is enough to upload.
+function _ruUpdateUploadSubmitState() {
+  const btn = document.getElementById('ruSubmitBtn');
+  if (!btn) return;
+  const ready = !!_ruFile && !!_ruUploadLocation;
+  btn.disabled = !ready;
+  btn.style.opacity = ready ? '1' : '0.5';
 }
 
 function ruHandleFileSelect(file) {
@@ -623,13 +744,11 @@ function ruHandleFileSelect(file) {
   }
   _ruFile = file;
   document.getElementById('ruDropLabel').textContent = file.name;
-  const btn = document.getElementById('ruSubmitBtn');
-  btn.disabled = false;
-  btn.style.opacity = '1';
+  _ruUpdateUploadSubmitState();
 }
 
 async function ruUpload() {
-  if (!_ruFile) return;
+  if (!_ruFile || !_ruUploadLocation) return;
   const btn = document.getElementById('ruSubmitBtn');
   const statusBox = document.getElementById('ruStatus');
   const statusText = document.getElementById('ruStatusText');
@@ -642,8 +761,21 @@ async function ruUpload() {
 
   try {
     const safeName = _ruFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const path = `${Date.now()}_${safeName}`;
-    const storageUrl = `${SUPABASE_URL}/storage/v1/object/${RU_BUCKET}/${encodeURIComponent(path)}`;
+    // The folder prefix is the ONLY thing that tags this upload's location —
+    // the trigger parses it back out (no "/" in the name -> 'original').
+    // 'original' deliberately gets NO folder, matching every upload that
+    // existed before this migration (all sitting flat at the bucket root) —
+    // a literal "original/" folder would work too (split_part parses it the
+    // same way) but would split original's history across root AND a new
+    // subfolder for no benefit.
+    const path = _ruUploadLocation === 'original'
+      ? `${Date.now()}_${safeName}`
+      : `${_ruUploadLocation}/${Date.now()}_${safeName}`;
+    // Encode each path segment separately, not the joined path — encoding
+    // the whole thing would escape the folder-separating "/" itself (as
+    // %2F), which the trigger's split_part() needs literal to parse the
+    // location back out.
+    const storageUrl = `${SUPABASE_URL}/storage/v1/object/${RU_BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`;
 
     await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -707,7 +839,6 @@ function ruWatchProcessing(filePath) {
       _ruPollTimer = null;
       const statusText = document.getElementById('ruStatusText');
       const statusSummary = document.getElementById('ruStatusSummary');
-      const btn = document.getElementById('ruSubmitBtn');
       if (job && job.status === 'done') {
         statusText.textContent = '✅ Done';
         statusSummary.textContent =
@@ -719,11 +850,13 @@ function ruWatchProcessing(filePath) {
         statusText.textContent = '⚠️ Still processing after 2 minutes';
         statusSummary.textContent = 'No status update yet — refresh this page shortly to re-check.';
       }
-      btn.disabled = false;
-      btn.style.opacity = '1';
       _ruFile = null;
+      _ruUploadLocation = '';
       document.getElementById('ruFileInput').value = '';
       document.getElementById('ruDropLabel').textContent = 'Click to choose or drag & drop the Accounts Excel file';
+      const locSelect = document.getElementById('ruUploadLocation');
+      if (locSelect) locSelect.value = '';
+      _ruUpdateUploadSubmitState(); // re-disables the button — both file and location must be chosen fresh again
       ruLoadHistory();
     }
   }, 3000);
@@ -733,17 +866,26 @@ async function ruLoadHistory() {
   const body = document.getElementById('ruHistoryBody');
   body.innerHTML = '<tr><td colspan="2" style="padding:12px;color:var(--muted);">Loading…</td></tr>';
   try {
+    // Scoped to the currently active location tab. 'original' uploads sit at
+    // the bucket root (no folder — see ruUpload), same as every upload made
+    // before this migration; other locations each have their own subfolder.
+    const isOriginal = _ruLocation === 'original';
+    const prefix = isOriginal ? '' : `${_ruLocation}/`;
     const res = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${RU_BUCKET}`, {
       method: 'POST',
       headers: SB_HDRS_JSON(),
-      body: JSON.stringify({ prefix: '', limit: 20, sortBy: { column: 'created_at', order: 'desc' } }),
+      body: JSON.stringify({ prefix, limit: 20, sortBy: { column: 'created_at', order: 'desc' } }),
     });
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
       console.error('ruLoadHistory failed:', res.status, errText); // TEMP — remove once confirmed fixed
       throw new Error('HTTP ' + res.status + ' — ' + errText.slice(0, 200));
     }
-    const files = await res.json();
+    let files = await res.json();
+    // Listing the root also surfaces each location subfolder itself as a
+    // pseudo-entry (id: null, no created_at) — only relevant for 'original',
+    // since the other locations' own folders never contain further folders.
+    if (isOriginal && Array.isArray(files)) files = files.filter(f => f.id);
     if (!Array.isArray(files) || !files.length) {
       body.innerHTML = '<tr><td colspan="2" style="padding:12px;color:var(--muted);">No uploads yet.</td></tr>';
       return;
@@ -776,7 +918,7 @@ async function loadRenewalsUnmatched() {
     // isn't part of this month's outstanding at all, just stale backlog,
     // so it shouldn't clutter this tab alongside this month's real ones.
     const latestBatchRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/unmatched_import_names?select=import_batch_date&order=import_batch_date.desc&limit=1`,
+      `${SUPABASE_URL}/rest/v1/unmatched_import_names?select=import_batch_date&location=eq.${encodeURIComponent(_ruLocation)}&order=import_batch_date.desc&limit=1`,
       { headers: SB_HDRS() },
     );
     if (!latestBatchRes.ok) throw new Error('unmatched_import_names: HTTP ' + latestBatchRes.status);
@@ -784,11 +926,11 @@ async function loadRenewalsUnmatched() {
     const latestBatchDate = latestBatchRow?.import_batch_date;
 
     const [personsRes, rowsRes] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&location=eq.${encodeURIComponent(_ruLocation)}&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
       // One row per raw_name (the most recent still-unresolved occurrence) —
       // see migration 0018 — further restricted to just the latest batch date.
       fetch(
-        `${SUPABASE_URL}/rest/v1/latest_unmatched_import_names?order=grand_total.desc&select=*` +
+        `${SUPABASE_URL}/rest/v1/latest_unmatched_import_names?order=grand_total.desc&select=*&location=eq.${encodeURIComponent(_ruLocation)}` +
           (latestBatchDate ? `&import_batch_date=eq.${latestBatchDate}` : ''),
         { headers: SB_HDRS() },
       ),
@@ -846,12 +988,17 @@ function ruRenderUnmatched(rows) {
 // the current one is handled — see migration 0018. Best-effort: the primary
 // action (assign/ignore) has already succeeded by the time this runs, so a
 // failure here is logged, not surfaced as an error to the user.
-async function _ruSweepUnmatchedDuplicates(rawName, resolvedCustomerId) {
+async function _ruSweepUnmatchedDuplicates(rawName, location, resolvedCustomerId) {
   try {
     const body = { resolved: true };
     if (resolvedCustomerId) body.resolved_customer_id = resolvedCustomerId;
     await fetch(
-      `${SUPABASE_URL}/rest/v1/unmatched_import_names?raw_name=eq.${encodeURIComponent(rawName)}&resolved=eq.false`,
+      // Scoped to the same location as the row just resolved — raw_name
+      // alone is no longer unique across locations (e.g. two different
+      // locations can each have a real, independently-unresolved customer
+      // that happens to share a billing name), so an unscoped sweep here
+      // would wrongly resolve the other location's still-pending row too.
+      `${SUPABASE_URL}/rest/v1/unmatched_import_names?raw_name=eq.${encodeURIComponent(rawName)}&location=eq.${encodeURIComponent(location)}&resolved=eq.false`,
       { method: 'PATCH', headers: SB_HDRS_MIN(), body: JSON.stringify(body) },
     );
   } catch (e) {
@@ -878,7 +1025,7 @@ async function ruAssign(id) {
     const newCustomerId = await res.json(); // resolve_unmatched_customer() returns the new customer's uuid directly
 
     const row = _ruUnmatchedRows.find(r => r.id === id);
-    if (row) await _ruSweepUnmatchedDuplicates(row.raw_name, newCustomerId);
+    if (row) await _ruSweepUnmatchedDuplicates(row.raw_name, row.location, newCustomerId);
 
     const rowEl = document.getElementById(`ruRow-${id}`);
     if (rowEl) rowEl.remove();
@@ -908,7 +1055,7 @@ async function loadRenewalsMyCustomers() {
     // a regular CRM person still only sees their own assigned book.
     const scopeQuery = (_ruIsMIS || _ruFullDataAccess) ? '' : `&assigned_crm_person_id=eq.${_ruCrmPerson.id}`;
     const custRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/crm_customers?select=*&order=billing_name.asc${scopeQuery}`,
+      `${SUPABASE_URL}/rest/v1/crm_customers?select=*&order=billing_name.asc&location=eq.${encodeURIComponent(_ruLocation)}${scopeQuery}`,
       { headers: SB_HDRS() },
     );
     if (!custRes.ok) throw new Error('crm_customers: HTTP ' + custRes.status);
@@ -923,7 +1070,7 @@ async function loadRenewalsMyCustomers() {
     const [snapRes, callRes, personsRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/latest_outstanding_snapshots?customer_id=in.(${ids})&select=customer_id,grand_total`, { headers: SB_HDRS() }),
       fetch(`${SUPABASE_URL}/rest/v1/latest_collection_calls?customer_id=in.(${ids})&select=customer_id,call_date,connected`, { headers: SB_HDRS() }),
-      fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&location=eq.${encodeURIComponent(_ruLocation)}&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
     ]);
     if (!snapRes.ok) throw new Error('latest_outstanding_snapshots: HTTP ' + snapRes.status);
     if (!callRes.ok) throw new Error('latest_collection_calls: HTTP ' + callRes.status);
@@ -2098,7 +2245,7 @@ async function loadRenewalsClosedPaid() {
   try {
     const scopeQuery = (_ruIsMIS || _ruFullDataAccess) ? '' : `&assigned_crm_person_id=eq.${_ruCrmPerson.id}`;
     const custRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/crm_customers?select=id,billing_name,category,assigned_crm_person_id&order=billing_name.asc${scopeQuery}`,
+      `${SUPABASE_URL}/rest/v1/crm_customers?select=id,billing_name,category,assigned_crm_person_id&order=billing_name.asc&location=eq.${encodeURIComponent(_ruLocation)}${scopeQuery}`,
       { headers: SB_HDRS() },
     );
     if (!custRes.ok) throw new Error('crm_customers: HTTP ' + custRes.status);
@@ -2113,7 +2260,7 @@ async function loadRenewalsClosedPaid() {
     const ids = customers.map(c => c.id).join(',');
     const [snapRes, personsRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/latest_outstanding_snapshots?customer_id=in.(${ids})&select=customer_id,grand_total`, { headers: SB_HDRS() }),
-      fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&location=eq.${encodeURIComponent(_ruLocation)}&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
     ]);
     if (!snapRes.ok) throw new Error('latest_outstanding_snapshots: HTTP ' + snapRes.status);
     if (!personsRes.ok) throw new Error('crm_persons: HTTP ' + personsRes.status);
@@ -2242,7 +2389,7 @@ async function loadRenewalsUnassignedPool() {
 
   try {
     const custRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/crm_customers?assigned_crm_person_id=is.null&select=id,billing_name,city,contact_person,contact_number,category&order=billing_name.asc`,
+      `${SUPABASE_URL}/rest/v1/crm_customers?assigned_crm_person_id=is.null&select=id,billing_name,city,contact_person,contact_number,category&order=billing_name.asc&location=eq.${encodeURIComponent(_ruLocation)}`,
       { headers: SB_HDRS() },
     );
     if (!custRes.ok) throw new Error('crm_customers: HTTP ' + custRes.status);
@@ -2262,7 +2409,7 @@ async function loadRenewalsUnassignedPool() {
     const ids = customers.map(c => c.id).join(',');
     const [snapRes, personsRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/latest_outstanding_snapshots?customer_id=in.(${ids})&select=customer_id,grand_total`, { headers: SB_HDRS() }),
-      fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&location=eq.${encodeURIComponent(_ruLocation)}&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
     ]);
     if (!snapRes.ok) throw new Error('latest_outstanding_snapshots: HTTP ' + snapRes.status);
     if (!personsRes.ok) throw new Error('crm_persons: HTTP ' + personsRes.status);
@@ -2396,7 +2543,7 @@ async function loadRenewalsOverview() {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_renewals_overview`, {
       method: 'POST',
       headers: SB_HDRS_JSON(),
-      body: JSON.stringify({ p_crm_person_id: _ruCrmPerson ? _ruCrmPerson.id : null, p_full_access: _ruFullDataAccess }),
+      body: JSON.stringify({ p_crm_person_id: _ruCrmPerson ? _ruCrmPerson.id : null, p_full_access: _ruFullDataAccess, p_location: _ruLocation }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();

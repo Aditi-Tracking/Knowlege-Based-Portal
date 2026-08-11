@@ -4288,6 +4288,10 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
   <div class="db-content">
 
+    <!-- Location switcher injected here at runtime by ruRenderLocationBar() —
+         only renders when the user has access to more than one location. -->
+    <div id="ruLocationBar" style="display:none;margin-bottom:14px;"></div>
+
     <!-- Tab buttons injected here at runtime by ruRenderTabBar() — which tabs
          appear (or whether the bar renders at all) depends on role. -->
     <div id="ruTabBar" style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;"></div>
@@ -4308,6 +4312,15 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
     <!-- UPLOAD — relocated as-is from the old standalone panel-renewalsUpload, ids unchanged -->
     <div id="ruTab-upload" style="display:none;">
+      <!-- No default selection — the folder prefix this drives is the ONLY
+           thing that tags an upload's location, so an accidental wrong
+           selection would silently mistag an entire file's data. -->
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:0.82rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Location (required before uploading)</label>
+        <select id="ruUploadLocation" onchange="ruChangeUploadLocation(this.value)" style="padding:9px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-size:0.86rem;font-weight:700;cursor:pointer;font-family:inherit;min-width:220px;">
+          <option value="">Select location…</option>
+        </select>
+      </div>
       <div id="ruDropZone" style="border:2px dashed var(--border);border-radius:14px;padding:36px 20px;text-align:center;cursor:pointer;transition:all 0.18s;margin-bottom:20px;"
            onclick="document.getElementById('ruFileInput').click()">
         <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);margin-bottom:10px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
