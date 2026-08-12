@@ -288,8 +288,13 @@ async function ruLoadCalendarCalls() {
 
   const { start, end } = _ruCalendarDateRange();
   try {
+    // Filtered by location (+ person scope) via the embedded crm_customers
+    // relation rather than an IN-list of customer_id — see the identical
+    // comment in loadRenewalsMyCustomers for why an IN-list breaks at
+    // Goa's ~1000-customer scale.
+    const scopeQuery = (_ruIsMIS || _ruFullDataAccess) ? '' : `&crm_customers.assigned_crm_person_id=eq.${_ruCrmPerson.id}`;
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/collection_calls?customer_id=in.(${ids.join(',')})&call_date=gte.${start}&call_date=lte.${end}&select=customer_id,call_date,connected,conversation_notes,not_connected_reason&order=call_date.asc`,
+      `${SUPABASE_URL}/rest/v1/collection_calls?select=customer_id,call_date,connected,conversation_notes,not_connected_reason,crm_customers!inner(location)&crm_customers.location=eq.${encodeURIComponent(_ruLocation)}${scopeQuery}&call_date=gte.${start}&call_date=lte.${end}&order=call_date.asc`,
       { headers: SB_HDRS() },
     );
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1066,10 +1071,15 @@ async function loadRenewalsMyCustomers() {
       return;
     }
 
-    const ids = customers.map(c => c.id).join(',');
+    // Filtered by location (+ person scope for calls, via the embedded
+    // crm_customers relation) rather than an IN-list of customer_id — a
+    // location like Goa runs to ~1000 customers, which blows the ~1000-UUID
+    // IN-list past the API gateway's URL-length limit and gets rejected
+    // with an opaque 400 before it's even parsed.
+    const callScopeQuery = (_ruIsMIS || _ruFullDataAccess) ? '' : `&crm_customers.assigned_crm_person_id=eq.${_ruCrmPerson.id}`;
     const [snapRes, callRes, personsRes] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/latest_outstanding_snapshots?customer_id=in.(${ids})&select=customer_id,grand_total`, { headers: SB_HDRS() }),
-      fetch(`${SUPABASE_URL}/rest/v1/latest_collection_calls?customer_id=in.(${ids})&select=customer_id,call_date,connected`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/latest_outstanding_snapshots?location=eq.${encodeURIComponent(_ruLocation)}&select=customer_id,grand_total`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/latest_collection_calls?select=customer_id,call_date,connected,crm_customers!inner(location)&crm_customers.location=eq.${encodeURIComponent(_ruLocation)}${callScopeQuery}`, { headers: SB_HDRS() }),
       fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&location=eq.${encodeURIComponent(_ruLocation)}&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
     ]);
     if (!snapRes.ok) throw new Error('latest_outstanding_snapshots: HTTP ' + snapRes.status);
@@ -2229,6 +2239,22 @@ async function ruReassign(customerId, selectEl) {
   }
 }
 
+// Runs an IN-list query over `ids` in batches small enough that the built
+// URL stays well clear of the API gateway's length limit, then merges the
+// results — a single request with ~1000 UUIDs (Goa-scale) produces a
+// 37,000+ character URL that gets rejected with a blank 400 before it's
+// even parsed. `buildUrl` receives one batch's ids pre-joined with commas.
+async function _ruFetchInIdChunks(buildUrl, ids, chunkSize = 150) {
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += chunkSize) chunks.push(ids.slice(i, i + chunkSize));
+  const results = await Promise.all(chunks.map(async chunk => {
+    const res = await fetch(buildUrl(chunk.join(',')), { headers: SB_HDRS() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }));
+  return results.flat();
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // TAB: Closed/Paid — customers whose latest outstanding snapshot is 0.
 // Visible to MIS (all) and a CRM person (their own book), same scoping as
@@ -2257,9 +2283,11 @@ async function loadRenewalsClosedPaid() {
       return;
     }
 
-    const ids = customers.map(c => c.id).join(',');
+    // Filtered by location directly rather than an IN-list of customer_id —
+    // see the identical comment in loadRenewalsMyCustomers for why an
+    // IN-list breaks at Goa's ~1000-customer scale.
     const [snapRes, personsRes] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/latest_outstanding_snapshots?customer_id=in.(${ids})&select=customer_id,grand_total`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/latest_outstanding_snapshots?location=eq.${encodeURIComponent(_ruLocation)}&select=customer_id,grand_total`, { headers: SB_HDRS() }),
       fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&location=eq.${encodeURIComponent(_ruLocation)}&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
     ]);
     if (!snapRes.ok) throw new Error('latest_outstanding_snapshots: HTTP ' + snapRes.status);
@@ -2285,12 +2313,16 @@ async function loadRenewalsClosedPaid() {
       return;
     }
 
-    const historyRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/outstanding_snapshots?customer_id=in.(${closedIds.join(',')})&select=customer_id,snapshot_date,grand_total&order=customer_id.asc,snapshot_date.asc`,
-      { headers: SB_HDRS() },
+    // closedIds is an arbitrary, precise subset — unlike the snapshot query
+    // above it can't be replaced by a location filter (that would pull in
+    // every still-open customer's full history too), so it still needs an
+    // IN-list. Chunked to keep each request's URL well under the gateway's
+    // length limit regardless of how many customers in this location have
+    // closed out.
+    const history = await _ruFetchInIdChunks(
+      idsStr => `${SUPABASE_URL}/rest/v1/outstanding_snapshots?customer_id=in.(${idsStr})&select=customer_id,snapshot_date,grand_total&order=customer_id.asc,snapshot_date.asc`,
+      closedIds,
     );
-    if (!historyRes.ok) throw new Error('outstanding_snapshots: HTTP ' + historyRes.status);
-    const history = await historyRes.json();
 
     const historyByCustomer = new Map();
     history.forEach(row => {
@@ -2406,9 +2438,11 @@ async function loadRenewalsUnassignedPool() {
       return;
     }
 
-    const ids = customers.map(c => c.id).join(',');
+    // Filtered by location directly rather than an IN-list of customer_id —
+    // see the identical comment in loadRenewalsMyCustomers for why an
+    // IN-list breaks at Goa's ~1000-customer scale.
     const [snapRes, personsRes] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/latest_outstanding_snapshots?customer_id=in.(${ids})&select=customer_id,grand_total`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/latest_outstanding_snapshots?location=eq.${encodeURIComponent(_ruLocation)}&select=customer_id,grand_total`, { headers: SB_HDRS() }),
       fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&location=eq.${encodeURIComponent(_ruLocation)}&select=id,name&order=name.asc`, { headers: SB_HDRS() }),
     ]);
     if (!snapRes.ok) throw new Error('latest_outstanding_snapshots: HTTP ' + snapRes.status);
