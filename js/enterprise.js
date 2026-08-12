@@ -26,7 +26,7 @@ function _applyEnterpriseNavVisibility(){
 }
 
 // ── ENTERPRISE LEAD DASHBOARD ───────────────────────────────────────────
-const EN_URL='https://script.google.com/macros/s/AKfycbw5Jl0VME63SwnUhNQhANdmGcNdedK0yIz9n6LdtpLwaSM_p5sqG181rSwdYYhMbLeJ/exec';
+const EN_URL='https://script.google.com/macros/s/AKfycbwDeTRXcVrBVoanjxapudBwQFIxSxtoUEBdKUbz979yyeoGoVWO1s1jnYwg-jN2O2o/exec';
 let EN=[],ENf=[],ENch={},ENp=1,ENsk=null,ENsd=1,ENkpi=null,ENtblOpen=true;
 let ENcf={status:null,city:null,owner:null,source:null,product:null,milestone:null};
 const ENPP=15;
@@ -69,10 +69,26 @@ function enTodayKey(){
   const d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+// Apps Script's content-delivery layer for this deployment is intermittently
+// flaky — the script itself always completes successfully (see Executions log),
+// but the final response occasionally 404s anyway. A short retry clears this up
+// in practice almost every time, so don't surface an error on the first miss.
+async function _enFetchWithRetry(url,attempts=3,delayMs=900){
+  let lastErr;
+  for(let i=0;i<attempts;i++){
+    try{
+      const res=await fetch(url);
+      if(res.ok)return res;
+      lastErr=new Error(res.status);
+    }catch(e){ lastErr=e; }
+    if(i<attempts-1)await new Promise(r=>setTimeout(r,delayMs));
+  }
+  throw lastErr;
+}
 async function loadEnterprise(){
   if(!_canAccessEnterprise()){ switchDB('home'); return; }
   try{
-    const res=await fetch(EN_URL);if(!res.ok)throw new Error(res.status);
+    const res=await _enFetchWithRetry(EN_URL);
     let rows=await res.json();
     if(rows&&!Array.isArray(rows)&&rows.h&&rows.r){
       const headers=rows.h;
