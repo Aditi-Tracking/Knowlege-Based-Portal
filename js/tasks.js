@@ -335,7 +335,7 @@ function tTaskRequiresAttachment(taskName){
 function tHasAttachment(r){
   if(!r) return false;
   if(r['_upload_url']) return true;
-  const tid = String(r['Task ID']||'');
+  const tid = String(r['_id']||'');
   return tGetUploadCount(tid) > 0;
 }
 
@@ -835,7 +835,8 @@ function tRenderTable(){
   document.getElementById('tTblBody').innerHTML=pg.map((r,i)=>{
     const done=tIsDone(r);
     const isOngoing=!done&&tIsOngoing(r);
-    const ongoingData=tGetOngoingData(r['Task ID']);
+    const rid=String(r['_id']||'');
+    const ongoingData=tGetOngoingData(rid);
     const isSupport=(r['Department']||'').toLowerCase()==='support'||r['_source']==='support';
     // ── FIX (Goa): isSales check sirf HO Sales sheet ke liye chale, branch (goa/gujarat/bangalore)
     // ke Sales-dept rows ke liye nahi. Branch employees pre-filled Google Form direct kholenge,
@@ -850,7 +851,7 @@ function tRenderTable(){
       ?'<span class="badge" style="background:rgba(0,212,255,0.12);color:#00d4ff;border:1px solid rgba(0,212,255,0.25)">🔄 Ongoing</span>'
       :'<span class="badge" style="background:rgba(240,165,0,0.1);color:#f0a500;border:1px solid rgba(240,165,0,0.2)">⏳ Pending</span>';
     const _undoBtn = (done && _canUndoTask())
-      ? `<button onclick="tUndoTask('${r['Task ID']||''}')"
+      ? `<button onclick="tUndoTask('${rid}')"
            title="Undo — Set task back to Pending"
            style="margin-top:4px;width:100%;background:rgba(255,92,124,0.10);border:1.5px solid rgba(255,92,124,0.35);color:#ff5c7c;border-radius:7px;padding:4px 6px;font-size:0.72rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;transition:all 0.18s;"
            onmouseover="this.style.background='rgba(255,92,124,0.22)'" onmouseout="this.style.background='rgba(255,92,124,0.10)'">
@@ -866,12 +867,12 @@ function tRenderTable(){
           ${_undoBtn}
         </div>`
       :_attachMissing
-      ?`<button data-dept-tid="${r['Task ID']||''}" onclick="tBlockedMarkDone('${r['Task ID']||''}')"
+      ?`<button data-dept-tid="${rid}" onclick="tBlockedMarkDone('${rid}')"
             title="First Upload📎the document"
             style="background:rgba(255,92,124,0.10);color:#ff5c7c;border:1.5px dashed rgba(255,92,124,0.5);border-radius:8px;padding:6px 8px;font-size:0.76rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;transition:all 0.18s;">
             📎 Upload Required
           </button>`
-      :`<button data-dept-tid="${r['Task ID']||''}" onclick="deptShowRemarksInput('${r['Task ID']||''}','${_src}')"
+      :`<button data-dept-tid="${rid}" onclick="deptShowRemarksInput('${rid}','${_src}')"
             style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border-radius:8px;padding:6px 8px;font-size:0.78rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;width:100%;box-shadow:0 2px 6px rgba(168,85,247,0.3);transition:all 0.18s;">
             ✅ Mark Done
           </button>`;
@@ -888,12 +889,12 @@ function tRenderTable(){
            <span style="color:#00d4ff;font-size:0.80rem;font-weight:700">🔄 Ongoing</span>
            ${ongoingData&&ongoingData.expectedDate?`<span style="color:var(--muted);font-size:0.71rem;font-weight:500">📅 ${ongoingData.expectedDate}</span>`:''}
          </div>`
-      : `<button id="ong_${r['Task ID']||''}" onclick="tShowOngoing('${r['Task ID']||''}','${_src}')"
+      : `<button id="ong_${rid}" onclick="tShowOngoing('${rid}','${_src}')"
            style="background:rgba(0,212,255,0.08);border:1.5px solid rgba(0,212,255,0.3);color:#00d4ff;border-radius:8px;padding:6px 8px;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;width:100%;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.18s;">
            🔄 Ongoing
          </button>`;
-    const hasUpload = !!(r['_upload_url'] || tGetUploadCount(r['Task ID']||'') > 0);
-    const uploadUrl  = r['_upload_url'] || (() => { try{ const s=JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}'); const f=(s[String(r['Task ID']||'')]||[])[0]; return f?f.url:null; }catch(e){return null;} })();
+    const hasUpload = !!(r['_upload_url'] || tGetUploadCount(rid) > 0);
+    const uploadUrl  = r['_upload_url'] || (() => { try{ const s=JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}'); const f=(s[rid]||[])[0]; return f?f.url:null; }catch(e){return null;} })();
     const uploadCell = `
       <div style="display:flex;align-items:center;justify-content:center;">
         ${hasUpload && uploadUrl
@@ -903,8 +904,8 @@ function tRenderTable(){
                       border-radius:8px;text-decoration:none;font-size:1rem;cursor:pointer;transition:all 0.18s;"
                onmouseover="this.style.background='rgba(0,212,170,0.25)'"
                onmouseout="this.style.background='rgba(0,212,170,0.12)'">📄</a>`
-          : `<button id="tfu_btn_${r['Task ID']||''}" title="${_attachMissing?'Mandatory — File/PDF':'Upload file'}"
-               onclick="tOpenTaskUpload('${r['Task ID']||''}','${(r['Task']||'').replace(/'/g,"\\'")}')"
+          : `<button id="tfu_btn_${rid}" title="${_attachMissing?'Mandatory — File/PDF':'Upload file'}"
+               onclick="tOpenTaskUpload('${rid}','${(r['Task']||'').replace(/'/g,"\\'")}')"
                style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;
                       background:${_attachMissing?'rgba(255,92,124,0.10)':'rgba(168,85,247,0.08)'};border:1.5px solid ${_attachMissing?'rgba(255,92,124,0.5)':'rgba(168,85,247,0.3)'};
                       border-radius:8px;font-size:1rem;cursor:pointer;transition:all 0.18s;color:${_attachMissing?'#ff5c7c':'#a855f7'};"
@@ -927,8 +928,8 @@ function tRenderTable(){
       </td>
       <td style="padding:9px 6px;font-size:0.82rem;color:${r['Actual']?'#00d4aa':'var(--muted)'}">${fmtDateTime(r['Actual'])}</td>
       <td style="padding:9px 6px;">${remarkCell}</td>
-      <td style="padding:7px 5px;" id="act_${r['Task ID']||''}">${actionCell}</td>
-      <td style="padding:7px 5px;" id="ong_td_${r['Task ID']||''}">${ongoingCell}</td>
+      <td style="padding:7px 5px;" id="act_${rid}">${actionCell}</td>
+      <td style="padding:7px 5px;" id="ong_td_${rid}">${ongoingCell}</td>
       <td style="padding:8px 4px;text-align:center;">${uploadCell}</td>
     </tr>`;
   }).join('');
@@ -1039,7 +1040,7 @@ function tApplyDoneTasks(){
     const MAX_AGE_MS=0; // 0 = disabled — sheet is ALWAYS source of truth (row delete = turant Pending)
     const stillNeeded={};
     tAllData.forEach(r=>{
-      const tid=String(r['Task ID']);
+      const tid=String(r['_id']);
       const entry=saved[tid];
       if(!entry) return;
       if(tIsDone(r)){
@@ -1069,7 +1070,7 @@ function tSyncLocalStorageWithDB(dataArr){
     const uploadStore  = JSON.parse(localStorage.getItem('aditiTaskUploads')||'{}');
     let ongoingChanged = false, uploadChanged = false;
     dataArr.forEach(r=>{
-      const tid = String(r['Task ID']||'');
+      const tid = String(r['_id']||'');
       if(!tid) return;
       // DB mein ongoing NULL hai → localStorage se bhi hatao
       if(!r['_expected_date'] && ongoingStore[tid]){
@@ -1221,10 +1222,10 @@ function deptShowRemarksInput(taskId, src){
 }
 
 function deptSubmitDone(taskId, src){
-  const tid = String(taskId);
+  const tid = String(taskId); // tid = row's unique DB id (_id) — NOT sheet_task_id, which repeats across rows
 
   // ── Safety net: mandatory attachment wale task ko bina file ke Done mat hone do ──
-  const _row = tAllData.find(r => String(r['Task ID']) === tid);
+  const _row = tAllData.find(r => String(r['_id']) === tid);
   if(_row && tTaskRequiresAttachment(_row['Task']) && !tHasAttachment(_row)){
     showToast && showToast('📎 This task cannot be marked Done without the mandatory attachment! Please upload a file/PDF in the 📎 column first.', 'error', 4000);
     tRenderTable();
@@ -1243,10 +1244,10 @@ function deptSubmitDone(taskId, src){
   const sc=String(now.getSeconds()).padStart(2,'0');
   const actualForDisplay = day+'/'+mon+'/'+yr+' '+hr+':'+mn+':'+sc;
 
-  // Turant UI update — sab arrays mein done mark karo
+  // Turant UI update — sab arrays mein done mark karo (sirf isi unique row ko, _id se match)
   [tAllData, tFiltered].forEach(arr=>{
     arr.forEach(r=>{
-      if(String(r['Task ID'])===tid){
+      if(String(r['_id'])===tid){
         r['Status']='Done';
         r['Actual']=actualForDisplay;
         r['Remarks']=remarks;
@@ -1278,7 +1279,7 @@ function deptSubmitDone(taskId, src){
   tSaveDoneTask(tid, actualForDisplay);
 
   // ── Supabase REST API se update karo (id se match karke) ──
-  const rowId = (tAllData.find(r=>String(r['Task ID'])===tid)||{})['_id'];
+  const rowId = _row ? _row['_id'] : tid;
   if(rowId){
     fetch(
       `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
@@ -1309,14 +1310,14 @@ function tUndoTask(taskId){
     showToast && showToast('⛔ Undo access is restricted to MIS and PC only.', 'error', 3000);
     return;
   }
-  const tid = String(taskId);
-  const row = tAllData.find(r => String(r['Task ID']) === tid);
+  const tid = String(taskId); // tid = row's unique DB id (_id)
+  const row = tAllData.find(r => String(r['_id']) === tid);
   if(!row){ return; }
 
   // ─── Immediate local update ───────────────────────────────────────────
   [tAllData, tFiltered].forEach(arr => {
     arr.forEach(r => {
-      if(String(r['Task ID']) === tid){
+      if(String(r['_id']) === tid){
         r['Status']  = 'Pending';
         r['Actual']  = '';
         r['Remarks'] = '';
@@ -1394,8 +1395,8 @@ function salesSubmitDone(taskId){ deptSubmitDone(taskId,'sales'); }
 const ONGOING_KEY = 'aditiOngoingTasks';
 
 function tGetOngoingData(taskId){
-  // Pehle Supabase data check karo (row mein _expected_date field)
-  const row = tAllData.find(r=>String(r['Task ID'])===String(taskId));
+  // Pehle Supabase data check karo (row mein _expected_date field) — taskId = row's unique _id
+  const row = tAllData.find(r=>String(r['_id'])===String(taskId));
   if(row && row['_expected_date']){
     return { expectedDate: row['_expected_display'] || row['_expected_date'] };
   }
@@ -1411,7 +1412,7 @@ function tIsOngoing(r){
   // Supabase column check
   if(r['_expected_date']) return true;
   // localStorage fallback
-  const data = tGetOngoingData(r['Task ID']);
+  const data = tGetOngoingData(r['_id']);
   return !!(data && data.expectedDate);
 }
 
@@ -1491,8 +1492,8 @@ function tSubmitOngoing(taskId, src){
     // no-op: STATUS column removed
   }
 
-  // ✅ Supabase mein expected_date column directly update karo
-  const rowId = (tAllData.find(r=>String(r['Task ID'])===tid)||{})['_id'];
+  // ✅ Supabase mein expected_date column directly update karo (tid = row's unique _id)
+  const rowId = tid;
   if(rowId){
     fetch(
       `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
@@ -1500,7 +1501,7 @@ function tSubmitOngoing(taskId, src){
     ).catch(()=>{});
     // Local data update
     [tAllData, tFiltered].forEach(arr=>{
-      arr.forEach(r=>{ if(String(r['Task ID'])===tid){ r['_expected_date']=rawDate; r['_expected_display']=displayDate; } });
+      arr.forEach(r=>{ if(String(r['_id'])===tid){ r['_expected_date']=rawDate; r['_expected_display']=displayDate; } });
     });
   }
   setTimeout(()=>{ tRenderKPIs(); updateHomeTaskBanner&&updateHomeTaskBanner(); }, 150);
@@ -1510,15 +1511,15 @@ function tCancelOngoing(taskId){
   const tid = String(taskId);
   tRemoveOngoingTask(tid);
 
-  // ✅ Supabase mein expected_date NULL karo
-  const rowId = (tAllData.find(r=>String(r['Task ID'])===tid)||{})['_id'];
+  // ✅ Supabase mein expected_date NULL karo (tid = row's unique _id)
+  const rowId = tid;
   if(rowId){
     fetch(
       `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
       { method:'PATCH', headers:SB_HDRS_JSON(), body:JSON.stringify({ ongoing: null }) }
     ).catch(()=>{});
     [tAllData, tFiltered].forEach(arr=>{
-      arr.forEach(r=>{ if(String(r['Task ID'])===tid){ r['_expected_date']=null; r['_expected_display']=null; } });
+      arr.forEach(r=>{ if(String(r['_id'])===tid){ r['_expected_date']=null; r['_expected_display']=null; } });
     });
   }
   tFiltered=tGetFiltered(); tRenderKPIs(); tRenderTable();
@@ -1716,7 +1717,7 @@ function tRenderAllUploads(list){
 // (asli cloud upload background mein chalta rehta hai, baad mein silently real URL se update ho jata hai)
 function tUnlockMarkDoneIfReady(taskId){
   const tid = String(taskId);
-  const _rowRef = tAllData.find(r=>String(r['Task ID'])===tid);
+  const _rowRef = tAllData.find(r=>String(r['_id'])===tid);
   if(_rowRef && tTaskRequiresAttachment(_rowRef['Task']) && !tIsDone(_rowRef)){
     const _actTd = document.getElementById('act_'+tid);
     if(_actTd){
@@ -1795,16 +1796,16 @@ async function tProcessTaskFile(file, taskId){
       fileUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${filePath}`;
     }
 
-    // Save to Supabase upload column — URL if upload succeeded, else just filename
+    // Save to Supabase upload column — URL if upload succeeded, else just filename (tid = row's unique _id)
     const saveValue = fileUrl || file.name;
-    const rowId = (tAllData.find(r=>String(r['Task ID'])===tid)||{})['_id'];
+    const rowId = tid;
     if(rowId){
       fetch(
         `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
         { method:'PATCH', headers:SB_HDRS_JSON(), body:JSON.stringify({ upload: saveValue }) }
       ).catch(()=>{});
       [tAllData, tFiltered].forEach(arr=>{
-        arr.forEach(r=>{ if(String(r['Task ID'])===tid) r['_upload_url']=saveValue; });
+        arr.forEach(r=>{ if(String(r['_id'])===tid) r['_upload_url']=saveValue; });
       });
     }
 
@@ -1835,14 +1836,14 @@ async function tProcessTaskFile(file, taskId){
     // Network/exception fail — file already locally save ho chuki hai (filename ke saath),
     // isliye "gayab" jaisa na dikhao — sirf filename-only (local) state mein rakho.
     try{
-      const rowId = (tAllData.find(r=>String(r['Task ID'])===tid)||{})['_id'];
+      const rowId = tid;
       if(rowId){
         fetch(
           `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
           { method:'PATCH', headers:SB_HDRS_JSON(), body:JSON.stringify({ upload: file.name }) }
         ).catch(()=>{});
         [tAllData, tFiltered].forEach(arr=>{
-          arr.forEach(r=>{ if(String(r['Task ID'])===tid) r['_upload_url']=file.name; });
+          arr.forEach(r=>{ if(String(r['_id'])===tid) r['_upload_url']=file.name; });
         });
       }
     }catch(e2){}
@@ -1897,8 +1898,8 @@ function tRenderTaskFileList(taskId){
   const list = document.getElementById('taskUploadFileList');
   if(!list) return;
   try{
-    // Supabase se file URL
-    const row = tAllData.find(r=>String(r['Task ID'])===String(taskId));
+    // Supabase se file URL (taskId = row's unique _id)
+    const row = tAllData.find(r=>String(r['_id'])===String(taskId));
     const cloudUrl = row ? row['_upload_url'] : null;
 
     // localStorage se bhi check
@@ -2021,8 +2022,8 @@ async function tSubmitTaskUpload(){
     if(uploadRes.ok){
       fileUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${filePath}`;
 
-      // ✅ Supabase mein task_doc_urls column update karo
-      const rowId = (tAllData.find(r=>String(r['Task ID'])===_taskUploadId)||{})['_id'];
+      // ✅ Supabase mein task_doc_urls column update karo (_taskUploadId = row's unique _id)
+      const rowId = _taskUploadId;
       if(rowId){
         await fetch(
           `${SUPABASE_URL}/rest/v1/employee_checklists?id=eq.${encodeURIComponent(rowId)}`,
@@ -2030,7 +2031,7 @@ async function tSubmitTaskUpload(){
         ).catch(()=>{});
         // Local data update
         [tAllData, tFiltered].forEach(arr=>{
-          arr.forEach(r=>{ if(String(r['Task ID'])===_taskUploadId) r['_upload_url']=fileUrl; });
+          arr.forEach(r=>{ if(String(r['_id'])===_taskUploadId) r['_upload_url']=fileUrl; });
         });
       }
 
