@@ -47,6 +47,7 @@ const _permLabels = {
   can_download_video:     '⬇️ Download Training Videos',
   checklist_scope:        '✅ Task Checklist Scope',
   can_delete_tasks:       '🗑️ Task Checklist — Delete Tasks',
+  can_use_task_scheduler: '🗓️ Task Checklist — Task Scheduler',
   can_view_open_roles:        '📋 Referral — Open Roles',
   can_view_my_referrals:      '🧾 Referral — My Referrals',
   can_view_referral_pipeline: '📊 Referral — Pipeline (HR)',

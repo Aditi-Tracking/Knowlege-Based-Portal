@@ -50,16 +50,22 @@ function _tRevealTasksNav(show){
 }
 
 // ── Task Checklist tab bar (Checklist / Task Scheduler) ─────────────────
-// Task Scheduler is MIS/owner-only — same rawRole check the Access Control
-// nav item uses (js/auth.js:435-436), NOT the same thing as isOwner/
-// checklist_scope above (that's "sees everyone's tasks", a different axis).
+// Task Scheduler is MIS/owner by default — same rawRole check the Access
+// Control nav item uses (js/auth.js:435-436), NOT the same thing as
+// isOwner/checklist_scope above (that's "sees everyone's tasks", a
+// different axis). ALSO allowed: anyone individually granted the
+// can_use_task_scheduler permission via the Access Control panel — lets
+// MIS hand this to one specific non-MIS employee without changing their
+// role. The backend endpoint (backend/api.py:_has_task_scheduler_access)
+// re-checks this same permission server-side — this client-side check is
+// only what shows/hides the tab, not the real security boundary.
 // Mirrors js/renewals.js's ruTabBar pattern: if the user can only ever see
 // one tab, no bar is rendered at all (not a disabled button).
 let _tActiveTab = 'checklist';
 
 function _tSchedulerAllowed(){
   const r = String((CURRENT_USER && (CURRENT_USER.rawRole || CURRENT_USER.role)) || '').toLowerCase().trim();
-  return r === 'owner' || r === 'mis';
+  return r === 'owner' || r === 'mis' || PERMISSIONS.can_use_task_scheduler === 'true';
 }
 
 function _tTabBtnStyle(active){

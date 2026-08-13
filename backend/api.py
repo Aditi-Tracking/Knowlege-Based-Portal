@@ -140,6 +140,27 @@ def _has_field_service_view_all(caller_email):
     except Exception:
         return False
 
+# ── Helper: check if a caller has Task Scheduler access ─────────
+# Same shape as _has_field_service_view_all above — a manually-granted
+# permission (via the Access Control panel), not tied to role. Lets MIS
+# give one specific non-MIS employee access to the Task Scheduler tab
+# without changing their Employee_Dept/role.
+def _has_task_scheduler_access(caller_email):
+    if not caller_email or sb is None:
+        return False
+    try:
+        emp_res = sb.table("Employee_details") \
+            .select("Employee_Dept") \
+            .ilike("Email_Id", caller_email) \
+            .limit(1) \
+            .execute()
+        raw_role = str(emp_res.data[0].get("Employee_Dept", "")).strip().lower() if emp_res.data else ""
+        role = ROLE_MAP.get(raw_role, "employee")
+        perms = get_permissions(caller_email, role)
+        return perms.get("can_use_task_scheduler") == "true"
+    except Exception:
+        return False
+
 # ── Helper: {auth uuid: email} for every Supabase Auth user ─────
 # Only the service-role key (held here, never in the browser) can call
 # the Admin Auth API — this is what lets us resolve field_service_entries.
@@ -664,10 +685,14 @@ def generate_checklist_tasks():
     if err:
         return err
 
-    # Block non-admins — the real security boundary (see comment above)
+    # Block non-admins — the real security boundary (see comment above).
+    # Also allow anyone specifically granted can_use_task_scheduler via the
+    # Access Control panel (_has_task_scheduler_access), same pattern as
+    # Field Service's "view all" override — a role check alone would lock
+    # out a non-MIS employee the MIS team explicitly granted this to.
     caller_email = request.headers.get("X-User-Email", "").strip().lower()
-    if not is_admin(caller_email):
-        return jsonify({"error": "Forbidden — only MIS or Managing Director can generate tasks"}), 403
+    if not (is_admin(caller_email) or _has_task_scheduler_access(caller_email)):
+        return jsonify({"error": "Forbidden — only MIS/Managing Director, or someone granted Task Scheduler access, can generate tasks"}), 403
 
     # Read + validate the request body. The frontend already validated more
     # thoroughly (frequency codes, date math, duplicate warnings) but a
