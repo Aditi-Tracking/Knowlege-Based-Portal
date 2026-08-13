@@ -2,21 +2,14 @@
 // Dashboard — see js/tasks.js:tSwitchTab). Generates recurring
 // employee_checklists rows automatically instead of inserting them by hand.
 //
-// One employee + branch is chosen ONCE per batch; underneath that sits a
-// repeatable list of task rows (task name, frequency, start date, generate-
-// through month) — so a single "Generate" click can create several
-// different recurring tasks for the same person in one shot.
-//
-// All date math below is deliberately split into small, named functions
-// so the whole "which dates get generated, and how holidays/Sundays shift
-// them" logic can be read top-to-bottom instead of living in one dense
-// block. Nothing here writes to the database directly — the actual INSERT
-// happens server-side (backend/api.py: POST /api/admin/generate-checklist-tasks),
-// which re-checks the caller is MIS/owner before touching anything. This
-// file only computes the preview and, once the MIS user confirms it,
-// sends the exact list of dates they saw.
+// One employee + branch is chosen once per batch; underneath that sits a
+// repeatable list of task rows, so a single "Generate" click can create
+// several different recurring tasks for the same person at once. Nothing
+// here writes to the database directly — the actual INSERT happens
+// server-side (backend/api.py: POST /api/admin/generate-checklist-tasks),
+// which re-checks the caller is MIS/owner before touching anything.
 
-// ── State ────────────────────────────────────────────────────────────
+// ── State ──
 let _tsEmployees      = [];   // [{Emp_id, Employee_name, Employee_Dept, Location, Email_Id}]
 let _tsHolidaysByLoc  = {};   // { 'Mumbai': Set('YYYY-MM-DD'), 'Goa': Set(...), ... }
 let _tsLoaded         = false;
@@ -37,7 +30,6 @@ async function tsInit(){
   if(_tsLoaded) return;
   _tsLoaded = true;
 
-  // Start with exactly one blank task row.
   _tsTaskRowIds = [];
   _tsRowIdSeq = 0;
   tsAddTaskRow();
@@ -70,9 +62,7 @@ async function tsInit(){
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════
-// EMPLOYEE SEARCHABLE DROPDOWN
-// ══════════════════════════════════════════════════════════════════════
+// ── Employee searchable dropdown ──
 function tsFilterEmployees(q){
   const box = document.getElementById('tsEmpResults');
   if(!box) return;
