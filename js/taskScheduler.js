@@ -2,6 +2,11 @@
 // Dashboard — see js/tasks.js:tSwitchTab). Generates recurring
 // employee_checklists rows automatically instead of inserting them by hand.
 //
+// One employee + branch is chosen ONCE per batch; underneath that sits a
+// repeatable list of task rows (task name, frequency, start date, generate-
+// through month) — so a single "Generate" click can create several
+// different recurring tasks for the same person in one shot.
+//
 // All date math below is deliberately split into small, named functions
 // so the whole "which dates get generated, and how holidays/Sundays shift
 // them" logic can be read top-to-bottom instead of living in one dense
@@ -16,13 +21,27 @@ let _tsEmployees      = [];   // [{Emp_id, Employee_name, Employee_Dept, Locatio
 let _tsHolidaysByLoc  = {};   // { 'Mumbai': Set('YYYY-MM-DD'), 'Goa': Set(...), ... }
 let _tsLoaded         = false;
 let _tsSelectedEmp    = null; // the employee object picked from the dropdown
-let _tsPreviewRows    = [];   // last computed preview — this exact array is what gets submitted
+let _tsPreviewRows    = [];   // last computed preview (flat, one entry per date) — this exact data is what gets submitted
+
+// Task rows are tracked by a stable id list only — the <tr> elements
+// themselves hold the actual field values. Rows are added/removed by
+// inserting/removing individual <tr> nodes (never re-rendering rows that
+// already exist), so typing in one row never disturbs another or loses
+// cursor focus.
+let _tsTaskRowIds = [];
+let _tsRowIdSeq   = 0;
 
 // ── tsInit() — lazy-loaded the first time the Scheduler tab is opened ──
 // (called from js/tasks.js:tSwitchTab). No-ops on repeat visits.
 async function tsInit(){
   if(_tsLoaded) return;
   _tsLoaded = true;
+
+  // Start with exactly one blank task row.
+  _tsTaskRowIds = [];
+  _tsRowIdSeq = 0;
+  tsAddTaskRow();
+
   try{
     // Holiday List's RLS policy is scoped to the 'anon' role specifically
     // (see js/hr.js:loadHolidayCard) — it must be fetched with the anon
@@ -112,6 +131,75 @@ document.addEventListener('click', function(e){
     box.style.display = 'none';
   }
 });
+
+// ══════════════════════════════════════════════════════════════════════
+// TASK ROWS — add/remove one <tr> at a time (never touching the others,
+// so typing in one row never loses focus in another)
+// ══════════════════════════════════════════════════════════════════════
+
+function tsTaskRowHTML(id){
+  return `<tr id="tsRow_${id}">
+    <td style="padding:5px 8px;">
+      <input type="text" id="tsRowTaskName_${id}" placeholder="e.g. Weekly Review Call" onchange="tsInvalidatePreview()"
+        style="width:100%;box-sizing:border-box;padding:7px 10px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.85rem;font-family:inherit;outline:none;">
+    </td>
+    <td style="padding:5px 8px;">
+      <select id="tsRowFreq_${id}" onchange="tsInvalidatePreview()"
+        style="width:100%;box-sizing:border-box;padding:7px 10px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.85rem;font-family:inherit;outline:none;cursor:pointer;">
+        <option value="D">Daily</option>
+        <option value="W">Weekly (every 7 days)</option>
+        <option value="2D">Every 2 Days</option>
+        <option value="F">Fortnightly (every 14 days)</option>
+        <option value="M">Monthly (same date each month)</option>
+        <option value="Q">Quarterly (every 3 months)</option>
+        <option value="Y">Yearly (same date each year)</option>
+        <option value="E2nd">Monthly — 2nd [weekday]</option>
+        <option value="E3rd">Monthly — 3rd [weekday]</option>
+      </select>
+    </td>
+    <td style="padding:5px 8px;">
+      <input type="date" id="tsRowStart_${id}" onchange="tsInvalidatePreview()"
+        style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.85rem;font-family:inherit;outline:none;cursor:pointer;">
+    </td>
+    <td style="padding:5px 8px;">
+      <input type="month" id="tsRowEnd_${id}" onchange="tsInvalidatePreview()"
+        style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.85rem;font-family:inherit;outline:none;cursor:pointer;">
+    </td>
+    <td style="padding:5px 8px;text-align:center;">
+      <button id="tsRowRemoveBtn_${id}" onclick="tsRemoveTaskRow(${id})" title="Remove this task"
+        style="display:none;background:rgba(255,92,124,0.10);border:1px solid rgba(255,92,124,0.3);color:#ff5c7c;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:0.85rem;">✕</button>
+    </td>
+  </tr>`;
+}
+
+// The ✕ remove button is hidden whenever only one row is left — there must
+// always be at least one task row on screen.
+function tsUpdateRemoveButtons(){
+  const canRemove = _tsTaskRowIds.length > 1;
+  _tsTaskRowIds.forEach(id => {
+    const btn = document.getElementById('tsRowRemoveBtn_' + id);
+    if(btn) btn.style.display = canRemove ? '' : 'none';
+  });
+}
+
+function tsAddTaskRow(){
+  _tsRowIdSeq++;
+  const id = _tsRowIdSeq;
+  _tsTaskRowIds.push(id);
+  const body = document.getElementById('tsTaskRowsBody');
+  if(body) body.insertAdjacentHTML('beforeend', tsTaskRowHTML(id));
+  tsUpdateRemoveButtons();
+  tsInvalidatePreview();
+}
+
+function tsRemoveTaskRow(rowId){
+  if(_tsTaskRowIds.length <= 1) return; // always keep at least one row
+  _tsTaskRowIds = _tsTaskRowIds.filter(id => id !== rowId);
+  const tr = document.getElementById('tsRow_' + rowId);
+  if(tr) tr.remove();
+  tsUpdateRemoveButtons();
+  tsInvalidatePreview();
+}
 
 // ══════════════════════════════════════════════════════════════════════
 // DATE UTILITIES
@@ -287,7 +375,7 @@ function tsGenerateOccurrences(frequency, startDate, endDate){
   }
 
   const holidaySet = tsHolidaySetForEmployee(_tsSelectedEmp);
-  const seenISO = new Set(); // guards against two shifted dates colliding on the same day
+  const seenISO = new Set(); // guards against two shifted dates colliding on the same day, WITHIN this one task's own series
   const out = [];
 
   raw.forEach(rawDate => {
@@ -329,69 +417,105 @@ async function tsPreview(){
   errEl.style.display = 'none';
   tsInvalidatePreview();
 
-  const empId       = document.getElementById('tsEmpId').value;
-  const taskName     = document.getElementById('tsTaskName').value.trim();
-  const frequency    = document.getElementById('tsFrequency').value;
-  const startStr     = document.getElementById('tsStartDate').value;
-  const endMonthStr  = document.getElementById('tsEndMonth').value;
-
-  if(!empId || !taskName || !startStr || !endMonthStr){
-    errEl.textContent = '⚠️ Employee, Task Name, Start Date, and Generate-Through month are all required.';
+  const empId = document.getElementById('tsEmpId').value;
+  if(!empId){
+    errEl.textContent = '⚠️ Select an employee first.';
     errEl.style.display = 'block';
     return;
   }
 
-  const startDate = tsParseISO(startStr);
-  const endDate   = tsEndOfMonth(endMonthStr);
-  if(endDate < startDate){
-    errEl.textContent = '⚠️ "Generate Through" month is before the Start Date.';
+  // Read + validate every task row. Employee/branch are shared across all
+  // of them — only the per-row fields differ.
+  const taskDefs = [];
+  for(let i = 0; i < _tsTaskRowIds.length; i++){
+    const id = _tsTaskRowIds[i];
+    const taskName    = document.getElementById('tsRowTaskName_' + id).value.trim();
+    const frequency   = document.getElementById('tsRowFreq_' + id).value;
+    const startStr    = document.getElementById('tsRowStart_' + id).value;
+    const endMonthStr = document.getElementById('tsRowEnd_' + id).value;
+
+    if(!taskName || !startStr || !endMonthStr){
+      errEl.textContent = `⚠️ Row ${i + 1}: Task Name, Start Date, and Generate-Through are all required.`;
+      errEl.style.display = 'block';
+      return;
+    }
+    const startDate = tsParseISO(startStr);
+    const endDate = tsEndOfMonth(endMonthStr);
+    if(endDate < startDate){
+      errEl.textContent = `⚠️ Row ${i + 1} ("${taskName}"): "Generate Through" is before the Start Date.`;
+      errEl.style.display = 'block';
+      return;
+    }
+    taskDefs.push({ taskName, frequency, startDate, endDate });
+  }
+
+  // Generate occurrences for every row — same employee, so the same
+  // holiday calendar applies to all of them.
+  const perTask = taskDefs.map(t => ({
+    ...t,
+    occurrences: tsGenerateOccurrences(t.frequency, t.startDate, t.endDate)
+  }));
+
+  const totalCount = perTask.reduce((sum, t) => sum + t.occurrences.length, 0);
+  if(totalCount === 0){
+    errEl.textContent = '⚠️ No dates were generated — every candidate landed on a non-working day, or the ranges are empty.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if(totalCount > 1000){
+    errEl.textContent = `⚠️ This would generate ${totalCount} rows in one batch — narrow the date ranges (max 1000 per "Generate" click).`;
     errEl.style.display = 'block';
     return;
   }
 
-  const occurrences = tsGenerateOccurrences(frequency, startDate, endDate);
-  if(!occurrences.length){
-    errEl.textContent = '⚠️ No dates were generated for this range — every candidate landed on a non-working day, or the range is empty.';
-    errEl.style.display = 'block';
-    return;
-  }
-  if(occurrences.length > 400){
-    errEl.textContent = `⚠️ This would generate ${occurrences.length} rows in one batch — narrow the date range (max 400 per "Generate" click).`;
-    errEl.style.display = 'block';
-    return;
-  }
+  // Duplicate check — one query per DISTINCT task name in this batch (two
+  // rows with the same task name only need one lookup), all in parallel.
+  // Read-only, advisory only — MIS can still choose to insert anyway.
+  const distinctNames = [...new Set(perTask.map(t => t.taskName))];
+  const existingByName = {};
+  await Promise.all(distinctNames.map(async name => {
+    existingByName[name] = new Set();
+    try{
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/employee_checklists?select=planned_date&emp_id=eq.${encodeURIComponent(empId)}&task_name=eq.${encodeURIComponent(name)}`,
+        { headers: SB_HDRS() }
+      );
+      const rows = await res.json();
+      if(Array.isArray(rows)) rows.forEach(r => { if(r.planned_date) existingByName[name].add(String(r.planned_date).slice(0, 10)); });
+    }catch(e){ /* non-fatal */ }
+  }));
 
-  // Duplicate check — does this employee already have a task with this
-  // exact name on any of these dates? Read-only, same anon/JWT REST access
-  // every other read in this app already uses; only a WARNING, not a hard
-  // block — MIS can still choose to insert anyway (e.g. a genuine 2nd task
-  // that day under the same name).
-  let existingDates = new Set();
-  try{
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/employee_checklists?select=planned_date&emp_id=eq.${encodeURIComponent(empId)}&task_name=eq.${encodeURIComponent(taskName)}`,
-      { headers: SB_HDRS() }
-    );
-    const rows = await res.json();
-    if(Array.isArray(rows)) rows.forEach(r => { if(r.planned_date) existingDates.add(String(r.planned_date).slice(0, 10)); });
-  }catch(e){ /* non-fatal — duplicate check is advisory only */ }
+  // Flatten into one combined, ordered preview list. `seenKeys` catches
+  // duplicates against the database AND against an earlier row in this
+  // SAME batch (e.g. two task rows that happen to land on the same date
+  // under the same task name).
+  const seenKeys = new Set();
+  _tsPreviewRows = [];
+  perTask.forEach(t => {
+    t.occurrences.forEach(o => {
+      const key = t.taskName + '|' + o.iso;
+      const isDuplicate = existingByName[t.taskName].has(o.iso) || seenKeys.has(key);
+      seenKeys.add(key);
+      _tsPreviewRows.push({ ...o, taskName: t.taskName, frequency: t.frequency, isDuplicate });
+    });
+  });
 
-  _tsPreviewRows = occurrences.map(o => ({ ...o, isDuplicate: existingDates.has(o.iso) }));
-  tsRenderPreview(taskName, frequency);
+  tsRenderPreview();
 }
 
-function tsRenderPreview(taskName, frequency){
+function tsRenderPreview(){
   const dupCount   = _tsPreviewRows.filter(r => r.isDuplicate).length;
   const shiftCount = _tsPreviewRows.filter(r => r.shiftedFrom).length;
+  const taskCount  = new Set(_tsPreviewRows.map(r => r.taskName)).size;
 
   document.getElementById('tsPreviewSummary').textContent =
-    `${_tsPreviewRows.length} task row(s) will be created for "${taskName}" (${frequency}).` +
+    `${_tsPreviewRows.length} task row(s) across ${taskCount} task${taskCount > 1 ? 's' : ''} will be created.` +
     (shiftCount ? ` ${shiftCount} shifted off a Sunday/holiday.` : '');
 
   const dupBox = document.getElementById('tsDupWarning');
   if(dupCount > 0){
     dupBox.style.display = 'block';
-    dupBox.textContent = `⚠️ ${dupCount} of these dates already have a task named "${taskName}" for this employee — highlighted below. Inserting anyway will create a second row on that date.`;
+    dupBox.textContent = `⚠️ ${dupCount} of these dates already have a matching task for this employee — highlighted below. Inserting anyway will create a second row on that date.`;
   }else{
     dupBox.style.display = 'none';
   }
@@ -403,6 +527,7 @@ function tsRenderPreview(taskName, frequency){
     if(r.isDuplicate)  note += (note ? ' · ' : '') + '⚠️ duplicate';
     return `<tr style="${r.isDuplicate ? 'background:rgba(255,92,124,0.08);' : ''}">
       <td style="padding:6px 8px;">${i + 1}</td>
+      <td style="padding:6px 8px;font-weight:600;">${r.taskName}</td>
       <td style="padding:6px 8px;">${r.iso}</td>
       <td style="padding:6px 8px;">${dayName}</td>
       <td style="padding:6px 8px;font-size:0.78rem;color:${r.isDuplicate ? '#ff5c7c' : 'var(--muted)'};">${note || '—'}</td>
@@ -421,14 +546,26 @@ async function tsConfirmInsert(){
 
   const dupCount = _tsPreviewRows.filter(r => r.isDuplicate).length;
   if(dupCount > 0){
-    const proceed = confirm(`${dupCount} of these dates already have a task with this name for this employee. Insert anyway?`);
+    const proceed = confirm(`${dupCount} of these dates already have a matching task. Insert anyway?`);
     if(!proceed) return;
   }
 
   const empId    = document.getElementById('tsEmpId').value;
   const branchId = document.getElementById('tsBranchId').value;
-  const taskName = document.getElementById('tsTaskName').value.trim();
-  const frequency = document.getElementById('tsFrequency').value;
+
+  // Regroup the flat preview list back into one entry per task (name +
+  // frequency) — that's the shape backend/api.py's endpoint expects, since
+  // it does one insert batch per task.
+  const grouped = [];
+  const groupIndexByKey = {};
+  _tsPreviewRows.forEach(r => {
+    const key = r.taskName + '|' + r.frequency;
+    if(!(key in groupIndexByKey)){
+      groupIndexByKey[key] = grouped.length;
+      grouped.push({ task_name: r.taskName, frequency: r.frequency, planned_dates: [] });
+    }
+    grouped[groupIndexByKey[key]].planned_dates.push(r.iso);
+  });
 
   const btn = document.getElementById('tsConfirmBtn');
   const statusEl = document.getElementById('tsSubmitStatus');
@@ -444,25 +581,26 @@ async function tsConfirmInsert(){
         'X-User-Email': CURRENT_USER.email
       },
       body: JSON.stringify({
-        emp_id:        Number(empId),
-        branch_id:     branchId ? Number(branchId) : null,
-        task_name:     taskName,
-        frequency:     frequency,
-        planned_dates: _tsPreviewRows.map(r => r.iso)
+        emp_id:    Number(empId),
+        branch_id: branchId ? Number(branchId) : null,
+        tasks:     grouped
       })
     });
     const data = await res.json();
     if(!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
-    statusEl.textContent = `✅ ${data.inserted} task(s) created.` + (data.warning ? ` (${data.warning})` : '');
+    statusEl.textContent = `✅ ${data.inserted} task row(s) created across ${grouped.length} task(s).` + (data.warning ? ` (${data.warning})` : '');
     statusEl.style.color = '#00d4aa';
-    if(typeof showToast === 'function') showToast(`✅ Generated ${data.inserted} task(s) for "${taskName}"`, 'success', 4000);
+    if(typeof showToast === 'function') showToast(`✅ Generated ${data.inserted} task row(s)`, 'success', 4000);
 
-    // Clear so a stale preview can't be re-submitted, and reset the task
-    // name for the next series (employee/branch/frequency/dates are left
-    // as-is — MIS is likely about to add another task for the same person).
+    // Reset for the next batch — employee/branch stay as-is (MIS is likely
+    // about to add more tasks for the same person); task rows reset to one
+    // blank row so a stale preview can't be re-submitted.
     tsInvalidatePreview();
-    document.getElementById('tsTaskName').value = '';
+    document.getElementById('tsTaskRowsBody').innerHTML = '';
+    _tsTaskRowIds = [];
+    _tsRowIdSeq = 0;
+    tsAddTaskRow();
 
     // If the Checklist tab is currently showing this date range, refresh it
     // so the newly-generated rows appear without a manual reload.

@@ -640,16 +640,22 @@ def field_service_engineer_names():
 # new rows simply mirror their own `id` into sheet_task_id after insert,
 # which trivially guarantees uniqueness without inventing a new counter.
 #
+# One employee + branch is shared across the whole batch; `tasks` is a
+# list because a single "Generate" click can create several DIFFERENT
+# recurring tasks (each with its own name/frequency/dates) for that one
+# person in one shot.
+#
 # Request body:
 # {
 #   "emp_id": 4,
 #   "branch_id": 1,
-#   "task_name": "Weekly Review Call",
-#   "frequency": "W",
-#   "planned_dates": ["2026-10-01", "2026-10-08", ...]
+#   "tasks": [
+#     { "task_name": "Weekly Review Call", "frequency": "W", "planned_dates": ["2026-10-01", "2026-10-08", ...] },
+#     { "task_name": "Monthly Report",     "frequency": "M", "planned_dates": ["2026-10-01", "2026-11-01", ...] }
+#   ]
 # }
 #
-# Response: { "ok": true, "inserted": 5 }
+# Response: { "ok": true, "inserted": 12 }
 # ══════════════════════════════════════════════════════════════════
 @app.route("/api/admin/generate-checklist-tasks", methods=["POST"])
 def generate_checklist_tasks():
@@ -666,37 +672,51 @@ def generate_checklist_tasks():
     # Read + validate the request body. The frontend already validated more
     # thoroughly (frequency codes, date math, duplicate warnings) but a
     # server endpoint never trusts the client alone.
-    body          = request.get_json() or {}
-    emp_id        = body.get("emp_id")
-    branch_id     = body.get("branch_id")
-    task_name     = str(body.get("task_name", "")).strip()
-    frequency     = str(body.get("frequency", "")).strip()
-    planned_dates = body.get("planned_dates") or []
+    body      = request.get_json() or {}
+    emp_id    = body.get("emp_id")
+    branch_id = body.get("branch_id")
+    tasks     = body.get("tasks") or []
 
-    if not emp_id or not task_name or not frequency:
-        return jsonify({"error": "emp_id, task_name, and frequency are all required"}), 400
-    if not isinstance(planned_dates, list) or not planned_dates:
-        return jsonify({"error": "planned_dates must be a non-empty list"}), 400
-    if len(planned_dates) > 400:
+    if not emp_id:
+        return jsonify({"error": "emp_id is required"}), 400
+    if not isinstance(tasks, list) or not tasks:
+        return jsonify({"error": "tasks must be a non-empty list"}), 400
+
+    # Validate every task entry and build one combined row list — each row
+    # remembers which task it belongs to (task_name/frequency) so a single
+    # bulk insert can cover the whole batch instead of one round-trip per task.
+    rows = []
+    for i, task in enumerate(tasks):
+        task_name     = str((task or {}).get("task_name", "")).strip()
+        frequency     = str((task or {}).get("frequency", "")).strip()
+        planned_dates = (task or {}).get("planned_dates") or []
+
+        if not task_name or not frequency:
+            return jsonify({"error": f"Task #{i + 1}: task_name and frequency are both required"}), 400
+        if not isinstance(planned_dates, list) or not planned_dates:
+            return jsonify({"error": f"Task #{i + 1} ('{task_name}'): planned_dates must be a non-empty list"}), 400
+
+        rows.extend([{
+            "emp_id":           emp_id,
+            "branch_id":        branch_id,
+            "task_name":        task_name,
+            "frequency":        frequency,
+            "planned_date":     d,
+            "actual_timestamp": None,
+            "remarks":          None,
+            "ongoing":          None,
+            "upload":           None,
+        } for d in planned_dates])
+
+    if len(rows) > 1000:
         # Sanity cap — a single "Generate" click should never need more
-        # than this many rows. Guards against a malformed/runaway request
-        # rather than a real use case.
-        return jsonify({"error": "Too many dates in one batch (max 400) — narrow the date range"}), 400
+        # than this many rows across every task combined. Guards against a
+        # malformed/runaway request rather than a real use case.
+        return jsonify({"error": f"Too many rows in one batch ({len(rows)}, max 1000) — narrow the date ranges"}), 400
 
-    # Step 1: bulk-insert every row WITHOUT sheet_task_id first — we need
-    # each row's real auto-generated `id` back before we can mirror it.
-    rows = [{
-        "emp_id":           emp_id,
-        "branch_id":        branch_id,
-        "task_name":        task_name,
-        "frequency":        frequency,
-        "planned_date":     d,
-        "actual_timestamp": None,
-        "remarks":          None,
-        "ongoing":          None,
-        "upload":           None,
-    } for d in planned_dates]
-
+    # Step 1: bulk-insert every row (across every task) WITHOUT sheet_task_id
+    # first — we need each row's real auto-generated `id` back before we can
+    # mirror it. One insert call regardless of how many tasks were in this batch.
     try:
         insert_res = sb.table("employee_checklists").insert(rows).execute()
     except Exception as e:
