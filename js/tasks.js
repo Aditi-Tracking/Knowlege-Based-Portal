@@ -49,6 +49,56 @@ function _tRevealTasksNav(show){
   if(dashGroup)dashGroup.style.display=hasDashAccess?'':'none';
 }
 
+// ── Task Checklist tab bar (Checklist / Task Scheduler) ─────────────────
+// Task Scheduler is MIS/owner-only — same rawRole check the Access Control
+// nav item uses (js/auth.js:435-436), NOT the same thing as isOwner/
+// checklist_scope above (that's "sees everyone's tasks", a different axis).
+// Mirrors js/renewals.js's ruTabBar pattern: if the user can only ever see
+// one tab, no bar is rendered at all (not a disabled button).
+let _tActiveTab = 'checklist';
+
+function _tSchedulerAllowed(){
+  const r = String((CURRENT_USER && (CURRENT_USER.rawRole || CURRENT_USER.role)) || '').toLowerCase().trim();
+  return r === 'owner' || r === 'mis';
+}
+
+function _tTabBtnStyle(active){
+  return active
+    ? 'padding:8px 18px;border:1.5px solid #a855f7;background:#a855f7;color:#fff;border-radius:8px;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s;'
+    : 'padding:8px 18px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:8px;font-size:0.84rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .18s;';
+}
+
+function tRenderTabBar(){
+  const bar = document.getElementById('tTabBar');
+  if(!bar) return;
+  if(!_tSchedulerAllowed()){
+    bar.style.display = 'none';
+    bar.innerHTML = '';
+    tSwitchTab('checklist'); // backstop in case role changed after a re-login
+    return;
+  }
+  bar.style.display = 'flex';
+  bar.innerHTML =
+    `<button id="tTabBtn-checklist" onclick="tSwitchTab('checklist')" style="${_tTabBtnStyle(_tActiveTab!=='scheduler')}">📋 Checklist</button>` +
+    `<button id="tTabBtn-scheduler" onclick="tSwitchTab('scheduler')" style="${_tTabBtnStyle(_tActiveTab==='scheduler')}">🗓️ Task Scheduler</button>`;
+}
+
+function tSwitchTab(id){
+  if(id === 'scheduler' && !_tSchedulerAllowed()) id = 'checklist'; // backstop — bar itself already hides this button
+  _tActiveTab = id;
+  const chk = document.getElementById('tTab-checklist');
+  const sch = document.getElementById('tTab-scheduler');
+  if(chk) chk.style.display = (id === 'checklist') ? '' : 'none';
+  if(sch) sch.style.display = (id === 'scheduler') ? '' : 'none';
+  const b1 = document.getElementById('tTabBtn-checklist');
+  const b2 = document.getElementById('tTabBtn-scheduler');
+  if(b1) b1.setAttribute('style', _tTabBtnStyle(id === 'checklist'));
+  if(b2) b2.setAttribute('style', _tTabBtnStyle(id === 'scheduler'));
+  // Lazy-load Task Scheduler's own data (employees, holidays) on first visit —
+  // tsInit() lives in js/taskScheduler.js and no-ops on repeat calls.
+  if(id === 'scheduler' && typeof tsInit === 'function') tsInit();
+}
+
 // ── Supabase paginated fetch — 1000 row limit bypass karo ──
 async function tFetchAllPages(baseUrl){
   const BATCH = 1000;
@@ -80,6 +130,10 @@ async function loadTasks(overrideDateFrom, overrideDateTo){
     _tasksCont.style.pointerEvents='none';
     _tasksCont.style.transition='opacity 0.2s';
   }
+  // Tab bar (Checklist / Task Scheduler) — role-based, not data-based, so it
+  // doesn't need to wait on the fetch below the way _tRevealTasksNav does.
+  tRenderTabBar();
+
   try{
     const isOwner = PERMISSIONS.checklist_scope === 'all';
     const myEmail = CURRENT_USER ? String(CURRENT_USER.email||'').trim().toLowerCase() : '';

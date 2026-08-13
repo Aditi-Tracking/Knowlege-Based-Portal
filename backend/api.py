@@ -618,6 +618,111 @@ def field_service_engineer_names():
     return jsonify({"engineers": engineers})
 
 
+# ══════════════════════════════════════════════════════════════════
+# ENDPOINT 9: POST /api/admin/generate-checklist-tasks
+#
+# Called by the Task Scheduler tab (Task Checklist dashboard, MIS/owner
+# only — see js/taskScheduler.js:tsConfirmInsert). The frontend has already
+# computed the planned_date list (frequency math + Sunday/holiday shifting)
+# and shown it to the MIS user for review in the Preview step — this
+# endpoint does NOT recompute or re-validate those dates. Its only two
+# jobs are:
+#   1. Re-check server-side that the caller is actually MIS/owner. The
+#      frontend hiding the tab for other roles is UX only, not security —
+#      this is the real gate, same as every other /api/admin/* endpoint.
+#   2. Bulk-insert the rows using the service-role key, so the write isn't
+#      subject to whatever RLS policy (if any) governs employee_checklists
+#      for a normal logged-in user's JWT.
+#
+# sheet_task_id: existing data proved this column is NOT unique (the same
+# value repeats across unrelated rows) and nothing in the app uses it for
+# lookups any more (tasks.js keys everything off the real `id` column) — so
+# new rows simply mirror their own `id` into sheet_task_id after insert,
+# which trivially guarantees uniqueness without inventing a new counter.
+#
+# Request body:
+# {
+#   "emp_id": 4,
+#   "branch_id": 1,
+#   "task_name": "Weekly Review Call",
+#   "frequency": "W",
+#   "planned_dates": ["2026-10-01", "2026-10-08", ...]
+# }
+#
+# Response: { "ok": true, "inserted": 5 }
+# ══════════════════════════════════════════════════════════════════
+@app.route("/api/admin/generate-checklist-tasks", methods=["POST"])
+def generate_checklist_tasks():
+    # Check database is connected — return 503 if not
+    err = db_check()
+    if err:
+        return err
+
+    # Block non-admins — the real security boundary (see comment above)
+    caller_email = request.headers.get("X-User-Email", "").strip().lower()
+    if not is_admin(caller_email):
+        return jsonify({"error": "Forbidden — only MIS or Managing Director can generate tasks"}), 403
+
+    # Read + validate the request body. The frontend already validated more
+    # thoroughly (frequency codes, date math, duplicate warnings) but a
+    # server endpoint never trusts the client alone.
+    body          = request.get_json() or {}
+    emp_id        = body.get("emp_id")
+    branch_id     = body.get("branch_id")
+    task_name     = str(body.get("task_name", "")).strip()
+    frequency     = str(body.get("frequency", "")).strip()
+    planned_dates = body.get("planned_dates") or []
+
+    if not emp_id or not task_name or not frequency:
+        return jsonify({"error": "emp_id, task_name, and frequency are all required"}), 400
+    if not isinstance(planned_dates, list) or not planned_dates:
+        return jsonify({"error": "planned_dates must be a non-empty list"}), 400
+    if len(planned_dates) > 400:
+        # Sanity cap — a single "Generate" click should never need more
+        # than this many rows. Guards against a malformed/runaway request
+        # rather than a real use case.
+        return jsonify({"error": "Too many dates in one batch (max 400) — narrow the date range"}), 400
+
+    # Step 1: bulk-insert every row WITHOUT sheet_task_id first — we need
+    # each row's real auto-generated `id` back before we can mirror it.
+    rows = [{
+        "emp_id":           emp_id,
+        "branch_id":        branch_id,
+        "task_name":        task_name,
+        "frequency":        frequency,
+        "planned_date":     d,
+        "actual_timestamp": None,
+        "remarks":          None,
+        "ongoing":          None,
+        "upload":           None,
+    } for d in planned_dates]
+
+    try:
+        insert_res = sb.table("employee_checklists").insert(rows).execute()
+    except Exception as e:
+        return jsonify({"error": f"Database error during insert: {str(e)}"}), 500
+
+    inserted_rows = insert_res.data or []
+
+    # Step 2: mirror each row's own id into sheet_task_id. One bulk upsert
+    # (keyed on the primary key `id`) rather than a separate UPDATE per row.
+    try:
+        mirror_rows = [{"id": r["id"], "sheet_task_id": r["id"]} for r in inserted_rows]
+        if mirror_rows:
+            sb.table("employee_checklists").upsert(mirror_rows, on_conflict="id").execute()
+    except Exception as e:
+        # The rows themselves are already inserted at this point — a NULL
+        # sheet_task_id is cosmetic only (nothing reads it for lookups any
+        # more), so this is reported as a partial success, not a failure.
+        return jsonify({
+            "ok":       True,
+            "inserted": len(inserted_rows),
+            "warning":  f"Rows inserted but sheet_task_id mirroring failed: {str(e)}"
+        })
+
+    return jsonify({"ok": True, "inserted": len(inserted_rows)})
+
+
 # ── Health check endpoint ───────────────────────────────────────
 # Visit /health in your browser to confirm the server is running.
 # Also shows whether the database is connected.

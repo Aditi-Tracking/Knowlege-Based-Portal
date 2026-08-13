@@ -4083,6 +4083,14 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   <div id="tNoTaskWarn" style="display:none"></div>
   <div class="db-content" id="tasksCont" style="display:none">
 
+    <!-- Tab bar — only rendered (by js/tasks.js:tRenderTabBar) when the
+         logged-in user is MIS/owner, so a normal employee never sees more
+         than the Checklist and this bar stays display:none the way
+         js/renewals.js's ruTabBar does when there's nothing to switch. -->
+    <div id="tTabBar" style="display:none;gap:6px;margin-bottom:20px;flex-wrap:wrap;"></div>
+
+    <div id="tTab-checklist">
+
     <!-- Active Filter Badge -->
     <div id="tCFBadge" style="display:none;align-items:center;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);border-radius:10px;padding:8px 16px;margin-bottom:14px;font-size:0.88rem;color:var(--text);gap:4px;flex-wrap:wrap;"></div>
 
@@ -4178,6 +4186,108 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
       <div class="pagination" id="tPagBar"></div>
     </div>
+    </div><!-- /tTab-checklist -->
+
+    <!-- ╔═══════════════════════════════════════════════════════════════
+         ║  TASK SCHEDULER TAB — MIS/owner only (js/taskScheduler.js).
+         ║  Automated planned_date generation for recurring checklist
+         ║  tasks. All logic lives in taskScheduler.js; this is just the
+         ║  static shell it renders into.
+         ╚══════════════════════════════════════════════════════════════ -->
+    <div id="tTab-scheduler" style="display:none;">
+
+      <div class="section-title">Generate Recurring Tasks</div>
+      <!-- NOT .chart-card here on purpose — that class sets overflow:hidden,
+           which would clip the employee-search results dropdown below. Same
+           background/border/padding/radius, without the clipping. -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:20px;max-width:720px;">
+
+        <!-- Employee — searchable dropdown. tsSelectEmployee() (in
+             taskScheduler.js) fills the hidden emp_id/branch_id inputs
+             and the visible text box when a result is clicked. -->
+        <div style="margin-bottom:14px;position:relative;">
+          <label style="display:block;font-size:0.78rem;color:var(--muted);font-weight:600;margin-bottom:5px;">Employee</label>
+          <input type="text" id="tsEmpSearch" placeholder="🔍 Type a name..." autocomplete="off"
+            oninput="tsFilterEmployees(this.value)" onfocus="tsFilterEmployees(this.value)"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.88rem;font-family:inherit;outline:none;">
+          <input type="hidden" id="tsEmpId">
+          <div id="tsEmpResults" style="display:none;position:absolute;z-index:20;top:100%;left:0;right:0;margin-top:4px;max-height:220px;overflow-y:auto;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);"></div>
+        </div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+          <div style="flex:1;min-width:120px;">
+            <label style="display:block;font-size:0.78rem;color:var(--muted);font-weight:600;margin-bottom:5px;">Branch ID</label>
+            <input type="number" id="tsBranchId" placeholder="auto-fills from employee"
+              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.88rem;font-family:inherit;outline:none;">
+          </div>
+          <div style="flex:2;min-width:200px;">
+            <label style="display:block;font-size:0.78rem;color:var(--muted);font-weight:600;margin-bottom:5px;">Task Name</label>
+            <input type="text" id="tsTaskName" placeholder="e.g. Weekly Review Call" oninput="tsInvalidatePreview()"
+              style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.88rem;font-family:inherit;outline:none;">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+          <div style="flex:1;min-width:150px;">
+            <label style="display:block;font-size:0.78rem;color:var(--muted);font-weight:600;margin-bottom:5px;">Frequency</label>
+            <select id="tsFrequency" onchange="tsInvalidatePreview()" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.88rem;font-family:inherit;outline:none;cursor:pointer;">
+              <option value="D">Daily</option>
+              <option value="W">Weekly (every 7 days)</option>
+              <option value="2D">Every 2 Days</option>
+              <option value="F">Fortnightly (every 14 days)</option>
+              <option value="M">Monthly (same date each month)</option>
+              <option value="Q">Quarterly (every 3 months)</option>
+              <option value="Y">Yearly (same date each year)</option>
+              <option value="E2nd">Monthly — 2nd [weekday] of month</option>
+              <option value="E3rd">Monthly — 3rd [weekday] of month</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:0.78rem;color:var(--muted);font-weight:600;margin-bottom:5px;">Start Date</label>
+            <input type="date" id="tsStartDate" onchange="tsInvalidatePreview()" style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.88rem;font-family:inherit;outline:none;cursor:pointer;">
+          </div>
+          <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:0.78rem;color:var(--muted);font-weight:600;margin-bottom:5px;">Generate Through</label>
+            <input type="month" id="tsEndMonth" onchange="tsInvalidatePreview()" style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.88rem;font-family:inherit;outline:none;cursor:pointer;">
+          </div>
+        </div>
+
+        <div id="tsFormError" style="display:none;color:#ff5c7c;font-size:0.82rem;margin-bottom:10px;"></div>
+
+        <button onclick="tsPreview()" id="tsPreviewBtn"
+          style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:0.86rem;font-weight:700;cursor:pointer;font-family:inherit;">
+          👁 Preview Dates
+        </button>
+      </div>
+
+      <!-- Preview — populated by tsRenderPreview() in taskScheduler.js -->
+      <div id="tsPreviewSection" style="display:none;">
+        <div class="section-title">Preview — Review Before Inserting</div>
+        <div id="tsPreviewSummary" style="margin-bottom:12px;font-size:0.86rem;color:var(--text2);"></div>
+        <div id="tsDupWarning" style="display:none;background:rgba(255,92,124,0.08);border:1px solid rgba(255,92,124,0.3);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:0.84rem;color:#ff5c7c;"></div>
+
+        <div class="table-card" style="max-width:560px;">
+          <div class="table-scroll" style="max-height:400px;">
+            <table style="width:100%;">
+              <thead><tr>
+                <th>#</th><th>Planned Date</th><th>Day</th><th>Note</th>
+              </tr></thead>
+              <tbody id="tsPreviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
+          <button onclick="tsConfirmInsert()" id="tsConfirmBtn"
+            style="background:#00d4aa;color:#04231d;border:none;border-radius:8px;padding:10px 22px;font-size:0.86rem;font-weight:700;cursor:pointer;font-family:inherit;">
+            ✅ Confirm &amp; Insert
+          </button>
+          <span id="tsSubmitStatus" style="font-size:0.84rem;color:var(--muted);"></span>
+        </div>
+      </div>
+
+    </div><!-- /tTab-scheduler -->
+
   </div>
 </div>
 
@@ -6527,6 +6637,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/entsol.js?v=20260805"></script>
 <script src="js/fms.js?v=20260805"></script>
 <script src="js/tasks.js?v=20260805"></script>
+<script src="js/taskScheduler.js?v=20260805"></script>
 <script src="js/hr.js?v=20260805"></script>
 <script src="js/aftersales.js?v=20260805"></script>
 <script src="js/sales.js?v=20260805"></script>
