@@ -178,12 +178,24 @@ function esolToggleActDetail(type){
   esolRenderActivity();
 }
 // Backend sends dates as DD-MM-YYYY (e.g. "14-08-2026"); blank string = baseline import row.
+// Accepts day-first dates in any of: DD-MM-YYYY, D-M-YYYY, DD/MM/YYYY, D/M/YYYY
+// (dash or slash, 1 or 2 digit day/month) — whatever a person happens to type in the
+// sheet — plus YYYY-MM-DD as a fallback. Native Date parsing is deliberately avoided
+// here since it assumes US MM/DD and would silently misread day-first entries.
 function _esolParseTxnDate(s){
   if(!s)return null;
-  const m=String(s).trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-  if(!m)return null;
-  const d=new Date(+m[3],+m[2]-1,+m[1]);
-  return isNaN(d.getTime())?null:d;
+  const str=String(s).trim();
+  let m=str.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  if(m){
+    const d=new Date(+m[3],+m[2]-1,+m[1]);
+    return isNaN(d.getTime())?null:d;
+  }
+  m=str.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+  if(m){
+    const d=new Date(+m[1],+m[2]-1,+m[3]);
+    return isNaN(d.getTime())?null:d;
+  }
+  return null;
 }
 function _esolActFilteredTxns(scopeOverride){
   const scope=scopeOverride||ESOLactScope;
@@ -202,12 +214,23 @@ function _esolActFilteredTxns(scopeOverride){
     });
 }
 // Fixed "this month" Added/Removed, independent of whatever scope pill the user has
-// selected in the Activity section below — used for the MTD KPI card.
+// selected in the Activity section below — used for the MTD KPI card. CoolBus rows
+// carry both a licenseCount delta and a buses delta in one row, so both are summed
+// (clicktask only ever changes licenseCount).
 function _esolMTD(){
-  const txns=_esolActFilteredTxns('month');
-  const added=txns.filter(t=>t._change>0).reduce((s,t)=>s+t._change,0);
-  const removed=txns.filter(t=>t._change<0).reduce((s,t)=>s+Math.abs(t._change),0);
-  return {added,removed};
+  const now=new Date();
+  const inMonth=t=>{
+    const d=_esolParseTxnDate(t.date);
+    return !!d&&d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+  };
+  const sumChange=(txns,key)=>{
+    const rows=txns.filter(t=>typeof t[key]==='number'&&t[key]!==0);
+    const added=rows.filter(t=>t[key]>0).reduce((s,t)=>s+t[key],0);
+    const removed=rows.filter(t=>t[key]<0).reduce((s,t)=>s+Math.abs(t[key]),0);
+    return {added,removed};
+  };
+  const txns=(ESOL_TXN[ESOL_TAB]||[]).filter(inMonth);
+  return {lic:sumChange(txns,'licenseCount'),bus:sumChange(txns,'buses')};
 }
 function esolRenderActivity(){
   const addCard=document.getElementById('esolActAddCard');
@@ -259,29 +282,31 @@ function esolAvatar(name){
 function esolRenderKPIs(){
   let kpis=[];
   const mtd=_esolMTD();
-  const mtdNet=mtd.added-mtd.removed;
-  const mtdNetColor=mtdNet>0?'#00d4aa':(mtdNet<0?'#ff5c7c':'#64748b');
-  const mtdNetTxt=(mtdNet>0?'+':'')+mtdNet;
+  const netTxt=n=>(n>0?'+':'')+n;
+  const netColor=n=>n>0?'#00d4aa':(n<0?'#ff5c7c':'#64748b');
   if(ESOL_TAB==='clicktask'){
     const d=ESOL.clicktask;
     const avg=d.totalCustomers?(d.totalCustomerLicenses/d.totalCustomers).toFixed(1):'—';
+    const licNet=mtd.lic.added-mtd.lic.removed;
     kpis=[
       {l:'Total Customers',v:d.totalCustomers||0,s:'Active license holders',a:'#00d4aa',i:ESOL_ICO.users,act:{type:'filter',key:'type',val:'Customer'}},
       {l:'Total Licenses',v:(d.totalCustomerLicenses||0).toLocaleString('en-IN'),s:'Across all customers',a:'#f0a500',i:ESOL_ICO.tag,act:{type:'clear'}},
       {l:'Trial Customers',v:d.totalTrialCustomers||0,s:(d.totalTrialLicenses||0)+' trial licenses',a:'#a78bfa',i:ESOL_ICO.clock,act:{type:'filter',key:'type',val:'Trial'}},
       {l:'Avg Licenses / Customer',v:avg,s:'Mean deployment size',a:'#4e9af1',i:ESOL_ICO.bars,act:{type:'clear'}},
-      {l:'MTD Activity',v:'<span style="color:'+mtdNetColor+'">'+mtdNetTxt+'</span>',s:'Net licenses this month',a:'#ff5c7c',i:ESOL_ICO.trend,act:{type:'clear'}}
+      {l:'MTD Activity',v:'<span style="color:'+netColor(licNet)+'">'+netTxt(licNet)+'</span>',s:'Net licenses this month',a:'#ff5c7c',i:ESOL_ICO.trend,act:{type:'clear'}}
     ];
   }else{
     const d=ESOL.coolbus;
     const avg=d.totalSchools?(d.totalSchoolLicenses/d.totalSchools).toFixed(1):'—';
+    const busNet=mtd.bus.added-mtd.bus.removed;
+    const licNet=mtd.lic.added-mtd.lic.removed;
     kpis=[
       {l:'Total Schools',v:d.totalSchools||0,s:'Active deployments',a:'#4e9af1',i:ESOL_ICO.building,act:{type:'filter',key:'type',val:'Customer'}},
       {l:'Total Licenses',v:(d.totalSchoolLicenses||0).toLocaleString('en-IN'),s:'Across all schools',a:'#00d4aa',i:ESOL_ICO.tag,act:{type:'clear'}},
       {l:'Trial Schools',v:d.totalTrialSchools||0,s:(d.totalTrialLicenses||0)+' trial licenses',a:'#a78bfa',i:ESOL_ICO.clock,act:{type:'filter',key:'type',val:'Trial'}},
       {l:'Total Buses',v:(d.totalSchoolBuses||0).toLocaleString('en-IN'),s:(d.totalTrialBuses||0)+' buses in trials',a:'#f97316',i:ESOL_ICO.bus,act:{type:'sort',key:'buses'}},
       {l:'Avg Licenses / School',v:avg,s:'Mean deployment size',a:'#f0a500',i:ESOL_ICO.bars,act:{type:'clear'}},
-      {l:'MTD Activity',v:'<span style="color:'+mtdNetColor+'">'+mtdNetTxt+'</span>',s:'Net buses this month',a:'#ff5c7c',i:ESOL_ICO.trend,act:{type:'clear'}}
+      {l:'MTD Activity',v:'<span style="color:'+netColor(busNet)+'">'+netTxt(busNet)+'</span> buses',s:'<span style="color:'+netColor(licNet)+';font-weight:700">'+netTxt(licNet)+'</span> licenses this month',a:'#ff5c7c',i:ESOL_ICO.trend,act:{type:'clear'}}
     ];
   }
   ESOLkpiActions=kpis.map(k=>k.act||null);
