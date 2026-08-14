@@ -90,11 +90,14 @@ function _fsCanViewAll(){ return !!CURRENT_USER && PERMISSIONS.field_service_vie
 function _fsHasAccess(){ return _fsCanCreate() || _fsCanViewAll(); }
 
 function _applyFieldServiceNavVisibility(){
+  console.log('[FieldService diag] PERMISSIONS at visibility check:', PERMISSIONS);
   const show = _fsHasAccess();
+  console.log('[FieldService diag] _fsHasAccess() computed:', show, '(field_service_create:', PERMISSIONS.field_service_create, ', field_service_view_all:', PERMISSIONS.field_service_view_all, ')');
   const nav = document.getElementById('nav-fieldservice');
   const mm  = document.getElementById('mm-fieldservice');
   if (nav) nav.style.display = show ? 'flex' : 'none';
   if (mm)  mm.style.display  = show ? 'flex' : 'none';
+  console.log('[FieldService diag] nav-fieldservice element found:', !!nav, ', mm-fieldservice element found:', !!mm);
   return show;
 }
 

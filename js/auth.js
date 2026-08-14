@@ -135,6 +135,7 @@ function _buildFallbackPermissions(rawRole) {
 // Retries the permissions call a couple of times before the caller falls
 // back to role defaults — see the limitation noted above _buildFallbackPermissions.
 async function _fetchPermissionsWithRetry(email, attempts = 3) {
+  console.log('[FieldService diag] _fetchPermissionsWithRetry start. navigator.connection?.effectiveType:', (navigator.connection && navigator.connection.effectiveType) || 'unavailable');
   let lastErr;
   for (let i = 0; i < attempts; i++) {
     const controller = new AbortController();
@@ -204,12 +205,18 @@ async function _loadUserProfile(authUser) {
         if (_pd.rawRole) _newUser.rawRole = _pd.rawRole;
         if (_pd.role)    _newUser.role    = _pd.role === 'owner' ? 'owner' : 'employee';
       } else {
+        console.error('[FieldService diag] Permissions fetch returned non-ok response, using fallback. Status:', _pr && _pr.status);
         _newPermissions = _buildFallbackPermissions(_newUser.rawRole);
       }
     } catch(_pe) {
-      console.warn('Permissions fetch failed after retries, using fallback:', _pe);
+      console.error('[FieldService diag] Permissions fetch failed after retries, using fallback:', {
+        error: _pe,
+        isTimeout: !!(_pe && _pe.name === 'AbortError'),
+        message: _pe && _pe.message
+      });
       _newPermissions = _buildFallbackPermissions(_newUser.rawRole);
     }
+    console.log('[FieldService diag] Final PERMISSIONS used for', authUser.email, ':', _newPermissions);
 
     if (_mySeq !== _authFlowSeq) return; // re-check — the permissions fetch above is the slow part
 

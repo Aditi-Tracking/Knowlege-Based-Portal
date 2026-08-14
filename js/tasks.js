@@ -2147,6 +2147,7 @@ const TASKS_LIVE_MIN_GAP_MS = 8*1000;   // Minimum 8s gap between syncs
 
 async function tSilentRefresh(){
   if(_tasksSyncing || !tLoaded) return;
+  console.log('[FieldService diag] tSilentRefresh started');
   _tasksSyncing = true;
   try {
     const isOwner = PERMISSIONS.checklist_scope === 'all';
@@ -2349,6 +2350,7 @@ async function tSilentRefresh(){
     if(sync) sync.textContent='Live · '+new Date().toLocaleTimeString();
     _tasksLastSync = Date.now();
   } catch(e){
+    console.error('[FieldService diag] tSilentRefresh error:', e);
   } finally {
     _tasksSyncing = false;
   }
