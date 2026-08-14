@@ -32,6 +32,22 @@ let ESOL=null,ESOL_TAB='clicktask',ESOLch={},ESOLp=1,ESOLsk=null,ESOLsd=1,ESOLtb
 let ESOL_ROWS={clicktask:[],coolbus:[]},ESOLf=[];
 let ESOLcf={location:null,type:null,school:null,customer:null};
 let ESOLkpiActions=[];
+// Add/Remove transaction log — clicktask already sends {date, customer, licenseChange, location};
+// coolbus should send the same shape with {date, school, busChange, location} once its backend
+// is fixed. Rows with no parseable date are the original bulk-import baseline, not a real
+// tracked change, so they're excluded from Added/Removed everywhere (even "All Time").
+let ESOL_TXN={clicktask:[],coolbus:[]};
+let ESOLactScope='today',ESOLactType=null;
+// Sums every transaction's changeKey grouped by nameKey — used to derive each
+// customer/school's TRUE current count from the transaction log (see loadEnterpriseSolutions).
+function _esolNetByName(txns,nameKey,changeKey){
+  const map=new Map();
+  (txns||[]).forEach(t=>{
+    if(!t||!t[nameKey]||typeof t[changeKey]!=='number')return;
+    map.set(t[nameKey],(map.get(t[nameKey])||0)+t[changeKey]);
+  });
+  return map;
+}
 const ESOLPP=15;
 const ESOL_TC='#475569',ESOL_GC='rgba(15,23,42,0.07)',ESOL_DIM='rgba(15,23,42,0.09)';
 const ESOL_SC=['#00d4aa','#f0a500','#4e9af1','#a78bfa','#ff5c7c','#f97316','#10b981','#ec4899'];
@@ -68,7 +84,8 @@ const ESOL_ICO={
   bars:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>',
   trophy:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4z"/><path d="M17 5h3a3 3 0 01-3 4M7 5H4a3 3 0 003 4"/></svg>',
   building:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1"/><path d="M9 22v-4h6v4M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/></svg>',
-  bus:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V7a2 2 0 012-2h12a2 2 0 012 2v9"/><path d="M4 16a2 2 0 002 2h12a2 2 0 002-2M4 16H2M22 16h-2"/><circle cx="8" cy="18.5" r="1.5"/><circle cx="16" cy="18.5" r="1.5"/><path d="M4 11h16"/></svg>'
+  bus:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V7a2 2 0 012-2h12a2 2 0 012 2v9"/><path d="M4 16a2 2 0 002 2h12a2 2 0 002-2M4 16H2M22 16h-2"/><circle cx="8" cy="18.5" r="1.5"/><circle cx="16" cy="18.5" r="1.5"/><path d="M4 11h16"/></svg>',
+  trend:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="14 6 21 6 21 13"/></svg>'
 };
 
 async function loadEnterpriseSolutions(){
@@ -79,12 +96,38 @@ async function loadEnterpriseSolutions(){
     if(!data||!data.clicktask||!data.coolbus)throw new Error('API returned an unexpected shape — expected {clicktask, coolbus}');
     ESOL=data;
     const ct=ESOL.clicktask,cb=ESOL.coolbus;
+    ESOL_TXN.clicktask=ct.transactions||[];
+    ESOL_TXN.coolbus=cb.schoolTransactions||cb.transactions||cb.busTransactions||[];
+
+    // A customer/school's TRUE current count is the sum of every transaction logged
+    // against their name (backend logs one baseline transaction per row, plus every
+    // add/remove since) — the customers[]/schools[] licenseCount/buses field is just
+    // the original snapshot and goes stale the instant a transaction changes that name.
+    // CoolBus rows carry BOTH a licenseCount delta and a buses delta in one row, so it
+    // needs two separate net-sums (clicktask only ever changes licenseCount).
+    const ctNet=_esolNetByName(ESOL_TXN.clicktask,'customer','licenseCount');
+    const cbLicNet=_esolNetByName(ESOL_TXN.coolbus,'school','licenseCount');
+    const cbBusNet=_esolNetByName(ESOL_TXN.coolbus,'school','buses');
+    const ctCustomers=(ct.customers||[]).map(r=>({...r,licenseCount:ctNet.has(r.customer)?ctNet.get(r.customer):r.licenseCount}));
+    const cbSchools=(cb.schools||[]).map(r=>({
+      ...r,
+      licenseCount:cbLicNet.has(r.school)?cbLicNet.get(r.school):r.licenseCount,
+      buses:cbBusNet.has(r.school)?cbBusNet.get(r.school):r.buses
+    }));
+    // Keep ESOL.clicktask/coolbus themselves corrected so every other reader (KPIs,
+    // charts, switcher subtitle) sees the adjusted numbers without extra plumbing.
+    ct.customers=ctCustomers;
+    cb.schools=cbSchools;
+    ct.totalCustomerLicenses=ctCustomers.reduce((s,r)=>s+(Number(r.licenseCount)||0),0);
+    cb.totalSchoolLicenses=cbSchools.reduce((s,r)=>s+(Number(r.licenseCount)||0),0);
+    cb.totalSchoolBuses=cbSchools.reduce((s,r)=>s+(Number(r.buses)||0),0);
+
     ESOL_ROWS.clicktask=[
-      ...(ct.customers||[]).map(r=>({...r,_Type:'Customer'})),
+      ...ctCustomers.map(r=>({...r,_Type:'Customer'})),
       ...(ct.trials||[]).map(r=>({...r,_Type:'Trial'}))
     ];
     ESOL_ROWS.coolbus=[
-      ...(cb.schools||[]).map(r=>({...r,_Type:'Customer'})),
+      ...cbSchools.map(r=>({...r,_Type:'Customer'})),
       ...(cb.trials||[]).map(r=>({...r,_Type:'Trial'}))
     ];
     document.getElementById('esolLoad').style.display='none';document.getElementById('esolCont').style.display='block';
@@ -110,6 +153,7 @@ async function refreshEnterpriseSolutions(){
 function esolSwitchTab(tab){
   if(tab===ESOL_TAB)return;
   ESOL_TAB=tab;ESOLsk=null;ESOLsd=1;ESOLp=1;ESOLcf={location:null,type:null,school:null,customer:null};
+  ESOLactType=null;
   document.getElementById('esolBtn-clicktask').classList.toggle('esol-switch-active',tab==='clicktask');
   document.getElementById('esolBtn-coolbus').classList.toggle('esol-switch-active',tab==='coolbus');
   document.getElementById('esolCharts-clicktask').style.display=tab==='clicktask'?'grid':'none';
@@ -120,8 +164,86 @@ function esolSwitchTab(tab){
   document.getElementById('esolFType').value='';
   esolRenderAll();esolBadge();
 }
-function esolRenderAll(){esolRenderKPIs();esolRenderCharts();esolApply();}
-function esolTopBy(arr,key){return arr.reduce((m,r)=>(+r[key]>+(m?m[key]:-1)?r:m),null);}
+function esolRenderAll(){esolRenderKPIs();esolRenderCharts();esolApply();esolRenderActivity();}
+
+// ── LICENSE/BUS ACTIVITY — Added/Removed totals, Today/Month/All scope, click-to-drill ──
+function esolSetActScope(scope){
+  ESOLactScope=scope;
+  document.querySelectorAll('.esol-scope-btn').forEach(b=>b.classList.remove('esol-scope-active'));
+  const btn=document.getElementById('esolScope-'+scope);if(btn)btn.classList.add('esol-scope-active');
+  esolRenderActivity();
+}
+function esolToggleActDetail(type){
+  ESOLactType=ESOLactType===type?null:type;
+  esolRenderActivity();
+}
+// Backend sends dates as DD-MM-YYYY (e.g. "14-08-2026"); blank string = baseline import row.
+function _esolParseTxnDate(s){
+  if(!s)return null;
+  const m=String(s).trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if(!m)return null;
+  const d=new Date(+m[3],+m[2]-1,+m[1]);
+  return isNaN(d.getTime())?null:d;
+}
+function _esolActFilteredTxns(scopeOverride){
+  const scope=scopeOverride||ESOLactScope;
+  const isCt=ESOL_TAB==='clicktask';
+  const changeKey=isCt?'licenseCount':'buses';
+  const nameKey=isCt?'customer':'school';
+  const now=new Date();
+  return (ESOL_TXN[ESOL_TAB]||[])
+    .filter(t=>t&&typeof t[changeKey]==='number'&&t[changeKey]!==0)
+    .map(t=>({...t,_change:t[changeKey],_name:t[nameKey],_date:_esolParseTxnDate(t.date)}))
+    .filter(t=>{
+      if(!t._date)return false; // baseline import rows have no real date — never counted
+      if(scope==='today')return t._date.getFullYear()===now.getFullYear()&&t._date.getMonth()===now.getMonth()&&t._date.getDate()===now.getDate();
+      if(scope==='month')return t._date.getFullYear()===now.getFullYear()&&t._date.getMonth()===now.getMonth();
+      return true; // 'all'
+    });
+}
+// Fixed "this month" Added/Removed, independent of whatever scope pill the user has
+// selected in the Activity section below — used for the MTD KPI card.
+function _esolMTD(){
+  const txns=_esolActFilteredTxns('month');
+  const added=txns.filter(t=>t._change>0).reduce((s,t)=>s+t._change,0);
+  const removed=txns.filter(t=>t._change<0).reduce((s,t)=>s+Math.abs(t._change),0);
+  return {added,removed};
+}
+function esolRenderActivity(){
+  const addCard=document.getElementById('esolActAddCard');
+  if(!addCard)return; // section not in DOM yet (shouldn't happen, but stay defensive)
+  const isCt=ESOL_TAB==='clicktask';
+  const unit=isCt?'Licenses':'Buses';
+  document.getElementById('esolActTitle').textContent=(isCt?'License':'Bus')+' Activity';
+  document.getElementById('esolActAddLbl').textContent=unit+' Added';
+  document.getElementById('esolActRemLbl').textContent=unit+' Removed';
+  document.getElementById('esolActDetailNameHead').textContent=isCt?'Customer':'School';
+
+  const txns=_esolActFilteredTxns();
+  const added=txns.filter(t=>t._change>0).reduce((s,t)=>s+t._change,0);
+  const removed=txns.filter(t=>t._change<0).reduce((s,t)=>s+Math.abs(t._change),0);
+  document.getElementById('esolActAddVal').textContent=added.toLocaleString('en-IN');
+  document.getElementById('esolActRemVal').textContent=removed.toLocaleString('en-IN');
+  addCard.classList.toggle('esol-act-active',ESOLactType==='add');
+  document.getElementById('esolActRemCard').classList.toggle('esol-act-active',ESOLactType==='remove');
+
+  const wrap=document.getElementById('esolActDetailWrap');
+  if(!ESOLactType){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  const scopeLabel={today:'Today',month:'This Month',all:'All Time'}[ESOLactScope];
+  document.getElementById('esolActDetailTitle').textContent=(ESOLactType==='add'?'➕ Added':'➖ Removed')+' — '+scopeLabel;
+  const rows=txns.filter(t=>ESOLactType==='add'?t._change>0:t._change<0).sort((a,b)=>b._date-a._date);
+  const body=document.getElementById('esolActDetailBody');
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="4" style="padding:14px;text-align:center;color:#94a0b8;font-size:0.85rem;">No records in this period</td></tr>';
+    return;
+  }
+  body.innerHTML=rows.map(t=>{
+    const chColor=t._change>0?'#00d4aa':'#ff5c7c';
+    const chSign=t._change>0?'+':'';
+    return `<tr><td style="padding:8px 10px;font-size:0.82rem;color:#64748b;border-bottom:1px solid #f2f4f9;">${t.date||'—'}</td><td style="padding:8px 10px;font-size:0.85rem;font-weight:600;color:#1e293b;border-bottom:1px solid #f2f4f9;">${t._name||'—'}</td><td style="padding:8px 10px;font-size:0.85rem;font-weight:700;color:${chColor};text-align:right;border-bottom:1px solid #f2f4f9;">${chSign}${t._change}</td><td style="padding:8px 10px;font-size:0.82rem;color:#64748b;border-bottom:1px solid #f2f4f9;">${t.location||'—'}</td></tr>`;
+  }).join('');
+}
 // Deterministic initial + colour per name (same customer/school always gets
 // the same avatar colour across re-renders/pages, picked by a simple hash).
 function esolAvatar(name){
@@ -136,28 +258,30 @@ function esolAvatar(name){
 // all reflect the same selection.
 function esolRenderKPIs(){
   let kpis=[];
+  const mtd=_esolMTD();
+  const mtdNet=mtd.added-mtd.removed;
+  const mtdNetColor=mtdNet>0?'#00d4aa':(mtdNet<0?'#ff5c7c':'#64748b');
+  const mtdNetTxt=(mtdNet>0?'+':'')+mtdNet;
   if(ESOL_TAB==='clicktask'){
     const d=ESOL.clicktask;
     const avg=d.totalCustomers?(d.totalCustomerLicenses/d.totalCustomers).toFixed(1):'—';
-    const top=esolTopBy(d.customers||[],'licenseCount');
     kpis=[
       {l:'Total Customers',v:d.totalCustomers||0,s:'Active license holders',a:'#00d4aa',i:ESOL_ICO.users,act:{type:'filter',key:'type',val:'Customer'}},
       {l:'Total Licenses',v:(d.totalCustomerLicenses||0).toLocaleString('en-IN'),s:'Across all customers',a:'#f0a500',i:ESOL_ICO.tag,act:{type:'clear'}},
       {l:'Trial Customers',v:d.totalTrialCustomers||0,s:(d.totalTrialLicenses||0)+' trial licenses',a:'#a78bfa',i:ESOL_ICO.clock,act:{type:'filter',key:'type',val:'Trial'}},
       {l:'Avg Licenses / Customer',v:avg,s:'Mean deployment size',a:'#4e9af1',i:ESOL_ICO.bars,act:{type:'clear'}},
-      {l:'Largest Deployment',v:top?top.customer:'—',s:top?top.licenseCount.toLocaleString('en-IN')+' licenses · '+top.location:'—',a:'#ff5c7c',i:ESOL_ICO.trophy,act:top?{type:'filter',key:'customer',val:top.customer}:null}
+      {l:'MTD Activity',v:'<span style="color:'+mtdNetColor+'">'+mtdNetTxt+'</span>',s:'Net licenses this month',a:'#ff5c7c',i:ESOL_ICO.trend,act:{type:'clear'}}
     ];
   }else{
     const d=ESOL.coolbus;
     const avg=d.totalSchools?(d.totalSchoolLicenses/d.totalSchools).toFixed(1):'—';
-    const top=esolTopBy(d.schools||[],'licenseCount');
     kpis=[
       {l:'Total Schools',v:d.totalSchools||0,s:'Active deployments',a:'#4e9af1',i:ESOL_ICO.building,act:{type:'filter',key:'type',val:'Customer'}},
       {l:'Total Licenses',v:(d.totalSchoolLicenses||0).toLocaleString('en-IN'),s:'Across all schools',a:'#00d4aa',i:ESOL_ICO.tag,act:{type:'clear'}},
       {l:'Trial Schools',v:d.totalTrialSchools||0,s:(d.totalTrialLicenses||0)+' trial licenses',a:'#a78bfa',i:ESOL_ICO.clock,act:{type:'filter',key:'type',val:'Trial'}},
       {l:'Total Buses',v:(d.totalSchoolBuses||0).toLocaleString('en-IN'),s:(d.totalTrialBuses||0)+' buses in trials',a:'#f97316',i:ESOL_ICO.bus,act:{type:'sort',key:'buses'}},
       {l:'Avg Licenses / School',v:avg,s:'Mean deployment size',a:'#f0a500',i:ESOL_ICO.bars,act:{type:'clear'}},
-      {l:'Largest Deployment',v:top?top.school:'—',s:top?top.licenseCount.toLocaleString('en-IN')+' licenses · '+(top.buses||0)+' buses':'—',a:'#ff5c7c',i:ESOL_ICO.trophy,act:top?{type:'filter',key:'school',val:top.school}:null}
+      {l:'MTD Activity',v:'<span style="color:'+mtdNetColor+'">'+mtdNetTxt+'</span>',s:'Net buses this month',a:'#ff5c7c',i:ESOL_ICO.trend,act:{type:'clear'}}
     ];
   }
   ESOLkpiActions=kpis.map(k=>k.act||null);

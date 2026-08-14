@@ -2426,6 +2426,41 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     <div class="kpi-grid esol-kpi-grid" id="esolKpiGrid"></div>
     <div id="esolCFBadge" style="display:none;align-items:center;background:#f3edff;border:1px solid #ded1fb;border-radius:10px;padding:8px 16px;margin-bottom:14px;font-size:0.88rem;color:#1e293b;gap:4px;flex-wrap:wrap;"></div>
 
+    <div class="section-title" id="esolActTitle">License Activity</div>
+    <div style="background:#ffffff;border:1px solid #e9ecf5;border-radius:16px;padding:16px 18px;margin-bottom:24px;box-shadow:0 1px 2px rgba(15,23,42,0.04);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;">
+        <button class="esol-scope-btn esol-scope-active" id="esolScope-today" onclick="esolSetActScope('today')">Today</button>
+        <button class="esol-scope-btn" id="esolScope-month" onclick="esolSetActScope('month')">This Month</button>
+        <button class="esol-scope-btn" id="esolScope-all" onclick="esolSetActScope('all')">All Time</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="esol-act-card esol-act-add" id="esolActAddCard" onclick="esolToggleActDetail('add')">
+          <div class="esol-act-icon" style="background:rgba(0,212,170,0.14);color:#00d4aa">➕</div>
+          <div class="esol-act-value" id="esolActAddVal">0</div>
+          <div class="esol-act-label" id="esolActAddLbl">Licenses Added</div>
+        </div>
+        <div class="esol-act-card esol-act-remove" id="esolActRemCard" onclick="esolToggleActDetail('remove')">
+          <div class="esol-act-icon" style="background:rgba(255,92,124,0.14);color:#ff5c7c">➖</div>
+          <div class="esol-act-value" id="esolActRemVal">0</div>
+          <div class="esol-act-label" id="esolActRemLbl">Licenses Removed</div>
+        </div>
+      </div>
+      <div id="esolActDetailWrap" style="display:none;margin-top:16px;border-top:1px solid #eef0f7;padding-top:14px;">
+        <div style="font-size:0.78rem;font-weight:700;color:#8891a5;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;" id="esolActDetailTitle">Added</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr>
+              <th style="text-align:left;padding:6px 10px;font-size:0.72rem;color:#8891a5;text-transform:uppercase;border-bottom:1px solid #eef0f7;">Date</th>
+              <th style="text-align:left;padding:6px 10px;font-size:0.72rem;color:#8891a5;text-transform:uppercase;border-bottom:1px solid #eef0f7;" id="esolActDetailNameHead">Customer</th>
+              <th style="text-align:right;padding:6px 10px;font-size:0.72rem;color:#8891a5;text-transform:uppercase;border-bottom:1px solid #eef0f7;">Change</th>
+              <th style="text-align:left;padding:6px 10px;font-size:0.72rem;color:#8891a5;text-transform:uppercase;border-bottom:1px solid #eef0f7;">Location</th>
+            </tr></thead>
+            <tbody id="esolActDetailBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div class="section-title" id="esolChartsTitle">ClickTask Analytics</div>
     <div class="charts-grid" id="esolCharts-clicktask">
       <div class="chart-card"><div class="chart-title"><span class="esol-chart-badge" style="background:rgba(0,212,170,0.14);color:#00d4aa"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span> Top Customers by Licenses</div><div class="chart-wrap"><canvas id="esolChCtTop"></canvas></div></div>
