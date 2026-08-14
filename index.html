@@ -2427,11 +2427,15 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     <div id="esolCFBadge" style="display:none;align-items:center;background:#f3edff;border:1px solid #ded1fb;border-radius:10px;padding:8px 16px;margin-bottom:14px;font-size:0.88rem;color:#1e293b;gap:4px;flex-wrap:wrap;"></div>
 
     <div class="section-title" id="esolActTitle">License Activity</div>
-    <div style="background:#ffffff;border:1px solid #e9ecf5;border-radius:16px;padding:16px 18px;margin-bottom:24px;box-shadow:0 1px 2px rgba(15,23,42,0.04);">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;">
+    <div id="esolActivityBox" style="background:#ffffff;border:1px solid #e9ecf5;border-radius:16px;padding:16px 18px;margin-bottom:24px;box-shadow:0 1px 2px rgba(15,23,42,0.04);">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
         <button class="esol-scope-btn esol-scope-active" id="esolScope-today" onclick="esolSetActScope('today')">Today</button>
         <button class="esol-scope-btn" id="esolScope-month" onclick="esolSetActScope('month')">This Month</button>
         <button class="esol-scope-btn" id="esolScope-all" onclick="esolSetActScope('all')">All Time</button>
+      </div>
+      <div id="esolActMetricRow" style="display:none;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="esol-scope-btn esol-metric-btn esol-scope-active" id="esolMetric-buses" onclick="esolSetActMetric('buses')">🚌 Buses</button>
+        <button class="esol-scope-btn esol-metric-btn" id="esolMetric-license" onclick="esolSetActMetric('license')">🏷️ Licenses</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
         <div class="esol-act-card esol-act-add" id="esolActAddCard" onclick="esolToggleActDetail('add')">

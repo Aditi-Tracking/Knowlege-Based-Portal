@@ -37,7 +37,7 @@ let ESOLkpiActions=[];
 // is fixed. Rows with no parseable date are the original bulk-import baseline, not a real
 // tracked change, so they're excluded from Added/Removed everywhere (even "All Time").
 let ESOL_TXN={clicktask:[],coolbus:[]};
-let ESOLactScope='today',ESOLactType=null;
+let ESOLactScope='today',ESOLactType=null,ESOLactMetric='buses';
 // Sums every transaction's changeKey grouped by nameKey — used to derive each
 // customer/school's TRUE current count from the transaction log (see loadEnterpriseSolutions).
 function _esolNetByName(txns,nameKey,changeKey){
@@ -153,7 +153,9 @@ async function refreshEnterpriseSolutions(){
 function esolSwitchTab(tab){
   if(tab===ESOL_TAB)return;
   ESOL_TAB=tab;ESOLsk=null;ESOLsd=1;ESOLp=1;ESOLcf={location:null,type:null,school:null,customer:null};
-  ESOLactType=null;
+  ESOLactType=null;ESOLactMetric='buses';
+  document.querySelectorAll('.esol-metric-btn').forEach(b=>b.classList.remove('esol-scope-active'));
+  const mBtn=document.getElementById('esolMetric-buses');if(mBtn)mBtn.classList.add('esol-scope-active');
   document.getElementById('esolBtn-clicktask').classList.toggle('esol-switch-active',tab==='clicktask');
   document.getElementById('esolBtn-coolbus').classList.toggle('esol-switch-active',tab==='coolbus');
   document.getElementById('esolCharts-clicktask').style.display=tab==='clicktask'?'grid':'none';
@@ -167,15 +169,36 @@ function esolSwitchTab(tab){
 function esolRenderAll(){esolRenderKPIs();esolRenderCharts();esolApply();esolRenderActivity();}
 
 // ── LICENSE/BUS ACTIVITY — Added/Removed totals, Today/Month/All scope, click-to-drill ──
+// CoolBus rows carry both a licenseCount delta and a buses delta, so which one this
+// section tracks is a separate toggle (ESOLactMetric) from the scope pill — ClickTask
+// only ever has licenseCount, so the toggle is hidden and ignored on that tab.
 function esolSetActScope(scope){
   ESOLactScope=scope;
-  document.querySelectorAll('.esol-scope-btn').forEach(b=>b.classList.remove('esol-scope-active'));
+  document.querySelectorAll('.esol-scope-btn:not(.esol-metric-btn)').forEach(b=>b.classList.remove('esol-scope-active'));
   const btn=document.getElementById('esolScope-'+scope);if(btn)btn.classList.add('esol-scope-active');
+  esolRenderActivity();
+}
+function esolSetActMetric(metric){
+  ESOLactMetric=metric;
+  document.querySelectorAll('.esol-metric-btn').forEach(b=>b.classList.remove('esol-scope-active'));
+  const btn=document.getElementById('esolMetric-'+metric);if(btn)btn.classList.add('esol-scope-active');
   esolRenderActivity();
 }
 function esolToggleActDetail(type){
   ESOLactType=ESOLactType===type?null:type;
   esolRenderActivity();
+}
+// Drill-down triggered from the MTD Activity KPI's license figure (CoolBus tab) —
+// switches the Activity section to the license metric, this month, with Added open.
+function esolShowMTDLicenseDetail(){
+  ESOLactMetric='license';ESOLactScope='month';ESOLactType='add';
+  document.querySelectorAll('.esol-metric-btn').forEach(b=>b.classList.remove('esol-scope-active'));
+  const mBtn=document.getElementById('esolMetric-license');if(mBtn)mBtn.classList.add('esol-scope-active');
+  document.querySelectorAll('.esol-scope-btn:not(.esol-metric-btn)').forEach(b=>b.classList.remove('esol-scope-active'));
+  const sBtn=document.getElementById('esolScope-month');if(sBtn)sBtn.classList.add('esol-scope-active');
+  esolRenderActivity();
+  const box=document.getElementById('esolActivityBox');
+  if(box)box.scrollIntoView({behavior:'smooth',block:'start'});
 }
 // Backend sends dates as DD-MM-YYYY (e.g. "14-08-2026"); blank string = baseline import row.
 // Accepts day-first dates in any of: DD-MM-YYYY, D-M-YYYY, DD/MM/YYYY, D/M/YYYY
@@ -200,7 +223,7 @@ function _esolParseTxnDate(s){
 function _esolActFilteredTxns(scopeOverride){
   const scope=scopeOverride||ESOLactScope;
   const isCt=ESOL_TAB==='clicktask';
-  const changeKey=isCt?'licenseCount':'buses';
+  const changeKey=isCt?'licenseCount':(ESOLactMetric==='license'?'licenseCount':'buses');
   const nameKey=isCt?'customer':'school';
   const now=new Date();
   return (ESOL_TXN[ESOL_TAB]||[])
@@ -236,11 +259,14 @@ function esolRenderActivity(){
   const addCard=document.getElementById('esolActAddCard');
   if(!addCard)return; // section not in DOM yet (shouldn't happen, but stay defensive)
   const isCt=ESOL_TAB==='clicktask';
-  const unit=isCt?'Licenses':'Buses';
-  document.getElementById('esolActTitle').textContent=(isCt?'License':'Bus')+' Activity';
+  const metricIsLicense=isCt||ESOLactMetric==='license';
+  const unit=metricIsLicense?'Licenses':'Buses';
+  document.getElementById('esolActTitle').textContent=(metricIsLicense?'License':'Bus')+' Activity';
   document.getElementById('esolActAddLbl').textContent=unit+' Added';
   document.getElementById('esolActRemLbl').textContent=unit+' Removed';
   document.getElementById('esolActDetailNameHead').textContent=isCt?'Customer':'School';
+  const metricRow=document.getElementById('esolActMetricRow');
+  if(metricRow)metricRow.style.display=isCt?'none':'flex';
 
   const txns=_esolActFilteredTxns();
   const added=txns.filter(t=>t._change>0).reduce((s,t)=>s+t._change,0);
@@ -306,7 +332,7 @@ function esolRenderKPIs(){
       {l:'Trial Schools',v:d.totalTrialSchools||0,s:(d.totalTrialLicenses||0)+' trial licenses',a:'#a78bfa',i:ESOL_ICO.clock,act:{type:'filter',key:'type',val:'Trial'}},
       {l:'Total Buses',v:(d.totalSchoolBuses||0).toLocaleString('en-IN'),s:(d.totalTrialBuses||0)+' buses in trials',a:'#f97316',i:ESOL_ICO.bus,act:{type:'sort',key:'buses'}},
       {l:'Avg Licenses / School',v:avg,s:'Mean deployment size',a:'#f0a500',i:ESOL_ICO.bars,act:{type:'clear'}},
-      {l:'MTD Activity',v:'<span style="color:'+netColor(busNet)+'">'+netTxt(busNet)+'</span> buses',s:'<span style="color:'+netColor(licNet)+';font-weight:700">'+netTxt(licNet)+'</span> licenses this month',a:'#ff5c7c',i:ESOL_ICO.trend,act:{type:'clear'}}
+      {l:'MTD Activity',v:'<span style="color:'+netColor(busNet)+'">'+netTxt(busNet)+'</span> buses',s:'<span onclick="event.stopPropagation();esolShowMTDLicenseDetail()" style="color:'+netColor(licNet)+';font-weight:700;text-decoration:underline;cursor:pointer;">'+netTxt(licNet)+'</span> licenses this month',a:'#ff5c7c',i:ESOL_ICO.trend,act:{type:'clear'}}
     ];
   }
   ESOLkpiActions=kpis.map(k=>k.act||null);
