@@ -866,38 +866,13 @@
         </div>
       </div>
 
-    <!-- ══ SPOTLIGHT OF THE MONTH ══ -->
-    <div class="hp-card" style="margin-bottom:16px;position:relative;overflow:hidden;">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#f0a500,#ffcc44,#f0a500);background-size:200%;animation:shimmer2 3s linear infinite;"></div>
-      
-      <div class="hp-card-header">
-        <span class="hp-card-icon">🏆</span>
-        <span class="hp-card-title">Spotlight of the Month</span>
-        <span style="font-size:0.73rem;color:var(--accent);margin-left:auto;font-weight:600;background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.25);padding:3px 10px;border-radius:20px;">June 2026</span>
-      </div>
-      <!-- Single Performer — Saloni Raut -->
-      <div id="potmGrid" style="display:flex;justify-content:center;margin-top:8px;">
-        <div class="potm-card" id="soloniCard" style="width:200px;">
-          <div class="potm-card-bar" style="background:#4e9af1;opacity:0.8;"></div>
-          <div class="potm-trophy">🥇</div>
-          <div class="potm-shimmer" id="soloni-img-slot"></div>
-          <div class="potm-name">Saloni Raut</div>
-          <div class="potm-dept" style="background:rgba(78,154,241,0.12);color:#4e9af1;border:1px solid rgba(78,154,241,0.3);">🏢 Support</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ NEW JOINER ══ -->
-    <div class="hp-card" style="margin-bottom:16px;position:relative;overflow:hidden;">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#00d4aa,#4e9af1,#00d4aa);background-size:200%;animation:shimmer2 3s linear infinite;"></div>
-      <div class="hp-card-header">
-        <span class="hp-card-icon">🌱</span>
-        <span class="hp-card-title">New Joiners</span>
-      </div>
-      <div id="newJoinersGrid" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:10px;">
-        <div style="color:var(--muted);font-size:0.84rem;padding:10px 0;">Loading new joiners…</div>
-      </div>
-    </div>
+    <!-- ══ HOME CONTENT SECTIONS — HR-editable, any number of titled boxes ══
+         Populated by loadHomeContentSections() in js/homeContent.js from
+         home_content_sections/home_content_items. Users with home_content_manage
+         get inline edit affordances (rename/deactivate section, add/remove card,
+         add section) rendered directly into these boxes — there is no separate
+         admin page. ══ -->
+    <div id="homeContentSections"></div>
 
     <!-- ══ ROW 3: HOW TO USE + EMERGENCY CONTACTS ══ -->
     <div class="hp-row2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
@@ -6763,4 +6738,5 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/fieldservice.js?v=20260805"></script>
 <script src="js/fieldservice-dashboard.js?v=20260805"></script>
 <script src="js/hrEmployee.js?v=20260805"></script>
+<script src="js/homeContent.js?v=20260817"></script>
 </body></html>

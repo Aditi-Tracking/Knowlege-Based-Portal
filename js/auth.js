@@ -132,6 +132,10 @@ const _ROLE_DEFAULT_PERMISSIONS = {
     can_view_announcements:'true', can_view_my_referrals:'true', can_view_open_roles:'true',
     checklist_scope:'own',
   },
+  hr: {
+    can_view_announcements:'true', can_view_my_referrals:'true', can_view_open_roles:'true',
+    checklist_scope:'own', home_content_manage:'true',
+  },
 };
 
 function _buildFallbackPermissions(rawRole) {
@@ -480,10 +484,11 @@ function showPortal(){
   if (typeof _applyHREmployeeNavVisibility === 'function') _applyHREmployeeNavVisibility();
   // Fetch employee profile photo from Supabase → home page pe dikhao
   fetchUserProfilePhoto();
-  // Performer of the Month cards load karo
-  loadPerformers();
-  // New Joiners cards load karo
-  loadNewJoiners();
+  // HR-editable Home page card sections (Spotlight of the Month, New Joiners,
+  // or whatever else HR has created) — see js/homeContent.js. Inline edit
+  // affordances for home_content_manage users render directly inside these
+  // boxes, so there's no separate nav item to gate here.
+  loadHomeContentSections();
   // Pre-fetch all dashboard data in background
   setTimeout(prefetchAllData, 0);
 }

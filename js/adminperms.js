@@ -56,6 +56,7 @@ const _permLabels = {
   field_service_view_all:     '🛠️ Field Service — View All Entries',
   hr_employee_view:           '🧑‍💼 HR Employee Master — View',
   hr_employee_edit:           '🧑‍💼 HR Employee Master — Edit',
+  home_content_manage:        '🏠 Home Content — Manage Sections & Cards',
 };
 
 async function loadAdminPermsPanel() {
