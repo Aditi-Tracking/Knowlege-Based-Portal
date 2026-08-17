@@ -23,6 +23,14 @@ let CURRENT_USER = null;
 let PERMISSIONS  = {};   // populated from Python backend after login
 const _PAPI = 'https://knowlege-based-portal-production.up.railway.app';
 
+// True whenever the permissions fetch fell back to role defaults (timeout,
+// non-ok response, or network error) rather than getting a real answer from
+// the backend — see _loadUserProfile below. Not currently read by any UI
+// (kept as a diagnostic signal, inspectable from devtools, for permissions
+// with no role-level default such as field_service_create/view_all — see
+// the Samsung A26 investigation this was added for).
+let _permissionsFetchFailed = false;
+
 // Bumped by every login attempt (auto-restore on page load OR manual doLogin).
 // A device can have a still-valid session from a previous user sitting in
 // localStorage — if someone types different credentials into the (still
@@ -204,9 +212,15 @@ async function _loadUserProfile(authUser) {
         _newPermissions = _pd.permissions || {};
         if (_pd.rawRole) _newUser.rawRole = _pd.rawRole;
         if (_pd.role)    _newUser.role    = _pd.role === 'owner' ? 'owner' : 'employee';
+        _permissionsFetchFailed = false;
       } else {
         console.error('[FieldService diag] Permissions fetch returned non-ok response, using fallback. Status:', _pr && _pr.status);
         _newPermissions = _buildFallbackPermissions(_newUser.rawRole);
+        logClientDebug('fallback_permissions_used', `role=${_newUser.rawRole}`, {
+          field_service_create:   _newPermissions.field_service_create,
+          field_service_view_all: _newPermissions.field_service_view_all,
+        });
+        _permissionsFetchFailed = true;
       }
     } catch(_pe) {
       console.error('[FieldService diag] Permissions fetch failed after retries, using fallback:', {
@@ -214,7 +228,13 @@ async function _loadUserProfile(authUser) {
         isTimeout: !!(_pe && _pe.name === 'AbortError'),
         message: _pe && _pe.message
       });
+      logClientDebug('permissions_fetch_failed', _pe?.message || String(_pe), { errorName: _pe?.name });
       _newPermissions = _buildFallbackPermissions(_newUser.rawRole);
+      logClientDebug('fallback_permissions_used', `role=${_newUser.rawRole}`, {
+        field_service_create:   _newPermissions.field_service_create,
+        field_service_view_all: _newPermissions.field_service_view_all,
+      });
+      _permissionsFetchFailed = true;
     }
     console.log('[FieldService diag] Final PERMISSIONS used for', authUser.email, ':', _newPermissions);
 
@@ -250,6 +270,11 @@ async function _loadUserProfile(authUser) {
       location: ''
     };
     PERMISSIONS = _buildFallbackPermissions('employee');
+    logClientDebug('fallback_permissions_used', 'role=employee', {
+      field_service_create:   PERMISSIONS.field_service_create,
+      field_service_view_all: PERMISSIONS.field_service_view_all,
+    });
+    _permissionsFetchFailed = true;
     showPortal();
   }
 }
@@ -446,7 +471,10 @@ function showPortal(){
   }
   // Renewals & Collections nav (Upload Outstanding Data / Resolve Unmatched) — owner or MIS only
   _applyRenewalsNavVisibility();
-  // Field Service nav — only for users granted field_service_create or field_service_view_all
+  // Field Service nav — only for users granted field_service_create or field_service_view_all.
+  // The Field Service Dashboard is a tab inside this same panel (see js/fieldservice.js's
+  // _fsRenderTabBar), not a separate nav item, so it has no visibility function of its own —
+  // it inherits this same gate.
   if (typeof _applyFieldServiceNavVisibility === 'function') _applyFieldServiceNavVisibility();
   // HR Employee Master nav — only for users granted hr_employee_view
   if (typeof _applyHREmployeeNavVisibility === 'function') _applyHREmployeeNavVisibility();

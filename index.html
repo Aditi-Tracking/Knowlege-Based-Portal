@@ -279,7 +279,9 @@
         <span class="nav-sub-dot"></span>
         <span class="nav-label">CRM Vehicle</span><span class="nav-badge live" style="background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.35);">Live</span>
       </div>
-      <!-- FIELD SERVICE — permission-gated, see field_service_create / field_service_view_all -->
+      <!-- FIELD SERVICE — permission-gated, see field_service_create / field_service_view_all.
+           Panel has 3 internal tabs (Submit Entry / My-All Entries / Dashboard) — see
+           js/fieldservice.js's _fsRenderTabBar(). Dashboard is not a separate nav item. -->
       <div class="nav-item nav-sub-item" onclick="switchDB('fieldservice')" id="nav-fieldservice" style="display:none;" title="Field Service">
         <span class="nav-sub-dot"></span>
         <span class="nav-label">Field Service</span>
@@ -4953,12 +4955,43 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 </div>
 
 <!-- ╔═══════════════════════════════════════════════════════════════════════
-     ║  [PANEL FIELD SERVICE] — engineer job submissions + entries listing
+     ║  [PANEL FIELD SERVICE] — engineer job submissions + entries listing + dashboard
      ║  Access: PERMISSIONS.field_service_create / field_service_view_all
      ║  JS: loadFieldService() (js/fieldservice.js) — all markup below the
-     ║  header is rendered by JS into the empty containers.
+     ║  header is rendered by JS into the empty containers. 3 internal tabs:
+     ║  Submit Entry (create only) / My-All Entries / Dashboard (either permission —
+     ║  Dashboard's own data is js/fieldservice-dashboard.js, RLS-scoped as before).
      ╚═══════════════════════════════════════════════════════════════════════ -->
 <div class="dashboard-panel" id="panel-fieldservice">
+  <style>
+    /* Overrides scoped to THIS panel only (#panel-fieldservice) — the shared
+       .db-header/.db-content/.kpi-card/.chart-card/.filters-bar classes stay
+       untouched everywhere else (Renewals, SmartFleet, etc.). Confirmed by
+       screenshot comparison: KPI row + both chart rows are correctly sized
+       and fit without scroll — the only remaining overflow (trend chart's
+       x-axis labels pushed just out of view on first load) came from this
+       panel's own header/top-padding, not from chart/KPI sizing, so those are
+       what get compacted here — do not touch chart heights or KPI card
+       padding/font again without being asked.
+       Header block: .db-header/.db-title/.db-breadcrumb are shared by every
+       dashboard panel in the app, so these overrides are scoped to
+       #panel-fieldservice specifically — no other module's header changes. */
+    #panel-fieldservice .db-header{padding:6px 26px;}
+    #panel-fieldservice .db-title{font-size:0.95rem;}
+    #panel-fieldservice .db-breadcrumb{margin-top:1px;}
+    #panel-fieldservice .db-content{padding-top:4px;}
+    #fsdInlineFilters{padding:5px 8px;gap:6px;}
+    #fsdInlineFilters .filter-select,#fsdInlineFilters .filter-input{padding:3px 6px;font-size:0.72rem;}
+    #fsdInlineFilters .filter-input{min-width:110px;}
+    #fsdInlineFilters .filter-btn{padding:3px 8px;font-size:0.7rem;}
+    #fsDashboardTab .kpi-grid{gap:8px;margin-bottom:11px;}
+    #fsDashboardTab .kpi-card{padding:13px 13px 9px;}
+    #fsDashboardTab .kpi-label{font-size:0.62rem;margin-bottom:3px;}
+    #fsDashboardTab .kpi-value{font-size:clamp(1.0rem,1.45vw,1.45rem);margin-bottom:2px;}
+    #fsDashboardTab .kpi-sub{font-size:0.65rem;}
+    #fsDashboardTab .chart-card{padding:10px 14px;}
+    #fsDashboardTab .chart-title{font-size:0.8rem;margin-bottom:6px;}
+  </style>
   <div class="db-header">
     <div>
       <div class="db-title"><span>aditi</span> Field Service</div>
@@ -4969,9 +5002,47 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     </div>
   </div>
   <div class="db-content">
-    <div id="fsTabBar" style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
+      <div id="fsTabBar" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      <!-- Dashboard-only filters — sit inline on the tab row, right-aligned.
+           Visibility toggled by js/fieldservice.js's _fsSwitchTabView() (not
+           tied to #fsDashboardTab's own display, since this div lives outside
+           it structurally, despite being Dashboard-tab-only content). -->
+      <div id="fsdInlineFilters" class="filters-bar" style="display:none;margin:0;"></div>
+    </div>
     <div id="fsSubmitTab"></div>
     <div id="fsListTab" style="display:none;"></div>
+    <div id="fsDashboardTab" style="display:none;">
+      <div class="kpi-grid" id="fsdKpiGrid"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px;">
+        <div class="chart-card">
+          <div class="chart-title">Jobs by Type</div>
+          <div class="chart-wrap" style="height:198px;"><canvas id="fsdChartJobType"></canvas></div>
+        </div>
+        <div class="chart-card" id="fsdEngineerChartCard" style="display:none;">
+          <div class="chart-title">Top Engineers</div>
+          <div class="chart-wrap" style="height:198px;"><canvas id="fsdChartEngineers"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:10px;">
+        <div class="chart-title">Jobs Done — Trend</div>
+        <div class="chart-wrap" style="height:242px;"><canvas id="fsdChartTrend"></canvas></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <span class="table-title">Entries</span>
+        </div>
+        <div id="fsdListLoading" style="text-align:center;padding:40px;color:var(--muted);">⏳ Loading entries…</div>
+        <div id="fsdListEmpty" style="display:none;text-align:center;padding:40px;color:var(--muted);">No entries found.</div>
+        <div class="table-scroll" id="fsdTableWrap" style="display:none;">
+          <table>
+            <thead id="fsdTableHead"></thead>
+            <tbody id="fsdTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="fsdPagination" style="display:none;"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -6690,5 +6761,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/renewals.js?v=20260805"></script>
 <script src="js/vendor.js?v=20260805"></script>
 <script src="js/fieldservice.js?v=20260805"></script>
+<script src="js/fieldservice-dashboard.js?v=20260805"></script>
 <script src="js/hrEmployee.js?v=20260805"></script>
 </body></html>

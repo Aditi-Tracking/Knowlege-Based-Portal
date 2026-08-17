@@ -141,6 +141,11 @@ function _fsRenderTabBar(){
   const tabs = [];
   if (_fsCanCreate()) tabs.push(['submit', '📝 Submit Entry']);
   tabs.push(['list', _fsCanViewAll() ? '📋 All Entries' : '📋 My Entries']);
+  // Dashboard tab — reaching this function at all already implies _fsHasAccess()
+  // (loadFieldService() gates the whole panel on it), so no extra permission
+  // check is needed here: field_service_create OR field_service_view_all both
+  // qualify, same as every other tab in this bar.
+  tabs.push(['dashboard', '📊 Dashboard']);
   bar.innerHTML = tabs.map(([id, label]) => {
     const active = _fsActiveTab === id;
     return `<button onclick="_fsSwitchTab('${id}')" style="padding:10px 18px;border-radius:10px;border:1.5px solid ${active ? 'var(--accent2)' : 'var(--border)'};background:${active ? 'rgba(0,212,170,0.12)' : 'var(--surface2)'};color:${active ? 'var(--accent2)' : 'var(--muted)'};font-weight:700;font-size:0.87rem;cursor:pointer;font-family:inherit;">${label}</button>`;
@@ -154,10 +159,16 @@ function _fsSwitchTab(tab){
 }
 
 async function _fsSwitchTabView(tab){
-  const submitEl = document.getElementById('fsSubmitTab');
-  const listEl   = document.getElementById('fsListTab');
-  if (submitEl) submitEl.style.display = tab === 'submit' ? 'block' : 'none';
-  if (listEl)   listEl.style.display   = tab === 'list'   ? 'block' : 'none';
+  const submitEl  = document.getElementById('fsSubmitTab');
+  const listEl    = document.getElementById('fsListTab');
+  const dashEl    = document.getElementById('fsDashboardTab');
+  const filtersEl = document.getElementById('fsdInlineFilters');
+  if (submitEl)  submitEl.style.display  = tab === 'submit'    ? 'block' : 'none';
+  if (listEl)    listEl.style.display    = tab === 'list'      ? 'block' : 'none';
+  if (dashEl)    dashEl.style.display    = tab === 'dashboard' ? 'block' : 'none';
+  // Dashboard's filters live inline on the tab-bar row (index.html), not inside
+  // fsDashboardTab itself, so they need their own visibility toggle here.
+  if (filtersEl) filtersEl.style.display = tab === 'dashboard' ? 'flex'  : 'none';
   if (tab === 'list') {
     // Await the Engineer/Client dropdown options (cached after first fetch)
     // before rendering entries, so the very first render already shows
@@ -165,6 +176,9 @@ async function _fsSwitchTabView(tab){
     await _fsLoadFilterOptions();
     await _fsEnsureCurrentUserId();
     _fsLoadEntries();
+  }
+  if (tab === 'dashboard') {
+    loadFieldServiceDashboard();
   }
 }
 
