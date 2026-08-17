@@ -91,13 +91,23 @@ async function loadHomeContentSections() {
   if (!container) return;
   try {
     const secRes = await fetch(`${SUPABASE_URL}/rest/v1/home_content_sections?select=*&is_active=eq.true&order=display_order.asc`, { headers: SB_HDRS() });
-    _hcSections = secRes.ok ? await secRes.json() : [];
+    if (secRes.ok) {
+      _hcSections = await secRes.json();
+    } else {
+      console.error('[HomeContent] home_content_sections fetch failed:', secRes.status, await secRes.text());
+      _hcSections = [];
+    }
     if (!Array.isArray(_hcSections)) _hcSections = [];
 
     if (_hcSections.length) {
       const ids = _hcSections.map(s => s.id).join(',');
       const itemRes = await fetch(`${SUPABASE_URL}/rest/v1/home_content_items?select=*&is_active=eq.true&section_id=in.(${ids})&order=display_order.asc`, { headers: SB_HDRS() });
-      const items = itemRes.ok ? await itemRes.json() : [];
+      let items = [];
+      if (itemRes.ok) {
+        items = await itemRes.json();
+      } else {
+        console.error('[HomeContent] home_content_items fetch failed:', itemRes.status, await itemRes.text());
+      }
       _hcItemsBySection = {};
       items.forEach(it => { (_hcItemsBySection[it.section_id] = _hcItemsBySection[it.section_id] || []).push(it); });
     } else {
@@ -111,6 +121,7 @@ async function loadHomeContentSections() {
 
     _hcRenderAll();
   } catch (e) {
+    console.error('[HomeContent] loadHomeContentSections failed:', e);
     container.innerHTML = '<div class="hp-card" style="color:var(--muted);font-size:0.84rem;padding:14px;">Couldn\'t load Home content right now.</div>';
   }
 }
