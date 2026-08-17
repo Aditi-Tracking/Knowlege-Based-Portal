@@ -54,7 +54,11 @@ ROLE_MAP = {
     "pc":                  "pc",
     "executive assistant": "executive assistant",
     "ea":                  "executive assistant",
-    "admin":               "admin"
+    "admin":               "admin",
+    # Added for home_content_manage (Home page HR content editor) — without
+    # this, HR-dept staff fell into the "employee" bucket below and a
+    # role_defaults row keyed role='hr' would never be read.
+    "hr":                  "hr"
 }
 
 # ── Helper: check database is connected ────────────────────────
