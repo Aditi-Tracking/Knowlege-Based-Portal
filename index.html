@@ -4347,6 +4347,19 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
        Unassigned Pool keep their existing spacing. */
     #ruMyCustomersBody td{padding:6px 9px;line-height:1.3;}
     #ruMyCustomersBody thead th{padding:6px 9px;}
+    /* Accounts tab — ~0.85x the app-wide 10px/13px default (see td{} in
+       css/styles.css), scoped to this one table only.
+       table-layout:fixed makes the width:% set on each <th> in
+       _ruRenderAccountsTab actually authoritative — without it, the
+       browser's default content-based auto-layout largely ignores those
+       hints (a long billing name or a wide Status badge pulls extra width
+       toward itself), which is what made the columns look bunched/uneven
+       despite the percentages already summing to 100%. white-space:normal
+       replaces the app-wide nowrap default, since fixed columns can no
+       longer grow to fit a long value on one line — cells wrap instead. */
+    #ruAccountsBody table{table-layout:fixed;}
+    #ruAccountsBody td{padding:8px 11px;line-height:1.3;vertical-align:middle;white-space:normal;word-break:break-word;}
+    #ruAccountsBody thead th{padding:8px 11px;}
     /* Thicker, easier-to-grab horizontal scrollbar for both the top sync strip
        and the real (bottom) scroller — the app-wide 4px bar is too thin to
        drag reliably on this especially-wide table. Scoped here so other
@@ -4508,6 +4521,15 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
     </div>
 
+    <!-- ACCOUNTS (migration 0028) — Accounts-tier (renewals_accounts_access)
+         or MIS only. Deliberately ignores the location switcher above — see
+         loadRenewalsAccounts() in js/renewals.js. -->
+    <div id="ruTab-accounts" style="display:none;">
+      <div id="ruAccountsBody">
+        <p style="color:var(--muted);font-size:0.88rem;">Loading…</p>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -4580,6 +4602,52 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
+<!-- RENEWALS — Accounts tab row detail (migration 0028). Same .ru-detail-*
+     two-column family as ruCustomerDetailOverlay above (left: read-only
+     customer/outstanding/flag details, right: notes thread + resolve) —
+     just wider, since this replaces what used to be an inline row
+     expansion and needs more room for the notes thread. -->
+<style>
+  #ruAccountsDetailOverlay .fms-overlay-box{box-shadow:var(--shadow-lg);animation:ruModalPopIn 0.2s ease-out;}
+  #ruAccountsDetailOverlay .ru-detail-box{max-width:1000px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+</style>
+<div class="fms-overlay-backdrop" id="ruAccountsDetailOverlay">
+  <div class="fms-overlay-box ru-detail-box">
+    <button onclick="ruCloseAccountsDetail()" style="position:absolute;top:14px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+    <div style="margin-bottom:1.1rem;padding-right:24px;">
+      <div id="ruAccountsDetailTitle" style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:#00d4aa;"></div>
+      <div id="ruAccountsDetailSubtitle" style="font-size:0.78rem;color:var(--muted);margin-top:3px;"></div>
+    </div>
+    <div class="ru-detail-columns">
+      <div class="ru-detail-col-left">
+        <div class="ru-detail-section">
+          <div class="ru-detail-section-title">Customer</div>
+          <div id="ruAccountsDetailCustomer" class="ru-detail-grid"></div>
+        </div>
+        <div class="ru-detail-section">
+          <div class="ru-detail-section-title">Outstanding</div>
+          <div id="ruAccountsDetailOutstanding" class="ru-detail-grid"></div>
+        </div>
+        <div class="ru-detail-section" style="background:rgba(240,165,0,0.06);border-color:rgba(240,165,0,0.25);margin-bottom:0;">
+          <div class="ru-detail-section-title">Flag Status</div>
+          <div id="ruAccountsDetailFlag" class="ru-detail-grid"></div>
+          <div id="ruAccountsDetailResolveWrap" style="margin-top:12px;"></div>
+        </div>
+      </div>
+
+      <div class="ru-detail-col-right">
+        <div class="ru-detail-section" style="margin-bottom:0;">
+          <div class="ru-detail-section-title" style="display:flex;align-items:center;gap:6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            Notes
+          </div>
+          <div id="ruAccountsDetailNotesBody">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- RENEWALS — call screenshot lightbox (click-to-enlarge from Call History,
      see _ruOpenScreenshotLightbox). Reuses .fms-overlay-backdrop/.open like
      ruCustomerDetailOverlay rather than inventing a new overlay pattern. -->
@@ -4593,6 +4661,28 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <button onclick="_ruLightboxPrev()" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:5px 14px;cursor:pointer;font-size:0.85rem;font-family:inherit;">‹ Prev</button>
       <span id="ruScreenshotLightboxCounter" style="color:var(--muted);font-size:0.78rem;"></span>
       <button onclick="_ruLightboxNext()" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:5px 14px;cursor:pointer;font-size:0.85rem;font-family:inherit;">Next ›</button>
+    </div>
+  </div>
+</div>
+
+<!-- RENEWALS — flag-to-Accounts / resolve-flag dialog (migration 0028).
+     Shared by both actions — same shape either way: a customer id (kept in
+     JS state, not the DOM) + a required note + one submit button — see
+     ruOpenFlagDialog/ruOpenResolveDialog/ruSubmitNoteAction in js/renewals.js.
+     Reuses .fms-overlay-backdrop/.open like ruCustomerDetailOverlay rather
+     than inventing a new overlay pattern. -->
+<div class="fms-overlay-backdrop" id="ruNoteActionOverlay">
+  <div class="fms-overlay-box" style="max-width:440px;">
+    <button onclick="ruCloseNoteActionDialog()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+    <div id="ruNoteActionTitle" style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#00d4aa;margin-bottom:0.4rem;">Flag to Accounts</div>
+    <div id="ruNoteActionHint" style="font-size:0.8rem;color:var(--muted);margin-bottom:1rem;">Describe the issue for the Accounts team — this note is required.</div>
+    <div class="fms-form-group" style="margin-bottom:1rem;">
+      <label class="fms-form-label">Note *</label>
+      <textarea id="ruNoteActionText" class="fms-form-input" rows="4" style="resize:vertical;"></textarea>
+    </div>
+    <div style="display:flex;gap:0.75rem;">
+      <button id="ruNoteActionSubmitBtn" onclick="ruSubmitNoteAction()" style="flex:1;padding:0.65rem;border-radius:10px;border:none;background:#00d4aa;color:#04231d;font-weight:700;font-size:0.9rem;cursor:pointer;font-family:inherit;">Flag to Accounts</button>
+      <button onclick="ruCloseNoteActionDialog()" style="padding:0.65rem 1.2rem;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:600;font-size:0.88rem;cursor:pointer;font-family:inherit;">Cancel</button>
     </div>
   </div>
 </div>
@@ -6733,7 +6823,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/celebrations.js?v=20260805"></script>
 <script src="js/announcements.js?v=20260805"></script>
 <script src="js/adminperms.js?v=20260817"></script>
-<script src="js/renewals.js?v=20260805"></script>
+<script src="js/renewals.js?v=20260828"></script>
 <script src="js/vendor.js?v=20260805"></script>
 <script src="js/fieldservice.js?v=20260805"></script>
 <script src="js/fieldservice-dashboard.js?v=20260805"></script>

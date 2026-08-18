@@ -428,6 +428,7 @@ const RU_TABS = [
   { id: 'unmatched',      label: 'Resolve Unmatched' },
   { id: 'unassignedPool', label: 'Unassigned Pool' },
   { id: 'overview',       label: 'Overview' },
+  { id: 'accounts',       label: 'Accounts' },
 ];
 
 let _ruFile = null;
@@ -437,6 +438,7 @@ let _ruPollTimer = null;
 let _ruIsMIS = false;
 let _ruCrmPerson = null; // { id, name, full_data_access, location } | null — set by _applyRenewalsNavVisibility()
 let _ruFullDataAccess = false; // mirrors _ruCrmPerson.full_data_access — org-wide data, still CRM-person tab set (migration 0020)
+let _ruIsAccounts = false; // renewals_accounts_access grant (migration 0028) — Accounts-tier, sees the Accounts tab across every location regardless of crm_persons/MIS status
 let _ruActiveTab = null;
 
 // ── Location (migration 0027) — crm_persons/crm_customers/etc. are now
@@ -446,7 +448,7 @@ let _ruActiveTab = null;
 // renewals_location_access (a non-CRM-person given visibility into a
 // second location without being reclassified there).
 const RU_LOCATIONS = [
-  { value: 'original',  label: 'Original' },
+  { value: 'original',  label: 'Mumbai HO' }, // display-only relabel — the stored value stays 'original' (upload folder-prefix convention, RLS, etc. all key off the raw value, untouched)
   { value: 'gujarat',   label: 'Gujarat' },
   { value: 'bangalore', label: 'Bangalore' },
   { value: 'goa',       label: 'Goa' },
@@ -483,6 +485,7 @@ async function _applyRenewalsNavVisibility() {
   _ruIsMIS = isRoleMIS;
   _ruCrmPerson = null;
   _ruFullDataAccess = false;
+  _ruIsAccounts = false;
 
   // Full MIS-tier Renewals access granted without reclassifying Employee_Dept
   // (migration 0022) — e.g. Chirag/Hetal/Collection@/Suchit. Some of these
@@ -498,6 +501,24 @@ async function _applyRenewalsNavVisibility() {
       );
       const grantRows = await grantRes.json();
       if (Array.isArray(grantRows) && grantRows.length) _ruIsMIS = true;
+    } catch (e) {
+      // treat as not granted
+    }
+  }
+
+  // Accounts-tier grant (migration 0028) — same shape as the MIS grant above,
+  // just a separate allow-list table. Not guarded by `!_ruIsMIS` for the same
+  // reason the MIS check isn't guarded by `!isRoleMIS`-only: an MIS account
+  // could independently also be Accounts-tier, and _ruIsAccounts should
+  // reflect that regardless.
+  if (CURRENT_USER && CURRENT_USER.email) {
+    try {
+      const accGrantRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/renewals_accounts_access?email=ilike.${encodeURIComponent(CURRENT_USER.email)}&select=email&limit=1`,
+        { headers: SB_HDRS() },
+      );
+      const accGrantRows = await accGrantRes.json();
+      if (Array.isArray(accGrantRows) && accGrantRows.length) _ruIsAccounts = true;
     } catch (e) {
       // treat as not granted
     }
@@ -546,7 +567,7 @@ async function _applyRenewalsNavVisibility() {
       : _ruAllowedLocations[0];
   }
 
-  const hasAccess = _ruIsMIS || !!_ruCrmPerson;
+  const hasAccess = _ruIsMIS || !!_ruCrmPerson || _ruIsAccounts;
   if (nav) nav.style.display = hasAccess ? '' : 'none';
   if (mm)  mm.style.display  = hasAccess ? 'flex' : 'none';
   if (_ruIsMIS) _ruRefreshUnassignedPoolBadge();
@@ -589,8 +610,17 @@ async function _ruRefreshUnassignedPoolBadge() {
 
 function _ruVisibleTabIds() {
   if (_ruIsMIS) return RU_TABS.map(t => t.id);
-  if (_ruCrmPerson) return ['myCustomers', 'closedPaid', 'unmatched', 'overview'];
-  return [];
+  const ids = [];
+  if (_ruCrmPerson) ids.push('myCustomers', 'closedPaid', 'unmatched', 'overview');
+  // Accounts is visible to anyone with any access to this module at all —
+  // same condition as My Customers (a crm_persons row) — plus a pure
+  // Accounts-tier grant with no crm_persons row of their own. RLS on
+  // crm_customers (is_own_assigned_person + has_renewals_location_access)
+  // is what actually narrows a plain CRM person down to only their own
+  // flagged customers when loadRenewalsAccounts() runs — not this check,
+  // which only decides whether the tab button exists at all.
+  if (_ruCrmPerson || _ruIsAccounts) ids.push('accounts');
+  return ids;
 }
 
 function _ruTabBtnStyle(active) {
@@ -680,6 +710,7 @@ function ruSwitchTab(tabId) {
   else if (tabId === 'closedPaid') loadRenewalsClosedPaid();
   else if (tabId === 'unassignedPool') loadRenewalsUnassignedPool();
   else if (tabId === 'overview') loadRenewalsOverview();
+  else if (tabId === 'accounts') loadRenewalsAccounts();
 }
 
 // Called once per nav click into the module (switchDB('renewals') hook in
@@ -693,7 +724,10 @@ function loadRenewals() {
   const visible = _ruVisibleTabIds();
   if (!visible.length) return; // shouldn't happen — the nav item itself would be hidden
 
-  _ruActiveTab = 'overview';
+  // 'overview' is the default landing tab, but a pure Accounts-tier user (no
+  // crm_persons row, not MIS) never has it in their visible set — land them
+  // on the first tab they actually have instead of a blank panel.
+  _ruActiveTab = visible.includes('overview') ? 'overview' : visible[0];
   ruSwitchTab(_ruActiveTab);
 }
 
@@ -1563,13 +1597,16 @@ function ruCustomerRowHtml(c, optionalVisible, dates, colCount) {
     <tr id="ruCustRow-${c.id}" data-name="${_ruEsc((c.billing_name || '').toLowerCase())}" onclick="ruOpenCustomerDetail('${c.id}')">
       <td style="${RU_BILLING_NAME_COL_STYLE}">${_ruEsc(c.billing_name)}</td>
       ${cells}
-      <td style="text-align:center;">
-        ${_ruCrmPerson
-          // Logging a call requires attributing it to a real crm_persons row
-          // (collection_calls.called_by is NOT NULL) — MIS/owner accounts
-          // don't have one, so there's nothing valid to log the call under.
-          ? `<button onclick="ruToggleCallPanel('${c.id}', event)" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;">Call</button>`
-          : ''}
+      <td style="text-align:center;white-space:nowrap;">
+        <div style="display:inline-flex;gap:6px;align-items:center;">
+          ${_ruCrmPerson
+            // Logging a call requires attributing it to a real crm_persons row
+            // (collection_calls.called_by is NOT NULL) — MIS/owner accounts
+            // don't have one, so there's nothing valid to log the call under.
+            ? `<button onclick="ruToggleCallPanel('${c.id}', event)" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;">Call</button>`
+            : ''}
+          ${_ruAccountsRowActionHtml(c)}
+        </div>
       </td>
       ${dateCells}
     </tr>
@@ -2037,6 +2074,14 @@ document.addEventListener('keydown', function (e) {
 
 document.getElementById('ruCustomerDetailOverlay')?.addEventListener('click', function (e) {
   if (e.target === this) ruCloseCustomerDetail();
+});
+
+document.getElementById('ruNoteActionOverlay')?.addEventListener('click', function (e) {
+  if (e.target === this) ruCloseNoteActionDialog();
+});
+
+document.getElementById('ruAccountsDetailOverlay')?.addEventListener('click', function (e) {
+  if (e.target === this) ruCloseAccountsDetail();
 });
 
 function ruToggleConnectedFields(customerId, connected) {
@@ -2830,6 +2875,494 @@ function _ruBuildOverviewCharts(data) {
       },
     });
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SHARED NOTES THREAD (migration 0028) — renewals_customer_notes, used by
+// both the Accounts tab's row expansion and a flagged customer's row
+// expansion on My Customers. Deliberately generic: callers just pass a
+// customer id and the id of the container div they want the thread
+// rendered into, so the exact same functions serve both call sites.
+// ═══════════════════════════════════════════════════════════════════════
+
+const RU_NOTE_TYPE_STYLE = {
+  crm:      { label: 'CRM',      color: '#4e9af1' },
+  accounts: { label: 'Accounts', color: '#f0a500' },
+  system:   { label: 'System',   color: '#9aa3b2' },
+};
+
+async function _ruLoadNotesForCustomer(customerId) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/renewals_customer_notes?customer_id=eq.${customerId}&select=*&order=created_at.asc`,
+      { headers: SB_HDRS() },
+    );
+    return res.ok ? await res.json() : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+// Compact, low-noise thread — author (tinted by note_type, no pill/badge)
+// and timestamp on one line, note text below. Author-name tint is the only
+// remaining signal of who's side a note came from; a colored pill-per-note
+// read as cluttered next to the rest of this panel's plainer styling.
+function _ruNotesThreadHtml(notes) {
+  if (!notes.length) {
+    return `<div style="font-size:0.85rem;color:var(--muted);padding:10px 0;">No notes yet — add one below to share an update.</div>`;
+  }
+  return `<div style="max-height:280px;overflow-y:auto;margin-bottom:12px;">` + notes.map(n => {
+    const style = RU_NOTE_TYPE_STYLE[n.note_type] || RU_NOTE_TYPE_STYLE.system;
+    return `
+      <div style="padding:9px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+          <span style="font-size:0.8rem;font-weight:700;color:${style.color};">${_ruEsc(_ruAccountsPersonNameByEmail(n.author_email))}</span>
+          <span style="font-size:0.71rem;color:var(--muted);">${n.created_at ? new Date(n.created_at).toLocaleString('en-IN') : ''}</span>
+        </div>
+        <div style="font-size:0.85rem;color:var(--text2);line-height:1.45;white-space:pre-wrap;">${_ruEsc(n.note)}</div>
+      </div>`;
+  }).join('') + `</div>`;
+}
+
+// Multi-line textarea + a clearly-labeled submit button below it (matches
+// the Field Service "Notes" field's textarea convention), replacing the
+// earlier single-line input + inline Send button.
+function _ruNotesInputHtml(customerId, containerId) {
+  return `
+    <div>
+      <textarea id="ruNoteInput-${containerId}" rows="3" placeholder="e.g. Payment discrepancy found, following up with client..."
+        style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg,transparent);color:var(--text);font-family:inherit;font-size:0.85rem;line-height:1.4;resize:vertical;margin-bottom:8px;"></textarea>
+      <button onclick="_ruSubmitNoteFor('${customerId}', '${containerId}')" style="padding:8px 16px;border-radius:8px;border:none;background:#00d4aa;color:#04231d;font-weight:700;font-size:0.84rem;cursor:pointer;font-family:inherit;">+ Add Note</button>
+    </div>`;
+}
+
+async function _ruRenderNotesInto(customerId, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '<div style="font-size:0.8rem;color:var(--muted);">Loading notes…</div>';
+  const notes = await _ruLoadNotesForCustomer(customerId);
+  const stillThere = document.getElementById(containerId); // panel may have been closed mid-fetch
+  if (!stillThere) return;
+  stillThere.innerHTML = _ruNotesThreadHtml(notes) + _ruNotesInputHtml(customerId, containerId);
+}
+
+async function _ruSubmitNoteFor(customerId, containerId) {
+  const input = document.getElementById(`ruNoteInput-${containerId}`);
+  const note = input ? input.value.trim() : '';
+  if (!note) return;
+  const noteType = _ruIsAccounts ? 'accounts' : 'crm';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/add_customer_note`, {
+      method: 'POST',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({ p_customer_id: customerId, p_note: note, p_note_type: noteType }),
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.message || ('HTTP ' + res.status));
+    }
+    await _ruRenderNotesInto(customerId, containerId);
+  } catch (e) {
+    alert('❌ Could not add note: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// FLAG / RESOLVE DIALOG (migration 0028) — one shared overlay for both
+// actions since they're structurally identical: a customer id + a required
+// note + a submit that calls one of two RPCs. Neither RPC ever touches
+// assigned_crm_person_id — flagging/resolving is a parallel status, not a
+// reassignment.
+// ═══════════════════════════════════════════════════════════════════════
+
+let _ruNoteActionMode = null; // 'flag' | 'resolve'
+let _ruNoteActionCustomerId = null;
+
+function ruOpenFlagDialog(customerId, event) {
+  if (event) event.stopPropagation(); // row itself opens the customer detail modal on click
+  _ruNoteActionMode = 'flag';
+  _ruNoteActionCustomerId = customerId;
+  document.getElementById('ruNoteActionTitle').textContent = 'Flag to Accounts';
+  document.getElementById('ruNoteActionHint').textContent = 'Describe the issue for the Accounts team — this note is required.';
+  document.getElementById('ruNoteActionSubmitBtn').textContent = 'Flag to Accounts';
+  document.getElementById('ruNoteActionText').value = '';
+  document.getElementById('ruNoteActionOverlay').classList.add('open');
+}
+
+function ruOpenResolveDialog(customerId) {
+  _ruNoteActionMode = 'resolve';
+  _ruNoteActionCustomerId = customerId;
+  document.getElementById('ruNoteActionTitle').textContent = 'Resolve Flag';
+  document.getElementById('ruNoteActionHint').textContent = 'Add a closing note explaining the resolution — this note is required.';
+  document.getElementById('ruNoteActionSubmitBtn').textContent = 'Mark Resolved';
+  document.getElementById('ruNoteActionText').value = '';
+  document.getElementById('ruNoteActionOverlay').classList.add('open');
+}
+
+function ruCloseNoteActionDialog() {
+  document.getElementById('ruNoteActionOverlay').classList.remove('open');
+  _ruNoteActionMode = null;
+  _ruNoteActionCustomerId = null;
+}
+
+async function ruSubmitNoteAction() {
+  const note = (document.getElementById('ruNoteActionText').value || '').trim();
+  if (!note) { alert('❌ A note is required.'); return; }
+  const customerId = _ruNoteActionCustomerId;
+  const mode = _ruNoteActionMode;
+  if (!customerId || !mode) return;
+
+  const fn = mode === 'resolve' ? 'resolve_accounts_flag' : 'flag_customer_to_accounts';
+  const btn = document.getElementById('ruNoteActionSubmitBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+      method: 'POST',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({ p_customer_id: customerId, p_note: note }),
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.message || ('HTTP ' + res.status));
+    }
+    ruCloseNoteActionDialog();
+
+    if (mode === 'flag') {
+      // Reflect the new flag status in the already-loaded My Customers cache
+      // and re-render just the table body — mirrors ruReassign's
+      // local-cache-update pattern rather than a full reload.
+      const c = _ruMyCustomers.find(x => x.id === customerId);
+      if (c) c.accounts_flag_status = 'open';
+      const wrap = document.getElementById('ruMyCustomersTableWrap');
+      if (wrap) wrap.innerHTML = _ruRenderMyCustomersTableBody();
+    } else {
+      // Resolving removes it from the default (open-only) Accounts view —
+      // simplest to just re-run the Accounts loader rather than replicate
+      // its filter/sort logic locally. Close the detail modal too, since
+      // its cached row data would otherwise still show "Open".
+      ruCloseAccountsDetail();
+      if (_ruActiveTab === 'accounts') loadRenewalsAccounts();
+    }
+  } catch (e) {
+    alert('❌ ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Row-level action for My Customers — a plain status badge once flagged
+// (not clickable — the Accounts tab's detail modal is now where notes get
+// read/added, see below), otherwise the flag trigger. Every row visible in
+// My Customers is already one the current viewer can act on (the fetch
+// itself is pre-scoped to their own book unless MIS/full-access), so no
+// extra per-row permission check is needed here.
+function _ruAccountsRowActionHtml(c) {
+  if (c.accounts_flag_status === 'open') {
+    // Plain <span>, not a <button> — same hex+alpha pill recipe as
+    // _ruStatusCellHtml, just no onclick/cursor now that it doesn't expand
+    // notes inline anymore.
+    return `<span title="With Accounts" style="padding:5px 12px;border-radius:20px;border:1px solid #f0a50055;background:#f0a50018;color:#f0a500;font-weight:700;font-size:0.74rem;display:inline-block;">With Accounts</span>`;
+  }
+  return `<button onclick="ruOpenFlagDialog('${c.id}', event)" title="Send this customer to Accounts" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:700;font-size:0.74rem;cursor:pointer;font-family:inherit;">Send to Accounts</button>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TAB: Accounts (migration 0028) — Accounts-tier (renewals_accounts_access)
+// or MIS only. Deliberately location-agnostic: the one exception to the
+// per-loader location scoping every other tab in this module applies —
+// Accounts is one central team, not scoped to a region the way a CRM
+// person is. Flagging/resolving here never touches assigned_crm_person_id
+// or removes anyone from a CRM person's My Customers list — it's a
+// parallel status, not a reassignment.
+// ═══════════════════════════════════════════════════════════════════════
+
+let _ruAccountsCustomers = [];
+let _ruAccountsPersonsById = {};
+let _ruAccountsPersonsByEmail = {};
+// crm_persons only covers CRM/sales staff — MIS and Accounts-tier flaggers
+// who aren't also a CRM person never show up there, which is why "Flagged
+// By"/"Resolved By" used to fall back to a raw email for them specifically.
+// Employee_details is the same company-wide name/email table used
+// everywhere else in the app (e.g. js/auth.js's own profile lookup) — a
+// second, broader fallback so any employee resolves to a name.
+let _ruAccountsEmployeesByEmail = {};
+let _ruAccountsStatusFilter = 'all'; // 'open' | 'resolved' | 'all' — defaults to All on first load
+
+function _ruAccountsPersonNameById(id) {
+  if (!id) return '— Unassigned —';
+  return _ruAccountsPersonsById[id] || '(inactive person)';
+}
+function _ruAccountsPersonNameByEmail(email) {
+  if (!email) return '—';
+  const key = String(email).toLowerCase();
+  return _ruAccountsPersonsByEmail[key] || _ruAccountsEmployeesByEmail[key] || email;
+}
+function _ruLocationLabel(value) {
+  const loc = RU_LOCATIONS.find(l => l.value === value);
+  return loc ? loc.label : (value || '—');
+}
+
+async function loadRenewalsAccounts() {
+  const container = document.getElementById('ruAccountsBody');
+  if (!container) return;
+  container.innerHTML = '<p style="color:var(--muted);font-size:0.88rem;">Loading…</p>';
+
+  try {
+    const statusFilter = _ruAccountsStatusFilter === 'all' ? 'in.(open,resolved)'
+      : _ruAccountsStatusFilter === 'resolved' ? 'eq.resolved'
+      : 'eq.open';
+    // No &location=eq.${_ruLocation} anywhere in this loader — Accounts sees
+    // flagged customers across every location, the one exception to every
+    // other tab's per-loader location scoping.
+    const [custRes, personsRes, employeesRes] = await Promise.all([
+      fetch(
+        `${SUPABASE_URL}/rest/v1/crm_customers?select=id,billing_name,location,category,assigned_crm_person_id,accounts_flag_status,accounts_flagged_at,accounts_flagged_by,accounts_resolved_at,accounts_resolved_by&accounts_flag_status=${statusFilter}&order=accounts_flagged_at.desc`,
+        { headers: SB_HDRS() },
+      ),
+      fetch(`${SUPABASE_URL}/rest/v1/crm_persons?is_active=eq.true&select=id,name,email`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/Employee_details?select=Employee_name,Email_Id`, { headers: SB_HDRS() }),
+    ]);
+    if (!custRes.ok) throw new Error('crm_customers: HTTP ' + custRes.status);
+    if (!personsRes.ok) throw new Error('crm_persons: HTTP ' + personsRes.status);
+    // Employee_details failing isn't fatal — Flagged/Resolved By just falls
+    // back to raw emails for names it can't resolve, same as before this change.
+    _ruAccountsEmployeesByEmail = {};
+    if (employeesRes.ok) {
+      const employees = await employeesRes.json();
+      employees.forEach(e => {
+        if (e.Email_Id) _ruAccountsEmployeesByEmail[String(e.Email_Id).toLowerCase()] = e.Employee_name;
+      });
+    }
+
+    const customers = await custRes.json();
+    const persons = await personsRes.json();
+    _ruAccountsPersonsById = {};
+    _ruAccountsPersonsByEmail = {};
+    persons.forEach(p => {
+      _ruAccountsPersonsById[p.id] = p.name;
+      if (p.email) _ruAccountsPersonsByEmail[String(p.email).toLowerCase()] = p.name;
+    });
+
+    // Outstanding snapshots fetched by an IN-list of just the flagged
+    // customer ids — this set is small (a handful of flags at a time), so
+    // unlike My Customers/Unassigned Pool at full-location scale, an IN-list
+    // here never approaches the API gateway's URL-length limit.
+    if (customers.length) {
+      const ids = customers.map(c => c.id).join(',');
+      const snapRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/latest_outstanding_snapshots?customer_id=in.(${ids})&select=customer_id,grand_total,bucket_0_30,bucket_31_60,bucket_61_90,bucket_above_90`,
+        { headers: SB_HDRS() },
+      );
+      if (!snapRes.ok) throw new Error('latest_outstanding_snapshots: HTTP ' + snapRes.status);
+      const snaps = await snapRes.json();
+      const snapMap = new Map(snaps.map(s => [s.customer_id, s]));
+      _ruAccountsCustomers = customers.map(c => ({ ...c, _snapshot: snapMap.get(c.id) || null }));
+    } else {
+      _ruAccountsCustomers = [];
+    }
+
+    _ruRenderAccountsTab(container);
+  } catch (e) {
+    container.innerHTML = `<p style="color:var(--hot,#ff5c7c);font-size:0.88rem;">⚠️ ${e.message}</p>`;
+  }
+}
+
+function ruChangeAccountsStatusFilter(value) {
+  if (value === _ruAccountsStatusFilter) return;
+  _ruAccountsStatusFilter = value;
+  loadRenewalsAccounts();
+}
+
+// Styled identically to My Customers' "Assigned To" filter (_ruAssignedToFilterHtml)
+// for visual consistency between the two dropdown filters in this module.
+function _ruAccountsStatusFilterHtml() {
+  const opts = [['open', 'Open'], ['resolved', 'Resolved'], ['all', 'All']];
+  return `
+    <select onchange="ruChangeAccountsStatusFilter(this.value)" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;">
+      ${opts.map(([v, label]) => `<option value="${v}" ${_ruAccountsStatusFilter === v ? 'selected' : ''}>Status: ${label}</option>`).join('')}
+    </select>
+  `;
+}
+
+function _ruRenderAccountsTab(container) {
+  if (!container) return;
+
+  const header = `
+    <div class="table-header">
+      <span class="table-title">Flagged Customers (${_ruAccountsCustomers.length})</span>
+      ${_ruAccountsStatusFilterHtml()}
+    </div>
+  `;
+
+  if (!_ruAccountsCustomers.length) {
+    const emptyMsg = _ruAccountsStatusFilter === 'resolved' ? 'No resolved flags yet.'
+      : _ruAccountsStatusFilter === 'all' ? 'No flagged customers yet.'
+      : 'No open flags 🎉';
+    container.innerHTML = `<div class="table-card">${header}<div style="padding:16px 18px;"><p style="color:var(--muted);font-size:0.88rem;margin:0;">${emptyMsg}</p></div></div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="table-card">
+      ${header}
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th style="width:24%;">Customer</th>
+            <th style="width:14%;">Location</th>
+            <th style="width:14%;text-align:right;">Outstanding</th>
+            <th style="width:18%;">Flagged By</th>
+            <th style="width:12%;">Status</th>
+            <th style="width:18%;">Resolved By</th>
+          </tr></thead>
+          <tbody>${_ruAccountsCustomers.map(c => _ruAccountsRowHtml(c)).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// Table columns are a trimmed-down summary (Customer/Location/Outstanding/
+// Flagged By/Status/Resolved By) — Assigned To, Flagged On, and Resolved On
+// are deliberately left out of the table itself but still fetched in
+// loadRenewalsAccounts() and shown in full inside the detail modal
+// (ruOpenAccountsDetail), which every row opens on click. Resolved rows
+// render with every table column identical to an open row (just a
+// different status badge, plus Resolved By filled in) — nothing is
+// stripped once resolved, per the "stay fully accessible" requirement.
+// Delete lives only in that modal (next to Resolve), not as a per-row
+// action here — the whole row's only job is to open the modal.
+function _ruAccountsRowHtml(c) {
+  const isOpen = c.accounts_flag_status === 'open';
+  const statusBadge = isOpen
+    ? `<span style="font-size:0.72rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid #f0a50055;background:#f0a50018;color:#f0a500;">Open</span>`
+    : `<span style="font-size:0.72rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid #00d4aa55;background:#00d4aa18;color:#00d4aa;">Resolved</span>`;
+  const grandTotal = c._snapshot ? Number(c._snapshot.grand_total).toLocaleString('en-IN') : '—';
+
+  return `
+    <tr onclick="ruOpenAccountsDetail('${c.id}')" style="cursor:pointer;">
+      <td>${_ruEsc(c.billing_name)}</td>
+      <td>${_ruEsc(_ruLocationLabel(c.location))}</td>
+      <td style="text-align:right;">${grandTotal}</td>
+      <td>${_ruEsc(_ruAccountsPersonNameByEmail(c.accounts_flagged_by))}</td>
+      <td>${statusBadge}</td>
+      <td>${!isOpen ? _ruEsc(_ruAccountsPersonNameByEmail(c.accounts_resolved_by)) : '—'}</td>
+    </tr>
+  `;
+}
+
+// Delete (migration 0029) fully wipes the flag + its notes — distinct from
+// Resolve, which keeps both as history. Never touches assigned_crm_person_id/
+// category/location, so the customer is untouched in My Customers; that
+// tab's flag badge reverts to unflagged simply because
+// accounts_flag_status is back to null, not because of any special-case
+// logic here. Lives in the detail modal next to Resolve, not the table row,
+// so closing the modal on success is the modal-equivalent of what Resolve
+// already does.
+async function ruDeleteAccountsFlag(customerId) {
+  const ok = confirm(
+    'This will permanently delete this flag and all its notes. The customer itself will NOT be affected and stays exactly as-is in My Customers. This cannot be undone. Continue?'
+  );
+  if (!ok) return;
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/delete_accounts_flag`, {
+      method: 'POST',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({ p_customer_id: customerId }),
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.message || ('HTTP ' + res.status));
+    }
+    ruCloseAccountsDetail();
+    // Mirrors ruReassign's local-cache-filter + re-render pattern rather
+    // than a full reload.
+    _ruAccountsCustomers = _ruAccountsCustomers.filter(c => c.id !== customerId);
+    _ruRenderAccountsTab(document.getElementById('ruAccountsBody'));
+  } catch (e) {
+    alert('❌ Could not delete flag: ' + e.message);
+  }
+}
+
+// ── Accounts detail modal — customer/outstanding/flag details (left) +
+// full notes thread + resolve action (right). Replaces the old inline
+// per-row expansion; opened by clicking anywhere on an Accounts tab row. ──
+let _ruAccountsDetailCustomerId = null;
+
+function ruOpenAccountsDetail(customerId) {
+  const c = _ruAccountsCustomers.find(x => x.id === customerId);
+  if (!c) return;
+  _ruAccountsDetailCustomerId = customerId;
+  const isOpen = c.accounts_flag_status === 'open';
+
+  document.getElementById('ruAccountsDetailTitle').textContent = c.billing_name;
+  document.getElementById('ruAccountsDetailSubtitle').textContent = _ruLocationLabel(c.location);
+
+  document.getElementById('ruAccountsDetailCustomer').innerHTML = _ruDetailFieldRowsHtml([
+    ['Location', _ruLocationLabel(c.location)],
+    ['Category', c.category || '—'],
+    ['Assigned To', _ruAccountsPersonNameById(c.assigned_crm_person_id)],
+  ]);
+
+  const snap = c._snapshot;
+  const money = (v) => snap ? '₹' + Number(v || 0).toLocaleString('en-IN') : '—';
+  document.getElementById('ruAccountsDetailOutstanding').innerHTML = _ruDetailFieldRowsHtml([
+    ['Grand Total', snap ? money(snap.grand_total) : '—'],
+    ['0–30 days', money(snap && snap.bucket_0_30)],
+    ['31–60 days', money(snap && snap.bucket_31_60)],
+    ['61–90 days', money(snap && snap.bucket_61_90)],
+    ['90+ days', money(snap && snap.bucket_above_90)],
+  ]);
+
+  // Resolved-by/when only makes sense once resolved — appended rather than
+  // shown as an always-present blank row.
+  const flagRows = [
+    ['Status', isOpen ? 'Open' : 'Resolved'],
+    ['Flagged By', _ruAccountsPersonNameByEmail(c.accounts_flagged_by)],
+    ['Flagged On', c.accounts_flagged_at ? new Date(c.accounts_flagged_at).toLocaleString('en-IN') : '—'],
+  ];
+  if (!isOpen) {
+    flagRows.push(['Resolved By', _ruAccountsPersonNameByEmail(c.accounts_resolved_by)]);
+    flagRows.push(['Resolved On', c.accounts_resolved_at ? new Date(c.accounts_resolved_at).toLocaleString('en-IN') : '—']);
+  }
+  document.getElementById('ruAccountsDetailFlag').innerHTML = _ruDetailFieldRowsHtml(flagRows);
+
+  // Resolve (only when open) and Delete (only for MIS or the original
+  // flagger — mirrors delete_accounts_flag's own auth check, migration
+  // 0030) sit side by side — the two destructive/status-changing actions
+  // for a flagged customer, both live only here, never as row-level
+  // actions in the table.
+  // Resolve is Accounts-tier/MIS only — a plain CRM person can now reach
+  // this modal too (Accounts tab is visible to anyone with module access,
+  // not just Accounts-tier), but shouldn't be able to mark their own flag
+  // resolved.
+  const canResolve = _ruIsMIS || _ruIsAccounts;
+  const resolveBtnHtml = (isOpen && canResolve)
+    ? `<button onclick="ruOpenResolveDialog('${c.id}')" style="flex:1;padding:8px;border-radius:8px;border:none;background:#00d4aa;color:#04231d;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;">Mark Resolved</button>`
+    : '';
+  const myEmail = (CURRENT_USER && CURRENT_USER.email) ? String(CURRENT_USER.email).trim().toLowerCase() : '';
+  const isOwnFlag = !!(c.accounts_flagged_by && myEmail && String(c.accounts_flagged_by).trim().toLowerCase() === myEmail);
+  // Accounts-tier never sees Delete, even on a flag they personally raised
+  // as a dual-role (also-a-CRM-person) user — explicit, not just an
+  // incidental consequence of only MIS/CRM persons being able to flag in
+  // the first place.
+  const canDelete = _ruIsMIS || (isOwnFlag && !_ruIsAccounts);
+  const deleteBtnHtml = canDelete ? `<button onclick="ruDeleteAccountsFlag('${c.id}')" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px;border-radius:8px;border:1.5px solid rgba(255,92,124,0.4);background:rgba(255,92,124,0.12);color:#ff5c7c;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 012-2h2a2 2 0 012 2v2"/></svg>
+    Delete
+  </button>` : '';
+  document.getElementById('ruAccountsDetailResolveWrap').innerHTML = `<div style="display:flex;gap:8px;">${resolveBtnHtml}${deleteBtnHtml}</div>`;
+
+  document.getElementById('ruAccountsDetailNotesBody').innerHTML = '<div style="font-size:0.8rem;color:var(--muted);">Loading notes…</div>';
+  _ruRenderNotesInto(customerId, 'ruAccountsDetailNotesBody');
+
+  document.getElementById('ruAccountsDetailOverlay').classList.add('open');
+}
+
+function ruCloseAccountsDetail() {
+  document.getElementById('ruAccountsDetailOverlay').classList.remove('open');
+  _ruAccountsDetailCustomerId = null;
 }
 
 
