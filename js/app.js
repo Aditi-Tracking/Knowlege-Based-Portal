@@ -405,7 +405,6 @@ function switchDB(id, fromPopState){
   if(id==='adminperms') { loadAdminPermsPanel(); }
   if(id==='renewals')   { loadRenewals(); }
   if(id==='finance')    { loadSimpleCNPanel('finance',    'Finance').then(()=>_injectPurchaseCard()); }
-  if(id==='compliance') { loadSimpleCNPanel('compliance', 'Compliance'); }
   if(id==='referral')   { initReferralProgramme(); }
   if(id==='fieldservice') { loadFieldService(); }
   if(id==='hremployee')  { loadHREmployeeMaster(); }
@@ -480,7 +479,7 @@ const rI=e=>rN(e).charAt(0).toUpperCase();
   }
 })();
 
-// ── Generic CN panel loader (Finance / Compliance / Referral) ─────────────
+// ── Generic CN panel loader (Finance / Referral) ─────────────
 // Loads content_nodes cards for a section name into a standard panel layout.
 const _simplePanelLoaded = {};
 

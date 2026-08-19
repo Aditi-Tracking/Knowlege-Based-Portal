@@ -383,12 +383,6 @@
       <span class="nav-label">Training</span><span class="nav-badge live" style="background:rgba(249,115,22,0.18);color:#f97316;border:1px solid rgba(249,115,22,0.35);">Videos</span>
     </div>
 
-    <!-- COMPLIANCE -->
-    <div class="nav-item" onclick="switchDB('compliance')" id="nav-compliance" title="Compliance">
-      <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-      <span class="nav-label">Compliance</span>
-    </div>
-
     <!-- DOCUMENTS -->
     <div class="nav-item" onclick="switchDB('resources')" id="nav-resources" title="Documents">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span>
@@ -773,12 +767,6 @@
       <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>
       <span class="mm-label">Training</span>
       <span class="mm-badge" style="margin-left:auto;background:rgba(249,115,22,0.18);color:#f97316;border:1px solid rgba(249,115,22,0.35);">Videos</span>
-    </button>
-
-    <!-- Compliance -->
-    <button class="mm-nav-item" id="mm-compliance" onclick="mobMenuGo('compliance')">
-      <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-      <span class="mm-label">Compliance</span>
     </button>
 
     <!-- Documents -->
@@ -4737,42 +4725,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 </div>
 
 <!-- ╔═══════════════════════════════════════════════════════════════════════
-     ║  [PANEL COMPLIANCE] — Compliance documents section
-     ║  Legal compliance, regulatory docs, certificates
-     ║  content_nodes system se cards render hote hain
-     ╚═══════════════════════════════════════════════════════════════════════ -->
-<!-- COMPLIANCE PANEL -->
-<div class="dashboard-panel" id="panel-compliance">
-  <div class="db-header">
-    <div>
-      <div class="db-title"><span>aditi</span> Compliance</div>
-      <div class="db-breadcrumb">Home › Compliance</div>
-    </div>
-    <div class="header-right">
-      <button onclick="openUploadModal('Compliance')"
-        style="display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:10px;border:1.5px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.08);color:#00d4aa;font-size:0.84rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s;"
-        onmouseover="this.style.background='rgba(0,212,170,0.18)'" onmouseout="this.style.background='rgba(0,212,170,0.08)'">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Upload
-      </button>
-    </div>
-  </div>
-  <div class="db-content">
-    <div class="section-title">Compliance Documents</div>
-    <div id="compliance-loading" style="text-align:center;padding:40px 0;color:var(--muted);">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;display:block;margin:0 auto 10px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-      <div style="font-size:0.88rem;">Loading…</div>
-    </div>
-    <div id="compliance-grid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-bottom:2rem;"></div>
-    <div id="compliance-empty" style="display:none;text-align:center;padding:48px 16px;color:var(--muted);">
-      <div style="font-size:2.5rem;margin-bottom:10px;">🛡️</div>
-      <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:6px;">No Compliance Documents Yet</div>
-      <div style="font-size:0.84rem;">Click <strong>Upload</strong> to add the first document.</div>
-    </div>
-  </div>
-</div>
-
-<!-- ╔═══════════════════════════════════════════════════════════════════════
      ║  [PANEL REFERRAL] — Employee Referral Programme
      ║  Tabs: Open Positions + My Referrals
      ║  Employees refer candidates for open job positions
@@ -6796,9 +6748,9 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 </div><!-- /#mainPortal -->
-<script src="js/shared.js?v=20260805"></script>
+<script src="js/shared.js?v=20260819"></script>
 <script src="js/responsive.js?v=20260805"></script>
-<script src="js/app.js?v=20260817"></script>
+<script src="js/app.js?v=20260819"></script>
 <script src="js/auth.js?v=20260817"></script>
 <script src="js/leads.js?v=20260805"></script>
 <script src="js/enterprise.js?v=20260805"></script>
@@ -6814,7 +6766,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/finance.js?v=20260805"></script>
 <script src="js/products.js?v=20260805"></script>
 <script src="js/home.js?v=20260817"></script>
-<script src="js/upload.js?v=20260805"></script>
+<script src="js/upload.js?v=20260819"></script>
 <script src="js/training.js?v=20260805"></script>
 <script src="js/activitylog.js?v=20260805"></script>
 <script src="js/mapping.js?v=20260805"></script>

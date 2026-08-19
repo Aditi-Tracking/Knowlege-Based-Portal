@@ -247,11 +247,6 @@ const CN_CARD_DESCRIPTIONS = {
   'reports':                  'Financial reports — monthly P&L, balance sheets and expense summaries.',
   'expenses':                 'Company expense records — reimbursements, petty cash and department-wise spending.',
 
-  // ── Compliance ──
-  'legal':                    'Legal documents — contracts, agreements and regulatory compliance filings.',
-  'licenses':                 'Company licences and permits — trade licences, operating permits and renewal records.',
-  'audits':                   'Audit reports and compliance checklists — internal and external audit documentation.',
-
   // ── Referral ──
   'referral policy':          'Employee referral programme policy — eligibility, reward structure and referral submission process.',
   'referral forms':           'Referral submission forms and tracking sheets for the employee referral programme.',
