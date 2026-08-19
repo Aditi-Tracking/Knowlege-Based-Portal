@@ -209,8 +209,17 @@ async function _loadUserProfile(authUser) {
     // ── Fetch permissions from Python backend (retried a few times — see
     // _fetchPermissionsWithRetry / _buildFallbackPermissions comments) ──
     let _newPermissions;
+    // Diagnostics only, for the catch block below — mirrors the URL built inside
+    // _fetchPermissionsWithRetry (to confirm it's never malformed) and captures
+    // a response object if one was ever obtained (e.g. a .json() parse failure
+    // after a successful fetch) — stays null for a network-level failure
+    // (TypeError before any response exists), which the catch block reports
+    // explicitly rather than assuming.
+    const _permFetchUrl = `${_PAPI}/api/permissions?email=${encodeURIComponent(authUser.email)}`;
+    let _permFetchResponse = null;
     try {
       const _pr = await _fetchPermissionsWithRetry(authUser.email);
+      _permFetchResponse = _pr || null;
       if (_pr && _pr.ok) {
         const _pd = await _pr.json();
         _newPermissions = _pd.permissions || {};
@@ -232,7 +241,12 @@ async function _loadUserProfile(authUser) {
         isTimeout: !!(_pe && _pe.name === 'AbortError'),
         message: _pe && _pe.message
       });
-      logClientDebug('permissions_fetch_failed', _pe?.message || String(_pe), { errorName: _pe?.name });
+      logClientDebug('permissions_fetch_failed', _pe?.message || String(_pe), {
+        errorName: _pe?.name,
+        url: _permFetchUrl,
+        responseStatus: _permFetchResponse ? _permFetchResponse.status : null,
+        msSincePageLoad: Math.round(performance.now()),
+      });
       _newPermissions = _buildFallbackPermissions(_newUser.rawRole);
       logClientDebug('fallback_permissions_used', `role=${_newUser.rawRole}`, {
         field_service_create:   _newPermissions.field_service_create,
