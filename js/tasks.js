@@ -43,10 +43,11 @@ function _tRevealTasksNav(show){
     PERMISSIONS.field_service_view_all==='true'||
     PERMISSIONS.hr_employee_view==='true'||
     PERMISSIONS.hr_employee_edit==='true';
-  const navDash=document.getElementById('nav-dashboards-trigger');
+  const navDash=document.getElementById('nav-dashboardshub');
   if(navDash)navDash.style.display=hasDashAccess?'':'none';
-  const dashGroup=document.getElementById('dashboardSubGroup');
-  if(dashGroup)dashGroup.style.display=hasDashAccess?'':'none';
+  // dashboardSubGroup stays permanently hidden — it's just the data source
+  // _renderDashboardsHub() reads from now, never shown as a list.
+  if (typeof _renderDashboardsHub === 'function') _renderDashboardsHub();
 }
 
 // ── Task Checklist tab bar (Checklist / Task Scheduler) ─────────────────
@@ -2311,10 +2312,9 @@ async function tSilentRefresh(){
         PERMISSIONS.field_service_create==='true'||
         PERMISSIONS.field_service_view_all==='true'||
         hasTasks;
-      const navDash=document.getElementById('nav-dashboards-trigger');
+      const navDash=document.getElementById('nav-dashboardshub');
       if(navDash)navDash.style.display=hasDashAccess?'':'none';
-      const dashGroup=document.getElementById('dashboardSubGroup');
-      if(dashGroup)dashGroup.style.display=hasDashAccess?'':'none';
+      // dashboardSubGroup stays permanently hidden — see _tRevealTasksNav().
       if(!hasTasks){
         const navTasks=document.getElementById('nav-tasks');
         if(navTasks)navTasks.style.display='none';
@@ -2328,6 +2328,7 @@ async function tSilentRefresh(){
           if(card.textContent.includes('Task Checklist'))card.style.display='';
         });
       }
+      if (typeof _renderDashboardsHub === 'function') _renderDashboardsHub();
     }
     const prevPage = tPage || 1;
     tFiltered = tGetFiltered();

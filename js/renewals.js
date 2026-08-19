@@ -571,6 +571,9 @@ async function _applyRenewalsNavVisibility() {
   if (nav) nav.style.display = hasAccess ? '' : 'none';
   if (mm)  mm.style.display  = hasAccess ? 'flex' : 'none';
   if (_ruIsMIS) _ruRefreshUnassignedPoolBadge();
+  // Renewals visibility resolves asynchronously (Supabase lookups above), same
+  // as Task Checklist — re-render the hub so its tile isn't missing/stale.
+  if (typeof _renderDashboardsHub === 'function') _renderDashboardsHub();
 }
 
 // Small helper — exact row count via PostgREST's Content-Range header, no rows fetched.

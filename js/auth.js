@@ -496,6 +496,10 @@ function showPortal(){
   if (typeof _applyFieldServiceNavVisibility === 'function') _applyFieldServiceNavVisibility();
   // HR Employee Master nav — only for users granted hr_employee_view
   if (typeof _applyHREmployeeNavVisibility === 'function') _applyHREmployeeNavVisibility();
+  // Dashboards Hub — render the icon grid from the nav visibility all of the
+  // calls above just set. Renewals/Task Checklist resolve their own
+  // visibility asynchronously and re-call this themselves when they do.
+  if (typeof _renderDashboardsHub === 'function') _renderDashboardsHub();
   // Fetch employee profile photo from Supabase → home page pe dikhao
   fetchUserProfilePhoto();
   // HR-editable Home page card sections (Spotlight of the Month, New Joiners,

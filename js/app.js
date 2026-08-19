@@ -314,20 +314,51 @@ async function uploadProfilePhoto(file) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 
-function toggleDashboardAccordion(){
-  var grp=document.getElementById('dashboardSubGroup');
-  var arrow=document.getElementById('dashAccordionArrow');
-  var trigger=document.getElementById('nav-dashboards-trigger');
-  if(!grp)return;
-  if(grp.style.display==='none'||grp.style.display===''){
-    grp.style.display='block';
-    if(arrow)arrow.classList.add('open');
-    if(trigger)trigger.classList.add('dash-open');
-  } else {
-    grp.style.display='none';
-    if(arrow)arrow.classList.remove('open');
-    if(trigger)trigger.classList.remove('dash-open');
+// ── Dashboards Hub — Odoo-style icon grid, one tile per dashboard ─────────
+// Pure presentation layer: a tile shows iff its sidebar nav-{id} item is
+// currently visible (display !== 'none'). Visibility itself is still decided
+// entirely by each dashboard's own _apply*NavVisibility()/_tRevealTasksNav()/
+// _applyRenewalsNavVisibility() function (see js/auth.js, js/tasks.js,
+// js/renewals.js, etc.) — this function never re-implements or duplicates
+// those checks, it only reads their result off the DOM.
+const DASHBOARD_HUB_TILES = [
+  { id:'leads',        label:'SmartFleet',            color:'#00d4aa', icon:'<polyline points="3 12 9 12 11 6 15 18 17 12 21 12"/>' },
+  { id:'entsol',       label:'Enterprise Solutions',   color:'#a78bfa', icon:'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>' },
+  { id:'enterprise',   label:'Enterprise Lead',        color:'#f0a500', icon:'<path d="M3 4h18l-7 8v6l-4 2v-8z"/>' },
+  { id:'renewals',     label:'Renewals & Collections', color:'#06b6d4', icon:'<path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/>' },
+  { id:'fms',          label:'FMS O2D',                color:'#34d399', icon:'<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>' },
+  { id:'tasks',        label:'Task Checklist',         color:'#fb923c', icon:'<rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><path d="M9 14l2 2 4-4"/>' },
+  { id:'ims',          label:'IMS',                    color:'#f5a623', icon:'<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>' },
+  { id:'mapping',      label:'Customer Mapping',       color:'#10b981', icon:'<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>' },
+  { id:'crm',          label:'CRM Vehicle',            color:'#3b82f6', icon:'<path d="M3 13l2-5a2 2 0 012-1h10a2 2 0 012 1l2 5"/><rect x="2" y="13" width="20" height="5" rx="1"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/>' },
+  { id:'fieldservice', label:'Field Service',          color:'#818cf8', icon:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/>' },
+  { id:'hremployee',   label:'HR Employee Master',     color:'#a855f7', icon:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>' },
+];
+
+function _renderDashboardsHub(){
+  const grid  = document.getElementById('dashboardsHubGrid');
+  const empty = document.getElementById('dashboardsHubEmpty');
+  if(!grid) return; // panel not in the DOM yet (e.g. called before portal render)
+  const visible = DASHBOARD_HUB_TILES.filter(t=>{
+    const nav = document.getElementById('nav-'+t.id);
+    return nav && nav.style.display !== 'none';
+  });
+  if(!visible.length){
+    grid.style.display='none';
+    grid.innerHTML='';
+    if(empty) empty.style.display='block';
+    return;
   }
+  if(empty) empty.style.display='none';
+  grid.style.display='grid';
+  grid.innerHTML = visible.map(t=>`
+    <div class="dash-hub-tile" onclick="switchDB('${t.id}')" title="${t.label}">
+      <div class="dash-hub-icon" style="background:${t.color}40;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="${t.color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
+      </div>
+      <div class="dash-hub-label">${t.label}</div>
+    </div>
+  `).join('');
 }
 
 function resourcesShowDocs(){
@@ -359,15 +390,11 @@ function switchDB(id, fromPopState){
   document.querySelectorAll('.dashboard-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
-  // Auto-open dashboard accordion when a sub-dashboard is selected
+  // Highlight the Dashboards hub trigger whenever a sub-dashboard is active
   var dashPanels=['leads','enterprise','entsol','fms','tasks','ims','crm','mapping','renewals','fieldservice','hremployee'];
   if(dashPanels.indexOf(id)>=0){
-    var grp=document.getElementById('dashboardSubGroup');
-    var arrow=document.getElementById('dashAccordionArrow');
-    var trigger=document.getElementById('nav-dashboards-trigger');
-    if(grp){grp.style.display='block';}
-    if(arrow){arrow.classList.add('open');}
-    if(trigger){trigger.classList.add('dash-open');}
+    var hubTrigger=document.getElementById('nav-dashboardshub');
+    if(hubTrigger){hubTrigger.classList.add('active');}
   }
   // Reset Resources sub-view when switching away
   if(id!=='resources'){
@@ -666,17 +693,6 @@ function closeMobMenu(){
     sheet.style.display='none';
     overlay.style.display='none';
   },280);
-}
-function toggleMMDash(){
-  var sub=document.getElementById('mmDashSub');
-  var arrow=document.getElementById('mmDashArrow');
-  if(sub.style.display==='none'||sub.style.display===''){
-    sub.style.display='block';
-    arrow.style.transform='rotate(180deg)';
-  } else {
-    sub.style.display='none';
-    arrow.style.transform='rotate(0deg)';
-  }
 }
 function mobMenuGo(panel){
   // update active highlight in mobile menu

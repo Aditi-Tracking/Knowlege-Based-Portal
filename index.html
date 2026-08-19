@@ -229,11 +229,14 @@
       <span class="nav-label">Home</span>
     </div>
 
-    <!-- DASHBOARDS ACCORDION -->
-    <div class="nav-item nav-accordion-trigger" onclick="toggleDashboardAccordion()" id="nav-dashboards-trigger" title="Dashboards">
+    <!-- DASHBOARDS HUB — navigates to an Odoo-style icon grid (panel-dashboardshub)
+         instead of expanding the list below. The list below is kept in the DOM,
+         permanently hidden — it's still populated by every dashboard's own
+         _apply*NavVisibility() function and is the data source _renderDashboardsHub()
+         (js/app.js) reads from. See _renderDashboardsHub() for details. -->
+    <div class="nav-item" onclick="switchDB('dashboardshub')" id="nav-dashboardshub" title="Dashboards">
       <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
       <span class="nav-label">Dashboards</span>
-      <span class="nav-accordion-arrow" id="dashAccordionArrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
     </div>
     <div class="nav-sub-group" id="dashboardSubGroup" style="display:none;">
       <div class="nav-item nav-sub-item" onclick="switchDB('leads')" id="nav-leads" title="SmartFleet">
@@ -640,13 +643,13 @@
       <span class="mm-label">Home</span>
     </button>
 
-    <!-- Dashboards accordion -->
-    <button class="mm-nav-item" onclick="toggleMMDash()">
+    <!-- Dashboards Hub — navigates to the icon-grid hub panel; see the desktop
+         sidebar comment above for why the list below stays in the DOM. -->
+    <button class="mm-nav-item" id="mm-dashboardshub" onclick="mobMenuGo('dashboardshub')">
       <span class="mm-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
       <span class="mm-label">Dashboards</span>
-      <span id="mmDashArrow" style="margin-left:auto;font-size:0.80rem;color:var(--muted);transition:transform 0.2s;">▼</span>
     </button>
-    <!-- Dash sub-items -->
+    <!-- Dash sub-items — kept only as the data source _renderDashboardsHub() reads from -->
     <div id="mmDashSub" style="display:none;padding-left:16px;">
       <button class="mm-nav-item mm-sub" id="mm-leads" onclick="mobMenuGo('leads')">
         <span class="mm-subdot"></span><span class="mm-label">SmartFleet</span>
@@ -2192,6 +2195,95 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════════════════════════════════════
+     ║  [PANEL DASHBOARDS HUB] — Odoo-style icon grid, one tile per dashboard
+     ║  Tiles are rendered dynamically by _renderDashboardsHub() (js/app.js)
+     ║  from the SAME nav-{id} visibility every dashboard's own
+     ║  _apply*NavVisibility() function already computes — purely a
+     ║  presentation layer, no permission logic lives here.
+     ╚═══════════════════════════════════════════════════════════════════════ -->
+<div class="dashboard-panel" id="panel-dashboardshub">
+  <style>
+    /* Scoped to #panel-dashboardshub only — Odoo-style icon-launcher grid.
+       Fixed 5 columns on desktop so tiles fill the available width evenly
+       (1fr tracks) rather than clustering left — any number of dashboards
+       beyond 11 just flows into additional rows of 5, no layout change needed.
+       No extra padding here: the grid sits inside .db-content, which already
+       gives every dashboard panel (panel-fms, panel-crm, etc.) the same
+       20px/26px/40px outer spacing — adding a second padding layer on top of
+       that was what made this panel look inconsistent with the rest. */
+    #panel-dashboardshub .dash-hub-grid{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:34px;
+    }
+    #panel-dashboardshub .dash-hub-tile{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
+      cursor:pointer;
+      padding:12px 6px;
+      border-radius:14px;
+      background:transparent;
+      transition:background 0.18s ease;
+    }
+    #panel-dashboardshub .dash-hub-tile:hover{
+      background:rgba(240,165,0,0.07);
+    }
+    #panel-dashboardshub .dash-hub-tile:hover .dash-hub-icon{
+      transform:scale(1.05);
+    }
+    #panel-dashboardshub .dash-hub-icon{
+      width:68px;height:68px;
+      border-radius:18px;
+      display:flex;align-items:center;justify-content:center;
+      margin-bottom:12px;
+      transition:transform 0.18s ease;
+    }
+    /* Darkens whatever stroke colour the tile passes inline, so the glyph
+       reads as solid/present rather than the raw pastel accent — see
+       requirement 4 (darker icon colours) in the styling task. */
+    #panel-dashboardshub .dash-hub-icon svg{
+      filter:brightness(0.8) saturate(1.15);
+    }
+    #panel-dashboardshub .dash-hub-label{
+      font-size:0.92rem;
+      font-weight:600;
+      color:var(--text);
+      line-height:1.3;
+    }
+    /* Tablet — mirrors .home-cards' own tablet breakpoint (css/styles.css) */
+    @media (min-width:769px) and (max-width:1100px){
+      #panel-dashboardshub .dash-hub-grid{grid-template-columns:repeat(3,1fr);gap:26px;}
+    }
+    /* Mobile — mirrors .home-cards' own 768px breakpoint (css/styles.css) */
+    @media (max-width:768px){
+      #panel-dashboardshub .dash-hub-grid{grid-template-columns:repeat(2,1fr);gap:20px;}
+      #panel-dashboardshub .dash-hub-icon{width:56px;height:56px;border-radius:15px;margin-bottom:9px;}
+      #panel-dashboardshub .dash-hub-label{font-size:0.82rem;}
+    }
+    /* Very small screens — mirrors .home-cards' own 380px breakpoint */
+    @media (max-width:380px){
+      #panel-dashboardshub .dash-hub-grid{grid-template-columns:1fr;gap:16px;}
+    }
+  </style>
+  <div class="db-header">
+    <div>
+      <div class="db-title"><span>aditi</span> Dashboards</div>
+      <div class="db-breadcrumb">Home › Dashboards</div>
+    </div>
+  </div>
+  <div class="db-content">
+    <div id="dashboardsHubGrid" class="dash-hub-grid"></div>
+    <div id="dashboardsHubEmpty" style="display:none;text-align:center;padding:48px 16px;color:var(--muted);">
+      <div style="font-size:2.5rem;margin-bottom:10px;">📊</div>
+      <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:6px;">No Dashboards Available</div>
+      <div style="font-size:0.84rem;">Contact an admin via Access Control to request dashboard access.</div>
+    </div>
   </div>
 </div>
 
@@ -6750,13 +6842,13 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 </div><!-- /#mainPortal -->
 <script src="js/shared.js?v=20260819"></script>
 <script src="js/responsive.js?v=20260805"></script>
-<script src="js/app.js?v=20260819"></script>
-<script src="js/auth.js?v=20260817"></script>
+<script src="js/app.js?v=20260822"></script>
+<script src="js/auth.js?v=20260820"></script>
 <script src="js/leads.js?v=20260805"></script>
 <script src="js/enterprise.js?v=20260805"></script>
 <script src="js/entsol.js?v=20260805"></script>
 <script src="js/fms.js?v=20260805"></script>
-<script src="js/tasks.js?v=20260805"></script>
+<script src="js/tasks.js?v=20260820"></script>
 <script src="js/taskScheduler.js?v=20260805"></script>
 <script src="js/hr.js?v=20260805"></script>
 <script src="js/aftersales.js?v=20260805"></script>
@@ -6775,7 +6867,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/celebrations.js?v=20260805"></script>
 <script src="js/announcements.js?v=20260805"></script>
 <script src="js/adminperms.js?v=20260817"></script>
-<script src="js/renewals.js?v=20260828"></script>
+<script src="js/renewals.js?v=20260829"></script>
 <script src="js/vendor.js?v=20260805"></script>
 <script src="js/fieldservice.js?v=20260805"></script>
 <script src="js/fieldservice-dashboard.js?v=20260805"></script>
