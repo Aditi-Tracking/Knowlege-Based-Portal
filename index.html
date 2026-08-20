@@ -282,7 +282,8 @@
         <span class="nav-sub-dot"></span>
         <span class="nav-label">CRM Vehicle</span><span class="nav-badge live" style="background:rgba(59,130,246,0.18);color:#3b82f6;border:1px solid rgba(59,130,246,0.35);">Live</span>
       </div>
-      <!-- FIELD SERVICE — permission-gated, see field_service_create / field_service_view_all.
+      <!-- FIELD SERVICE — open to every logged-in user (field_service_create no longer gated);
+           field_service_view_all still gates seeing everyone's entries vs. own only.
            Panel has 3 internal tabs (Submit Entry / My-All Entries / Dashboard) — see
            js/fieldservice.js's _fsRenderTabBar(). Dashboard is not a separate nav item. -->
       <div class="nav-item nav-sub-item" onclick="switchDB('fieldservice')" id="nav-fieldservice" style="display:none;" title="Field Service">
@@ -5065,7 +5066,8 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
 <!-- ╔═══════════════════════════════════════════════════════════════════════
      ║  [PANEL FIELD SERVICE] — engineer job submissions + entries listing + dashboard
-     ║  Access: PERMISSIONS.field_service_create / field_service_view_all
+     ║  Access: open to every logged-in user (field_service_create no longer gated);
+     ║  PERMISSIONS.field_service_view_all still controls My-vs-All Entries
      ║  JS: loadFieldService() (js/fieldservice.js) — all markup below the
      ║  header is rendered by JS into the empty containers. 3 internal tabs:
      ║  Submit Entry (create only) / My-All Entries / Dashboard (either permission —
@@ -6848,7 +6850,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/enterprise.js?v=20260805"></script>
 <script src="js/entsol.js?v=20260805"></script>
 <script src="js/fms.js?v=20260805"></script>
-<script src="js/tasks.js?v=20260820"></script>
+<script src="js/tasks.js?v=20260831"></script>
 <script src="js/taskScheduler.js?v=20260805"></script>
 <script src="js/hr.js?v=20260805"></script>
 <script src="js/aftersales.js?v=20260805"></script>
@@ -6866,11 +6868,11 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/ims.js?v=20260805"></script>
 <script src="js/celebrations.js?v=20260805"></script>
 <script src="js/announcements.js?v=20260805"></script>
-<script src="js/adminperms.js?v=20260817"></script>
+<script src="js/adminperms.js?v=20260834"></script>
 <script src="js/renewals.js?v=20260829"></script>
 <script src="js/vendor.js?v=20260805"></script>
-<script src="js/fieldservice.js?v=20260805"></script>
-<script src="js/fieldservice-dashboard.js?v=20260805"></script>
+<script src="js/fieldservice.js?v=20260832"></script>
+<script src="js/fieldservice-dashboard.js?v=20260833"></script>
 <script src="js/hrEmployee.js?v=20260805"></script>
 <script src="js/homeContent.js?v=20260817"></script>
 </body></html>

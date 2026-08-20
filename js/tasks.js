@@ -39,7 +39,7 @@ function _tRevealTasksNav(show){
     PERMISSIONS.can_view_ims==='true'||
     PERMISSIONS.can_view_mapping==='true'||
     PERMISSIONS.can_view_entsol==='true'||
-    PERMISSIONS.field_service_create==='true'||
+    true|| // field_service_create no longer permission-gated — Field Service always available
     PERMISSIONS.field_service_view_all==='true'||
     PERMISSIONS.hr_employee_view==='true'||
     PERMISSIONS.hr_employee_edit==='true';
@@ -2309,7 +2309,7 @@ async function tSilentRefresh(){
         PERMISSIONS.can_view_ims==='true'||
         PERMISSIONS.can_view_mapping==='true'||
         PERMISSIONS.can_view_entsol==='true'||
-        PERMISSIONS.field_service_create==='true'||
+        true|| // field_service_create no longer permission-gated — Field Service always available
         PERMISSIONS.field_service_view_all==='true'||
         hasTasks;
       const navDash=document.getElementById('nav-dashboardshub');

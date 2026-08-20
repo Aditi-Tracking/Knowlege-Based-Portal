@@ -52,7 +52,6 @@ const _permLabels = {
   can_view_my_referrals:      '🧾 Referral — My Referrals',
   can_view_referral_pipeline: '📊 Referral — Pipeline (HR)',
   can_post_referral_role:     '➕ Referral — Post a Role (HR)',
-  field_service_create:       '🛠️ Field Service — Create Entries',
   field_service_view_all:     '🛠️ Field Service — View All Entries',
   hr_employee_view:           '🧑‍💼 HR Employee Master — View',
   hr_employee_edit:           '🧑‍💼 HR Employee Master — Edit',
@@ -71,7 +70,12 @@ async function loadAdminPermsPanel() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data  = await res.json();
     _acpUsers   = data.users || [];
-    _acpAllKeys = data.all_permission_keys || [];
+    // field_service_create is no longer permission-gated anywhere (frontend or RLS —
+    // see the Field Service permission-removal decision). all_permission_keys is
+    // sourced from role_defaults in the DB (backend/api.py), which still has an
+    // inert row for it, so it's filtered out here rather than left to render as a
+    // dead toggle that would confuse MIS admins.
+    _acpAllKeys = (data.all_permission_keys || []).filter(k => k !== 'field_service_create');
     _acpLoaded  = true;
     if (loading) loading.style.display = 'none';
     if (table)   table.style.display   = 'block';

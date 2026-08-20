@@ -1,8 +1,10 @@
 // Section: Field Service (loadFieldService, per-job-type dynamic form, submission-only + listing/gallery)
 // Tables (Supabase): field_service_entries, field_service_photos
 // Storage bucket: field-service-photos (public)
-// Access control: PERMISSIONS.field_service_create (submit) / PERMISSIONS.field_service_view_all (see everyone's
-// entries; otherwise RLS restricts a user to their own). These checks are UX gating only — RLS is the real gate.
+// Access control: form submission is open to every logged-in user (field_service_create is
+// no longer permission-gated — see decision to always allow filling the form). Only
+// PERMISSIONS.field_service_view_all still gates seeing everyone's entries (vs. own only);
+// RLS restricts rows regardless — this check is UX gating only.
 
 // ── Job type → per-type fields + photo label (source of truth for the dynamic form) ──
 const JOB_TYPE_CONFIG = {
@@ -85,14 +87,14 @@ const JOB_TYPE_CONFIG = {
 const FS_BUCKET = 'field-service-photos';
 
 // ── Access control ──────────────────────────────────────────────────────
-function _fsCanCreate(){ return !!CURRENT_USER && PERMISSIONS.field_service_create === 'true'; }
+function _fsCanCreate(){ return !!CURRENT_USER; } // no longer permission-gated — every logged-in user can submit
 function _fsCanViewAll(){ return !!CURRENT_USER && PERMISSIONS.field_service_view_all === 'true'; }
 function _fsHasAccess(){ return _fsCanCreate() || _fsCanViewAll(); }
 
 function _applyFieldServiceNavVisibility(){
   console.log('[FieldService diag] PERMISSIONS at visibility check:', PERMISSIONS);
   const show = _fsHasAccess();
-  console.log('[FieldService diag] _fsHasAccess() computed:', show, '(field_service_create:', PERMISSIONS.field_service_create, ', field_service_view_all:', PERMISSIONS.field_service_view_all, ')');
+  console.log('[FieldService diag] _fsHasAccess() computed:', show, '(create: always true for logged-in users, field_service_view_all:', PERMISSIONS.field_service_view_all, ')');
   const nav = document.getElementById('nav-fieldservice');
   const mm  = document.getElementById('mm-fieldservice');
   if (nav) nav.style.display = show ? 'flex' : 'none';
@@ -143,8 +145,9 @@ function _fsRenderTabBar(){
   tabs.push(['list', _fsCanViewAll() ? '📋 All Entries' : '📋 My Entries']);
   // Dashboard tab — reaching this function at all already implies _fsHasAccess()
   // (loadFieldService() gates the whole panel on it), so no extra permission
-  // check is needed here: field_service_create OR field_service_view_all both
-  // qualify, same as every other tab in this bar.
+  // check is needed here — every logged-in user qualifies now that
+  // field_service_create is unconditional; field_service_view_all is still
+  // what decides "My Entries" vs "All Entries" wording above.
   tabs.push(['dashboard', '📊 Dashboard']);
   bar.innerHTML = tabs.map(([id, label]) => {
     const active = _fsActiveTab === id;

@@ -2,8 +2,9 @@
 // Tables/views read: field_service_daily_stats (security_invoker view, pre-aggregated,
 // RLS-scoped automatically), field_service_entries + field_service_photos (RLS-scoped:
 // own rows only, or all rows if field_service_view_all).
-// Access control: same gate as Field Service itself — _fsHasAccess() (field_service_create
-// OR field_service_view_all), reused from js/fieldservice.js. field_service_view_all alone
+// Access control: same gate as Field Service itself — _fsHasAccess() (always true for any
+// logged-in user now that field_service_create is unconditional; field_service_view_all still
+// matters here too), reused from js/fieldservice.js. field_service_view_all alone
 // controls UI-only decisions here (engineer column/filter/chart), exactly like _fsCanViewAll()
 // is used elsewhere — RLS is what actually restricts rows, never a client-side engineer_id filter.
 // This file depends on globals defined in js/fieldservice.js (JOB_TYPE_CONFIG, _fsHasAccess,
