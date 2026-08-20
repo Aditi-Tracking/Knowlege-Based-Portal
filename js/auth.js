@@ -31,6 +31,11 @@ const _PAPI = 'https://knowlege-based-portal-production.up.railway.app';
 // the Samsung A26 investigation this was added for).
 let _permissionsFetchFailed = false;
 
+// Guards the visibilitychange recovery listener (below) against overlapping
+// re-fetches if the tab is foregrounded/backgrounded rapidly (e.g. quick
+// app-switching on Android) before the previous attempt resolves.
+let _permissionsRecoveryInFlight = false;
+
 // Bumped by every login attempt (auto-restore on page load OR manual doLogin).
 // A device can have a still-valid session from a previous user sitting in
 // localStorage — if someone types different credentials into the (still
@@ -138,9 +143,49 @@ const _ROLE_DEFAULT_PERMISSIONS = {
   },
 };
 
-function _buildFallbackPermissions(rawRole) {
+// ── Last-known-good permissions cache ───────────────────────────────────────
+// Recovers per-user DB overrides (field_service_create/view_all etc.) that
+// _ROLE_DEFAULT_PERMISSIONS can never reconstruct — see the comment above it.
+// No expiry: Field Service access grants are permanent for engineers in this
+// system (never toggled off), so staleness isn't a concern here. Cleared on
+// logout (see doLogout) so a shared/company device never leaks one user's
+// cached permissions into another user's fallback.
+// Best-effort: localStorage can be unavailable (private-mode storage lockout,
+// some in-app/WebView browsers) or full — every access is wrapped so a
+// storage failure degrades to today's pure-role-defaults behavior, never
+// blocks login.
+function _permissionsCacheKey(email) {
+  return `permissions_cache_${String(email || '').trim().toLowerCase()}`;
+}
+function _readPermissionsCache(email) {
+  try {
+    const raw = localStorage.getItem(_permissionsCacheKey(email));
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) {
+    return null;
+  }
+}
+function _writePermissionsCache(email, permissions) {
+  try {
+    localStorage.setItem(_permissionsCacheKey(email), JSON.stringify(permissions));
+  } catch(e) {
+    // quota exceeded / storage disabled — fallback just won't have a cache to use
+  }
+}
+
+function _buildFallbackPermissions(rawRole, email) {
   const r = String(rawRole || 'employee').toLowerCase().trim();
   const defaults = _ROLE_DEFAULT_PERMISSIONS[r] || _ROLE_DEFAULT_PERMISSIONS.employee;
+  const cached = _readPermissionsCache(email);
+  if (cached) {
+    // Distinct from 'fallback_permissions_used' below — lets client_debug_logs
+    // tell apart "fell back with nothing" from "fell back but cache recovered it".
+    logClientDebug('fallback_permissions_cache_used', `role=${r}`, {
+      field_service_create:   cached.field_service_create,
+      field_service_view_all: cached.field_service_view_all,
+    });
+    return { ...defaults, ...cached }; // cached DB-fetched values win over role defaults
+  }
   return { ...defaults };
 }
 
@@ -226,9 +271,10 @@ async function _loadUserProfile(authUser) {
         if (_pd.rawRole) _newUser.rawRole = _pd.rawRole;
         if (_pd.role)    _newUser.role    = _pd.role === 'owner' ? 'owner' : 'employee';
         _permissionsFetchFailed = false;
+        _writePermissionsCache(authUser.email, _newPermissions);
       } else {
         console.error('[FieldService diag] Permissions fetch returned non-ok response, using fallback. Status:', _pr && _pr.status);
-        _newPermissions = _buildFallbackPermissions(_newUser.rawRole);
+        _newPermissions = _buildFallbackPermissions(_newUser.rawRole, authUser.email);
         logClientDebug('fallback_permissions_used', `role=${_newUser.rawRole}`, {
           field_service_create:   _newPermissions.field_service_create,
           field_service_view_all: _newPermissions.field_service_view_all,
@@ -247,7 +293,7 @@ async function _loadUserProfile(authUser) {
         responseStatus: _permFetchResponse ? _permFetchResponse.status : null,
         msSincePageLoad: Math.round(performance.now()),
       });
-      _newPermissions = _buildFallbackPermissions(_newUser.rawRole);
+      _newPermissions = _buildFallbackPermissions(_newUser.rawRole, authUser.email);
       logClientDebug('fallback_permissions_used', `role=${_newUser.rawRole}`, {
         field_service_create:   _newPermissions.field_service_create,
         field_service_view_all: _newPermissions.field_service_view_all,
@@ -287,7 +333,7 @@ async function _loadUserProfile(authUser) {
       name:     authUser.email.split('@')[0],
       location: ''
     };
-    PERMISSIONS = _buildFallbackPermissions('employee');
+    PERMISSIONS = _buildFallbackPermissions('employee', authUser.email);
     logClientDebug('fallback_permissions_used', 'role=employee', {
       field_service_create:   PERMISSIONS.field_service_create,
       field_service_view_all: PERMISSIONS.field_service_view_all,
@@ -296,6 +342,44 @@ async function _loadUserProfile(authUser) {
     showPortal();
   }
 }
+
+// ── Permission self-heal on foreground return ───────────────────────────────
+// Separate from js/tasks.js:2378's visibilitychange listener (that one is
+// task-list live sync — untouched here). If the last permissions fetch fell
+// back to (possibly cache-merged) role defaults, retry silently the moment
+// the tab is foregrounded again — the common recovery point for the Android
+// background-tab socket-termination case this was written for. No UI/error
+// shown either way; a failed attempt just waits for the next visibilitychange.
+document.addEventListener('visibilitychange', async function(){
+  if (document.hidden) return;
+  if (!_permissionsFetchFailed || !CURRENT_USER || _permissionsRecoveryInFlight) return;
+  const _mySeq = _authFlowSeq; // don't clobber a concurrent fresh login — see _authFlowSeq comment above
+  _permissionsRecoveryInFlight = true;
+  try {
+    const _pr = await _fetchPermissionsWithRetry(CURRENT_USER.email);
+    if (_mySeq !== _authFlowSeq) return; // a new login started while we were re-fetching
+    if (_pr && _pr.ok) {
+      const _pd = await _pr.json();
+      PERMISSIONS = _pd.permissions || {};
+      if (_pd.rawRole) CURRENT_USER.rawRole = _pd.rawRole;
+      if (_pd.role)    CURRENT_USER.role    = _pd.role === 'owner' ? 'owner' : 'employee';
+      _writePermissionsCache(CURRENT_USER.email, PERMISSIONS);
+      _permissionsFetchFailed = false;
+      if (typeof _applyFieldServiceNavVisibility === 'function') _applyFieldServiceNavVisibility();
+      if (typeof _renderDashboardsHub === 'function') _renderDashboardsHub();
+      logClientDebug('permissions_recovered_on_visibility', `role=${CURRENT_USER.rawRole}`, {
+        field_service_create:   PERMISSIONS.field_service_create,
+        field_service_view_all: PERMISSIONS.field_service_view_all,
+      });
+    } else {
+      logClientDebug('permissions_recovery_failed_on_visibility', `status=${_pr && _pr.status}`, {});
+    }
+  } catch(_re) {
+    logClientDebug('permissions_recovery_failed_on_visibility', _re?.message || String(_re), { errorName: _re?.name });
+  } finally {
+    _permissionsRecoveryInFlight = false;
+  }
+});
 
 async function doLogin(){
   const email=document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -586,10 +670,14 @@ function doLogout(){
   } catch(e) {}
   setTimeout(async ()=>{ 
     try { await _sbAuth.auth.signOut(); } catch(e) {}
-    localStorage.removeItem('aditiUser'); 
-    localStorage.removeItem('aditiLoginTime'); 
-    CURRENT_USER=null; 
-    location.reload(); 
+    localStorage.removeItem('aditiUser');
+    localStorage.removeItem('aditiLoginTime');
+    // Shared/company devices can be used by multiple engineers across sessions —
+    // clear this user's cached permissions so they never leak into the next
+    // user's fallback on the same device (see _buildFallbackPermissions).
+    if (CURRENT_USER && CURRENT_USER.email) localStorage.removeItem(_permissionsCacheKey(CURRENT_USER.email));
+    CURRENT_USER=null;
+    location.reload();
   }, 400);
 }
 
