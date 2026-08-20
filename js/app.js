@@ -322,6 +322,10 @@ async function uploadProfilePhoto(file) {
 // js/renewals.js, etc.) — this function never re-implements or duplicates
 // those checks, it only reads their result off the DOM.
 const DASHBOARD_HUB_TILES = [
+  // Pinned first — visible only to MD or an active delegation_assignees row (see
+  // _applyTaskDelegationNavVisibility in js/taskDelegation.js); everyone else's grid is
+  // unaffected since .filter() below never reorders, it only drops invisible tiles.
+  { id:'taskdelegation', label:'Task Delegation',      color:'#f43f5e', icon:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><path d="M9 12h6"/><path d="M12 9l3 3-3 3"/>' },
   { id:'leads',        label:'SmartFleet',            color:'#00d4aa', icon:'<polyline points="3 12 9 12 11 6 15 18 17 12 21 12"/>' },
   { id:'entsol',       label:'Enterprise Solutions',   color:'#a78bfa', icon:'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>' },
   { id:'enterprise',   label:'Enterprise Lead',        color:'#f0a500', icon:'<path d="M3 4h18l-7 8v6l-4 2v-8z"/>' },
@@ -391,7 +395,7 @@ function switchDB(id, fromPopState){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
   // Highlight the Dashboards hub trigger whenever a sub-dashboard is active
-  var dashPanels=['leads','enterprise','entsol','fms','tasks','ims','crm','mapping','renewals','fieldservice','hremployee'];
+  var dashPanels=['leads','enterprise','entsol','fms','tasks','ims','crm','mapping','renewals','fieldservice','hremployee','taskdelegation'];
   if(dashPanels.indexOf(id)>=0){
     var hubTrigger=document.getElementById('nav-dashboardshub');
     if(hubTrigger){hubTrigger.classList.add('active');}
@@ -435,6 +439,7 @@ function switchDB(id, fromPopState){
   if(id==='referral')   { initReferralProgramme(); }
   if(id==='fieldservice') { loadFieldService(); }
   if(id==='hremployee')  { loadHREmployeeMaster(); }
+  if(id==='taskdelegation') { loadTaskDelegation(); }
   if(id==='announcements') { /* handled by override below */ }
   if(id==='activitylog') { loadActivityLog(); }
   if(id==='itadmin')    { loadSimpleCNPanel('itadmin',    'IT Admin');   }
