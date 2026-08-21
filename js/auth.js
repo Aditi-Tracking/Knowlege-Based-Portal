@@ -178,12 +178,6 @@ function _buildFallbackPermissions(rawRole, email) {
   const defaults = _ROLE_DEFAULT_PERMISSIONS[r] || _ROLE_DEFAULT_PERMISSIONS.employee;
   const cached = _readPermissionsCache(email);
   if (cached) {
-    // Distinct from 'fallback_permissions_used' below — lets client_debug_logs
-    // tell apart "fell back with nothing" from "fell back but cache recovered it".
-    logClientDebug('fallback_permissions_cache_used', `role=${r}`, {
-      field_service_create:   cached.field_service_create,
-      field_service_view_all: cached.field_service_view_all,
-    });
     return { ...defaults, ...cached }; // cached DB-fetched values win over role defaults
   }
   return { ...defaults };
@@ -254,17 +248,8 @@ async function _loadUserProfile(authUser) {
     // ── Fetch permissions from Python backend (retried a few times — see
     // _fetchPermissionsWithRetry / _buildFallbackPermissions comments) ──
     let _newPermissions;
-    // Diagnostics only, for the catch block below — mirrors the URL built inside
-    // _fetchPermissionsWithRetry (to confirm it's never malformed) and captures
-    // a response object if one was ever obtained (e.g. a .json() parse failure
-    // after a successful fetch) — stays null for a network-level failure
-    // (TypeError before any response exists), which the catch block reports
-    // explicitly rather than assuming.
-    const _permFetchUrl = `${_PAPI}/api/permissions?email=${encodeURIComponent(authUser.email)}`;
-    let _permFetchResponse = null;
     try {
       const _pr = await _fetchPermissionsWithRetry(authUser.email);
-      _permFetchResponse = _pr || null;
       if (_pr && _pr.ok) {
         const _pd = await _pr.json();
         _newPermissions = _pd.permissions || {};
@@ -275,10 +260,6 @@ async function _loadUserProfile(authUser) {
       } else {
         console.error('[FieldService diag] Permissions fetch returned non-ok response, using fallback. Status:', _pr && _pr.status);
         _newPermissions = _buildFallbackPermissions(_newUser.rawRole, authUser.email);
-        logClientDebug('fallback_permissions_used', `role=${_newUser.rawRole}`, {
-          field_service_create:   _newPermissions.field_service_create,
-          field_service_view_all: _newPermissions.field_service_view_all,
-        });
         _permissionsFetchFailed = true;
       }
     } catch(_pe) {
@@ -287,17 +268,7 @@ async function _loadUserProfile(authUser) {
         isTimeout: !!(_pe && _pe.name === 'AbortError'),
         message: _pe && _pe.message
       });
-      logClientDebug('permissions_fetch_failed', _pe?.message || String(_pe), {
-        errorName: _pe?.name,
-        url: _permFetchUrl,
-        responseStatus: _permFetchResponse ? _permFetchResponse.status : null,
-        msSincePageLoad: Math.round(performance.now()),
-      });
       _newPermissions = _buildFallbackPermissions(_newUser.rawRole, authUser.email);
-      logClientDebug('fallback_permissions_used', `role=${_newUser.rawRole}`, {
-        field_service_create:   _newPermissions.field_service_create,
-        field_service_view_all: _newPermissions.field_service_view_all,
-      });
       _permissionsFetchFailed = true;
     }
     console.log('[FieldService diag] Final PERMISSIONS used for', authUser.email, ':', _newPermissions);
@@ -334,10 +305,6 @@ async function _loadUserProfile(authUser) {
       location: ''
     };
     PERMISSIONS = _buildFallbackPermissions('employee', authUser.email);
-    logClientDebug('fallback_permissions_used', 'role=employee', {
-      field_service_create:   PERMISSIONS.field_service_create,
-      field_service_view_all: PERMISSIONS.field_service_view_all,
-    });
     _permissionsFetchFailed = true;
     showPortal();
   }
@@ -367,15 +334,8 @@ document.addEventListener('visibilitychange', async function(){
       _permissionsFetchFailed = false;
       if (typeof _applyFieldServiceNavVisibility === 'function') _applyFieldServiceNavVisibility();
       if (typeof _renderDashboardsHub === 'function') _renderDashboardsHub();
-      logClientDebug('permissions_recovered_on_visibility', `role=${CURRENT_USER.rawRole}`, {
-        field_service_create:   PERMISSIONS.field_service_create,
-        field_service_view_all: PERMISSIONS.field_service_view_all,
-      });
-    } else {
-      logClientDebug('permissions_recovery_failed_on_visibility', `status=${_pr && _pr.status}`, {});
     }
   } catch(_re) {
-    logClientDebug('permissions_recovery_failed_on_visibility', _re?.message || String(_re), { errorName: _re?.name });
   } finally {
     _permissionsRecoveryInFlight = false;
   }

@@ -2352,7 +2352,6 @@ async function tSilentRefresh(){
     _tasksLastSync = Date.now();
   } catch(e){
     console.error('[FieldService diag] tSilentRefresh error:', e);
-    logClientDebug('task_sync_error', e?.message || String(e), { errorName: e?.name });
   } finally {
     _tasksSyncing = false;
   }

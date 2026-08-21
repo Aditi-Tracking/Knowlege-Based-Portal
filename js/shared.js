@@ -486,40 +486,6 @@ function renderOverlayCard(name, link, th, fileId, nodeId) {
   </div>`;
 }
 
-// ── Remote client-side diagnostic logging ───────────────────────────────────
-// Best-effort, fire-and-forget insert into client_debug_logs (RLS: own-row
-// insert only, MIS/admin-only select — see is_mis_or_admin()). For devices we
-// can't get physical/remote-debug access to (e.g. the Samsung A26 investigation)
-// where console logs are otherwise unreachable. Never throws, never awaited by
-// callers — a failed log write must never affect the calling code's own flow.
-// Only wire this into existing failure/fallback paths, never happy-path calls.
-async function logClientDebug(eventType, message, details = {}){
-  try {
-    const { data: sessionData } = await _sbAuth.auth.getSession();
-    const email = sessionData && sessionData.session && sessionData.session.user ? sessionData.session.user.email : null;
-    if (!email) return; // no session — nothing to attribute this to, and the insert RLS policy requires auth.email() = user_email anyway
-
-    const enrichedDetails = {
-      ...details,
-      connectionType: (navigator.connection && navigator.connection.effectiveType) || null,
-    };
-
-    await fetch(`${SUPABASE_URL}/rest/v1/client_debug_logs`, {
-      method: 'POST',
-      headers: SB_HDRS_MIN(),
-      body: JSON.stringify({
-        user_email: email,
-        event_type: eventType,
-        message:    message,
-        details:    enrichedDetails,
-        user_agent: navigator.userAgent,
-      }),
-    });
-  } catch (_) {
-    // Best-effort diagnostics only — never throw, never block the UI
-  }
-}
-
 // ── Global chart colour helper ──────────────────────────────────────────────
 // Returns { tc, gc, gridDisplay } based on current theme
 function chartColors(){
