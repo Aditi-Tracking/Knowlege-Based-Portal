@@ -4604,7 +4604,22 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       </div>
     </div>
 
-    <!-- OVERVIEW — MIS-only; built in a later stage -->
+    <!-- OVERVIEW — visible to MIS/full-access and to any CRM person, scoped
+         per _applyRenewalsNavVisibility()/get_renewals_overview. -->
+    <style>
+      /* CRM Performance table zebra banding — nth-child declared before
+         hover, same ordering convention #panel-leads/#panel-enterprise use
+         elsewhere in this app, so hover still wins on tied specificity
+         rather than the striping permanently masking it on even rows. */
+      #ruTeamPerfTableBody tbody tr:nth-child(even){background:rgba(100,116,139,0.035);}
+      #ruTeamPerfTableBody tbody tr:hover{background:var(--surface2);}
+      /* Tighter than the shared td{padding:10px 13px}/thead th{padding:9px
+         13px} rule (css/styles.css) — this table only has 4 short, mostly-
+         numeric columns, so the default spacing leaves them looking spread
+         further apart than the data needs. */
+      #ruTeamPerfTableBody td,
+      #ruTeamPerfTableBody th{padding:6px 10px;}
+    </style>
     <div id="ruTab-overview" style="display:none;">
       <div id="ruOverviewBody">
         <p style="color:var(--muted);font-size:0.88rem;">Loading…</p>
@@ -7135,7 +7150,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/celebrations.js?v=20260805"></script>
 <script src="js/announcements.js?v=20260805"></script>
 <script src="js/adminperms.js?v=20260834"></script>
-<script src="js/renewals.js?v=20260829"></script>
+<script src="js/renewals.js?v=20260835"></script>
 <script src="js/vendor.js?v=20260805"></script>
 <script src="js/fieldservice.js?v=20260832"></script>
 <script src="js/fieldservice-dashboard.js?v=20260833"></script>

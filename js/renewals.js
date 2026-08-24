@@ -53,7 +53,7 @@ const RU_COLUMNS = [
   { key: 'outstanding',          label: 'Outstanding', align: 'right' },
   { key: 'last_call',            label: 'Last Call' },
   { key: 'crm_status',           label: 'Status' },
-  { key: 'recovered_amount',     label: 'Recovered Amount', align: 'right' },
+  { key: 'recovered_amount',     label: 'Received Amount', align: 'right' },
   { key: 'current_outstanding',  label: 'Current Outstanding', align: 'right' },
 ];
 const RU_COLUMNS_STORAGE_KEY = 'ru_my_customers_columns_v1';
@@ -655,11 +655,16 @@ function ruRenderTabBar() {
 
 // Renders only if there's more than one location to switch between — same
 // "nothing to render at all" rule ruRenderTabBar uses for its own bar.
+// Also suppressed entirely on the Overview tab — that tab now has its own
+// dedicated location/"All" filter (_ruOverviewLocationFilterHtml), and
+// showing this switcher on top of it would be two location pickers with
+// overlapping jobs. ruSwitchTab() re-invokes this on every tab change so
+// the suppression tracks whichever tab is actually active.
 function ruRenderLocationBar() {
   const bar = document.getElementById('ruLocationBar');
   if (!bar) return;
 
-  if (_ruAllowedLocations.length <= 1) {
+  if (_ruActiveTab === 'overview' || _ruAllowedLocations.length <= 1) {
     bar.style.display = 'none';
     bar.innerHTML = '';
     return;
@@ -699,6 +704,7 @@ function ruSwitchTab(tabId) {
   if (!_ruVisibleTabIds().includes(tabId)) return;
 
   _ruActiveTab = tabId;
+  ruRenderLocationBar(); // re-evaluates the Overview-tab suppression above
 
   RU_TABS.forEach(t => {
     const content = document.getElementById(`ruTab-${t.id}`);
@@ -1637,7 +1643,7 @@ function ruCustomerRowHtml(c, optionalVisible, dates, colCount) {
                whole group hides (not just the input) when Not Connected is
                picked; see ruToggleConnectedFields. -->
           <div id="ruCallAmountGroup-${c.id}" style="display:none;margin-top:9px;">
-            <label style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:3px;">Amount recovered (optional)</label>
+            <label style="display:block;font-size:0.72rem;color:var(--muted);margin-bottom:3px;">Amount received (optional)</label>
             <input type="number" id="ruCallAmountRecovered-${c.id}" min="0" step="0.01" placeholder="0"
               style="width:100%;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--bg,transparent);color:var(--text2);font-family:inherit;font-size:0.8rem;box-sizing:border-box;">
           </div>
@@ -1853,7 +1859,7 @@ function ruOpenCustomerDetail(customerId) {
   document.getElementById('ruCustomerDetailAccount').innerHTML = _ruDetailAccountSectionHtml(c);
   document.getElementById('ruCustomerDetailFinancial').innerHTML = _ruDetailFieldRowsHtml([
     ['Outstanding', grandTotal],
-    ['Recovered Amount', Number(c.recovered_amount || 0).toLocaleString('en-IN')],
+    ['Received Amount', Number(c.recovered_amount || 0).toLocaleString('en-IN')],
     ['Current Outstanding', currentOutstandingValue !== null ? currentOutstandingValue.toLocaleString('en-IN') : '—'],
   ]);
 
@@ -2110,7 +2116,7 @@ async function ruSaveCall(customerId) {
     if (amountRaw !== '') {
       amountRecovered = Number(amountRaw);
       if (!Number.isFinite(amountRecovered) || amountRecovered < 0) {
-        alert('⚠️ Please enter a valid non-negative recovered amount.');
+        alert('⚠️ Please enter a valid non-negative received amount.');
         return;
       }
     }
@@ -2606,14 +2612,63 @@ async function ruAssignUnassignedPool(customerId, selectEl) {
 // TAB: Overview — MIS/owner see the full org-wide view; a CRM person sees
 // the same tab scoped to just their own customers/calls (get_renewals_
 // overview()'s p_crm_person_id parameter — null for MIS, their id otherwise).
-// A full-access CRM person (migration 0020) still passes their own
-// p_crm_person_id (so team_performance stays their personal scorecard, not
-// the full team table) but also passes p_full_access:true, which unscopes
-// financial/status_breakdown/recent_activity/unresolved_unmatched_count —
-// see that migration for exactly which sections it does and doesn't affect.
+// A full-access CRM person still passes their own p_crm_person_id (so the
+// CRM Performance section stays their personal scorecard, not the full
+// team table) but also passes p_full_access:true, which unscopes financial/
+// recent_activity — see migration history for exactly which sections it
+// does and doesn't affect.
+//
+// Multi-location: _ruAllowedLocations vs. _ruIsMIS/_ruFullDataAccess are two
+// independent axes — which locations a user can see, vs. how much of the
+// data at each location they see. A user with more than one allowed
+// location gets a dedicated "Location" filter (see _ruOverviewLocationFilter
+// below) with an "All" option alongside each individual location — "All"
+// calls get_renewals_overview with p_location:null, which already returns
+// the correct combined-across-every-location totals server-side (no
+// client-side summing, no fanning out multiple calls). Exactly one set of
+// KPI cards/chart/table is ever visible at a time, driven by that single
+// selection — never multiple locations' sections stacked together. A user
+// with exactly one allowed location never sees the filter at all and just
+// gets that location, unchanged from before locations existed.
 // ═══════════════════════════════════════════════════════════════════════
 
-let _ruOverviewCharts = {}; // Chart.js instances, destroyed+recreated on every render (same pattern as leads.js)
+let _ruOverviewCharts = {}; // Chart.js instances, destroyed+recreated on every render (same pattern as leads.js).
+
+// Overview's own location filter — deliberately separate from _ruLocation/
+// ruRenderLocationBar() (the shared switcher every other tab queries by).
+// Reusing _ruLocation here would mean setting it to a pseudo-value like
+// 'all' to represent the combined view, which every other tab's loader
+// (My Customers, Closed/Paid, Unassigned Pool, Upload's location select,
+// etc.) would then send straight into a `location=eq.all` query — none of
+// them have any concept of "all locations". A dedicated variable keeps this
+// tab's new "All" option from ever touching any other tab's behavior.
+// null = not yet resolved; 'all' = combined; otherwise a real location value.
+let _ruOverviewLocationFilter = null;
+
+function _ruOverviewResolvedLocation() {
+  return _ruOverviewLocationFilter === 'all' ? null : _ruOverviewLocationFilter;
+}
+
+function _ruOverviewLocationFilterHtml() {
+  if (_ruAllowedLocations.length <= 1) return ''; // nothing to choose between — same rule the shared bar uses
+  const options = [
+    { value: 'all', label: 'All Locations' },
+    ...RU_LOCATIONS.filter(l => _ruAllowedLocations.includes(l.value)),
+  ];
+  return `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
+      <label style="font-size:0.82rem;font-weight:700;color:var(--muted);">📍 Location</label>
+      <select onchange="_ruOverviewLocationChange(this.value)" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit;">
+        ${options.map(o => `<option value="${o.value}" ${o.value === _ruOverviewLocationFilter ? 'selected' : ''}>${o.label}</option>`).join('')}
+      </select>
+    </div>
+  `;
+}
+
+function _ruOverviewLocationChange(value) {
+  _ruOverviewLocationFilter = value;
+  loadRenewalsOverview();
+}
 
 async function loadRenewalsOverview() {
   const container = document.getElementById('ruOverviewBody');
@@ -2621,30 +2676,50 @@ async function loadRenewalsOverview() {
   Object.values(_ruOverviewCharts).forEach(c => c && c.destroy && c.destroy());
   _ruOverviewCharts = {};
 
+  // Default: "All" for a multi-location user, their one location for
+  // everyone else — only (re)applied when unset or no longer valid (e.g.
+  // allowed locations changed), so a user's own filter choice persists
+  // across reloads triggered from within this same tab.
+  if (_ruOverviewLocationFilter === null ||
+      (_ruOverviewLocationFilter !== 'all' && !_ruAllowedLocations.includes(_ruOverviewLocationFilter))) {
+    _ruOverviewLocationFilter = _ruAllowedLocations.length > 1 ? 'all' : _ruAllowedLocations[0];
+  }
+  const loc = _ruOverviewResolvedLocation();
+
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_renewals_overview`, {
       method: 'POST',
       headers: SB_HDRS_JSON(),
-      body: JSON.stringify({ p_crm_person_id: _ruCrmPerson ? _ruCrmPerson.id : null, p_full_access: _ruFullDataAccess, p_location: _ruLocation }),
+      body: JSON.stringify({ p_crm_person_id: _ruCrmPerson ? _ruCrmPerson.id : null, p_full_access: _ruFullDataAccess, p_location: loc }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     _ruRenderOverview(container, data);
   } catch (e) {
     container.innerHTML = `<p style="color:var(--hot,#ff5c7c);font-size:0.88rem;">⚠️ ${e.message}</p>`;
+    return;
   }
+
+  const teamContainer = document.getElementById('ruTeamPerfContainer');
+  if (teamContainer) teamContainer.innerHTML = _ruTeamPerfShellHtml();
+  loadRenewalsTeamPerformance();
 }
 
+// Single set of KPI cards/charts/activity table, driven entirely by the
+// current filter selection — no more stacked per-location sections. Cards
+// no longer carry per-location onclick args (the drilldown modal is gone),
+// so there's no need to thread the resolved location value in here anymore.
 function _ruRenderOverview(container, data) {
   container.innerHTML = `
+    ${_ruOverviewLocationFilterHtml()}
     ${_ruOverviewFinancialHtml(data.financial)}
-    ${_ruOverviewChartsRowHtml()}
-    ${_ruOverviewTeamTableHtml(data.team_performance)}
-    ${_ruOverviewHealthHtml(data.operational_health)}
+    ${_ruOverviewChartsRowHtml('main')}
+    <div id="ruTeamPerfContainer"></div>
     ${_ruOverviewActivityHtml(data.recent_activity)}
   `;
+
   // Charts need their <canvas> elements to actually exist in the DOM first.
-  _ruBuildOverviewCharts(data);
+  _ruBuildOverviewCharts(data, 'main');
 }
 
 // Compact Indian-numbering format (₹1.52 Cr / ₹68.23 L) for headline KPI
@@ -2661,154 +2736,337 @@ function formatIndianCompact(n) {
   return `₹${value.toLocaleString('en-IN')}`;
 }
 
+// Month-over-month trend indicator (migration 0037's *_prev_month fields).
+// kind distinguishes which direction counts as "good", since it's inverted
+// between the two card families: for an outstanding balance, a DECREASE is
+// good (green) and an increase is bad (red); for a received amount, an
+// INCREASE is good and a decrease is bad. Returns '' when there's nothing
+// meaningful to compare against (no previous value, or previous is 0 —
+// percentage change against a zero base is undefined, not "infinite good").
+function _ruTrendHtml(current, previous, kind) {
+  const cur = Number(current);
+  const prev = Number(previous);
+  if (!Number.isFinite(prev) || prev === 0 || !Number.isFinite(cur)) return '';
+  const pct = ((cur - prev) / prev) * 100;
+  if (!Number.isFinite(pct) || pct === 0) return '';
+  const isUp = pct > 0;
+  const isGood = kind === 'outstanding' ? !isUp : isUp;
+  const color = isGood ? 'var(--won,#00d4aa)' : 'var(--hot,#ff5c7c)';
+  const arrow = isUp ? '↑' : '↓';
+  return ` <span style="color:${color};font-weight:700;">${arrow} ${Math.abs(pct).toFixed(1)}%</span>`;
+}
+
+// Every card shows the amount as the primary figure, with the customer
+// count as smaller secondary text below it (migration 0037 added the
+// *_prev_month fields this trend arrow compares against). Plain display
+// tiles, not interactive — the KPI drilldown modal that used to open on
+// click has been removed entirely (frontend-only removal; the RPC itself
+// is untouched).
 function _ruOverviewFinancialHtml(f) {
   const inr = formatIndianCompact;
   const byCategory = f.outstanding_by_category || {};
+  const cat = (name) => byCategory[name] || { total: 0, count: 0 };
+  const prevByCategory = f.outstanding_by_category_prev_month || {};
+  const prevCat = (name) => prevByCategory[name] || { total: 0, count: 0 };
+  const trend = f.monthly_recovery_trend || [];
+  const prevMonthReceived = trend.length >= 2 ? trend[trend.length - 2].recovered : null;
+
   const tiles = [
-    { label: 'Total Outstanding', value: inr(f.total_outstanding) },
-    { label: 'Platinum Outstanding', value: inr(byCategory.Platinum) },
-    { label: 'Gold Outstanding', value: inr(byCategory.Gold) },
-    { label: 'Silver Outstanding', value: inr(byCategory.Silver) },
-    { label: 'Recovered This Month', value: inr(f.total_recovered_this_month) },
-    { label: 'Recovered All-Time', value: inr(f.total_recovered_all_time) },
+    { label: 'Total Outstanding', count: f.total_outstanding_count, amount: inr(f.total_outstanding), trend: _ruTrendHtml(f.total_outstanding, f.total_outstanding_prev_month, 'outstanding') },
+    { label: 'Platinum Outstanding', count: cat('Platinum').count, amount: inr(cat('Platinum').total), trend: _ruTrendHtml(cat('Platinum').total, prevCat('Platinum').total, 'outstanding') },
+    { label: 'Gold Outstanding', count: cat('Gold').count, amount: inr(cat('Gold').total), trend: _ruTrendHtml(cat('Gold').total, prevCat('Gold').total, 'outstanding') },
+    { label: 'Silver Outstanding', count: cat('Silver').count, amount: inr(cat('Silver').total), trend: _ruTrendHtml(cat('Silver').total, prevCat('Silver').total, 'outstanding') },
+    { label: 'Received This Month', count: f.total_recovered_this_month_count, amount: inr(f.total_recovered_this_month), trend: _ruTrendHtml(f.total_recovered_this_month, prevMonthReceived, 'received') },
+    { label: 'Received All-Time', count: f.total_recovered_all_time_count, amount: inr(f.total_recovered_all_time), trend: '' }, // cumulative — no meaningful MoM comparison
   ];
   return `
     <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);">
       ${tiles.map(t => `
         <div class="kpi-card">
           <div class="kpi-label">${t.label}</div>
-          <div class="kpi-value">${t.value}</div>
+          <div class="kpi-value">${t.amount}</div>
+          <div class="kpi-sub">${t.count ?? 0} customers${t.trend}</div>
         </div>
       `).join('')}
     </div>
   `;
 }
 
-function _ruOverviewChartsRowHtml() {
+// Monthly Received Trend + Category Breakdown (original 2) plus Customer
+// Call Coverage (migration 0038) — the Outstanding by Location comparison
+// chart that used to sit alongside these was removed (frontend-only; the
+// get_renewals_location_comparison RPC itself is untouched).
+function _ruOverviewChartsRowHtml(loc) {
+  // One row of 3 (rather than a 2-column/2-row grid with a dangling empty
+  // cell now that Outstanding by Location is gone) — keeps the charts
+  // section to a single row of vertical space, which is most of what makes
+  // KPI cards + charts fit on a normal desktop viewport without scrolling.
+  // Canvas height cut from 260px to 165px (~35%) for the same reason.
   return `
-    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
       <div class="chart-card">
-        <div class="chart-title">Monthly Recovery Trend</div>
-        <div style="height:260px;"><canvas id="ruChartRecoveryTrend"></canvas></div>
+        <div class="chart-title">Monthly Received Trend</div>
+        <div style="height:165px;"><canvas id="ruChartRecoveryTrend-${loc}"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">Status Breakdown</div>
-        <div style="height:260px;"><canvas id="ruChartStatusBreakdown"></canvas></div>
+        <div class="chart-title">Category Breakdown</div>
+        <div style="height:165px;"><canvas id="ruChartCategoryBreakdown"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Customer Call Coverage</div>
+        <div style="height:165px;"><canvas id="ruChartCallCoverage"></canvas></div>
       </div>
     </div>
   `;
 }
 
-function _ruComplianceBadgeClass(pct) {
-  if (pct >= 80) return 'badge-won';
-  if (pct >= 50) return 'badge-warm';
-  return 'badge-hot';
+// ── CRM Performance table (replaces the old team_performance section) —
+// backed by get_renewals_team_performance(p_crm_person_id, p_full_access,
+// p_location, p_start, p_end). p_crm_person_id:null returns every active
+// person (full comparison table); a specific id returns just that person's
+// row regardless of p_full_access — same null-means-unscoped convention as
+// every other parameter in this module. p_location tracks the Overview
+// tab's own location filter (_ruOverviewResolvedLocation()) so this table
+// always reflects the same selection as the KPI cards above it, rather than
+// having its own independent scope. ─────────────────────────────────────
+
+let _ruTeamPerfPreset = 'mtd';
+let _ruTeamPerfCustomFrom = '';
+let _ruTeamPerfCustomTo = '';
+
+function _ruFmtDate(d) {
+  // IST = UTC+5:30 — same convention as crm.js's _fmtDate, kept local to
+  // this file (ru-prefixed) rather than reused, to avoid two modules
+  // silently depending on one shared global.
+  const ist = new Date(d.getTime() + (5 * 60 + 30) * 60000);
+  return ist.toISOString().split('T')[0];
 }
 
-// MIS and a full_data_access CRM person (migration 0023 — e.g. Suchit) both
-// get the full team comparison table; the RPC returns every active person's
-// row for either (server-scoped, not just hidden client-side — see
-// migrations 0014/0020/0023). A plain CRM person only ever gets their own
-// single row back — showing that as a one-row "table" complete with a
-// Person-name column would be odd, and a full table would expose peers'
-// individual performance at an access level that shouldn't see it. So only
-// a plain CRM person (neither flag) gets the compact personal scorecard
-// instead — same underlying fields (compliance %, connected/not-connected
-// split), just not shaped like a comparison table.
-function _ruOverviewTeamTableHtml(team) {
+function _ruTeamPerfRange(preset) {
+  const now = new Date();
+  const istNow = new Date(now.getTime() + (5 * 60 + 30) * 60000);
+  const today = new Date(istNow.toISOString().split('T')[0] + 'T00:00:00.000Z');
+  let start = today, end = today;
+
+  if (preset === 'today') {
+    start = today; end = today;
+  } else if (preset === 'yesterday') {
+    start = new Date(today); start.setDate(start.getDate() - 1);
+    end = new Date(start);
+  } else if (preset === '7d') {
+    start = new Date(today); start.setDate(start.getDate() - 7);
+    end = today;
+  } else if (preset === 'lastMonth') {
+    const firstOfThisMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+    end = new Date(firstOfThisMonth); end.setDate(end.getDate() - 1);
+    start = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
+  } else if (preset === '3m') {
+    start = new Date(today); start.setMonth(start.getMonth() - 3);
+    end = today;
+  } else if (preset === 'mtd') {
+    start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+    end = today;
+  }
+  return { start: _ruFmtDate(start), end: _ruFmtDate(end) };
+}
+
+const RU_TEAM_PERF_PRESETS = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: '7d', label: 'Last 7 Days' },
+  { value: 'lastMonth', label: 'Last Month' },
+  { value: '3m', label: 'Last 3 Months' },
+  { value: 'mtd', label: 'Month to Date' },
+  { value: 'custom', label: 'Custom' },
+];
+
+function _ruTeamPerfFilterHtml() {
+  return `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <select id="ruTeamPerfPresetSelect" onchange="_ruTeamPerfPresetChange(this.value)" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-size:0.82rem;font-weight:600;cursor:pointer;font-family:inherit;">
+        ${RU_TEAM_PERF_PRESETS.map(p => `<option value="${p.value}" ${p.value === _ruTeamPerfPreset ? 'selected' : ''}>${p.label}</option>`).join('')}
+      </select>
+      <span id="ruTeamPerfCustomRange" style="display:${_ruTeamPerfPreset === 'custom' ? 'flex' : 'none'};align-items:center;gap:6px;">
+        <input type="date" id="ruTeamPerfFrom" value="${_ruTeamPerfCustomFrom}" style="padding:5px 8px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-size:0.8rem;font-family:inherit;">
+        <span style="color:var(--muted);font-size:0.8rem;">to</span>
+        <input type="date" id="ruTeamPerfTo" value="${_ruTeamPerfCustomTo}" style="padding:5px 8px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-size:0.8rem;font-family:inherit;">
+        <button onclick="_ruTeamPerfApplyCustom()" style="padding:5px 12px;border-radius:6px;border:none;background:#00d4aa;color:#04231c;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;">Apply</button>
+      </span>
+    </div>
+  `;
+}
+
+function _ruTeamPerfPresetChange(value) {
+  _ruTeamPerfPreset = value;
+  const bar = document.getElementById('ruTeamPerfFilterBar');
+  if (bar) bar.innerHTML = _ruTeamPerfFilterHtml();
+  if (value !== 'custom') loadRenewalsTeamPerformance();
+}
+
+function _ruTeamPerfApplyCustom() {
+  const from = document.getElementById('ruTeamPerfFrom')?.value;
+  const to = document.getElementById('ruTeamPerfTo')?.value;
+  if (!from || !to) { alert('⚠️ Please select both a start and end date.'); return; }
+  _ruTeamPerfCustomFrom = from;
+  _ruTeamPerfCustomTo = to;
+  loadRenewalsTeamPerformance();
+}
+
+// Same access split as before (migrations 0014/0020/0023): full-access/MIS
+// get the full peer comparison table, a plain CRM person gets a compact
+// personal tile row instead — showing their own single row as a 1-row
+// table with a Person column would be odd, and this keeps peers' individual
+// numbers away from anyone who shouldn't see them. The date filter applies
+// to both — only the peer-comparison rows are gated, not the filter itself.
+function _ruTeamPerfShellHtml() {
+  return `
+    <div class="table-card" style="margin-bottom:20px;">
+      <div class="table-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <span class="table-title">${(_ruIsMIS || _ruFullDataAccess) ? 'CRM Team Performance' : 'Your Calling Activity'}</span>
+        <div id="ruTeamPerfFilterBar">${_ruTeamPerfFilterHtml()}</div>
+      </div>
+      <div id="ruTeamPerfTableBody"><p style="padding:14px;color:var(--muted);font-size:0.85rem;">Loading…</p></div>
+    </div>
+  `;
+}
+
+async function loadRenewalsTeamPerformance() {
+  const body = document.getElementById('ruTeamPerfTableBody');
+  if (!body) return;
+
+  let start, end;
+  if (_ruTeamPerfPreset === 'custom') {
+    if (!_ruTeamPerfCustomFrom || !_ruTeamPerfCustomTo) {
+      body.innerHTML = '<p style="padding:14px;color:var(--muted);font-size:0.85rem;">Pick a date range and click Apply.</p>';
+      return;
+    }
+    start = _ruTeamPerfCustomFrom; end = _ruTeamPerfCustomTo;
+  } else {
+    const range = _ruTeamPerfRange(_ruTeamPerfPreset);
+    start = range.start; end = range.end;
+  }
+
+  body.innerHTML = '<p style="padding:14px;color:var(--muted);font-size:0.85rem;">Loading…</p>';
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_renewals_team_performance`, {
+      method: 'POST',
+      headers: SB_HDRS_JSON(),
+      body: JSON.stringify({
+        p_crm_person_id: (_ruIsMIS || _ruFullDataAccess) ? null : (_ruCrmPerson ? _ruCrmPerson.id : null),
+        p_full_access: _ruFullDataAccess,
+        p_location: _ruOverviewResolvedLocation(), // stays in sync with the Overview tab's own location filter
+        p_start: start,
+        p_end: end,
+      }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    // calls_count desc, received_amount desc as tiebreaker — not alphabetical
+    // by name. Re-sorted here (not once on load) so every date-range refresh
+    // re-ranks against that range's own numbers.
+    const sorted = (data || []).slice().sort((a, b) => {
+      const callsDiff = Number(b.calls_count || 0) - Number(a.calls_count || 0);
+      if (callsDiff !== 0) return callsDiff;
+      return Number(b.received_amount || 0) - Number(a.received_amount || 0);
+    });
+    body.innerHTML = _ruTeamPerfTableHtml(sorted);
+  } catch (e) {
+    body.innerHTML = `<p style="padding:14px;color:var(--hot,#ff5c7c);font-size:0.85rem;">⚠️ ${e.message}</p>`;
+  }
+}
+
+function _ruTeamPerfTableHtml(team) {
+  const rows = team || [];
+
   if (!_ruIsMIS && !_ruFullDataAccess) {
-    const t = (team || [])[0] || { calls_connected_30d: 0, calls_not_connected_30d: 0, compliance_pct: 0 };
+    const t = rows[0] || { calls_count: 0, received_amount: 0, total_customers: 0 };
     const tiles = [
-      { label: 'Connected Calls (30d)', value: t.calls_connected_30d },
-      { label: 'Not Connected (30d)', value: t.calls_not_connected_30d },
-      { label: 'Compliance', value: `<span class="badge ${_ruComplianceBadgeClass(t.compliance_pct)}">${t.compliance_pct}%</span>` },
+      { label: 'Calls', value: t.calls_count },
+      { label: 'Received Amount', value: `₹${Number(t.received_amount || 0).toLocaleString('en-IN')}` },
+      { label: 'Total Customers', value: t.total_customers },
     ];
     return `
-      <div class="table-card" style="margin-bottom:20px;">
-        <div class="table-header">
-          <span class="table-title">Your Calling Activity</span>
-        </div>
-        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);padding:14px;">
-          ${tiles.map(x => `
-            <div class="kpi-card">
-              <div class="kpi-label">${x.label}</div>
-              <div class="kpi-value">${x.value}</div>
-            </div>
-          `).join('')}
-        </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);padding:14px;">
+        ${tiles.map(x => `
+          <div class="kpi-card">
+            <div class="kpi-label">${x.label}</div>
+            <div class="kpi-value">${x.value}</div>
+          </div>
+        `).join('')}
       </div>
     `;
   }
 
-  const rows = (team || []).map(t => `
-    <tr>
-      <td>${_ruEsc(t.person_name)}</td>
-      <td style="text-align:right;">${t.customers_assigned}</td>
-      <td style="text-align:right;">${t.calls_connected_30d}</td>
-      <td style="text-align:right;">${t.calls_not_connected_30d}</td>
-      <td style="text-align:right;">₹${Number(t.recovered_this_month || 0).toLocaleString('en-IN')}</td>
-      <td style="text-align:center;"><span class="badge ${_ruComplianceBadgeClass(t.compliance_pct)}">${t.compliance_pct}%</span></td>
-    </tr>
-  `).join('');
+  // Row banding + hover are handled by the scoped CSS in index.html
+  // (#ruTeamPerfTableBody tbody tr:nth-child(even)/:hover) rather than an
+  // inline background here — an inline style on the <tr> would always beat
+  // the global tbody tr:hover rule (inline wins over any stylesheet
+  // specificity), which would permanently kill the hover highlight on every
+  // banded row. Per-cell text styling (received-amount tint, top-performer
+  // bolding) doesn't touch background, so it's safe to inline directly.
+  const trs = rows.map((t, i) => {
+    const receivedAmount = Number(t.received_amount || 0);
+    // Non-zero received this period stands out (bold + the app's established
+    // "positive" teal); zero fades to muted so a scan down the column
+    // immediately shows who brought in nothing for the selected range.
+    const receivedStyle = receivedAmount > 0
+      ? 'color:var(--won,#00d4aa);font-weight:700;'
+      : 'color:var(--muted);';
+    // Table is already sorted calls_count desc — row 0 is the top performer
+    // by construction. Guarded on calls_count > 0 so an all-zero table
+    // (e.g. nobody's called yet today) doesn't cosmetically crown someone
+    // for doing nothing.
+    const isTop = i === 0 && Number(t.calls_count || 0) > 0;
+    const nameCell = isTop
+      ? `${_ruEsc(t.person_name)} <span class="badge badge-won" style="margin-left:6px;white-space:nowrap;">★ Top Performer</span>`
+      : _ruEsc(t.person_name);
+    return `
+      <tr${isTop ? ' style="font-weight:600;"' : ''}>
+        <td>${nameCell}</td>
+        <td style="text-align:right;">${t.calls_count}</td>
+        <td style="text-align:right;${receivedStyle}">₹${receivedAmount.toLocaleString('en-IN')}</td>
+        <td style="text-align:right;">${t.total_customers}</td>
+      </tr>
+    `;
+  }).join('');
 
   return `
-    <div class="table-card" style="margin-bottom:20px;">
-      <div class="table-header">
-        <span class="table-title">CRM Team Performance</span>
-      </div>
-      <div class="table-scroll">
-        <table>
-          <thead><tr>
-            <th>Person</th>
-            <th style="text-align:right;">Customers</th>
-            <th style="text-align:right;">Connected (30d)</th>
-            <th style="text-align:right;">Not Connected (30d)</th>
-            <th style="text-align:right;">Recovered This Month</th>
-            <th style="text-align:center;">Compliance</th>
-          </tr></thead>
-          <tbody>${rows || '<tr><td colspan="6" style="padding:12px;color:var(--muted);">No active CRM persons.</td></tr>'}</tbody>
-        </table>
-      </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>CRM Person</th>
+          <th style="text-align:right;">Calls</th>
+          <th style="text-align:right;">Received Amount</th>
+          <th style="text-align:right;">Total Customers</th>
+        </tr></thead>
+        <tbody>${trs || '<tr><td colspan="4" style="padding:12px;color:var(--muted);">No active CRM persons.</td></tr>'}</tbody>
+      </table>
     </div>
   `;
 }
 
-// unresolved_unmatched_count/unassigned_pool_count are org-wide, not
-// actionable by a CRM person (matches Unassigned Pool being MIS-only) — the
-// RPC returns them as null when scoped (migration 0014), and this just
-// drops any null-valued tile rather than needing its own role check, so
-// rendering stays correct even if the scoping rule on the SQL side changes.
-function _ruOverviewHealthHtml(oh) {
-  const tiles = [
-    { label: 'Unresolved (Import)', value: oh.unresolved_unmatched_count, color: oh.unresolved_unmatched_count > 0 ? 'var(--hot)' : 'var(--won)' },
-    { label: 'Unassigned Pool', value: oh.unassigned_pool_count, color: oh.unassigned_pool_count > 0 ? 'var(--warm)' : 'var(--won)' },
-    { label: _ruIsMIS ? 'Never Called' : 'Your Never-Called Customers', value: oh.never_called_count, color: oh.never_called_count > 0 ? 'var(--hot)' : 'var(--won)' },
-  ].filter(t => t.value !== null && t.value !== undefined);
-  return `
-    <div class="kpi-grid" style="grid-template-columns:repeat(${tiles.length},1fr);margin-bottom:20px;">
-      ${tiles.map(t => `
-        <div class="kpi-card" style="--card-color:${t.color};">
-          <div class="kpi-label">${t.label}</div>
-          <div class="kpi-value">${t.value}</div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
+// table-layout:fixed + per-column max-width/ellipsis (rather than just
+// shrinking padding) is what actually avoids horizontal scroll here — Note
+// is free text (conversation_notes or a not-connected reason) and is
+// usually the widest column by far, so it's clipped with the full text
+// still reachable via the native title tooltip on hover, same treatment
+// given to Customer/By in case a name runs long.
 function _ruOverviewActivityHtml(activity) {
+  const cellPad = 'padding:6px 8px;';
+  const ellipsis = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
   const rows = (activity || []).map(a => {
     const dot = a.connected ? '#00d4aa' : '#ff5c7c';
     const note = a.connected ? (a.note || '—') : (RU_NOT_CONNECTED_REASON_LABELS[a.note] || a.note || '—');
     const amount = a.amount_recovered ? `₹${Number(a.amount_recovered).toLocaleString('en-IN')}` : '—';
     return `
       <tr>
-        <td style="white-space:nowrap;">${_ruEsc(a.call_date)}</td>
-        <td>${_ruEsc(a.customer_name)}</td>
-        <td>${_ruEsc(a.person_name)}</td>
-        <td style="text-align:center;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${dot};"></span></td>
-        <td>${_ruEsc(note)}</td>
-        <td style="text-align:right;">${amount}</td>
+        <td style="${cellPad}white-space:nowrap;">${_ruEsc(a.call_date)}</td>
+        <td style="${cellPad}${ellipsis}" title="${_ruEsc(a.customer_name)}">${_ruEsc(a.customer_name)}</td>
+        <td style="${cellPad}${ellipsis}" title="${_ruEsc(a.person_name)}">${_ruEsc(a.person_name)}</td>
+        <td style="${cellPad}text-align:center;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${dot};"></span></td>
+        <td style="${cellPad}${ellipsis}" title="${_ruEsc(note)}">${_ruEsc(note)}</td>
+        <td style="${cellPad}text-align:right;white-space:nowrap;">${amount}</td>
       </tr>
     `;
   }).join('');
@@ -2819,14 +3077,23 @@ function _ruOverviewActivityHtml(activity) {
         <span class="table-title">Recent Activity</span>
       </div>
       <div class="table-scroll">
-        <table>
+        <table style="table-layout:fixed;width:100%;">
+          <!-- table-layout:fixed only reliably constrains a column (and lets
+               overflow:hidden/ellipsis actually clip instead of spilling
+               into the next cell) when EVERY column has an explicit width —
+               leaving some unset and relying on the browser to split
+               remaining space evenly is what let Customer/Note overlap
+               here. Note gets the largest share (widest, most variable
+               free-text content), Customer next (billing names can run
+               long too — e.g. "IDIADA AUTOMOTIVE TECHNOLOGY INDIA PVT LTD.
+               ENGINEERING TESTING FACILITY"). -->
           <thead><tr>
-            <th>Date</th>
-            <th>Customer</th>
-            <th>By</th>
-            <th style="text-align:center;">Connected</th>
-            <th>Note</th>
-            <th style="text-align:right;">Amount</th>
+            <th style="${cellPad}width:9%;">Date</th>
+            <th style="${cellPad}width:23%;">Customer</th>
+            <th style="${cellPad}width:13%;">By</th>
+            <th style="${cellPad}text-align:center;width:9%;">Connected</th>
+            <th style="${cellPad}width:31%;">Note</th>
+            <th style="${cellPad}text-align:right;width:15%;">Amount</th>
           </tr></thead>
           <tbody>${rows || '<tr><td colspan="6" style="padding:12px;color:var(--muted);">No calls logged yet.</td></tr>'}</tbody>
         </table>
@@ -2835,24 +3102,31 @@ function _ruOverviewActivityHtml(activity) {
   `;
 }
 
-function _ruBuildOverviewCharts(data) {
-  const { tc, gc } = chartColors();
+function _ruBuildOverviewCharts(data, loc) {
+  const { tc } = chartColors();
   const font = { family: 'DM Sans', size: 10 };
 
-  const trend = data.financial.monthly_recovery_trend || [];
-  const trendCanvas = document.getElementById('ruChartRecoveryTrend');
+  const trend = (data.financial && data.financial.monthly_recovery_trend) || [];
+  const trendCanvas = document.getElementById(`ruChartRecoveryTrend-${loc}`);
   if (trendCanvas) {
-    _ruOverviewCharts.trend = new Chart(trendCanvas, {
+    _ruOverviewCharts[`trend-${loc}`] = new Chart(trendCanvas, {
       type: 'bar',
       data: {
         labels: trend.map(m => m.month),
-        datasets: [{ label: 'Recovered', data: trend.map(m => Number(m.recovered)), backgroundColor: '#00d4aa', borderRadius: 4, borderWidth: 0 }],
+        // barPercentage/categoryPercentage < the Chart.js defaults (0.9/0.8)
+        // for more breathing room between bars now that the chart itself is
+        // smaller — a wall-to-wall bar chart at 165px tall reads as cramped.
+        datasets: [{ label: 'Received', data: trend.map(m => Number(m.recovered)), backgroundColor: '#00d4aa', borderRadius: 6, borderWidth: 0, barPercentage: 0.6, categoryPercentage: 0.7 }],
       },
       options: {
         plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { color: tc, font }, grid: { display: false } },
-          y: { ticks: { color: tc, font }, grid: { color: gc } },
+          x: { ticks: { color: tc, font, autoSkip: true, maxRotation: 0 }, grid: { display: false } },
+          // No gridlines either axis; y-axis reuses formatIndianCompact so
+          // labels read "₹15L" instead of "1500000", and maxTicksLimit keeps
+          // label density sane on a shorter chart instead of Chart.js's
+          // default auto-count crowding several ticks into 165px.
+          y: { ticks: { color: tc, font, maxTicksLimit: 5, callback: (value) => formatIndianCompact(value) }, grid: { display: false }, beginAtZero: true },
         },
         responsive: true,
         maintainAspectRatio: false,
@@ -2860,15 +3134,67 @@ function _ruBuildOverviewCharts(data) {
     });
   }
 
-  const statusRows = data.status_breakdown || [];
-  const statusColorMap = { ...Object.fromEntries(RU_CRM_STATUS_OPTIONS.map(o => [o.value, o.color])), 'Not Set': '#6b7280' };
-  const statusCanvas = document.getElementById('ruChartStatusBreakdown');
-  if (statusCanvas) {
-    _ruOverviewCharts.status = new Chart(statusCanvas, {
+  // Platinum/Gold/Silver split, in addition to (not replacing) the 3
+  // category KPI cards above — same doughnut config the old Status
+  // Breakdown chart used, reusing established colors from elsewhere in
+  // this file rather than inventing a new palette (Platinum: the app's
+  // teal accent, Gold: its amber accent, Silver: its neutral grey).
+  const byCategory = (data.financial && data.financial.outstanding_by_category) || {};
+  const categoryColorMap = { Platinum: '#00d4aa', Gold: '#f0a500', Silver: '#9aa3b2' };
+  const categoryCanvas = document.getElementById('ruChartCategoryBreakdown');
+  if (categoryCanvas) {
+    const categories = RU_CATEGORY_ORDER.map(name => ({ name, total: Number((byCategory[name] || {}).total || 0) }));
+    const categoryTotal = categories.reduce((s, c) => s + c.total, 0) || 1;
+    _ruOverviewCharts.category = new Chart(categoryCanvas, {
       type: 'doughnut',
       data: {
-        labels: statusRows.map(s => s.status),
-        datasets: [{ data: statusRows.map(s => s.count), backgroundColor: statusRows.map(s => statusColorMap[s.status] || '#6b7280'), borderWidth: 0, hoverOffset: 8 }],
+        // Legend carries the amount ("Platinum (₹13.64L)"); the slice itself
+        // carries the percentage via datalabels — same split FSD's job-type
+        // donut uses (js/fieldservice-dashboard.js), rather than cramming
+        // both onto the slice.
+        labels: categories.map(c => `${c.name} (${formatIndianCompact(c.total)})`),
+        datasets: [{ data: categories.map(c => c.total), backgroundColor: categories.map(c => categoryColorMap[c.name]), borderWidth: 0, hoverOffset: 8 }],
+      },
+      // chartjs-plugin-datalabels is loaded via CDN (index.html) but never
+      // globally registered (see fieldservice-dashboard.js's comment on its
+      // trend chart for why) — attached locally to just this chart instance,
+      // no effect on any other chart in the app.
+      plugins: [ChartDataLabels],
+      options: {
+        cutout: '65%',
+        plugins: {
+          legend: { position: 'right', labels: { color: tc, padding: 10, font } },
+          datalabels: {
+            display: 'auto', // auto-hides on a slice too thin for the label to fit without overlap
+            color: '#fff',
+            font: { family: 'DM Sans', size: 10, weight: '700' },
+            formatter: (value) => `${Math.round((value / categoryTotal) * 100)}%`,
+          },
+        },
+        responsive: true,
+        maintainAspectRatio: false,
+      },
+    });
+  }
+
+  // Call coverage donut (migration 0038's coverage.{total_customers,
+  // called_this_month}) — "Called This Month" is a subset of "Total
+  // Customers", not an independent figure, so this is a Called vs. Not-
+  // Called-Yet split rather than two bars for the two raw fields — that's
+  // what actually reads as "what fraction has been contacted" at a glance.
+  // Raw counts are baked into the legend labels themselves, not just shown
+  // as a bare percentage.
+  const coverageCanvas = document.getElementById('ruChartCallCoverage');
+  if (coverageCanvas) {
+    const coverage = data.coverage || {};
+    const total = Number(coverage.total_customers || 0);
+    const called = Number(coverage.called_this_month || 0);
+    const notCalled = Math.max(0, total - called);
+    _ruOverviewCharts.coverage = new Chart(coverageCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: [`Called This Month (${called})`, `Not Called Yet (${notCalled})`],
+        datasets: [{ data: [called, notCalled], backgroundColor: ['#00d4aa', '#6b7280'], borderWidth: 0, hoverOffset: 8 }],
       },
       options: {
         cutout: '65%',
