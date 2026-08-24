@@ -5465,6 +5465,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
               <th>Due Date</th>
               <th>Status</th>
               <th>Note</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="tdAllTasksBody"></tbody>
@@ -5541,54 +5542,117 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
   </div>
 </div>
 
-<!-- Task Detail modal — shared by MD (read-only note) and assignee (editable actions section) -->
+<!-- Task Detail modal — shared by MD (read-only note, Edit button) and assignee (editable note +
+     action controls, no Edit). Two-column layout mirrors the FMS order-timeline modal
+     (fmsOpenTimeline in js/fms.js): header row (title+badge left, actions right), then
+     .fms-timeline-columns for a details-left/notes-and-attachments-right split, reusing that
+     class's existing @media(max-width:900px) stack-to-single-column behavior. -->
+<style>
+  #tdTaskDetailModalOverlay .td-detail-row{display:flex;align-items:baseline;padding:0.38rem 0;border-bottom:1px solid var(--border2);}
+  #tdTaskDetailModalOverlay .td-detail-row:last-child{border-bottom:none;}
+  #tdTaskDetailModalOverlay .td-detail-label{min-width:130px;font-size:0.78rem;color:var(--muted);font-weight:600;flex-shrink:0;}
+  #tdTaskDetailModalOverlay .td-detail-value{font-size:0.86rem;font-weight:600;color:var(--text);flex:1;}
+  #tdTaskDetailModalOverlay .td-section-label{font-size:0.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.4rem;opacity:0.7;}
+  #tdTaskDetailModalOverlay .td-paste-zone{border:1.5px dashed var(--border);border-radius:10px;padding:14px;text-align:center;background:var(--surface2);color:var(--muted);font-size:0.78rem;line-height:1.5;margin-bottom:14px;cursor:pointer;transition:background 0.15s,border-color 0.15s;}
+  #tdTaskDetailModalOverlay .td-paste-zone:hover{background:var(--bg);border-color:var(--accent2);}
+  /* Scoped to this modal only — .fms-timeline-box/-col-left/-col-right are shared with FMS's
+     order-timeline modal (js/fms.js), so overriding them globally would resize that one too.
+     Taller box + a narrower left/details column than the shared 1.25:1 default, since this
+     modal's left column now holds Description + Attachments and needs less width than FMS's
+     Order/Payment details do. */
+  #tdTaskDetailModalOverlay .fms-timeline-box{min-height:82vh;max-height:94vh;max-width:1000px;}
+  #tdTaskDetailModalOverlay .fms-timeline-col-left{flex:0.85;}
+  #tdTaskDetailModalOverlay .fms-timeline-col-right{flex:1.15;}
+  @media (max-width:900px){
+    #tdTaskDetailModalOverlay .fms-timeline-box{min-height:0;}
+  }
+</style>
 <div class="fms-overlay-backdrop" id="tdTaskDetailModalOverlay">
-  <div class="fms-overlay-box wide" style="max-width:1040px;padding:2rem 2.4rem;">
-    <button onclick="tdCloseTaskDetailModal()" style="position:absolute;top:16px;right:18px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
-    <div id="tdDetailTitle" style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--text);margin-bottom:10px;"></div>
-    <div id="tdDetailStatusBadge" style="margin-bottom:20px;"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--border);">
-      <div>
-        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);font-weight:700;margin-bottom:4px;">Assigned To</div>
-        <div id="tdDetailAssignee" style="font-size:0.92rem;color:var(--text);font-weight:600;"></div>
+  <div class="fms-overlay-box wide fms-timeline-box" id="tdTaskDetailModalBox" tabindex="-1" onpaste="tdHandleAttachmentPaste(event)">
+    <button onclick="tdCloseTaskDetailModal()" style="position:absolute;top:12px;right:14px;background:transparent;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+
+    <!-- Header: title + status badge left, role-gated actions right (Edit for MD only) -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:0.8rem;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+        <div id="tdDetailTitle" style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+        <div id="tdDetailStatusBadge" style="flex-shrink:0;"></div>
       </div>
-      <div>
-        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);font-weight:700;margin-bottom:4px;">Assigned By</div>
-        <div id="tdDetailAssignedBy" style="font-size:0.92rem;color:var(--text);font-weight:600;"></div>
-      </div>
-      <div>
-        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);font-weight:700;margin-bottom:4px;">Due Date</div>
-        <div id="tdDetailDueDate" style="font-size:0.92rem;color:var(--text);font-weight:600;"></div>
-      </div>
-      <div>
-        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);font-weight:700;margin-bottom:4px;">Tentative Date</div>
-        <div id="tdDetailTentativeDate" style="font-size:0.92rem;color:var(--text);font-weight:600;"></div>
-      </div>
+      <div id="tdDetailActions" style="display:flex;gap:6px;flex-shrink:0;margin-right:28px;"></div>
     </div>
-    <div style="padding:20px 22px;min-height:110px;margin-bottom:16px;border-radius:12px;background:var(--surface2);border-left:3px solid #3b82f6;box-sizing:border-box;">
-      <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);font-weight:700;margin-bottom:8px;">📄 Description</div>
-      <div id="tdDetailDescription" style="font-size:0.92rem;color:var(--text);white-space:pre-wrap;line-height:1.5;"></div>
-    </div>
-    <div id="tdDetailNoteBlock" style="padding:20px 22px;min-height:110px;border-radius:12px;background:var(--surface2);border-left:3px solid #00d4aa;box-sizing:border-box;">
-      <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);font-weight:700;margin-bottom:8px;">📝 Assignee's Note</div>
-      <div id="tdDetailNote" style="font-size:0.92rem;color:var(--text);white-space:pre-wrap;line-height:1.5;"></div>
-    </div>
-    <div id="tdDetailActionsSection" style="display:none;margin-top:18px;padding-top:18px;border-top:1px solid var(--border);">
-      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);font-weight:700;margin-bottom:12px;">Your Actions</div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;">
-        <div>
-          <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">When will you do this?</label>
-          <input type="date" id="tdDetailTentativeInput" onchange="tdDetailSaveTentativeDate()"
-            style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:0.85rem;font-family:inherit;">
+
+    <div class="fms-timeline-columns">
+      <!-- Left column: read-only task metadata -->
+      <div class="fms-timeline-col-left">
+        <div class="td-section-label">Task Details</div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:0 0.9rem;margin-bottom:0.9rem;">
+          <div class="td-detail-row"><span class="td-detail-label">Assigned To</span><span id="tdDetailAssignee" class="td-detail-value"></span></div>
+          <div class="td-detail-row"><span class="td-detail-label">Assigned By</span><span id="tdDetailAssignedBy" class="td-detail-value"></span></div>
+          <div class="td-detail-row"><span class="td-detail-label">Due Date</span><span id="tdDetailDueDate" class="td-detail-value"></span></div>
+          <div class="td-detail-row"><span class="td-detail-label">Tentative Date</span><span id="tdDetailTentativeDate" class="td-detail-value"></span></div>
         </div>
-        <button id="tdDetailStatusBtn" onclick="tdDetailToggleStatus()" style="padding:9px 18px;border-radius:8px;border:none;background:#00d4aa;color:#04231d;font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit;white-space:nowrap;">✅ Mark Completed</button>
+
+        <div class="td-section-label">📄 Description</div>
+        <div style="padding:1.1rem 1.2rem;min-height:180px;margin-bottom:1.6rem;border-radius:10px;background:var(--surface2);border-left:3px solid #3b82f6;box-sizing:border-box;">
+          <div id="tdDetailDescription" style="font-size:0.86rem;color:var(--text);white-space:pre-wrap;line-height:1.5;"></div>
+        </div>
+
+        <div id="tdDetailAttachmentsSection">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="td-section-label" style="margin-bottom:0;">📎 Attachments</div>
+            <label id="tdAttachmentUploadLabel" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-weight:600;font-size:0.76rem;cursor:pointer;">
+              <span id="tdAttachmentUploadLabelText">+ Upload</span>
+              <input type="file" id="tdAttachmentFileInput" multiple style="display:none;" onchange="tdHandleAttachmentFiles(this.files); this.value='';">
+            </label>
+          </div>
+          <!-- Purely a visual affordance — the whole modal already accepts Ctrl+V via
+               tdHandleAttachmentPaste on tdTaskDetailModalBox, this box doesn't add its own
+               paste listener, it just makes the existing behavior obvious. Not clickable (that's
+               what + Upload is for) so no onclick here. -->
+          <div id="tdAttachmentPasteZone" class="td-paste-zone">
+            📋 Paste a screenshot here (Ctrl+V), or click <strong style="color:var(--text);">+ Upload</strong> to choose a file
+          </div>
+          <div id="tdDetailAttachmentsList" style="display:flex;flex-wrap:wrap;gap:14px;"></div>
+        </div>
       </div>
-      <div class="fms-form-group">
-        <label class="fms-form-label">Note</label>
-        <textarea id="tdDetailNoteInput" class="fms-form-input" rows="5" placeholder="Add a note…" onblur="tdDetailSaveNote()" style="min-height:110px;"></textarea>
+
+      <!-- Right column: note (read-only for MD / editable for assignee) and, for the assignee,
+           their action controls — shared by both roles -->
+      <div class="fms-timeline-col-right">
+        <div id="tdDetailNoteBlock" style="display:none;margin-bottom:1.2rem;">
+          <div class="td-section-label">📝 Assignee's Note</div>
+          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:0.75rem 0.9rem;min-height:70px;box-sizing:border-box;">
+            <div id="tdDetailNote" style="font-size:0.86rem;color:var(--text);white-space:pre-wrap;line-height:1.5;"></div>
+          </div>
+        </div>
+
+        <div id="tdDetailActionsSection" style="display:none;margin-bottom:1.2rem;">
+          <div class="td-section-label">📝 Your Note</div>
+          <div class="fms-form-group" style="margin-bottom:12px;">
+            <textarea id="tdDetailNoteInput" class="fms-form-input" rows="4" placeholder="Add a note…" onblur="tdDetailSaveNote()" style="min-height:90px;width:100%;box-sizing:border-box;"></textarea>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+            <div>
+              <label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:4px;">When will you do this?</label>
+              <input type="date" id="tdDetailTentativeInput" onchange="tdDetailSaveTentativeDate()"
+                style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:0.85rem;font-family:inherit;">
+            </div>
+            <button id="tdDetailStatusBtn" onclick="tdDetailToggleStatus()" style="padding:9px 18px;border-radius:8px;border:none;background:#00d4aa;color:#04231d;font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit;white-space:nowrap;">✅ Mark Completed</button>
+          </div>
+        </div>
+
+        <div id="tdDetailCompletedRow" style="display:none;font-size:0.8rem;color:var(--muted);margin-bottom:1.2rem;"></div>
       </div>
     </div>
-    <div id="tdDetailCompletedRow" style="display:none;font-size:0.82rem;color:var(--muted);margin-top:14px;"></div>
+  </div>
+</div>
+
+<!-- Attachment image lightbox — inline preview for image attachments only; non-image attachments
+     still open/download directly via tdOpenAttachment (no in-page preview makes sense for a PDF/docx). -->
+<div class="fms-overlay-backdrop" id="tdAttachmentLightboxOverlay" onclick="if(event.target===this) tdCloseAttachmentLightbox()">
+  <div style="position:relative;max-width:92vw;max-height:92vh;">
+    <button onclick="tdCloseAttachmentLightbox()" style="position:absolute;top:-40px;right:-4px;background:transparent;border:none;color:#fff;font-size:1.6rem;cursor:pointer;">✕</button>
+    <img id="tdAttachmentLightboxImg" src="" style="max-width:92vw;max-height:80vh;border-radius:8px 8px 0 0;display:block;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+    <div id="tdAttachmentLightboxCaption" style="background:rgba(0,0,0,0.75);color:#fff;font-size:0.78rem;padding:8px 14px;border-radius:0 0 8px 8px;"></div>
   </div>
 </div>
 
@@ -7076,6 +7140,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/fieldservice.js?v=20260832"></script>
 <script src="js/fieldservice-dashboard.js?v=20260833"></script>
 <script src="js/hrEmployee.js?v=20260805"></script>
-<script src="js/taskDelegation.js?v=20260838"></script>
+<script src="js/taskDelegation.js?v=20260843"></script>
 <script src="js/homeContent.js?v=20260817"></script>
 </body></html>

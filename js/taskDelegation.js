@@ -15,6 +15,17 @@
 
 const TD_MD_EMAIL = 'chirag@adititracking.com';
 
+// ── Attachments (delegation_task_attachments + 'delegation-task-attachments' storage bucket) ──
+// Path convention <task_id>/<timestamp>_<safeName>, same shape as Renewals' call_attachments
+// pattern (js/renewals.js _ruUploadCallScreenshot) — mirrored here per spec so storage RLS
+// (migration 0036) can key off storage.foldername(name) the same way. Unlike call_attachments,
+// this bucket allows any file type (not images-only), so rendering falls back to a generic
+// icon for non-images instead of assuming everything is a thumbnail.
+const TD_ATTACHMENTS_BUCKET    = 'delegation-task-attachments';
+const TD_ATTACHMENT_MAX_BYTES  = 10 * 1024 * 1024; // matches the bucket's file_size_limit (migration 0036)
+let _tdDetailAttachments  = [];        // attachments for the task currently open in the detail modal
+let _tdAttachmentBlobCache = new Map(); // storage path -> blob: URL, since the bucket is private (no plain <img src>)
+
 function _tdIsMD(){ return !!CURRENT_USER && String(CURRENT_USER.email || '').trim().toLowerCase() === TD_MD_EMAIL; }
 
 // Resolved by _applyTaskDelegationNavVisibility() — true only for a non-MD user whose email
@@ -340,7 +351,7 @@ function tdRenderAllTasksTable(){
   if (_tdActiveKpi === 'pending')   rows = rows.filter(t => t.status !== 'completed');
   if (_tdActiveKpi === 'completed') rows = rows.filter(t => t.status === 'completed');
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--muted);">No tasks match these filters.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted);">No tasks match these filters.</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map(t => {
@@ -355,6 +366,9 @@ function tdRenderAllTasksTable(){
         <td>${_tdFmtDate(t.due_date)}</td>
         <td>${statusBadge}</td>
         <td style="color:var(--muted);font-size:0.8rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_tdEsc(t.note || '—')}</td>
+        <td onclick="event.stopPropagation();">
+          <button onclick="tdOpenTaskModal('${t.id}')" title="Edit" aria-label="Edit" style="padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.9rem;line-height:1;cursor:pointer;font-family:inherit;">✏️</button>
+        </td>
       </tr>`;
   }).join('');
 }
@@ -379,21 +393,37 @@ function tdOpenTaskDetailModal(id){
 
   const noteBlock    = document.getElementById('tdDetailNoteBlock');    // read-only — MD view
   const actionsBlock = document.getElementById('tdDetailActionsSection'); // editable — assignee view
+  const actionsHeader = document.getElementById('tdDetailActions'); // header-row buttons, role-gated
   if (_tdIsMD()) {
     noteBlock.style.display = 'block';
     document.getElementById('tdDetailNote').textContent = t.note || '(no note yet)';
     actionsBlock.style.display = 'none';
+    actionsHeader.innerHTML = `<button onclick="tdCloseTaskDetailModal();tdOpenTaskModal('${id}')" title="Edit" aria-label="Edit" style="padding:6px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.95rem;line-height:1;cursor:pointer;font-family:inherit;">✏️</button>`;
   } else {
     noteBlock.style.display = 'none';
     actionsBlock.style.display = 'block';
     document.getElementById('tdDetailTentativeInput').value = t.tentative_date || '';
     document.getElementById('tdDetailNoteInput').value = t.note || '';
+    actionsHeader.innerHTML = '';
   }
   document.getElementById('tdTaskDetailModalOverlay').classList.add('open');
+  // tabindex="-1" + immediate focus is what lets Ctrl+V paste-to-upload work the instant the
+  // modal opens, without requiring the user to click into a field first (same trick as
+  // Renewals' call-panel paste handling, js/renewals.js ruToggleCallPanel).
+  const box = document.getElementById('tdTaskDetailModalBox');
+  if (box) box.focus();
+  _tdDetailAttachments = [];
+  document.getElementById('tdDetailAttachmentsList').innerHTML = '';
+  // Defensive reset — covers closing the modal mid-upload and reopening on a (possibly
+  // different) task before the in-flight request's own finally-block clears this.
+  _tdAttachmentUploadBusy = false;
+  _tdSetAttachmentUploadUi(false);
+  _tdLoadAttachments(id);
 }
 function tdCloseTaskDetailModal(){
   document.getElementById('tdTaskDetailModalOverlay').classList.remove('open');
   _tdDetailTaskId = null;
+  _tdClearAttachmentCache();
 }
 // Refreshes the status badge, the actions section's toggle button, and the completed-at line —
 // shared by the initial open and by tdDetailToggleStatus() after a successful save.
@@ -436,13 +466,259 @@ async function tdDetailSaveTentativeDate(){
   if (t) document.getElementById('tdDetailTentativeDate').textContent = t.tentative_date ? _tdFmtDate(t.tentative_date) : 'Not set yet';
 }
 
+// ── Detail modal: attachments (both roles — shared thread on the task, not per-user) ────────
+async function _tdLoadAttachments(taskId){
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/delegation_task_attachments?task_id=eq.${taskId}&select=*&order=uploaded_at.asc`,
+      { headers: SB_HDRS() }
+    );
+    _tdDetailAttachments = res.ok ? await res.json() : [];
+  } catch(e) {
+    _tdDetailAttachments = [];
+  }
+  if (String(_tdDetailTaskId) === String(taskId)) _tdRenderAttachments();
+}
+// MD can remove any attachment (already covered by their table-level FOR ALL policy). An
+// assignee can remove only what they personally uploaded, on their own task — matches the
+// DELETE policy added by migration 0037, checked client-side here only for hiding the control
+// (RLS is the real enforcement, same as everywhere else in this module).
+function _tdCanRemoveAttachment(a){
+  if (_tdIsMD()) return true;
+  return !!CURRENT_USER && String(a.uploaded_by || '').trim().toLowerCase() === String(CURRENT_USER.email || '').trim().toLowerCase();
+}
+// Compact square-thumbnail grid, same visual density as Field Service's photo picker
+// (_fsRenderPhotoPreview in js/fieldservice.js: 72x72 tiles, red circular ✕ overlay top-right).
+// Uploader/timestamp move out of the visible tile into a title="" tooltip (and the lightbox
+// caption for images) so the grid itself stays clean instead of full-detail rows.
+function _tdRenderAttachments(){
+  const wrap = document.getElementById('tdDetailAttachmentsList');
+  if (!wrap) return;
+  if (!_tdDetailAttachments.length) {
+    wrap.innerHTML = `<div style="color:var(--muted);font-size:0.82rem;padding:6px 0;">No attachments yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = _tdDetailAttachments.map((a, i) => {
+    const isImage = (a.file_type || '').startsWith('image/');
+    const tooltip = `${a.file_name} · ${a.uploaded_by} · ${_tdFmtDateTime(a.uploaded_at)}`;
+    return `
+    <div style="position:relative;width:72px;flex-shrink:0;">
+      <div onclick="tdOpenAttachment(${i})" title="${_tdEsc(tooltip)}" style="width:72px;height:72px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;font-size:1.6rem;box-sizing:border-box;">
+        <div id="tdAttachmentThumb-${i}" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">${isImage ? '' : '📄'}</div>
+      </div>
+      ${!isImage ? `<div style="font-size:0.62rem;color:var(--muted);text-align:center;margin-top:3px;width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_tdEsc(tooltip)}">${_tdEsc(a.file_name)}</div>` : ''}
+      ${_tdCanRemoveAttachment(a) ? `<button onclick="tdRemoveAttachment(${i}, event)" title="Remove" aria-label="Remove" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:none;background:#ff5c7c;color:#fff;font-size:0.72rem;cursor:pointer;line-height:20px;padding:0;">✕</button>` : ''}
+    </div>`;
+  }).join('');
+  _tdDetailAttachments.forEach((a, i) => {
+    if ((a.file_type || '').startsWith('image/')) _tdLoadAttachmentThumb(i, a.file_path);
+  });
+}
+async function _tdFetchAttachmentBlobUrl(path){
+  if (_tdAttachmentBlobCache.has(path)) return _tdAttachmentBlobCache.get(path);
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${TD_ATTACHMENTS_BUCKET}/${encodeURIComponent(path)}`, { headers: SB_HDRS() });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  _tdAttachmentBlobCache.set(path, url);
+  return url;
+}
+async function _tdLoadAttachmentThumb(i, path){
+  try {
+    const url = await _tdFetchAttachmentBlobUrl(path);
+    const el = document.getElementById(`tdAttachmentThumb-${i}`);
+    if (el) el.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
+  } catch(e) {
+    // leave the generic-file icon fallback in place
+  }
+}
+// Bucket is private, so a plain link can't authenticate — fetch it the same way as thumbnails.
+// Images get an inline lightbox (viewing a screenshot shouldn't force a save dialog); anything
+// else (PDF/docx/etc, which has no meaningful in-page preview here) still opens via a throwaway
+// <a download>, same as before.
+async function tdOpenAttachment(i){
+  const a = _tdDetailAttachments[i];
+  if (!a) return;
+  if ((a.file_type || '').startsWith('image/')) {
+    tdOpenAttachmentLightbox(a);
+    return;
+  }
+  try {
+    const url = await _tdFetchAttachmentBlobUrl(a.file_path);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = a.file_name;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch(e) {
+    alert('❌ Failed to open attachment: ' + e.message);
+  }
+}
+// Reuses the same cached blob URL as the thumbnail (_tdFetchAttachmentBlobUrl) rather than
+// fetching a second copy — a thumbnail can be on screen behind the lightbox at the same time,
+// so the URL is only revoked centrally in _tdClearAttachmentCache (on modal close), not here;
+// revoking it when the lightbox itself closes would break that still-visible thumbnail.
+async function tdOpenAttachmentLightbox(a){
+  try {
+    const url = await _tdFetchAttachmentBlobUrl(a.file_path);
+    document.getElementById('tdAttachmentLightboxImg').src = url;
+    document.getElementById('tdAttachmentLightboxCaption').textContent = `${a.file_name} · ${a.uploaded_by} · ${_tdFmtDateTime(a.uploaded_at)}`;
+    document.getElementById('tdAttachmentLightboxOverlay').classList.add('open');
+  } catch(e) {
+    alert('❌ Failed to load image: ' + e.message);
+  }
+}
+function tdCloseAttachmentLightbox(){
+  document.getElementById('tdAttachmentLightboxOverlay').classList.remove('open');
+  document.getElementById('tdAttachmentLightboxImg').src = '';
+  document.getElementById('tdAttachmentLightboxCaption').textContent = '';
+}
+// Storage-object-then-DB-row delete order mirrors js/upload.js's _deleteFilesOfNode — if the
+// storage delete fails, we bail before touching the DB row so we never end up with a DB row
+// pointing at a file we already tried (and failed) to remove.
+async function tdRemoveAttachment(i, event){
+  if (event) event.stopPropagation();
+  const a = _tdDetailAttachments[i];
+  if (!a) return;
+  if (!confirm('Remove this attachment? This cannot be undone.')) return;
+  try {
+    const stRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${TD_ATTACHMENTS_BUCKET}/${encodeURIComponent(a.file_path)}`, {
+      method: 'DELETE', headers: SB_HDRS()
+    });
+    if (!stRes.ok) throw new Error('Storage delete failed: HTTP ' + stRes.status);
+    const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/delegation_task_attachments?id=eq.${a.id}`, {
+      method: 'DELETE', headers: SB_HDRS_MIN()
+    });
+    if (!dbRes.ok) throw new Error(await dbRes.text());
+  } catch(e) {
+    alert('❌ Failed to remove attachment: ' + e.message);
+    return;
+  }
+  const cached = _tdAttachmentBlobCache.get(a.file_path);
+  if (cached) { URL.revokeObjectURL(cached); _tdAttachmentBlobCache.delete(a.file_path); }
+  await _tdLoadAttachments(_tdDetailTaskId);
+}
+function _tdClearAttachmentCache(){
+  _tdAttachmentBlobCache.forEach(url => URL.revokeObjectURL(url));
+  _tdAttachmentBlobCache.clear();
+}
+function tdHandleAttachmentPaste(event){
+  const items = event.clipboardData && event.clipboardData.items;
+  if (!items || !_tdDetailTaskId) return;
+  const imageItem = Array.from(items).find(item => item.type && item.type.startsWith('image/'));
+  if (!imageItem) return;
+  event.preventDefault();
+  const file = imageItem.getAsFile();
+  if (!file) return;
+  // Clipboard image Files often come back with a generic name (e.g. "image.png") and no
+  // extension mismatch issue, but we still route it through the same named-File path as a
+  // picked file so downstream code (safeName, file_name column) has nothing screenshot-specific
+  // to special-case.
+  const named = new File([file], file.name || `pasted-${Date.now()}.png`, { type: file.type });
+  tdHandleAttachmentFiles([named]);
+}
+// Root cause of the "takes 3-4 tries" bug: this had no re-entrancy guard, and with no visible
+// loading state, an impatient user (nothing seems to happen for a network round-trip) would
+// paste/click again before the first attempt's upload -> DB insert -> _tdLoadAttachments
+// round-trip finished. Each retry ran the full sequence independently and concurrently.
+// _tdLoadAttachments has no request sequencing beyond a task-id match check — it just
+// overwrites _tdDetailAttachments with whatever response lands last — so if an EARLIER
+// attempt's list re-fetch happened to resolve AFTER a LATER attempt's, its stale snapshot
+// (taken before the later upload's INSERT had committed) won permission to render, silently
+// erasing the newer upload from view even though it was already persisted server-side. The
+// user saw nothing appear, assumed the paste failed, and pasted again — which actually
+// re-uploaded a duplicate rather than retrying a failed one, until the response ordering
+// happened to align favorably. Fixed here two ways: (1) _tdAttachmentUploadBusy makes the
+// whole upload sequence a single critical section, so overlapping triggers are flat-out
+// ignored instead of racing; (2) the button/input/paste-zone get a visible "Uploading…"
+// state, so a user who's actually just waiting on a slow network doesn't mistake it for a
+// silent failure and manually retry into the same race.
+let _tdAttachmentUploadBusy = false;
+function _tdSetAttachmentUploadUi(busy){
+  const label = document.getElementById('tdAttachmentUploadLabel');
+  const labelText = document.getElementById('tdAttachmentUploadLabelText');
+  const input = document.getElementById('tdAttachmentFileInput');
+  const zone = document.getElementById('tdAttachmentPasteZone');
+  if (input) input.disabled = busy;
+  if (label) { label.style.opacity = busy ? '0.6' : '1'; label.style.pointerEvents = busy ? 'none' : 'auto'; }
+  if (labelText) labelText.textContent = busy ? '⏳ Uploading…' : '+ Upload';
+  if (zone) zone.style.opacity = busy ? '0.6' : '1';
+}
+async function tdHandleAttachmentFiles(fileList){
+  if (!_tdDetailTaskId) return;
+  if (_tdAttachmentUploadBusy) return; // an upload is already running — ignore the repeat trigger instead of racing it
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  _tdAttachmentUploadBusy = true;
+  _tdSetAttachmentUploadUi(true);
+  try {
+    for (const file of files) {
+      if (file.size > TD_ATTACHMENT_MAX_BYTES) {
+        alert(`❌ "${file.name}" is larger than 10MB and was skipped.`);
+        continue;
+      }
+      try {
+        await _tdUploadAttachment(_tdDetailTaskId, file);
+      } catch(e) {
+        alert(`❌ Failed to upload "${file.name}": ${e.message}`);
+      }
+    }
+    await _tdLoadAttachments(_tdDetailTaskId);
+  } finally {
+    _tdAttachmentUploadBusy = false;
+    _tdSetAttachmentUploadUi(false);
+  }
+}
+async function _tdUploadAttachment(taskId, file){
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${taskId}/${Date.now()}_${safeName}`;
+  await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/${TD_ATTACHMENTS_BUCKET}/${encodeURIComponent(path)}`);
+    xhr.setRequestHeader('apikey', SUPABASE_ANON);
+    xhr.setRequestHeader('Authorization', `Bearer ${_currentToken}`);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.setRequestHeader('x-upsert', 'false');
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error('HTTP ' + xhr.status + ' — ' + xhr.responseText.slice(0, 200)));
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(file);
+  });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/delegation_task_attachments`, {
+    method: 'POST', headers: SB_HDRS_MIN(),
+    body: JSON.stringify([{
+      task_id:         taskId,
+      file_name:       file.name,
+      file_path:       path,
+      file_type:       file.type || 'application/octet-stream',
+      file_size_bytes: file.size,
+      uploaded_by:     CURRENT_USER.email,
+      uploaded_at:     new Date().toISOString()
+    }])
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
 // ── New/Edit Task modal (MD) ─────────────────────────────────────────────
 function tdOpenTaskModal(taskId){
   _tdEditingTaskId = taskId;
   const sel = document.getElementById('tdTaskAssignee');
-  sel.innerHTML = _tdAssignees.filter(a => a.is_active).map(a => `<option value="${_tdEsc(a.email_id)}">${_tdEsc(a.employee_name)}</option>`).join('');
+  const t = taskId ? _tdTasks.find(x => String(x.id) === String(taskId)) : null;
+  let options = _tdAssignees.filter(a => a.is_active);
+  // If the task is currently assigned to someone who's since been deactivated, the active-only
+  // list above won't contain them — without this, setting sel.value below would silently fall
+  // back to whatever option happens to be first, reassigning the task on save without the MD
+  // ever having touched the Assign To field.
+  if (t && t.assigned_to_email && !options.some(a => a.email_id === t.assigned_to_email)) {
+    const current = _tdAssignees.find(a => a.email_id === t.assigned_to_email);
+    options = [{ email_id: t.assigned_to_email, employee_name: (current ? current.employee_name : t.assigned_to_email) + ' (inactive)' }, ...options];
+  }
+  sel.innerHTML = options.map(a => `<option value="${_tdEsc(a.email_id)}">${_tdEsc(a.employee_name)}</option>`).join('');
   if (taskId) {
-    const t = _tdTasks.find(x => String(x.id) === String(taskId));
     document.getElementById('tdTaskModalTitle').textContent = 'Edit Task';
     document.getElementById('tdTaskTitle').value = t.task_title || '';
     document.getElementById('tdTaskDescription').value = t.task_description || '';
@@ -614,4 +890,12 @@ document.addEventListener('DOMContentLoaded', function () {
   if (o2) o2.addEventListener('click', e => { if (e.target === o2) tdCloseTaskModal(); });
   const o3 = document.getElementById('tdTaskDetailModalOverlay');
   if (o3) o3.addEventListener('click', e => { if (e.target === o3) tdCloseTaskDetailModal(); });
+});
+// Escape closes the attachment lightbox — same convention as ruCloseScreenshotLightbox
+// (js/renewals.js) and _fsCloseLightbox (js/fieldservice.js). Only acts while it's actually
+// open, so it doesn't steal Escape from the detail modal underneath it.
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  const overlay = document.getElementById('tdAttachmentLightboxOverlay');
+  if (overlay && overlay.classList.contains('open')) tdCloseAttachmentLightbox();
 });
