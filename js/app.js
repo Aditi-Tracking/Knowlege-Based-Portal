@@ -858,7 +858,10 @@ function openFileViewer(url, title){
 
     // Mobile/PWA detect: Android Chrome iframe mein PDF "Open" button + pencil aata hai
     // Fix: mobile par seedha Google Drive preview new tab mein kholo
-    var isMobile = isMobileDevice();
+    // iPad bhi isi path se jaata hai — iPadOS Safari mein cropped/absolute-positioned
+    // iframe ke andar Google Drive/PDF content left-pinned reh jaata hai aur vertically
+    // scroll nahi hota, isliye tablets ko bhi "new tab" wale reliable path pe bhej dete hain.
+    var isMobile = isMobileDevice() || isTabletDevice();
 
     if(isMobile){
       // Modal band karo aur Google Drive preview seedha new tab mein kholo
