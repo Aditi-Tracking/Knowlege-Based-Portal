@@ -4,6 +4,9 @@
 <head>
 <!-- deploy trigger: retry after transient github-pages deploy failure -->
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Aditi Portal</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -5454,6 +5457,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 
     <div id="tdTab-assignees" style="display:none;">
       <div class="td-table-card">
+        <div class="table-scroll">
         <table>
           <thead>
             <tr>
@@ -5466,12 +5470,14 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
           </thead>
           <tbody id="tdAssigneesBody"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
     <div id="tdTab-alltasks" style="display:none;">
       <div id="tdTasksKpiGrid" class="kpi-grid" style="grid-template-columns:repeat(3,minmax(140px,1fr));margin-bottom:16px;"></div>
       <div class="td-table-card">
+        <div class="table-scroll">
         <table>
           <thead>
             <tr>
@@ -5485,12 +5491,14 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
           </thead>
           <tbody id="tdAllTasksBody"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
     <div id="tdMyTasksView" style="display:none;">
       <div id="tdMyTasksKpiGrid" class="kpi-grid" style="grid-template-columns:repeat(3,minmax(140px,1fr));margin-bottom:16px;"></div>
       <div class="td-table-card">
+        <div class="table-scroll">
         <table>
           <thead>
             <tr>
@@ -5502,6 +5510,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
           </thead>
           <tbody id="tdMyTasksBody"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
