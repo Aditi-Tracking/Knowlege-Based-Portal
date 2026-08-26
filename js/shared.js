@@ -320,15 +320,28 @@ function cnOpenOverlay(nodeId, catName, overlayId, titleId, subId, gridId, loade
   document.getElementById(overlayId).style.display = 'block';
   document.body.style.overflow = 'hidden';
 
-  _cnRenderOverlayContent(nodeId, catName, th, gridId, subId, emptyId, null);
+  _cnRenderOverlayContent(nodeId, catName, th, gridId, subId, emptyId, [], titleId);
 }
 
 // ── Render overlay content: sub-cards + files ────────────────────────────
-function _cnRenderOverlayContent(nodeId, catName, th, gridId, subId, emptyId, parentInfo) {
+// `ancestors` is the full chain of nodes drilled through to reach nodeId,
+// oldest first (e.g. [{id:smartFleetId,name:'SmartFleet'}, {id:salesCoordId,
+// name:'Sales Coordinator'}] when viewing a card 2 levels deep). Passing the
+// whole chain (instead of just the immediate parent) is what lets "Back"
+// keep working correctly at any nesting depth — each Back pops one level
+// off the stack instead of always jumping straight to the top.
+function _cnRenderOverlayContent(nodeId, catName, th, gridId, subId, emptyId, ancestors, titleId) {
+  ancestors = ancestors || [];
   const subCards = CN.getCategories(nodeId);
   const files    = CN.getFiles(nodeId);
   const grid     = document.getElementById(gridId);
   const subEl    = document.getElementById(subId);
+
+  // Keep the modal header in sync with whichever level we've drilled into.
+  if (titleId) {
+    const titleEl = document.getElementById(titleId);
+    if (titleEl) titleEl.textContent = catName;
+  }
 
   const totalItems = subCards.length + files.length;
   subEl.textContent = (subCards.length ? subCards.length + ' sub-card' + (subCards.length>1?'s':'') + (files.length?' · ':'') : '') +
@@ -342,17 +355,23 @@ function _cnRenderOverlayContent(nodeId, catName, th, gridId, subId, emptyId, pa
   const loaderEl = document.getElementById('mktOverlayLoader');
   if (loaderEl) loaderEl.style.display = 'none';
 
+  const parent = ancestors.length ? ancestors[ancestors.length - 1] : null;
+
   if (!totalItems) {
     document.getElementById(emptyId).style.display = 'block';
-    grid.innerHTML = parentInfo ? `<div style="grid-column:1/-1;margin-bottom:8px;">
-      <button onclick="_cnNavBack_${gridId}()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:0.83rem;font-weight:600;font-family:inherit;">← Back</button>
+    grid.innerHTML = parent ? `<div style="grid-column:1/-1;margin-bottom:8px;">
+      <button onclick="_cnNavBack_${gridId}()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:0.83rem;font-weight:600;font-family:inherit;">← Back to ${parent.name}</button>
     </div>` : '';
+    window[`_cnNavBack_${gridId}`] = function() {
+      if (!parent) return;
+      _cnRenderOverlayContent(parent.id, parent.name, th, gridId, subId, emptyId, ancestors.slice(0, -1), titleId);
+    };
     return;
   }
 
   // Back button if navigated into a sub-card
-  const backBtn = parentInfo ? `<div style="grid-column:1/-1;margin-bottom:8px;">
-    <button onclick="_cnNavBack_${gridId}()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:0.83rem;font-weight:600;font-family:inherit;">← Back to ${parentInfo.name}</button>
+  const backBtn = parent ? `<div style="grid-column:1/-1;margin-bottom:8px;">
+    <button onclick="_cnNavBack_${gridId}()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:0.83rem;font-weight:600;font-family:inherit;">← Back to ${parent.name}</button>
   </div>` : '';
 
   // Sub-card tiles
@@ -394,20 +413,17 @@ function _cnRenderOverlayContent(nodeId, catName, th, gridId, subId, emptyId, pa
   grid.innerHTML = backBtn + subLabel + subCardHtml + fileLabel + filesHtml;
 
   // Attach drill-down and back functions dynamically
-  window[`_cnDrillDown_${gridId}`] = function(scId, scName, parentId, parentName) {
+  window[`_cnDrillDown_${gridId}`] = function(scId, scName) {
     // training_submodule_open removed — module_open is sufficient
     const scTh = cnTheme(subCards.findIndex(s => s.id === scId) % 8);
-    _cnRenderOverlayContent(scId, scName, scTh, gridId, subId, emptyId, {id: parentId, name: parentName});
+    // Push the CURRENT node onto the ancestor stack before descending, so
+    // Back can pop its way back up one level at a time from any depth.
+    _cnRenderOverlayContent(scId, scName, scTh, gridId, subId, emptyId, ancestors.concat([{id: nodeId, name: catName}]), titleId);
   };
-  // Back: if parentInfo exists go UP to the parent node, else stay at top
+  // Back: pop one level off the ancestor stack (works at any nesting depth)
   window[`_cnNavBack_${gridId}`] = function() {
-    if (parentInfo) {
-      // parentInfo is {id, name} of the card that contains the current sub-cards
-      // Going back means rendering parentInfo's node with NO further parentInfo (top level)
-      _cnRenderOverlayContent(parentInfo.id, parentInfo.name, th, gridId, subId, emptyId, null);
-    } else {
-      _cnRenderOverlayContent(nodeId, catName, th, gridId, subId, emptyId, null);
-    }
+    if (!parent) return;
+    _cnRenderOverlayContent(parent.id, parent.name, th, gridId, subId, emptyId, ancestors.slice(0, -1), titleId);
   };
 }
 

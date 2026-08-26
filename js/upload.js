@@ -82,7 +82,9 @@ function onUploadCardChange(parentId) {
   const subSelect = document.getElementById('uploadSubCardSelect');
   if (!parentId || !CN.loaded) { subWrap.style.display = 'none'; return; }
 
-  const subCats = CN.getCategories(parseInt(parentId));
+  // Flatten the WHOLE subtree (sub-cards, sub-sub-cards...) so a file can be
+  // uploaded into a card nested at any depth, not just a direct child.
+  const subCats = _flattenCardTree(parseInt(parentId));
   if (!subCats.length) {
     subWrap.style.display = 'none';
     return;
@@ -90,7 +92,7 @@ function onUploadCardChange(parentId) {
   // Show sub-card dropdown
   subSelect.innerHTML =
     '<option value="__parent__">— Upload directly to parent card —</option>' +
-    subCats.map(c => `<option value="${c.id}">${c.name || c.Name}</option>`).join('');
+    subCats.map(c => `<option value="${c.id}">${c.label}</option>`).join('');
   subWrap.style.display = 'block';
 }
 
@@ -101,6 +103,10 @@ function setUploadMode(mode) {
   const btnNew = document.getElementById('uploadModeNew');
   const exWrap = document.getElementById('uploadExistingWrap');
   const newWrap= document.getElementById('uploadNewWrap');
+  // Clear any leftover error/success message from a previous attempt so
+  // switching tabs doesn't leave a stale, misleading status visible.
+  const stEl = document.getElementById('uploadStatus');
+  if (stEl) stEl.style.display = 'none';
 
   const activeStyle  = 'flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(0,212,170,0.5);background:rgba(0,212,170,0.1);color:#00d4aa;font-weight:700;font-size:0.84rem;cursor:pointer;font-family:inherit;';
   const inactiveStyle= 'flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-weight:700;font-size:0.84rem;cursor:pointer;font-family:inherit;';
@@ -152,6 +158,21 @@ function setNewCardType(type) {
   }
 }
 
+// Recursively flatten a section's whole card tree (top-level + every nested
+// sub-card, any depth) into a flat list with an indent prefix per level, so
+// the parent-picker can target ANY existing card — not just top-level ones.
+// This is what lets a user create a folder inside a folder inside a folder.
+function _flattenCardTree(parentId, depth) {
+  depth = depth || 0;
+  const prefix = depth > 0 ? '— '.repeat(depth) : '';
+  let out = [];
+  CN.getCategories(parentId).forEach(c => {
+    out.push({ id: c.id, label: prefix + (c.name || c.Name) });
+    out = out.concat(_flattenCardTree(c.id, depth + 1));
+  });
+  return out;
+}
+
 async function _populateNewSubParent() {
   const sel = document.getElementById('newSubParentSelect');
   sel.innerHTML = '<option value="">Loading cards…</option>';
@@ -159,9 +180,9 @@ async function _populateNewSubParent() {
     await CN.load();
     const section = CN.getSection(_uploadSection);
     if (!section) { sel.innerHTML = '<option value="">No cards yet</option>'; return; }
-    const cats = CN.getCategories(section.id);
-    sel.innerHTML = cats.length
-      ? cats.map(c => `<option value="${c.id}">${c.name || c.Name}</option>`).join('')
+    const flat = _flattenCardTree(section.id);
+    sel.innerHTML = flat.length
+      ? flat.map(c => `<option value="${c.id}">${c.label}</option>`).join('')
       : '<option value="">No cards yet in this section</option>';
   } catch(e) {
     sel.innerHTML = '<option value="">Error loading</option>';
