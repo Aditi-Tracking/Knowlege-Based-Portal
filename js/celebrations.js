@@ -25,10 +25,11 @@ function _isMe(p) {
   const myName  = (CURRENT_USER.name  || '').toLowerCase().trim();
   if (myEmail && p.email && p.email.toLowerCase().trim() === myEmail) return true;
   if (myName  && p.name  && p.name.toLowerCase().trim()  === myName)  return true;
-  // partial first-name fallback (min 3 chars to avoid false matches)
-  const myFirst = myName.split(' ')[0];
-  const pFirst  = (p.name || '').toLowerCase().split(' ')[0];
-  return myFirst && pFirst && myFirst === pFirst && myFirst.length > 2;
+  // NOTE: deliberately no first-name-only fallback here — two different
+  // employees can share a first name (e.g. "Chirag" vs "Chirag Gupta"),
+  // and matching on just that showed one person's own celebration popup
+  // to the wrong logged-in user. Email or full-name match only.
+  return false;
 }
 
 // ── Helper: parse date string safely (handles all formats) ────
