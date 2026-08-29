@@ -2962,13 +2962,13 @@ async function loadRenewalsTeamPerformance() {
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    // calls_count desc, received_amount desc as tiebreaker — not alphabetical
+    // received_amount desc, calls_count desc as tiebreaker — not alphabetical
     // by name. Re-sorted here (not once on load) so every date-range refresh
     // re-ranks against that range's own numbers.
     const sorted = (data || []).slice().sort((a, b) => {
-      const callsDiff = Number(b.calls_count || 0) - Number(a.calls_count || 0);
-      if (callsDiff !== 0) return callsDiff;
-      return Number(b.received_amount || 0) - Number(a.received_amount || 0);
+      const amtDiff = Number(b.received_amount || 0) - Number(a.received_amount || 0);
+      if (amtDiff !== 0) return amtDiff;
+      return Number(b.calls_count || 0) - Number(a.calls_count || 0);
     });
     body.innerHTML = _ruTeamPerfTableHtml(sorted);
   } catch (e) {
@@ -3013,11 +3013,11 @@ function _ruTeamPerfTableHtml(team) {
     const receivedStyle = receivedAmount > 0
       ? 'color:var(--won,#00d4aa);font-weight:700;'
       : 'color:var(--muted);';
-    // Table is already sorted calls_count desc — row 0 is the top performer
-    // by construction. Guarded on calls_count > 0 so an all-zero table
-    // (e.g. nobody's called yet today) doesn't cosmetically crown someone
-    // for doing nothing.
-    const isTop = i === 0 && Number(t.calls_count || 0) > 0;
+    // Table is already sorted received_amount desc — row 0 is the top
+    // performer by construction. Guarded on received_amount > 0 so an
+    // all-zero table (e.g. nobody's collected anything yet) doesn't
+    // cosmetically crown someone for doing nothing.
+    const isTop = i === 0 && receivedAmount > 0;
     const nameCell = isTop
       ? `${_ruEsc(t.person_name)} <span class="badge badge-won" style="margin-left:6px;white-space:nowrap;">★ Top Performer</span>`
       : _ruEsc(t.person_name);
