@@ -89,6 +89,18 @@ function _tdFmtDateTime(d){
 function _tdChip(text, bg, color){
   return `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;background:${bg};color:${color};font-size:0.74rem;font-weight:700;white-space:nowrap;">${text}</span>`;
 }
+// Single source of truth for the three delegation_tasks.status values (migration 0039 added
+// 'ongoing' between 'pending' and 'completed') — every badge/table/KPI/action-control render
+// goes through this instead of repeating its own status ternary.
+const TD_STATUS_META = {
+  pending:   { label: 'Pending',   icon: '⏳', color: '#f0a500' },
+  ongoing:   { label: 'Ongoing',   icon: '🔄', color: '#3b82f6' },
+  completed: { label: 'Completed', icon: '✅', color: '#00d4aa' },
+};
+function _tdStatusBadge(status){
+  const m = TD_STATUS_META[status] || TD_STATUS_META.pending;
+  return _tdChip(`${m.icon} ${m.label}`, m.color + '22', m.color);
+}
 // due_date is a DATE (no time component) — compare at end-of-day so "due today" never
 // reads as overdue the instant the clock ticks past midnight in a later timezone.
 function _tdIsOverdue(t){
@@ -366,12 +378,15 @@ function tdRenderAllTasksKpis(){
   const grid = document.getElementById('tdTasksKpiGrid');
   if (!grid) return;
   const scoped = _tdFilterAssignee ? _tdTasks.filter(t => _tdTaskHasAssignee(t, _tdFilterAssignee)) : _tdTasks;
+  const pending   = scoped.filter(t => t.status === 'pending').length;
+  const ongoing   = scoped.filter(t => t.status === 'ongoing').length;
   const completed = scoped.filter(t => t.status === 'completed').length;
   const total = scoped.length;
   const kpis = [
-    { id:'all',       label:'Total Tasks', value: total,             color:'#818cf8' },
-    { id:'pending',   label:'Pending',     value: total - completed, color:'#f0a500' },
-    { id:'completed', label:'Completed',   value: completed,         color:'#00d4aa' },
+    { id:'all',       label:'Total Tasks', value: total,     color:'#818cf8' },
+    { id:'pending',   label:'Pending',     value: pending,   color: TD_STATUS_META.pending.color },
+    { id:'ongoing',   label:'Ongoing',     value: ongoing,   color: TD_STATUS_META.ongoing.color },
+    { id:'completed', label:'Completed',   value: completed, color: TD_STATUS_META.completed.color },
   ];
   grid.innerHTML = kpis.map(k => {
     const isActive = k.id === 'all' ? !_tdActiveKpi : _tdActiveKpi === k.id;
@@ -391,16 +406,15 @@ function tdRenderAllTasksTable(){
   const tbody = document.getElementById('tdAllTasksBody');
   let rows = _tdTasks;
   if (_tdFilterAssignee) rows = rows.filter(t => _tdTaskHasAssignee(t, _tdFilterAssignee));
-  if (_tdActiveKpi === 'pending')   rows = rows.filter(t => t.status !== 'completed');
+  if (_tdActiveKpi === 'pending')   rows = rows.filter(t => t.status === 'pending');
+  if (_tdActiveKpi === 'ongoing')   rows = rows.filter(t => t.status === 'ongoing');
   if (_tdActiveKpi === 'completed') rows = rows.filter(t => t.status === 'completed');
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted);">No tasks match these filters.</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map(t => {
-    const statusBadge = t.status === 'completed'
-      ? _tdChip('✅ Completed', '#00d4aa22', '#00d4aa')
-      : _tdChip('⏳ Pending', '#f0a50022', '#f0a500');
+    const statusBadge = _tdStatusBadge(t.status);
     const recurringBadge = t.source_recurring_template_id ? ' ' + _tdChip('🔁 Recurring', '#818cf822', '#818cf8') : '';
     return `
       <tr onclick="tdOpenTaskDetailModal('${t.id}')" style="cursor:pointer;">
@@ -467,18 +481,19 @@ function tdCloseTaskDetailModal(){
   _tdDetailTaskId = null;
   _tdClearAttachmentCache();
 }
-// Refreshes the status badge, the actions section's toggle button, and the completed-at line —
-// shared by the initial open and by tdDetailToggleStatus() after a successful save.
+// Refreshes the status badge, the actions section's 3-way status control, and the completed-at
+// line — shared by the initial open and by tdDetailSetStatus() after a successful save.
 function _tdRefreshDetailStatusUi(t){
-  document.getElementById('tdDetailStatusBadge').innerHTML = t.status === 'completed'
-    ? _tdChip('✅ Completed', '#00d4aa22', '#00d4aa')
-    : _tdChip('⏳ Pending', '#f0a50022', '#f0a500');
-  const btn = document.getElementById('tdDetailStatusBtn');
-  if (btn) {
-    const isCompleted = t.status === 'completed';
-    btn.textContent = isCompleted ? '↩️ Mark Pending' : '✅ Mark Completed';
-    btn.style.background = isCompleted ? 'var(--border)' : '#00d4aa';
-    btn.style.color = isCompleted ? 'var(--text2)' : '#04231d';
+  document.getElementById('tdDetailStatusBadge').innerHTML = _tdStatusBadge(t.status);
+  const group = document.getElementById('tdDetailStatusGroup');
+  if (group) {
+    // Each button sets its own status directly (not a cycling toggle) so the assignee can also
+    // move backward — e.g. Completed -> Ongoing — to correct a mistake, not just step forward.
+    group.innerHTML = ['pending', 'ongoing', 'completed'].map(status => {
+      const m = TD_STATUS_META[status];
+      const active = t.status === status;
+      return `<button onclick="tdDetailSetStatus('${status}')" style="padding:7px 14px;border-radius:8px;border:1.5px solid ${active ? m.color : 'var(--border)'};background:${active ? m.color + '22' : 'var(--surface2)'};color:${active ? m.color : 'var(--text2)'};font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;white-space:nowrap;">${m.icon} ${m.label}</button>`;
+    }).join('');
   }
   const completedRow = document.getElementById('tdDetailCompletedRow');
   if (t.status === 'completed') {
@@ -491,9 +506,9 @@ function _tdRefreshDetailStatusUi(t){
 // ── Detail modal actions (assignee only) — same update calls as before, now triggered from
 // inside the modal instead of an inline card. Each re-renders the My Tasks table underneath so
 // it reflects the change without a page reload, and refreshes the still-open modal's own display.
-async function tdDetailToggleStatus(){
+async function tdDetailSetStatus(status){
   if (!_tdDetailTaskId) return;
-  await tdToggleMyTaskStatus(_tdDetailTaskId);
+  await tdSetMyTaskStatus(_tdDetailTaskId, status);
   const t = _tdTasks.find(x => String(x.id) === String(_tdDetailTaskId));
   if (t) _tdRefreshDetailStatusUi(t);
 }
@@ -1022,12 +1037,15 @@ function _tdSendAssignmentEmails(task, emails){
 function tdRenderMyTasksKpis(){
   const grid = document.getElementById('tdMyTasksKpiGrid');
   if (!grid) return;
+  const pending   = _tdTasks.filter(t => t.status === 'pending').length;
+  const ongoing   = _tdTasks.filter(t => t.status === 'ongoing').length;
   const completed = _tdTasks.filter(t => t.status === 'completed').length;
   const total = _tdTasks.length;
   const kpis = [
-    { id:'all',       label:'Total Tasks', value: total,             color:'#818cf8' },
-    { id:'pending',   label:'Pending',     value: total - completed, color:'#f0a500' },
-    { id:'completed', label:'Completed',   value: completed,         color:'#00d4aa' },
+    { id:'all',       label:'Total Tasks', value: total,     color:'#818cf8' },
+    { id:'pending',   label:'Pending',     value: pending,   color: TD_STATUS_META.pending.color },
+    { id:'ongoing',   label:'Ongoing',     value: ongoing,   color: TD_STATUS_META.ongoing.color },
+    { id:'completed', label:'Completed',   value: completed, color: TD_STATUS_META.completed.color },
   ];
   grid.innerHTML = kpis.map(k => {
     const isActive = k.id === 'all' ? !_tdMyActiveKpi : _tdMyActiveKpi === k.id;
@@ -1045,7 +1063,8 @@ function tdRenderMyTasksTable(){
   tdRenderMyTasksKpis();
   const tbody = document.getElementById('tdMyTasksBody');
   let rows = _tdTasks;
-  if (_tdMyActiveKpi === 'pending')   rows = rows.filter(t => t.status !== 'completed');
+  if (_tdMyActiveKpi === 'pending')   rows = rows.filter(t => t.status === 'pending');
+  if (_tdMyActiveKpi === 'ongoing')   rows = rows.filter(t => t.status === 'ongoing');
   if (_tdMyActiveKpi === 'completed') rows = rows.filter(t => t.status === 'completed');
   rows = rows.slice().sort((a, b) => {
     const aDone = a.status === 'completed', bDone = b.status === 'completed';
@@ -1060,9 +1079,7 @@ function tdRenderMyTasksTable(){
   }
   tbody.innerHTML = rows.map(t => {
     const overdue = _tdIsOverdue(t);
-    const statusBadge = t.status === 'completed'
-      ? _tdChip('✅ Completed', '#00d4aa22', '#00d4aa')
-      : _tdChip('⏳ Pending', '#f0a50022', '#f0a500');
+    const statusBadge = _tdStatusBadge(t.status);
     return `
       <tr onclick="tdOpenTaskDetailModal('${t.id}')" style="cursor:pointer;${t.status === 'completed' ? 'opacity:0.65;' : ''}">
         <td style="${t.status === 'completed' ? 'text-decoration:line-through;' : ''}">${_tdEsc(t.task_title)}</td>
@@ -1072,10 +1089,11 @@ function tdRenderMyTasksTable(){
       </tr>`;
   }).join('');
 }
-async function tdToggleMyTaskStatus(id){
+async function tdSetMyTaskStatus(id, newStatus){
   const t = _tdTasks.find(x => String(x.id) === String(id));
-  if (!t) return;
-  const newStatus = t.status === 'completed' ? 'pending' : 'completed';
+  if (!t || t.status === newStatus) return;
+  // completed_at is only ever meaningful for 'completed' — moving away from it (to Pending or
+  // back to Ongoing) clears it, same as the old two-state toggle already did.
   const payload = { status: newStatus, completed_at: newStatus === 'completed' ? new Date().toISOString() : null };
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/delegation_tasks?id=eq.${id}`, {

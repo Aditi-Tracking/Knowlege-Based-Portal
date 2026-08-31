@@ -5475,7 +5475,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     </div>
 
     <div id="tdTab-alltasks" style="display:none;">
-      <div id="tdTasksKpiGrid" class="kpi-grid" style="grid-template-columns:repeat(3,minmax(140px,1fr));margin-bottom:16px;"></div>
+      <div id="tdTasksKpiGrid" class="kpi-grid" style="grid-template-columns:repeat(4,minmax(140px,1fr));margin-bottom:16px;"></div>
       <div class="td-table-card">
         <div class="table-scroll">
         <table>
@@ -5496,7 +5496,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
     </div>
 
     <div id="tdMyTasksView" style="display:none;">
-      <div id="tdMyTasksKpiGrid" class="kpi-grid" style="grid-template-columns:repeat(3,minmax(140px,1fr));margin-bottom:16px;"></div>
+      <div id="tdMyTasksKpiGrid" class="kpi-grid" style="grid-template-columns:repeat(4,minmax(140px,1fr));margin-bottom:16px;"></div>
       <div class="td-table-card">
         <div class="table-scroll">
         <table>
@@ -5684,7 +5684,7 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
               <input type="date" id="tdDetailTentativeInput" onchange="tdDetailSaveTentativeDate()"
                 style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:0.85rem;font-family:inherit;">
             </div>
-            <button id="tdDetailStatusBtn" onclick="tdDetailToggleStatus()" style="padding:9px 18px;border-radius:8px;border:none;background:#00d4aa;color:#04231d;font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit;white-space:nowrap;">✅ Mark Completed</button>
+            <div id="tdDetailStatusGroup" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
           </div>
         </div>
 
@@ -7188,6 +7188,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/fieldservice.js?v=20260832"></script>
 <script src="js/fieldservice-dashboard.js?v=20260833"></script>
 <script src="js/hrEmployee.js?v=20260805"></script>
-<script src="js/taskDelegation.js?v=20260844"></script>
+<script src="js/taskDelegation.js?v=20260845"></script>
 <script src="js/homeContent.js?v=20260817"></script>
 </body></html>
