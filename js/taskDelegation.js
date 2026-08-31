@@ -1,7 +1,15 @@
 // Section: Task Delegation (MD delegates tasks to specific employees; assignees manage their own list)
 // Tables (Supabase): delegation_assignees (id, emp_id, employee_name, email_id, is_active, added_by, added_at)
 //                    delegation_tasks (id, task_title, task_description, assigned_to_email, assigned_by,
-//                    due_date, status, note, tentative_date, completed_at, created_at, updated_at)
+//                    due_date, status, note, tentative_date, completed_at, created_at, updated_at,
+//                    source_recurring_template_id)
+//                    delegation_task_assignees (id, task_id, assignee_email, added_at) — many-to-many;
+//                    this (not assigned_to_email) is the RLS source of truth for who can see/edit a
+//                    task. assigned_to_email is kept in sync with the first-selected assignee only as
+//                    a denormalized "primary assignee" convenience column (migration 0038).
+//                    delegation_recurring_templates / delegation_recurring_template_assignees — MD-only
+//                    config read by the daily delegation_generate_recurring_tasks() pg_cron job, which
+//                    stamps generated delegation_tasks rows with source_recurring_template_id.
 // Access: MD (chirag@adititracking.com) always gets the full Manage view (assignees + all tasks).
 // Anyone else whose email matches an active delegation_assignees row gets a read-mostly "My Tasks"
 // view (only note + tentative_date + completed toggle are editable — title/description/due date/
@@ -126,17 +134,52 @@ async function loadTaskDelegation(){
   tdRender();
 }
 
+// taskId -> [assignee_email, ...], rebuilt whenever delegation_task_assignees is refetched.
+// MD-only — an assignee's own "My Tasks" view never needs co-assignees, only its own rows.
+let _tdTaskAssigneeMap = new Map();
+function _tdRebuildTaskAssigneeMap(links){
+  _tdTaskAssigneeMap = new Map();
+  for (const l of (links || [])) {
+    if (!_tdTaskAssigneeMap.has(l.task_id)) _tdTaskAssigneeMap.set(l.task_id, []);
+    _tdTaskAssigneeMap.get(l.task_id).push(l.assignee_email);
+  }
+}
+// Falls back to assigned_to_email for a task whose junction rows haven't loaded/exist yet
+// (defensive only — every task written by this module always gets a junction row too).
+function _tdAssigneeEmailsForTask(t){
+  const list = _tdTaskAssigneeMap.get(t.id);
+  if (list && list.length) return list;
+  return t.assigned_to_email ? [t.assigned_to_email] : [];
+}
+function _tdAssigneeNamesForTask(t){
+  const emails = _tdAssigneeEmailsForTask(t);
+  if (!emails.length) return '—';
+  return emails.map(e => {
+    const a = _tdAssignees.find(a => a.email_id === e);
+    return a ? a.employee_name : e;
+  }).join(', ');
+}
+function _tdTaskHasAssignee(t, email){
+  if (!email) return true;
+  return _tdAssigneeEmailsForTask(t).includes(email);
+}
+
 async function _tdFetchAll(){
   if (_tdIsMD()) {
-    const [assigneesRes, tasksRes] = await Promise.all([
+    const [assigneesRes, tasksRes, taskAssigneesRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/delegation_assignees?select=*&order=employee_name.asc`, { headers: SB_HDRS() }),
-      fetch(`${SUPABASE_URL}/rest/v1/delegation_tasks?select=*&order=created_at.desc`, { headers: SB_HDRS() })
+      fetch(`${SUPABASE_URL}/rest/v1/delegation_tasks?select=*&order=created_at.desc`, { headers: SB_HDRS() }),
+      fetch(`${SUPABASE_URL}/rest/v1/delegation_task_assignees?select=*`, { headers: SB_HDRS() })
     ]);
     _tdAssignees = assigneesRes.ok ? await assigneesRes.json() : [];
     _tdTasks     = tasksRes.ok ? await tasksRes.json() : [];
+    _tdRebuildTaskAssigneeMap(taskAssigneesRes.ok ? await taskAssigneesRes.json() : []);
   } else {
+    // No assigned_to_email filter here — RLS (delegation_task_assignees junction check) is the
+    // real scoping, and filtering on the denormalized primary-assignee column would hide tasks
+    // where this user is a secondary (non-primary) assignee.
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/delegation_tasks?select=*&assigned_to_email=ilike.${encodeURIComponent(CURRENT_USER.email)}&order=due_date.asc`,
+      `${SUPABASE_URL}/rest/v1/delegation_tasks?select=*&order=due_date.asc`,
       { headers: SB_HDRS() }
     );
     _tdTasks = res.ok ? await res.json() : [];
@@ -322,7 +365,7 @@ function tdApplyTaskFilters(){
 function tdRenderAllTasksKpis(){
   const grid = document.getElementById('tdTasksKpiGrid');
   if (!grid) return;
-  const scoped = _tdFilterAssignee ? _tdTasks.filter(t => t.assigned_to_email === _tdFilterAssignee) : _tdTasks;
+  const scoped = _tdFilterAssignee ? _tdTasks.filter(t => _tdTaskHasAssignee(t, _tdFilterAssignee)) : _tdTasks;
   const completed = scoped.filter(t => t.status === 'completed').length;
   const total = scoped.length;
   const kpis = [
@@ -347,7 +390,7 @@ function tdRenderAllTasksTable(){
   tdRenderAllTasksKpis();
   const tbody = document.getElementById('tdAllTasksBody');
   let rows = _tdTasks;
-  if (_tdFilterAssignee) rows = rows.filter(t => t.assigned_to_email === _tdFilterAssignee);
+  if (_tdFilterAssignee) rows = rows.filter(t => _tdTaskHasAssignee(t, _tdFilterAssignee));
   if (_tdActiveKpi === 'pending')   rows = rows.filter(t => t.status !== 'completed');
   if (_tdActiveKpi === 'completed') rows = rows.filter(t => t.status === 'completed');
   if (!rows.length) {
@@ -355,14 +398,14 @@ function tdRenderAllTasksTable(){
     return;
   }
   tbody.innerHTML = rows.map(t => {
-    const assignee = _tdAssignees.find(a => a.email_id === t.assigned_to_email);
     const statusBadge = t.status === 'completed'
       ? _tdChip('✅ Completed', '#00d4aa22', '#00d4aa')
       : _tdChip('⏳ Pending', '#f0a50022', '#f0a500');
+    const recurringBadge = t.source_recurring_template_id ? ' ' + _tdChip('🔁 Recurring', '#818cf822', '#818cf8') : '';
     return `
       <tr onclick="tdOpenTaskDetailModal('${t.id}')" style="cursor:pointer;">
-        <td>${_tdEsc(t.task_title)}</td>
-        <td>${_tdEsc(assignee ? assignee.employee_name : t.assigned_to_email)}</td>
+        <td>${_tdEsc(t.task_title)}${recurringBadge}</td>
+        <td>${_tdEsc(_tdAssigneeNamesForTask(t))}</td>
         <td>${_tdFmtDate(t.due_date)}</td>
         <td>${statusBadge}</td>
         <td style="color:var(--muted);font-size:0.8rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_tdEsc(t.note || '—')}</td>
@@ -382,9 +425,8 @@ function tdOpenTaskDetailModal(id){
   const t = _tdTasks.find(x => String(x.id) === String(id));
   if (!t) return;
   _tdDetailTaskId = id;
-  const assignee = _tdAssignees.find(a => a.email_id === t.assigned_to_email);
   document.getElementById('tdDetailTitle').textContent = t.task_title || '';
-  document.getElementById('tdDetailAssignee').textContent = assignee ? assignee.employee_name : (t.assigned_to_email || '—');
+  document.getElementById('tdDetailAssignee').textContent = _tdAssigneeNamesForTask(t);
   document.getElementById('tdDetailAssignedBy').textContent = t.assigned_by || '—';
   document.getElementById('tdDetailDueDate').textContent = _tdFmtDate(t.due_date);
   document.getElementById('tdDetailTentativeDate').textContent = t.tentative_date ? _tdFmtDate(t.tentative_date) : 'Not set yet';
@@ -704,72 +746,241 @@ async function _tdUploadAttachment(taskId, file){
 }
 
 // ── New/Edit Task modal (MD) ─────────────────────────────────────────────
+// ── Assign To: checkbox-dropdown multi-select ────────────────────────────
+// No existing "pick multiple people" widget in the portal to match, so this reuses the
+// checkbox-row look of the (otherwise unwired) .fms-product-item class rather than inventing
+// a new visual pattern.
+let _tdAssigneeMultiOptions   = []; // [{email_id, employee_name}] offered in the open modal
+let _tdSelectedAssigneeEmails = []; // working selection for the open modal
+function tdToggleAssigneeMultiDropdown(){
+  const list = document.getElementById('tdTaskAssigneeMultiList');
+  if (list) list.style.display = list.style.display === 'none' ? 'block' : 'none';
+}
+function tdToggleAssigneeSelection(email, isChecked){
+  if (isChecked) {
+    if (!_tdSelectedAssigneeEmails.includes(email)) _tdSelectedAssigneeEmails.push(email);
+  } else {
+    _tdSelectedAssigneeEmails = _tdSelectedAssigneeEmails.filter(e => e !== email);
+  }
+  _tdRenderAssigneeMultiDropdown();
+}
+function _tdRenderAssigneeMultiDropdown(){
+  const list  = document.getElementById('tdTaskAssigneeMultiList');
+  const label = document.getElementById('tdTaskAssigneeMultiLabel');
+  if (!list || !label) return;
+  list.innerHTML = _tdAssigneeMultiOptions.map(a => {
+    const checked = _tdSelectedAssigneeEmails.includes(a.email_id);
+    return `<label class="fms-product-item" style="padding:8px 10px;">
+      <input type="checkbox" ${checked ? 'checked' : ''} onclick="event.stopPropagation()" onchange="tdToggleAssigneeSelection('${a.email_id}', this.checked)">
+      <span>${_tdEsc(a.employee_name)}</span>
+    </label>`;
+  }).join('');
+  label.textContent = _tdSelectedAssigneeEmails.length
+    ? _tdSelectedAssigneeEmails.map(email => {
+        const a = _tdAssigneeMultiOptions.find(o => o.email_id === email);
+        return a ? a.employee_name.replace(/ \(inactive\)$/, '') : email;
+      }).join(', ')
+    : 'Select assignees…';
+}
+document.addEventListener('click', function(e){
+  const wrap = document.getElementById('tdTaskAssigneeMultiWrap');
+  const list = document.getElementById('tdTaskAssigneeMultiList');
+  if (wrap && list && list.style.display !== 'none' && !wrap.contains(e.target)) list.style.display = 'none';
+});
+
+// ── Frequency: One-time (default) vs Daily/Weekly/Monthly ────────────────
+function tdOnFrequencyChange(){
+  const freq = document.getElementById('tdTaskFrequency').value;
+  const isRecurring = freq !== 'one_time';
+  document.getElementById('tdTaskDueDateGroup').style.display    = isRecurring ? 'none' : '';
+  document.getElementById('tdTaskRecurrenceDates').style.display = isRecurring ? 'grid' : 'none';
+  if (isRecurring) {
+    const startInput = document.getElementById('tdTaskStartDate');
+    if (!startInput.value) startInput.value = document.getElementById('tdTaskDueDate').value || '';
+  }
+}
+function _tdAdvanceDate(dateStr, frequency){
+  const d = new Date(dateStr + 'T00:00:00');
+  if (frequency === 'daily')   d.setDate(d.getDate() + 1);
+  if (frequency === 'weekly')  d.setDate(d.getDate() + 7);
+  if (frequency === 'monthly') d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 function tdOpenTaskModal(taskId){
   _tdEditingTaskId = taskId;
-  const sel = document.getElementById('tdTaskAssignee');
   const t = taskId ? _tdTasks.find(x => String(x.id) === String(taskId)) : null;
   let options = _tdAssignees.filter(a => a.is_active);
+  const currentEmails = t ? _tdAssigneeEmailsForTask(t) : [];
   // If the task is currently assigned to someone who's since been deactivated, the active-only
-  // list above won't contain them — without this, setting sel.value below would silently fall
-  // back to whatever option happens to be first, reassigning the task on save without the MD
-  // ever having touched the Assign To field.
-  if (t && t.assigned_to_email && !options.some(a => a.email_id === t.assigned_to_email)) {
-    const current = _tdAssignees.find(a => a.email_id === t.assigned_to_email);
-    options = [{ email_id: t.assigned_to_email, employee_name: (current ? current.employee_name : t.assigned_to_email) + ' (inactive)' }, ...options];
-  }
-  sel.innerHTML = options.map(a => `<option value="${_tdEsc(a.email_id)}">${_tdEsc(a.employee_name)}</option>`).join('');
+  // list above won't contain them — without this, opening the modal would silently drop them
+  // from the selection, unassigning them on save without the MD ever having touched anything.
+  currentEmails.forEach(email => {
+    if (!options.some(a => a.email_id === email)) {
+      const known = _tdAssignees.find(a => a.email_id === email);
+      options.push({ email_id: email, employee_name: (known ? known.employee_name : email) + ' (inactive)' });
+    }
+  });
+  _tdAssigneeMultiOptions   = options;
+  _tdSelectedAssigneeEmails = currentEmails.slice();
+  document.getElementById('tdTaskAssigneeMultiList').style.display = 'none';
+  _tdRenderAssigneeMultiDropdown();
+
+  const freqRow = document.getElementById('tdTaskFrequencyRow');
   if (taskId) {
     document.getElementById('tdTaskModalTitle').textContent = 'Edit Task';
     document.getElementById('tdTaskTitle').value = t.task_title || '';
     document.getElementById('tdTaskDescription').value = t.task_description || '';
-    sel.value = t.assigned_to_email || '';
     document.getElementById('tdTaskDueDate').value = t.due_date || '';
+    // Recurrence is configured once at template-creation time (+ New Task), not per generated
+    // instance — editing an existing task never touches delegation_recurring_templates.
+    freqRow.style.display = 'none';
+    document.getElementById('tdTaskDueDateGroup').style.display = '';
+    document.getElementById('tdTaskRecurrenceDates').style.display = 'none';
   } else {
     document.getElementById('tdTaskModalTitle').textContent = 'New Task';
     document.getElementById('tdTaskTitle').value = '';
     document.getElementById('tdTaskDescription').value = '';
     document.getElementById('tdTaskDueDate').value = '';
+    document.getElementById('tdTaskStartDate').value = '';
+    document.getElementById('tdTaskEndDate').value = '';
+    freqRow.style.display = '';
+    document.getElementById('tdTaskFrequency').value = 'one_time';
+    tdOnFrequencyChange();
   }
   document.getElementById('tdTaskModalOverlay').classList.add('open');
 }
 function tdCloseTaskModal(){
   document.getElementById('tdTaskModalOverlay').classList.remove('open');
+  document.getElementById('tdTaskAssigneeMultiList').style.display = 'none';
   _tdEditingTaskId = null;
 }
 async function tdSaveTask(){
   if (!CURRENT_USER) return;
   const title       = document.getElementById('tdTaskTitle').value.trim();
   const description = document.getElementById('tdTaskDescription').value.trim();
-  const assignedTo  = document.getElementById('tdTaskAssignee').value;
   const dueDate     = document.getElementById('tdTaskDueDate').value || null;
+  const assignees   = _tdSelectedAssigneeEmails.slice();
   if (!title) { alert('❌ Task title is required.'); return; }
-  if (!assignedTo) { alert('❌ Please choose an assignee.'); return; }
+  if (!assignees.length) { alert('❌ Please choose at least one assignee.'); return; }
+
+  const isEditing  = !!_tdEditingTaskId;
+  const frequency  = (!isEditing) ? document.getElementById('tdTaskFrequency').value : 'one_time';
+  let startDate = dueDate;
+  let endDate   = null;
+  if (frequency !== 'one_time') {
+    startDate = document.getElementById('tdTaskStartDate').value || dueDate;
+    endDate   = document.getElementById('tdTaskEndDate').value || null;
+    if (!startDate) { alert('❌ Please choose a start date.'); return; }
+  }
+
   const btn = document.getElementById('tdTaskSaveBtn');
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
-    const payload = {
-      task_title:        title,
-      task_description:  description,
-      assigned_to_email: assignedTo,
-      due_date:          dueDate,
-      updated_at:        new Date().toISOString()
-    };
-    if (_tdEditingTaskId) {
+    if (isEditing) {
+      const payload = {
+        task_title:        title,
+        task_description:  description,
+        assigned_to_email: assignees[0],
+        due_date:          dueDate,
+        updated_at:        new Date().toISOString()
+      };
       const res = await fetch(`${SUPABASE_URL}/rest/v1/delegation_tasks?id=eq.${_tdEditingTaskId}`, {
         method: 'PATCH', headers: SB_HDRS_MIN(), body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error(await res.text());
-      Object.assign(_tdTasks.find(t => String(t.id) === String(_tdEditingTaskId)), payload);
-    } else {
-      payload.assigned_by = CURRENT_USER.email;
-      payload.status      = 'pending';
-      payload.created_at  = new Date().toISOString();
+      const t = _tdTasks.find(x => String(x.id) === String(_tdEditingTaskId));
+      Object.assign(t, payload);
+
+      const prevEmails = _tdTaskAssigneeMap.get(_tdEditingTaskId) || [];
+      const toAdd    = assignees.filter(e => !prevEmails.includes(e));
+      const toRemove = prevEmails.filter(e => !assignees.includes(e));
+      if (toRemove.length) {
+        const inList = toRemove.map(e => encodeURIComponent(e)).join(',');
+        await fetch(`${SUPABASE_URL}/rest/v1/delegation_task_assignees?task_id=eq.${_tdEditingTaskId}&assignee_email=in.(${inList})`, {
+          method: 'DELETE', headers: SB_HDRS_MIN()
+        });
+      }
+      if (toAdd.length) {
+        await fetch(`${SUPABASE_URL}/rest/v1/delegation_task_assignees`, {
+          method: 'POST', headers: SB_HDRS_MIN(),
+          body: JSON.stringify(toAdd.map(email => ({ task_id: _tdEditingTaskId, assignee_email: email })))
+        });
+      }
+      _tdTaskAssigneeMap.set(_tdEditingTaskId, assignees.slice());
+      // Only the newly-added assignees get notified — anyone already on the task doesn't get a
+      // duplicate email just because it was edited.
+      if (toAdd.length) _tdSendAssignmentEmails(t, toAdd);
+    } else if (frequency === 'one_time') {
+      const payload = {
+        task_title:        title,
+        task_description:  description,
+        assigned_to_email: assignees[0],
+        due_date:          dueDate,
+        assigned_by:       CURRENT_USER.email,
+        status:            'pending',
+        created_at:        new Date().toISOString()
+      };
       const res = await fetch(`${SUPABASE_URL}/rest/v1/delegation_tasks`, {
         method: 'POST', headers: SB_HDRS_REPR(), body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error(await res.text());
       const [saved] = await res.json();
+      await fetch(`${SUPABASE_URL}/rest/v1/delegation_task_assignees`, {
+        method: 'POST', headers: SB_HDRS_MIN(),
+        body: JSON.stringify(assignees.map(email => ({ task_id: saved.id, assignee_email: email })))
+      });
+      _tdTaskAssigneeMap.set(saved.id, assignees.slice());
       _tdTasks.unshift(saved);
+      _tdSendAssignmentEmails(saved, assignees);
+    } else {
+      // Recurring: create the template (advanced past today, to the *next* occurrence) AND the
+      // first occurrence as a normal task right away, so MD/assignees see it immediately instead
+      // of waiting for tomorrow's cron run. The cron's delegation_generate_recurring_tasks() picks
+      // up generation from here on.
+      const tmplPayload = {
+        task_title:       title,
+        task_description: description,
+        frequency,
+        start_date:       startDate,
+        next_run_date:    _tdAdvanceDate(startDate, frequency),
+        end_date:         endDate,
+        is_active:        true,
+        created_by:       CURRENT_USER.email,
+        created_at:       new Date().toISOString()
+      };
+      const tmplRes = await fetch(`${SUPABASE_URL}/rest/v1/delegation_recurring_templates`, {
+        method: 'POST', headers: SB_HDRS_REPR(), body: JSON.stringify(tmplPayload)
+      });
+      if (!tmplRes.ok) throw new Error(await tmplRes.text());
+      const [tmpl] = await tmplRes.json();
+      await fetch(`${SUPABASE_URL}/rest/v1/delegation_recurring_template_assignees`, {
+        method: 'POST', headers: SB_HDRS_MIN(),
+        body: JSON.stringify(assignees.map(email => ({ template_id: tmpl.id, assignee_email: email })))
+      });
+
+      const taskPayload = {
+        task_title:                   title,
+        task_description:             description,
+        assigned_to_email:            assignees[0],
+        due_date:                     startDate,
+        assigned_by:                  CURRENT_USER.email,
+        status:                       'pending',
+        created_at:                   new Date().toISOString(),
+        source_recurring_template_id: tmpl.id
+      };
+      const taskRes = await fetch(`${SUPABASE_URL}/rest/v1/delegation_tasks`, {
+        method: 'POST', headers: SB_HDRS_REPR(), body: JSON.stringify(taskPayload)
+      });
+      if (!taskRes.ok) throw new Error(await taskRes.text());
+      const [savedTask] = await taskRes.json();
+      await fetch(`${SUPABASE_URL}/rest/v1/delegation_task_assignees`, {
+        method: 'POST', headers: SB_HDRS_MIN(),
+        body: JSON.stringify(assignees.map(email => ({ task_id: savedTask.id, assignee_email: email })))
+      });
+      _tdTaskAssigneeMap.set(savedTask.id, assignees.slice());
+      _tdTasks.unshift(savedTask);
+      _tdSendAssignmentEmails(savedTask, assignees);
     }
     tdCloseTaskModal();
     tdRenderAllTasksTable();
@@ -778,6 +989,29 @@ async function tdSaveTask(){
   } finally {
     btn.disabled = false; btn.textContent = '💾 Save Task';
   }
+}
+
+// ── Assignment email (Resend, via the send-delegation-task-email Edge Function) ──────────────
+// Fire-and-forget: a failed/slow send should never block the save flow or the modal closing.
+// Cron-generated recurring occurrences never call this — delegation_generate_recurring_tasks()
+// is a pure SQL function with no HTTP call, so daily-generated instances can't spam assignees.
+function _tdSendAssignmentEmails(task, emails){
+  if (!emails || !emails.length) return;
+  const assigneePayload = emails.map(email => {
+    const a = _tdAssignees.find(a => a.email_id === email);
+    return { email, name: a ? a.employee_name : email };
+  });
+  fetch(`${SUPABASE_URL}/functions/v1/send-delegation-task-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      task_title:       task.task_title,
+      task_description: task.task_description,
+      due_date:         task.due_date,
+      assigned_by:      CURRENT_USER.email,
+      assignees:        assigneePayload
+    })
+  }).catch(e => console.warn('Task assignment email failed to send:', e));
 }
 
 // ── Assignee: My Tasks ───────────────────────────────────────────────────

@@ -5549,14 +5549,38 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
       <label class="fms-form-label">Description</label>
       <textarea id="tdTaskDescription" class="fms-form-input" rows="3" placeholder="Task description"></textarea>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-      <div class="fms-form-group">
-        <label class="fms-form-label">Assign To *</label>
-        <select id="tdTaskAssignee" class="fms-form-input"></select>
+    <div class="fms-form-group">
+      <label class="fms-form-label">Assign To *</label>
+      <div id="tdTaskAssigneeMultiWrap" style="position:relative;">
+        <button type="button" id="tdTaskAssigneeMultiBtn" onclick="tdToggleAssigneeMultiDropdown()" class="fms-form-input" style="text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span id="tdTaskAssigneeMultiLabel" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Select assignees…</span><span style="flex-shrink:0;color:var(--muted);">▾</span>
+        </button>
+        <div id="tdTaskAssigneeMultiList" style="display:none;position:absolute;z-index:20;top:calc(100% + 4px);left:0;right:0;max-height:220px;overflow-y:auto;background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.18);padding:4px;box-sizing:border-box;"></div>
       </div>
-      <div class="fms-form-group">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div class="fms-form-group" id="tdTaskDueDateGroup">
         <label class="fms-form-label">Due Date</label>
         <input type="date" id="tdTaskDueDate" class="fms-form-input">
+      </div>
+      <div class="fms-form-group" id="tdTaskFrequencyRow">
+        <label class="fms-form-label">Frequency</label>
+        <select id="tdTaskFrequency" class="fms-form-input" onchange="tdOnFrequencyChange()">
+          <option value="one_time">One-time</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+    </div>
+    <div id="tdTaskRecurrenceDates" style="display:none;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div class="fms-form-group">
+        <label class="fms-form-label">Start Date</label>
+        <input type="date" id="tdTaskStartDate" class="fms-form-input">
+      </div>
+      <div class="fms-form-group">
+        <label class="fms-form-label">End Date (optional)</label>
+        <input type="date" id="tdTaskEndDate" class="fms-form-input">
       </div>
     </div>
     <div style="display:flex;gap:0.75rem;margin-top:1.2rem;">
@@ -7164,6 +7188,6 @@ CREATE POLICY "Allow select for all" ON activity_logs FOR SELECT USING (true);</
 <script src="js/fieldservice.js?v=20260832"></script>
 <script src="js/fieldservice-dashboard.js?v=20260833"></script>
 <script src="js/hrEmployee.js?v=20260805"></script>
-<script src="js/taskDelegation.js?v=20260843"></script>
+<script src="js/taskDelegation.js?v=20260844"></script>
 <script src="js/homeContent.js?v=20260817"></script>
 </body></html>
