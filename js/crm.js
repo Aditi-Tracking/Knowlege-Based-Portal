@@ -244,7 +244,7 @@ function crmClearSelection(){
 function crmRenderTable(data){
   const tb=document.getElementById('crm-tbl-body'); if(!tb)return;
   if(!data.length){tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No companies found</td></tr>';return;}
-  const ec={'guddu':'#6366f1','darshil':'#f59e0b','nitasha':'#10b981'};
+  const ec={'guddu':'#6366f1','darshil':'#f59e0b','chirag gupta':'#ef4444','ankush':'#0ea5e9','kinchit':'#a855f7','priyanka':'#ec4899','disha':'#14b8a6'};
   tb.innerHTML=data.map((r,i)=>{
     const tc=r.tier==='Platinum'?'tb-plat':r.tier==='Gold'?'tb-gold':'tb-silv';
     const ti=r.tier==='Platinum'?'💎':r.tier==='Gold'?'🥇':'🥈';
