@@ -48,8 +48,17 @@ async function _fsdRenderFilters(){
   if (!bar) return;
   const viewAll = _fsCanViewAll();
   bar.innerHTML = `
-    <input class="filter-input" id="fsdFrom" type="date" onchange="_fsdOnFilterChange()" title="From date">
-    <input class="filter-input" id="fsdTo" type="date" onchange="_fsdOnFilterChange()" title="To date">
+    <select class="filter-select" id="fsdRangePreset" onchange="_fsdOnPresetChange()">
+      <option value="yesterday">Yesterday</option>
+      <option value="7d">Last 7 Days</option>
+      <option value="30d" selected>Last 30 Days</option>
+      <option value="3m">Last 3 Months</option>
+      <option value="6m">Last 6 Months</option>
+      <option value="alltime">All Time</option>
+      <option value="custom">Custom</option>
+    </select>
+    <input class="filter-input" id="fsdFrom" type="date" onchange="_fsdOnFilterChange()" title="From date" style="display:none;">
+    <input class="filter-input" id="fsdTo" type="date" onchange="_fsdOnFilterChange()" title="To date" style="display:none;">
     <select class="filter-select" id="fsdJobType" onchange="_fsdOnFilterChange()">
       <option value="">All Job Types</option>
       ${Object.entries(JOB_TYPE_CONFIG).map(([k, c]) => `<option value="${k}">${c.label}</option>`).join('')}
@@ -78,18 +87,57 @@ function _fsdOnFilterChange(){
 }
 
 function _fsdClearFilters(){
-  const f = document.getElementById('fsdFrom');     if (f) f.value = '';
-  const t = document.getElementById('fsdTo');       if (t) t.value = '';
+  const p = document.getElementById('fsdRangePreset'); if (p) p.value = '30d';
+  const f = document.getElementById('fsdFrom');     if (f) { f.value = ''; f.style.display = 'none'; }
+  const t = document.getElementById('fsdTo');       if (t) { t.value = ''; t.style.display = 'none'; }
   const j = document.getElementById('fsdJobType');  if (j) j.value = '';
   const e = document.getElementById('fsdEngineer'); if (e) e.value = '';
   _fsdOnFilterChange();
 }
 
+// Preset -> custom-date-input visibility. Only "Custom" reveals the two
+// <input type="date"> pickers — every other preset computes its own bounds
+// (see _fsdPresetRange below) and the pickers stay hidden/unused.
+function _fsdOnPresetChange(){
+  const preset  = document.getElementById('fsdRangePreset').value;
+  const isCustom = preset === 'custom';
+  const fromEl = document.getElementById('fsdFrom');
+  const toEl   = document.getElementById('fsdTo');
+  if (fromEl) fromEl.style.display = isCustom ? '' : 'none';
+  if (toEl)   toEl.style.display   = isCustom ? '' : 'none';
+  _fsdOnFilterChange();
+}
+
+// Preset -> {from, to} as 'YYYY-MM-DD' local-calendar strings (see _fsdDateStr's
+// comment further down for why plain date strings are used instead of Date-object
+// comparisons). Every rolling preset anchors its end on today and counts back —
+// same convention the KPI tiles above already use for "Last 7 Days"/"This Week".
+// "All Time" is the one exception: it returns blank from/to so the query-building
+// code's existing `if (f.from)`/`if (f.to)` checks skip the date filter entirely —
+// the same no-bounds behavior the old unset date inputs used to produce.
+function _fsdPresetRange(preset){
+  if (preset === 'alltime') return { from: '', to: '' };
+  const now = new Date();
+  if (preset === 'yesterday') {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    return { from: _fsdDateStr(d), to: _fsdDateStr(d) };
+  }
+  const to = _fsdDateStr(now);
+  let from;
+  if (preset === '30d')     from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+  else if (preset === '3m') from = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+  else if (preset === '6m') from = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+  else                      from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6); // '7d' + fallback
+  return { from: _fsdDateStr(from), to };
+}
+
 function _fsdActiveFilters(){
   const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const preset = val('fsdRangePreset') || '30d';
+  const range  = preset === 'custom' ? { from: val('fsdFrom'), to: val('fsdTo') } : _fsdPresetRange(preset);
   return {
-    from:     val('fsdFrom'),
-    to:       val('fsdTo'),
+    from:     range.from,
+    to:       range.to,
     jobType:  val('fsdJobType'),
     engineer: val('fsdEngineer'),
   };
@@ -348,7 +396,7 @@ function _fsdRenderCharts(rows){
   if (_fsCanViewAll()) {
     if (engCard) engCard.style.display = 'block';
     const byEng = _fsdGroupSum(rows, 'engineer_id');
-    const engIds = [...byEng.keys()].sort((a, b) => byEng.get(b) - byEng.get(a)).slice(0, 10);
+    const engIds = [...byEng.keys()].sort((a, b) => byEng.get(b) - byEng.get(a));
     const engValues = engIds.map(id => byEng.get(id));
     const engMax = Math.max(0, ...engValues);
     const engCanvas = document.getElementById('fsdChartEngineers');

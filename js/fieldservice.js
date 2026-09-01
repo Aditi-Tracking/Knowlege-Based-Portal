@@ -75,8 +75,15 @@ const JOB_TYPE_CONFIG = {
     ],
     photoLabel: 'New Sim + New Vehicle Picture Upload'
   },
-  other: {
-    label: 'Other',
+  troubleshooting: {
+    label: 'Troubleshooting',
+    fields: [
+      { key: 'notes', label: 'Notes', type: 'textarea' },
+    ],
+    photoLabel: 'Upload Photo'
+  },
+  officework: {
+    label: 'Office Work',
     fields: [
       { key: 'notes', label: 'Notes', type: 'textarea' },
     ],
