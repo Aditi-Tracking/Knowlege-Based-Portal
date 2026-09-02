@@ -1,6 +1,6 @@
 // Section: IMS Dashboard (loadIMSDashboard, stock KPIs, charts, table)
 // ── CONFIG ────────────────────────────────────────────────────────
-const IMS_API_URL = 'https://script.googleusercontent.com/a/macros/adititracking.com/echo?user_content_key=AUkAhnRwPJXjjaqs1u_J4CxLrg0gPh0_f-Bn0eIwcG057_dzfUQD7818GSfHbdrphDwGuazt3_EAFC9apDz48LUFYJGD2oUaZcS-FAek-YJhYNCgMR1wWw7a2_fIMl46tEXcV7QgRA2zZ_C19MN9P5qQywh535O06mnLKJhFQokIW7Cb34YeI445kSF_gM8St_D0HgqPG7s_CRM64WCi3IVHwqdQ54P_yH1d9cfqG-7s8KSdbuLpyAv2rxxJkMOs3F-_PCOdfmpyEHGZ8hoo1uYiYu4BKvgYxQ5rma3qeIOSVqfY_AU4Qx0&lib=MeRHp2Bf7LTWgUgAzsd8SbI7QKfk-2PaQ'; // HQ
+const IMS_API_URL = 'https://script.google.com/macros/s/AKfycbwJopykJi1HJzqsbeMaCqx0iaFQCbq-UJo0IZvqR8uDMttjYDb0enqsmNAz-2GxYsWA/exec'; // HQ
 
 // ── Location-specific API URLs ─────────────────────────────────────
 // ⚠️ REPLACE these with actual Google Apps Script URLs for each location
