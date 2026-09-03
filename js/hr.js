@@ -313,7 +313,14 @@ function _holNormLoc(loc) {
   if (l.includes('goa'))       return 'Goa';
   if (l.includes('bangalore') || l.includes('bengaluru')) return 'Bangalore';
   if (l.includes('gujarat') || l.includes('surat') || l.includes('ahmedabad')) return 'Gujarat';
-  if (l.includes('mumbai') || l.includes('head office')) return 'Mumbai';
+  // Employee_details stores this as "HeadOffice" (no space) for most staff,
+  // while the Holiday List sheet's Location column may use "Head Office"
+  // (with a space) — match both, plus a hyphenated variant, or non-MIS users
+  // whose location comes through as "HeadOffice" never match any branch here
+  // and fall through to the raw-string branch below, which then never equals
+  // any normalized holiday row and silently shows "no holidays" for everyone
+  // but MIS (who picks a branch via the tabs instead of relying on this).
+  if (l.includes('mumbai') || l.includes('head office') || l.includes('headoffice') || l.includes('head-office')) return 'Mumbai';
   return loc || 'All';
 }
 
