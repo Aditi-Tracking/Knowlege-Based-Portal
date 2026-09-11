@@ -76,6 +76,8 @@ async function loadProducts() {
 // Products overlay using shared renderer
 function cnOpenProdOverlay(nodeId, catName) {
   // Reuse marketing overlay for products (same structure)
+  _hideAssessmentTab();   // Products has no Training/Assessment tabs — plain file grid only
+  switchMktTab('videos'); // reset tab state in case Training left the Assessment pane active
   const th = cnTheme(0);
   const iconEl = document.getElementById('mktOverlayIcon');
   if (iconEl) { iconEl.style.background = th.bg; iconEl.style.borderColor = th.border; iconEl.innerHTML = `<span style="font-size:1.4rem;">📂</span>`; }
