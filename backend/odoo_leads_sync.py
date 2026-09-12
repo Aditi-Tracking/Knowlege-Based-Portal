@@ -115,10 +115,30 @@ def get_last_synced_at():
     return None
 
 
-def set_last_synced_at(ts_iso):
-    supabase.table("sync_state").upsert(
-        {"job_name": JOB_NAME, "last_synced_at": ts_iso}, on_conflict="job_name"
-    ).execute()
+def set_last_synced_at(ts_iso, retries=3):
+    import time
+
+    for attempt in range(1, retries + 1):
+        try:
+            supabase.table("sync_state").upsert(
+                {"job_name": JOB_NAME, "last_synced_at": ts_iso},
+                on_conflict="job_name"
+            ).execute()
+
+            print(f"Successfully updated sync_state: {ts_iso}")
+            return True
+
+        except Exception as e:
+            print(
+                f"WARNING: Failed to update sync_state "
+                f"(attempt {attempt}/{retries}): {e}"
+            )
+
+            if attempt < retries:
+                time.sleep(2 ** attempt)
+
+    print("ERROR: Could not update sync_state after all retries.")
+    return False
 
 
 def fetch_stage_sequence_map():
