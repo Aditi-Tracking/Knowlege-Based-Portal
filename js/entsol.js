@@ -453,16 +453,17 @@ function esolRenderTable(){
   document.getElementById('esolTblCnt').textContent=tot+(isCt?' record':' school')+(tot!==1?'s':'');
   const tb=document.getElementById('esolTblBody');
   if(!pg.length){tb.innerHTML=`<tr><td colspan="${heads.length}"><div class="empty-state">No records found</div></td></tr>`;document.getElementById('esolPagBar').innerHTML='';return;}
-  tb.innerHTML=pg.map(r=>{
+  tb.innerHTML=pg.map((r,i)=>{
+    const dispSrNo=(ESOLp-1)*ESOLPP+i+1;
     if(isCt){
       const bc=r._Type==='Trial'?'badge-warm':'badge-won';
       const av=esolAvatar(r.customer);
-      return `<tr><td style="font-size:0.83rem;color:#94a0b8;font-variant-numeric:tabular-nums">${r.srNo??'—'}</td><td style="font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="esol-avatar" style="background:${av.color}">${av.initial}</span>${r.customer||'—'}</td><td><span class="badge ${bc}">${r._Type}</span></td><td style="font-size:0.83rem">${r.location||'—'}</td><td style="font-weight:700;color:#6d28d9;font-variant-numeric:tabular-nums">${(r.licenseCount||0).toLocaleString('en-IN')}</td></tr>`;
+      return `<tr><td style="font-size:0.83rem;color:#94a0b8;font-variant-numeric:tabular-nums">${dispSrNo}</td><td style="font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="esol-avatar" style="background:${av.color}">${av.initial}</span>${r.customer||'—'}</td><td><span class="badge ${bc}">${r._Type}</span></td><td style="font-size:0.83rem">${r.location||'—'}</td><td style="font-weight:700;color:#6d28d9;font-variant-numeric:tabular-nums">${(r.licenseCount||0).toLocaleString('en-IN')}</td></tr>`;
     }
     const sharePct=totLic?((r.licenseCount||0)/totLic)*100:0;
     const av=esolAvatar(r.school);
     const cbc=r._Type==='Trial'?'badge-warm':'badge-won';
-    return `<tr><td style="font-size:0.83rem;color:#94a0b8;font-variant-numeric:tabular-nums">${r.srNo??'—'}</td><td style="font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="esol-avatar" style="background:${av.color}">${av.initial}</span>${r.school||'—'}</td><td><span class="badge ${cbc}">${r._Type}</span></td><td style="font-size:0.83rem">${r.location||'—'}</td><td style="font-weight:700;color:#6d28d9;font-variant-numeric:tabular-nums">${(r.licenseCount||0).toLocaleString('en-IN')}</td><td style="font-weight:700;color:#f97316;font-variant-numeric:tabular-nums">${(r.buses||0).toLocaleString('en-IN')}</td><td><div class="esol-share-wrap"><div class="esol-share-track"><div class="esol-share-fill" style="width:${sharePct.toFixed(1)}%"></div></div><span style="font-size:0.79rem;color:#94a0b8;font-variant-numeric:tabular-nums">${sharePct.toFixed(1)}%</span></div></td></tr>`;
+    return `<tr><td style="font-size:0.83rem;color:#94a0b8;font-variant-numeric:tabular-nums">${dispSrNo}</td><td style="font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="esol-avatar" style="background:${av.color}">${av.initial}</span>${r.school||'—'}</td><td><span class="badge ${cbc}">${r._Type}</span></td><td style="font-size:0.83rem">${r.location||'—'}</td><td style="font-weight:700;color:#6d28d9;font-variant-numeric:tabular-nums">${(r.licenseCount||0).toLocaleString('en-IN')}</td><td style="font-weight:700;color:#f97316;font-variant-numeric:tabular-nums">${(r.buses||0).toLocaleString('en-IN')}</td><td><div class="esol-share-wrap"><div class="esol-share-track"><div class="esol-share-fill" style="width:${sharePct.toFixed(1)}%"></div></div><span style="font-size:0.79rem;color:#94a0b8;font-variant-numeric:tabular-nums">${sharePct.toFixed(1)}%</span></div></td></tr>`;
   }).join('');
   document.getElementById('esolPagBar').innerHTML=enPagerHTML(ESOLp,tp,'esolGoPage');
 }
