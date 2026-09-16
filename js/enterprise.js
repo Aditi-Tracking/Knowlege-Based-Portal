@@ -37,7 +37,7 @@ const EN_CALL_SUFFIX=['1st','2nd','3rd','4th','5th','6th'];
 function enStatusColor(v){
   const s=(v||'').toString().toLowerCase();
   if(s==='interested')return '#4e9af1';
-  if(s==='demo scheduled')return '#f0a500';
+  if(s==='demo scheduled'||s==='demo')return '#f0a500';
   if(s==='quotation')return '#a78bfa';
   if(s==='won')return '#00d4aa';
   if(s==='lost')return '#ff5c7c';
@@ -47,7 +47,7 @@ function enStatusColor(v){
 function enStatusBadge(v){
   const s=(v||'').toString().toLowerCase();
   if(s==='interested')return 'badge-cold';
-  if(s==='demo scheduled')return 'badge-warm';
+  if(s==='demo scheduled'||s==='demo')return 'badge-warm';
   if(s==='quotation')return 'badge-quote';
   if(s==='won')return 'badge-won';
   if(s==='lost')return 'badge-lost';
@@ -100,16 +100,21 @@ async function loadEnterprise(){
     }
     if(!Array.isArray(rows)||!rows.length)throw new Error('API returned empty or invalid data');
     EN=rows.map(r=>{
-      const calls=EN_CALL_SUFFIX.map(suf=>({
-        connected:(r[suf+' Call - Connected']||'').toString().trim(),
-        time:(r[suf+' Call - Time']||'').toString().trim(),
-        stage:(r[suf+' Call - Stage']||'').toString().trim()
-      }));
+      // The sheet's 1st-call block has bare "Connected"/"Time"/"Stage" headers
+      // (no "1st Call - " prefix like every later call) — its Stage cell is
+      // also the sheet's single authoritative "Master Stage" column, so that's
+      // what Won/Lost/Demo/Quotation counts are driven by, not the later calls.
+      const calls=EN_CALL_SUFFIX.map(suf=>{
+        const prefix=suf==='1st'?'':suf+' Call - ';
+        return{
+          connected:(r[prefix+'Connected']||'').toString().trim(),
+          time:(r[prefix+'Time']||'').toString().trim(),
+          stage:(r[prefix+'Stage']||'').toString().trim()
+        };
+      });
       const attempted=calls.filter(c=>c.connected);
       const connected=calls.filter(c=>c.connected==='Yes');
-      const stageSet=new Set(calls.map(c=>c.stage).filter(Boolean));
-      let currentStage='Not Contacted';
-      for(let i=calls.length-1;i>=0;i--){if(calls[i].stage){currentStage=calls[i].stage;break;}}
+      const masterStage=calls[0].stage||'Not Contacted';
       const entry=enParseEntry((r['Lead Entry']||'').toString().trim());
       const revenue=parseFloat(String(r['Revenue']||'').replace(/[^0-9.\-]/g,''))||0;
       return{
@@ -129,11 +134,11 @@ async function loadEnterprise(){
         _Revenue:revenue,
         _CallsMade:attempted.length,
         _Connected:connected.length,
-        _CurrentStage:currentStage,
-        _ReachedInterested:stageSet.has('Interested'),
-        _ReachedDemo:stageSet.has('Demo Scheduled'),
-        _ReachedQuotation:stageSet.has('Quotation'),
-        _ReachedWon:stageSet.has('Won')
+        _CurrentStage:masterStage,
+        _ReachedInterested:masterStage==='Interested',
+        _ReachedDemo:masterStage==='Demo',
+        _ReachedQuotation:masterStage==='Quotation',
+        _ReachedWon:masterStage==='Won'
       };
     }).filter(r=>r._Name);
     if(!EN.length)throw new Error('No data — could not detect a Lead Name column.');
