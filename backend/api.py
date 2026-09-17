@@ -733,10 +733,24 @@ def field_service_engineer_names():
     if not _has_field_service_view_all(caller_email):
         return jsonify({"error": "Forbidden"}), 403
 
-    # Distinct engineers who have actually submitted at least one entry
+    # Distinct engineers who have actually submitted at least one entry.
+    # PostgREST caps a single response at this project's "Max Rows" setting
+    # (1000) — with 1,293+ rows in field_service_entries, a single
+    # .execute() silently truncates and drops any engineer whose entries
+    # only appear past that cutoff. Page through with .range() until a
+    # short/empty batch signals the end.
     try:
-        entries_res = sb.table("field_service_entries").select("engineer_id").execute()
-        engineer_ids = sorted({r["engineer_id"] for r in (entries_res.data or []) if r.get("engineer_id")})
+        page_size = 1000
+        all_entry_rows = []
+        start = 0
+        while True:
+            res = sb.table("field_service_entries").select("engineer_id").range(start, start + page_size - 1).execute()
+            rows = res.data or []
+            all_entry_rows.extend(rows)
+            if len(rows) < page_size:
+                break
+            start += page_size
+        engineer_ids = sorted({r["engineer_id"] for r in all_entry_rows if r.get("engineer_id")})
     except Exception as e:
         return jsonify({"error": f"Database error: {str(e)}"}), 500
 
